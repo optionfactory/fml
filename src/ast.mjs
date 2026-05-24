@@ -1,7 +1,7 @@
 const nodes = {
-    ter: Symbol("tenary"),
+    ter: Symbol("ternary"),
     elv: Symbol("elvis"),
-    nullc: Symbol("null-coalescion"),
+    nullc: Symbol("null-coalescence"),
     or: Symbol("or"),
     and: Symbol("and"),
     eq: Symbol("eq"),
@@ -19,7 +19,7 @@ const nodes = {
     function: Symbol("module-function"),
     symbol: Symbol("symbol"),
     templated: {
-        ten: Symbol("templeted-node"),
+        ten: Symbol("templated-node"),
         teh: Symbol("templated-html"),
         tet: Symbol("templated-text"),
         tel: Symbol("templated-literal"),
