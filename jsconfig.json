@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
     "noImplicitAny": false,
     "strictFunctionTypes": true,
-    "strictPropertyInitialization": true,
     "strictBindCallApply": true,
     "noImplicitThis": true,
     "noImplicitReturns": true,
@@ -12,13 +15,9 @@
     "checkJs": true,
     "allowJs": true,
     "declaration": true,
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "node",
     "outDir": "dist"
   },
   "include": [
     "./src/**/*.mjs"
-  ],
-  "verbose": true
+  ]
 }
