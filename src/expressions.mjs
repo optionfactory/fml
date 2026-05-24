@@ -1,4 +1,3 @@
-// @ts-ignore
 import { parse } from "./expressions-parser.peggy";
 import { nodes } from "./ast.mjs";
 
