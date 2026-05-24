@@ -139,6 +139,23 @@ class CommandsHandler {
 }
 
 
+// Module-isolated string cache for dataset-to-attribute conversions
+const attributeCache = new Map();
+
+/**
+ * Converts a tpl camelCase dataset key into a kebab-case attribute name.
+ * Uses a cache lookup to avoid repetitive regex/string splitting.
+ * @param {string} dataSetKey 
+ * @returns {string}
+ */
+function toAttr(dataSetKey) {
+    let cached = attributeCache.get(dataSetKey);
+    if (!cached) {
+        cached = dataSetKey.substring(3).split(/(?=[A-Z])/).join('-').toLowerCase();
+        attributeCache.set(dataSetKey, cached);
+    }
+    return cached;
+}
 
 class Template {
     /**
@@ -311,7 +328,7 @@ class Template {
                     if(!dataSetKey.startsWith('tpl')){
                         continue;
                     }
-                    const attributeName = dataSetKey.substring('tpl'.length).split(/(?=[A-Z])/).join('-').toLowerCase();
+                    const attributeName = toAttr(dataSetKey);
                     try {
                         const expression = ops.popData(el, dataSetKey);
                         const evaluated = Expressions.interpret(this.#modules, this.#dataStack, expression);
