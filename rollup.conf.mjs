@@ -3,12 +3,13 @@ import terser from "@rollup/plugin-terser";
 import { createFilter } from '@rollup/pluginutils';
 import peggy from 'peggy';
 
+const isPeggy = createFilter(['*.peggy', '**/*.peggy'], []);
 
 class RollupPeggyWithSourceMap {
     name = 'rollup-plugin-peggy-with-source-map';
+    
     transform(grammar, id) {
-        const filter = createFilter(['*.peggy', '**/*.peggy'], []);
-        if (!filter(id)) {
+        if (!isPeggy(id)) {
             return null;
         }
         const generated = peggy.generate(grammar, {
@@ -18,7 +19,7 @@ class RollupPeggyWithSourceMap {
             format: 'es',
             cache: true
         });
-        const path = id.split("/");
+        
         const res = generated.toStringWithSourceMap({});
         return {
             code: res.code,
