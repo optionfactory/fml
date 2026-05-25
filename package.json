@@ -1,6 +1,6 @@
 {
     "name": "@optionfactory/ftl",
-    "version": "7.0.2",
+    "version": "7.0.3-dev.0",
     "type": "module",
     "main": "./dist/ftl.mjs",
     "module": "./dist/ftl.mjs",
@@ -34,7 +34,7 @@
         "clean": "rimraf dist && npm prune",
         "initialize": "npm install",
         "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info",
-        "build": "npx rollup --config rollup.conf.mjs"        
+        "build": "rollup --config rollup.conf.mjs" 
     },
     "devDependencies": {
         "@rollup/plugin-node-resolve": "^16.0.3",
@@ -42,6 +42,7 @@
         "jsdom": "^29.1.1",
         "peggy": "^5.1.0",
         "rimraf": "^6.1.3",
+        "rollup": "^4.18.0", 
         "typescript": "^6.0.3"
     }
 }
