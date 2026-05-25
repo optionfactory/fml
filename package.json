@@ -1,10 +1,16 @@
 {
     "name": "@optionfactory/ftl",
-    "version": "7.0.0",
+    "version": "7.0.1-dev.0",
     "type": "module",
-    "main": "dist/ftl.mjs",
-    "module": "dist/ftl.mjs",
-    "exports": "./dist/ftl.mjs",    
+    "main": "./dist/ftl.mjs",
+    "module": "./dist/ftl.mjs",
+    "types": "./dist/ftl.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/ftl.d.mts",
+            "import": "./dist/ftl.mjs"
+        }
+    },
     "files": [
         "dist"
     ],
@@ -28,7 +34,7 @@
         "clean": "rimraf dist && npm prune",
         "initialize": "npm install",
         "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info",
-        "build": "npx rollup --config rollup.conf.mjs"
+        "build": "npx rollup --config rollup.conf.mjs && tsc dist/ftl.mjs --allowJs --declaration --emitDeclarationOnly --outDir dist --target ES2024 --moduleResolution bundler"
     },
     "devDependencies": {
         "@rollup/plugin-node-resolve": "^16.0.3",
