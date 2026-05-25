@@ -88,8 +88,7 @@ class Attributes {
                     to.classList.add(...classes);
                     return;
                 }
-                // @ts-ignore
-                to.setAttribute(target, from.getAttribute(a));
+                to.setAttribute(target, /** @type {string} */ (from.getAttribute(a)));                
             });
     }
     /**
