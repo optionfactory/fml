@@ -1,6 +1,6 @@
 {
     "name": "@optionfactory/ftl",
-    "version": "7.0.3-dev.0",
+    "version": "7.0.3",
     "type": "module",
     "main": "./dist/ftl.mjs",
     "module": "./dist/ftl.mjs",
