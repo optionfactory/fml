@@ -2,6 +2,8 @@ import resolve from '@rollup/plugin-node-resolve';
 import terser from "@rollup/plugin-terser";
 import { createFilter } from '@rollup/pluginutils';
 import peggy from 'peggy';
+import { execSync } from 'child_process';
+import fs from 'fs';
 
 const isPeggy = createFilter(['*.peggy', '**/*.peggy'], []);
 
@@ -25,6 +27,26 @@ class RollupPeggyWithSourceMap {
             code: res.code,
             map: res.map.toString()
         };
+    }
+}
+
+class RollupTypeGenerator {
+    name = 'rollup-plugin-type-generator';
+
+    closeBundle() {
+        console.log('Post-processing: Extracting type definitions from dist/ftl.mjs...');
+        try {
+            execSync('npx tsc dist/ftl.mjs --allowJs --declaration --emitDeclarationOnly --outDir dist --target ES2024 --moduleResolution bundler --lib es2024,dom,dom.iterable', { stdio: 'inherit' });            
+            const declarationPath = 'dist/ftl.d.mts';
+            if (fs.existsSync(declarationPath)) {
+                fs.appendFileSync(declarationPath, '\nexport as namespace ftl;\n');
+                console.log('Successfully injected global namespace "ftl" into declarations.');
+            } else {
+                console.error('Error: dist/ftl.d.mts was not found!');
+            }
+        } catch (error) {
+            console.error('Type generation phase failed!', error);
+        }
     }
 }
 
@@ -58,6 +80,7 @@ export default {
     treeshake: true,
     plugins: [
         new RollupPeggyWithSourceMap(),
-        resolve()
+        resolve(),
+        new RollupTypeGenerator()
     ]
 };

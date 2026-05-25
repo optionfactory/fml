@@ -34,7 +34,7 @@
         "clean": "rimraf dist && npm prune",
         "initialize": "npm install",
         "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info",
-        "build": "npx rollup --config rollup.conf.mjs && tsc dist/ftl.mjs --allowJs --declaration --emitDeclarationOnly --outDir dist --target ES2024 --moduleResolution bundler --lib es2024,dom,dom.iterable"
+        "build": "npx rollup --config rollup.conf.mjs"        
     },
     "devDependencies": {
         "@rollup/plugin-node-resolve": "^16.0.3",
