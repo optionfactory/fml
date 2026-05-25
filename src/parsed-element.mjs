@@ -60,7 +60,7 @@
                 this.#disabledBeforeParsed = disabled;
                 return;
             }
-            this['disabled'] = disabled;
+            Reflect.set(this, 'disabled', disabled);
         }
         async upgrade() {
             if (this.#parsed) {
