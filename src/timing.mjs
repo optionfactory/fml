@@ -19,7 +19,7 @@ class Timing  {
         let previousTimestamp = 0;
 
         const later = () => {
-            const elapsed = new Date().getTime() - previousTimestamp;
+            const elapsed = performance.now() - previousTimestamp;            
             if (timeoutMs > elapsed) {
                 tid = setTimeout(later, timeoutMs - elapsed);
                 return;
@@ -36,7 +36,7 @@ class Timing  {
 
         const debounced = function () {
             args = [...arguments];
-            previousTimestamp = new Date().getTime();
+            previousTimestamp = performance.now();
             if (tid === null) {
                 tid = setTimeout(later, timeoutMs);
                 if (opts === Timing.DEBOUNCE_IMMEDIATE) {
@@ -64,7 +64,7 @@ class Timing  {
         let previousTimestamp = 0;
 
         const later = () => {
-            previousTimestamp = (opts & Timing.THROTTLE_NO_LEADING) ? 0 : new Date().getTime();
+            previousTimestamp = (opts & Timing.THROTTLE_NO_LEADING) ? 0 : performance.now();
             tid = null;
             func(...args);
             if (tid === null) {
@@ -72,11 +72,11 @@ class Timing  {
             }
         };
         const throttled = function () {
-            const now = new Date().getTime();
+            const now = performance.now();
             if (!previousTimestamp && (opts & Timing.THROTTLE_NO_LEADING)) {
                 previousTimestamp = now;
             }
-            const remaining = timeoutMs - (now - previousTimestamp);
+            const remaining = previousTimestamp === 0 ? 0 : timeoutMs - (now - previousTimestamp);
             args = [...arguments];
             if (remaining <= 0 || remaining > timeoutMs) {
                 if (tid !== null) {
