@@ -173,7 +173,7 @@ class HttpClientBuilder {
  */
 class HttpCall {
     async intercept(url, request, chain) {
-        return await fetch(new Request(url, request));
+        return await fetch(url, request);
     }
 }
 
