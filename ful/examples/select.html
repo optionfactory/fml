@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" integrity="sha256-oxqX0LQclbvrsJt8IymkxnISn4Np2Wy2rY9jjoQlDEg=" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha256-y3ibfOyBqlgBd+GzwFYQEVOZdNJD06HeDXihongBXKs=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" crossorigin="anonymous">
+
+    <script src="../node_modules/@optionfactory/ftl/dist/ftl.iife.js"></script>
+    <link href="../dist/ful.css" rel="stylesheet">
+    <script src="../dist/ful.iife.min.js"></script>
+    <script>
+        ftl.registry
+            .plugin(new ful.Plugin())
+            .configure();
+    </script>
+    <style>
+        ful-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+        ful-form form {
+            display: contents;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <ful-form class="col-6 border border-primary">
+                <h1>ful-select</h1>
+
+                <ful-select name="test.multi.select" value="test-key-4">
+                    <span slot="ibefore">@</span>
+                    A ful-select
+                    <select slot="options">
+                        <option value="test-key-1">test-label-1</option>
+                        <option value="test-key-2">test-label-2</option>
+                        <option value="test-key-3">test-label-3</option>
+                        <option value="test-key-4">test-label-4</option>
+                        <option value="test-key-5">test-label-5</option>
+                        <option value="test-key-6">test-label-6</option>
+                        <option value="test-key-7">test-label-7</option>
+                        <option value="test-key-8">test-label-8</option>
+                        <option value="test-key-9">test-label-9</option>
+                        <option value="test-key-10">test-label-10</option>
+                        <option value="test-key-11">test-label-11</option>
+                        <option value="test-key-12">test-label-12</option>
+                        <option value="test-key-13">test-label-13</option>
+                        <option value="test-key-14">test-label-14</option>
+                        <option value="test-key-15">test-label-15</option>
+                        <option value="test-key-16">test-label-16</option>
+                        <option value="test-key-17">test-label-17</option>
+                        <option value="test-key-18">test-label-18</option>
+                        <option value="test-key-19">test-label-19</option>
+                    </select>
+                </ful-select>
+                <ful-select>
+                    <span slot="ibefore">@</span>
+                    An empty select
+                </ful-select>
+
+                <ful-select name="test.multi.select" value="test-key-4">
+                    <span slot="ibefore">@</span>
+                    A ful select with a templated menu
+                    <select slot="options">
+                        <option value="test-key-1">test-label-1</option>
+                        <option value="test-key-2">test-label-2</option>
+                        <option value="test-key-3">test-label-3</option>
+                    </select>
+                    <template slot="dropdown">
+                        <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index" class="d-flex flex-row align-items-center gap-3">
+                            <div>
+                                <i class="bi bi-star"></i>
+                            </div>
+                            <div>
+                                <div>My custom option</div>
+                                <b>{{ label }}</b>
+                            </div>
+                        </li>
+                    </template>
+                </ful-select>
+
+
+                <ful-select multiple name="test.multi.select2">
+                    <span slot="ibefore">@</span>
+                    <select slot="options">
+                        <option value="test-key-1">test-label-1</option>
+                        <option value="test-key-2">test-label-2</option>
+                        <option value="test-key-3">test-label-3</option>
+                        <option value="test-key-4">test-label-4</option>
+                        <option value="test-key-5">test-label-5</option>
+                        <option value="test-key-6">test-label-6</option>
+                        <option value="test-key-7">test-label-7</option>
+                        <option value="test-key-8">test-label-8</option>
+                        <option value="test-key-9">test-label-9</option>
+                        <option value="test-key-10">test-label-10</option>
+                        <option value="test-key-11">test-label-11</option>
+                        <option value="test-key-12">test-label-12</option>
+                        <option value="test-key-13">test-label-13</option>
+                        <option value="test-key-14">test-label-14</option>
+                        <option value="test-key-15">test-label-15</option>
+                        <option value="test-key-16">test-label-16</option>
+                        <option value="test-key-17">test-label-17</option>
+                        <option value="test-key-18">test-label-18</option>
+                        <option value="test-key-19">test-label-19</option>
+                    </select>
+                    A ful-select with multiple
+                </ful-select>
+                <ful-select multiple itemlist name="test.multi.select2">
+                    <span slot="ibefore">@</span>
+                    <select slot="options">
+                        <option value="test-key-1">test-label-1</option>
+                        <option value="test-key-2">test-label-2</option>
+                        <option value="test-key-3">test-label-3</option>
+                        <option value="test-key-4">test-label-4</option>
+                        <option value="test-key-5">test-label-5</option>
+                        <option value="test-key-6">test-label-6</option>
+                        <option value="test-key-7">test-label-7</option>
+                        <option value="test-key-8">test-label-8</option>
+                        <option value="test-key-9">test-label-9</option>
+                        <option value="test-key-10">test-label-10</option>
+                        <option value="test-key-11">test-label-11</option>
+                        <option value="test-key-12">test-label-12</option>
+                        <option value="test-key-13">test-label-13</option>
+                        <option value="test-key-14">test-label-14</option>
+                        <option value="test-key-15">test-label-15</option>
+                        <option value="test-key-16">test-label-16</option>
+                        <option value="test-key-17">test-label-17</option>
+                        <option value="test-key-18">test-label-18</option>
+                        <option value="test-key-19">test-label-19</option>
+                    </select>
+                    A ful-select with multiple and itemlist
+                </ful-select>
+
+                <ful-select method="GET" src="https://jsonplaceholder.typicode.com/posts" revision="12" k-expr="id" l-expr="title">
+                    <span slot="ibefore">@</span>
+                    A ful select with revision
+                </ful-select>
+
+
+                <ful-select multiple itemlist method="GET" src="https://jsonplaceholder.typicode.com/posts" revision="12" k-expr="id" l-expr="title">
+                    <span slot="ibefore">@</span>
+                    A ful select with revision
+                </ful-select>
+
+                <div>
+                    <label for="bootstrap-select">A select styled with bootstrap</label>
+                    <div class="input-group">
+                        <select class="form-select" id="bootstrap-select">
+                            <option>1</option>
+                            <option>2</option>
+                            <option>3</option>
+                            <option>4</option>
+                        </select>
+                    </div>
+                </div>
+            </ful-form>
+        </div>
+    </div>
+    <script>
+        document.querySelector('[name="test.multi.select"]').addEventListener('change', e => {
+            console.log(e);
+        })
+    </script>
+</body>
+
+</html>

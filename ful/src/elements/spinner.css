@@ -1,0 +1,77 @@
+ful-spinner {
+    --ful-spinner-icon-width: 1rem;
+    --ful-spinner-icon-height: 1rem;
+    --ful-spinner-icon-border-width: 0.2em;
+    --ful-spinner-icon-vertical-align: -0.125em;
+    --ful-spinner-icon-animation-speed: 0.75s;
+    --ful-spinner-icon-animation-name: spinner-border;
+    --ful-spinner-icon-color: currentcolor;
+
+    &:not(:defined) {
+        visibility: hidden;
+    }
+
+    &.centered {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &.big {
+        --ful-spinner-icon-width: 2rem;
+        --ful-spinner-icon-height: 2rem;
+        --ful-spinner-icon-border-width: 0.25em;
+    }
+
+    &.bigger {
+        --ful-spinner-icon-width: 4rem;
+        --ful-spinner-icon-height: 4rem;
+        --ful-spinner-icon-border-width: 0.5em;
+    }
+
+    &.backdrop {
+        --ful-spinner-icon-width: 4rem;
+        --ful-spinner-icon-height: 4rem;
+        --ful-spinner-icon-border-width: 0.5em;
+
+        z-index: 2000;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        outline: 0;
+        background-color: rgb(167 167 167 / 80%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &>.ful-spinner-wrapper {
+            padding: 2rem;
+            background-color: white;
+            border-radius: 1rem;
+        }
+    }
+
+    &>.ful-spinner-wrapper {
+        display: inline;
+
+        &>.ful-spinner-icon {
+            display: inline-block;
+            width: var(--ful-spinner-icon-width);
+            height: var(--ful-spinner-icon-height);
+            vertical-align: var(--ful-spinner-icon-vertical-align);
+            border-radius: 50%;
+            border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
+            border-right-color: transparent;
+            animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
+        }
+    }
+
+}
+
+body:has(ful-spinner.backdrop:not([hidden])) {
+    overflow: hidden;
+}

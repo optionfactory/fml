@@ -1,0 +1,47 @@
+:root {
+
+    --ful-color: var(--bs-body-color, #212529);
+    --ful-bg: var(--bs-body-bg, #fff);
+
+    --ful-border-width: var(--bs-border-width, 1px);
+    --ful-border-radius: var(--bs-border-radius, 0.375rem);
+    --ful-border-color: var(--bs-border-color, #dee2e6);
+
+    --ful-disabled-bg: var(--bs-secondary-bg, #e9ecef);
+    --ful-selected-bg: var(--bs-tertiary-bg, #f8f9fa);
+
+    --ful-active-color: white;
+    --ful-active-bg: #007376;
+
+    --ful-focus-border-color: #86b7fe;
+    --ful-focus-box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+
+    --ful-invalid-color: var(--bs-form-invalid-color, #dc3545);
+    --ful-invalid-border-color: var(--bs-form-invalid-border-color, #dc3545);
+    --ful-invalid-box-shadow: 0 0 0 .25rem rgba(var(--bs-danger-rgb), .25);
+
+    --ful-error-color: var(--bs-danger-text-emphasis, #58151c);
+    --ful-error-bg: var(--bs-danger-bg-subtle, #f8d7da);
+    --ful-error-border-color: var(--bs-danger-border-subtle, #f1aeb5);
+
+    --ful-warning-color: var(--bs-warning-text-emphasis, #664d03);
+    --ful-warning-bg: var(--bs-warning-bg-subtle, #fff3cd);
+    --ful-warning-border-color: var(--bs-warning-border-subtle, #ffe69c);
+
+    --ful-scrollbar-bg: var(--bs-secondary-bg, #e9ecef);
+    --ful-scrollbar-thumb-bg: var(--ful-active-bg);
+    --ful-scrollbar-width: 12px;
+    --ful-scrollbar-border-width: 1px;
+
+
+    --ful-inputs-bg: var(--ful-bg);
+    --ful-inputs-border-width: var(--ful-border-width);
+    --ful-inputs-border-radius: var(--ful-border-radius);
+    --ful-inputs-border-color: var(--ful-border-color);
+
+}
+
+
+[hidden] {
+    display: none !important;
+}

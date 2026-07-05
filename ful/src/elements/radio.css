@@ -1,0 +1,83 @@
+ful-radio-group {
+    --ful-radio-group-label-border-color: var(--ful-border-color);
+    --ful-radio-group-label-bg: inherit;
+    --ful-radio-group-label-checked-border-color: var(--ful-active-bg);
+    --ful-radio-group-label-checked-bg: #eefbfb;
+    --ful-radio-group-label-disabled-border-color: var(--ful-border-color);
+    --ful-radio-group-label-disabled-bg: var(--ful-disabled-bg);
+    --ful-radio-group-active-bg: var(--ful-active-bg);
+
+    display: block;
+
+    &:not(:defined) {
+        visibility: hidden;
+    }
+
+    &[required] > fieldset > legend::before {
+        content: '* ';
+        display: inline;
+        font-weight: 700;
+        color: var(--ful-color);
+    }
+
+
+    &>fieldset {
+        &>legend {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        &>section {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: 1fr;
+
+            & label {
+                display: flex;
+                align-items: center;
+                border: 1px solid var(--ful-radio-group-label-border-color);
+                background-color: var(--ful-radio-group-label-bg);
+                border-radius: 4px;
+                padding: 8px 10px;
+                height: 100%;
+                cursor: pointer;
+
+                &>div {
+                    flex: 1
+                }
+            }
+
+            & label:has(input[type=radio]:checked) {
+                background-color: var(--ful-radio-group-label-checked-bg);
+                border-color: var(--ful-radio-group-label-checked-border-color);
+            }
+
+            & label:has(input[type=radio]:disabled) {
+                background-color: var(--ful-radio-group-label-disabled-bg);
+                border-color: var(--ful-radio-group-label-disabled-border-color);
+            }
+
+            & input[type=radio] {
+                margin-left: 8px;
+                margin-right: 12px;
+                height: 16px;
+                width: 16px;
+                vertical-align: text-bottom;
+                accent-color: var(--ful-radio-group-label-checked-border-color);
+            }
+        }
+    }
+
+    &.horizontal>fieldset>section {
+        gap: 16px;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    &:invalid>fieldset>section label {
+        border-color: var(--ful-radio-group-active-bg);
+    }
+}
+
+ful-radio {
+    display: none;
+}

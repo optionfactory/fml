@@ -1,0 +1,35 @@
+ful-checkbox {
+
+    --ful-checkbox-active-bg: var(--ful-active-bg);
+
+    display: block;
+
+    &:not(:defined) {
+        visibility: hidden;
+    }
+
+    &[required]>.form-check>.form-check-label>label::before {
+        content: '* ';
+        display: inline;
+        font-weight: 700;
+        color: var(--ful-color);
+    }
+
+    & input[type=checkbox]:checked {
+        background-color: var(--ful-checkbox-active-bg);
+        border-color: var(--ful-checkbox-active-bg);
+    }
+
+    &:invalid input[type=checkbox] {
+        border-color: var(--ful-invalid-border-color);
+
+        &:checked {
+            background-color: var(--ful-invalid-color);
+        }
+
+        &:focus {
+            box-shadow: var(--ful-invalid-box-shadow);
+        }
+    }
+
+}

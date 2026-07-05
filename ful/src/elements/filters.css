@@ -1,0 +1,25 @@
+ful-filter-text, ful-filter-instant, ful-filter-local-date {
+
+    --ful-filter-active-bg: var(--ful-active-bg);
+    --ful-filter-active-color: var(--ful-active-color);
+
+    display: block;
+
+    &:not(:defined) {
+        visibility: hidden;
+    }
+
+    &[required] > .form-label > label::before {
+        content: '* ';
+        display: inline;
+        font-weight: 700;
+        color: var(--ful-color);
+    }
+
+
+    .dropdown-item:active {
+        color: var(--ful-filter-active-color);
+        background-color: var(--ful-filter-active-bg);
+    }
+
+}
