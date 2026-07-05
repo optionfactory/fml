@@ -1,0 +1,14 @@
+{
+  "name": "optionfactory-fxl",
+  "private": true,
+  "workspaces": [
+    "packages/ftl",
+    "packages/ful"
+  ],
+  "scripts": {
+    "initialize": "npm install",
+    "check": "npm run check --workspaces",
+    "test": "npm run test --workspaces",
+    "build": "npm run build --workspaces"
+  }
+}

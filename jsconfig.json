@@ -8,17 +8,17 @@
     "noImplicitAny": false,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
+    "skipLibCheck": true,    
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "alwaysStrict": true,
     "esModuleInterop": true,
     "checkJs": true,
     "allowJs": true,
-    "declaration": true,
-    "outDir": "dist"
+    "declaration": true
   },
   "include": [
-    "./src/**/*.mjs",
-    "./types/**/*.d.ts"
+    "./packages/*/src/**/*.mjs",
+    "./packages/*/types/**/*.d.ts"
   ]
 }

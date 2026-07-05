@@ -1,6 +1,6 @@
 {
     "name": "@optionfactory/ful",
-    "version": "7.0.6-dev.0",
+    "version": "7.1.0-dev",
     "type": "module",
     "main": "./dist/ful.mjs",
     "module": "./dist/ful.mjs",
@@ -27,7 +27,7 @@
     "author": "rferranti",
     "contributors": [],
     "scripts": {
-        "check": "tsc --project ./jsconfig.json",
+        "check": "tsc --project ../../jsconfig.json",
         "clean": "rimraf dist && npm prune",
         "initialize": "npm install",
         "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info",

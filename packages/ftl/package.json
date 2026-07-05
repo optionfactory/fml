@@ -1,6 +1,6 @@
 {
     "name": "@optionfactory/ftl",
-    "version": "7.0.3",
+    "version": "7.1.0-dev",
     "type": "module",
     "main": "./dist/ftl.mjs",
     "module": "./dist/ftl.mjs",
@@ -30,7 +30,7 @@
         "Grogdunn"
     ],
     "scripts": {
-        "check": "tsc --project ./jsconfig.json",
+        "check": "tsc --project ../../jsconfig.json",
         "clean": "rimraf dist && npm prune",
         "initialize": "npm install",
         "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info",
