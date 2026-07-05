@@ -81,6 +81,7 @@ function ful_report_error(evt) {
             mode: 'same-origin',
             cache: 'no-cache',
             credentials: 'same-origin',
+            keepalive: true,
             headers: headers,
             redirect: 'error',
             referrerPolicy: 'no-referrer-when-downgrade',
