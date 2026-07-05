@@ -1,0 +1,46 @@
+<html>
+
+<head>
+    <script src="../dist/ftl.iife.min.js"></script>
+    <style>
+        textarea {
+            display :block;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <form>
+        <textarea name="data" rows="10">[]</textarea>
+        
+        <textarea name="expression" rows="10">1 == 1 == true</textarea>
+
+
+        <button>Evaluate</button>
+
+        <pre></pre>
+
+    </form>
+
+    <script>
+        document.querySelector('form').addEventListener("submit", (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const data = JSON.parse(fd.get("data"));
+            const expression = fd.get("expression");
+            try{
+                const result = ftl.Expressions.interpret(undefined, [data], expression, ftl.Expressions.MODE_EXPRESSION);
+                document.querySelector("pre").innerText = JSON.stringify(result);
+            }catch(e){
+                document.querySelector("pre").innerText = e.message;
+            }
+        })
+        
+    </script>
+</body>
+
+</html>

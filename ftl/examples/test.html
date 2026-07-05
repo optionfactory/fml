@@ -1,0 +1,78 @@
+<html>
+<script src="../dist/ftl.iife.min.js"></script>
+<style>
+    parent-element {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        padding: 1rem;
+        margin: 1rem;
+        border: 1px solid #0000cc;
+    }
+
+    nested-element {
+        display: block;
+        padding: 1rem;
+        margin: 1rem;
+        border: 1px solid #ccc;
+        content-visibility: auto;
+        contain-intrinsic-size: auto 18px;
+    }
+</style>
+
+<body>
+    <parent-element>
+        test
+    </parent-element>
+
+    <script>
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        class Parent extends ftl.ParsedElement {
+            static template = `
+            <div data-tpl-each="items">
+                <div><div><div><div><div>
+                    <nested-element data-tpl-id="self"></nested-element>
+                </div></div></div></div></div>
+            </div>
+            `;
+            async render() {
+                const items = Array(1000).fill(0).map((_, i) => i);
+                this.template().withOverlay({ items }).renderTo(this);
+                //if you need to access nested custom components making sure
+                //their .render() call has completed, you can:
+                await ftl.Rendering.waitForChildren(this);
+                console.log(".render() completed on all children");
+            }
+        }
+
+
+
+        class Children extends ftl.ParsedElement {
+            async render() {
+                const id = this.getAttribute("id");
+                //console.log("rendering", id)
+                this.innerHTML = `Rendering... ${id}`;
+                await sleep(2_000 + 1 * Number(id));
+                if(Number(id) === 500){
+                    throw new Error("borked");
+                }
+                this.innerHTML = `Rendered! ${id}`;
+                //console.log("rendered", id)
+            }
+
+        }
+
+        ftl.registry
+            .defineElement("parent-element", Parent)
+            .defineElement("nested-element", Children)
+            .configure();
+    </script>
+    <script>
+        document.addEventListener('ftl:ready', () => {
+            console.log("ftl:ready!");
+        });
+    </script>
+</body>
+
+</html>

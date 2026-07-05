@@ -1,0 +1,41 @@
+<html>
+<script src="../dist/ftl.iife.min.js"></script>
+<style>
+    custom-element {
+        display: block;
+        padding: 1rem;
+        margin: 1rem;
+        border: 1px solid #0000cc;
+    }
+
+</style>
+
+<body>
+    <custom-element>
+        <template slot="schema">
+            test
+        </template>
+    </custom-element>
+
+    <script>
+
+        class CustomElement extends ftl.ParsedElement {
+            static slots= true;
+
+            async render({slots}) {
+                this.innerHTML = ftl.Fragments.toHtml(slots.schema);
+            }
+        }
+
+        ftl.registry
+            .defineElement("custom-element", CustomElement)
+            .configure();
+    </script>
+    <script>
+        document.addEventListener('ftl:ready', () => {
+            console.log("ftl:ready!");
+        });
+    </script>
+</body>
+
+</html>

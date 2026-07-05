@@ -1,0 +1,35 @@
+<html>
+
+<head>
+    <script src="../dist/ftl.iife.min.js"></script>
+    <script>
+
+        class Instant extends ftl.ParsedElement {
+            #format = new Intl.DateTimeFormat('it-IT', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            async render() {
+                const isoInstant = this.innerText.trim();
+                this.innerText = this.#format.format(new Date(isoInstant));
+            }
+        }
+
+        ftl.registry
+            .defineElement("my-instant", Instant)
+            .configure();
+    </script>
+</head>
+
+<body>
+    <my-instant>
+        2030-12-10T11:12:13.456
+    </my-instant>
+</body>
+
+</html>
