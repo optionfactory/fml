@@ -2,7 +2,7 @@
 class LocalizationModule {
     static t(k, ...args) {
         //@ts-ignore
-        const format = this.l10n[this.language][k] ?? this.l10n['en'][k] ?? k;
+        const format = this.l10n?.[this.language]?.[k] ?? this.l10n?.['en']?.[k] ?? k;
         if (args.length === 0) {
             return format;
         }
@@ -10,8 +10,8 @@ class LocalizationModule {
             return args[Number(is)];
         });
     }
-    static tl(k, args) {
-        return LocalizationModule.t(k, ...args);
+    static tl(k, args = []) {
+        return LocalizationModule.t.apply(this, [k, ...args]);
     }
 
 }
