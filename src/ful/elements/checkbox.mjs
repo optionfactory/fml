@@ -1,7 +1,7 @@
-import { Attributes, ParsedElement } from "../../ftl/index.mjs";
+import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 
 class Checkbox extends ParsedElement {
-    static observed = ['value:bool', 'readonly:presence', "required:presence"];
+    static observed = ['value:bool', 'readonly:presence', 'required:presence'];
     static slots = true;
     static template = `
         <div data-tpl-class="klass">
@@ -26,24 +26,26 @@ class Checkbox extends ParsedElement {
     }
     render({ slots, observed, disabled }) {
         const isSwitch = this.getAttribute('type') == 'switch';
-        const klass = isSwitch ? "form-check form-switch" : "form-check";
+        const klass = isSwitch ? 'form-check form-switch' : 'form-check';
         const fragment = this.template().withOverlay({ slots, klass, isSwitch }).render();
-        this.#container = fragment.firstElementChild
-        this.#input = fragment.querySelector("input");
-        Attributes.forward('input-', this, this.#input)
+        this.#container = fragment.firstElementChild;
+        this.#input = fragment.querySelector('input');
+        Attributes.forward('input-', this, this.#input);
         this.disabled = disabled;
         this.readonly = observed.readonly;
         this.required = observed.required;
         this.value = observed.value;
         this.#input.addEventListener('change', (evt) => {
             evt.stopPropagation();
-            this.dispatchEvent(new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                    value: this.value
-                }
-            }));
+            this.dispatchEvent(
+                new CustomEvent('change', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: {
+                        value: this.value,
+                    },
+                }),
+            );
         });
         const label = fragment.querySelector('label');
         label.addEventListener('click', () => {
@@ -52,13 +54,15 @@ class Checkbox extends ParsedElement {
                 return;
             }
             this.value = !this.value;
-            this.dispatchEvent(new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                    value: this.value
-                }
-            }));
+            this.dispatchEvent(
+                new CustomEvent('change', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: {
+                        value: this.value,
+                    },
+                }),
+            );
         });
         this.#fieldError = fragment.querySelector('ful-field-error');
         this.#input.ariaDescribedByElements = [this.#fieldError];
@@ -71,14 +75,14 @@ class Checkbox extends ParsedElement {
     set value(value) {
         this.#input.checked = value;
     }
-    get readonly(){
+    get readonly() {
         return this.#container.inert;
     }
     set readonly(v) {
         this.#container.inert = v;
         this.reflect(() => {
             Attributes.toggle(this, 'readonly', v);
-        })
+        });
     }
     get disabled() {
         return this.#input.hasAttribute('disabled');
@@ -90,23 +94,23 @@ class Checkbox extends ParsedElement {
         return this.#input.getAttribute('aria-required') === 'true';
     }
     set required(d) {
-        Attributes.set(this.#input, "aria-required", d ? "true" : null);
+        Attributes.set(this.#input, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
-        })
-    }        
+        });
+    }
     focus(options) {
         this.#input.focus(options);
     }
     setCustomValidity(error) {
         if (!error) {
             this.internals.setValidity({});
-            this.#fieldError.innerText = "";
+            this.#fieldError.innerText = '';
             return;
         }
-        this.internals.setValidity({ customError: true }, " ");
+        this.internals.setValidity({ customError: true }, ' ');
         this.#fieldError.innerText = error;
     }
 }
 
-export { Checkbox }
+export { Checkbox };

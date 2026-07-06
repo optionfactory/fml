@@ -9,7 +9,7 @@ function ful_report_error(evt) {
      * @returns {string|undefined} The content of the meta tag, or undefined if not found.
      */
     function meta_content(name) {
-        var cleanName = name.replace(/["\\]/g, '\\$&');        
+        var cleanName = name.replace(/["\\]/g, '\\$&');
         /** @type {HTMLMetaElement | null} */
         var metaEl = document.querySelector('meta[name="' + cleanName + '"]');
         return metaEl ? metaEl.content : undefined;
@@ -23,7 +23,7 @@ function ful_report_error(evt) {
         /** @type {HTMLScriptElement | null} */
         var scriptEl = document.querySelector('script[data-report-client-errors-uri]');
         if (!scriptEl) {
-            console && console.error && console.error("missing attribute data-report-client-errors-uri");
+            console && console.error && console.error('missing attribute data-report-client-errors-uri');
             return null;
         }
         return scriptEl.getAttribute('data-report-client-errors-uri');
@@ -35,10 +35,10 @@ function ful_report_error(evt) {
      */
     function split_stack() {
         if (evt.error && evt.error.stack && evt.error.stack.split) {
-            return evt.error.stack.split("\n");
+            return evt.error.stack.split('\n');
         }
         if (evt.reason && evt.reason.stack && evt.reason.stack.split) {
-            return evt.reason.stack.split("\n");
+            return evt.reason.stack.split('\n');
         }
         return undefined;
     }
@@ -67,12 +67,12 @@ function ful_report_error(evt) {
 
     /** @type {Record<string, any>} */
     var headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
     };
-    
-    var csrfHeader = meta_content("_csrf_header");
+
+    var csrfHeader = meta_content('_csrf_header');
     if (csrfHeader) {
-        headers[csrfHeader] = meta_content("_csrf");
+        headers[csrfHeader] = meta_content('_csrf');
     }
 
     try {
@@ -86,13 +86,13 @@ function ful_report_error(evt) {
             redirect: 'error',
             referrerPolicy: 'no-referrer-when-downgrade',
             body: JSON.stringify({
-                page: window.location && window.location.href ? window.location.href : "unknown",
+                page: window.location && window.location.href ? window.location.href : 'unknown',
                 filename: evt.filename,
                 line: evt.lineno,
                 col: evt.colno,
                 message: message(),
-                stack: split_stack()
-            })
+                stack: split_stack(),
+            }),
         });
     } catch (e) {
         // nothing to do here

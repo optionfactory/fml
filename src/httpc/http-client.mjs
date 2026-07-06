@@ -1,4 +1,4 @@
-import { Failure } from "./failure.mjs";
+import { Failure } from './failure.mjs';
 
 class MediaType {
     #type;
@@ -17,16 +17,16 @@ class MediaType {
         return this.#subtype;
     }
     /**
-     * 
-     * @param {string|null|undefined} v 
-     * @returns 
+     *
+     * @param {string|null|undefined} v
+     * @returns
      */
     static parse(v) {
         if (!v) {
-            return new MediaType("unknown", "unknown");
+            return new MediaType('unknown', 'unknown');
         }
-        const [prefix, _] = v.split(";");
-        const [ptype, psubtype] = prefix.trim().split("/");
+        const [prefix, _] = v.split(';');
+        const [ptype, psubtype] = prefix.trim().split('/');
         return new MediaType(ptype.toLowerCase(), psubtype?.toLowerCase());
     }
 }
@@ -36,7 +36,7 @@ class MediaType {
  */
 /**
  * @typedef HttpInterceptor
- * @property {function(URL,RequestInit|undefined,HttpInterceptorChain):Promise<Response>} intercept  
+ * @property {function(URL,RequestInit|undefined,HttpInterceptorChain):Promise<Response>} intercept
  */
 
 class HttpClientError extends Failure {
@@ -51,30 +51,37 @@ class HttpClientError extends Failure {
         this.name = 'HttpClientError';
         this.status = status;
     }
-    dropping(prefix){
+    dropping(prefix) {
         return new HttpClientError(this.message, this.status, Failure.dropProblemsContext(this.problems, prefix), this);
     }
     /**
-     * 
-     * @param {string} type 
-     * @param {any} cause 
-     * @returns 
+     *
+     * @param {string} type
+     * @param {any} cause
+     * @returns
      */
     static of(type, cause) {
-        return new HttpClientError(cause.message, 0, [{
-            type,
-            context: null,
-            reason: cause.message,
-            details: null
-        }], cause);
+        return new HttpClientError(
+            cause.message,
+            0,
+            [
+                {
+                    type,
+                    context: null,
+                    reason: cause.message,
+                    details: null,
+                },
+            ],
+            cause,
+        );
     }
     /**
      * Creates an HttpClientError from a Response.
-     * @param {Response} response 
+     * @param {Response} response
      * @returns an HttpClientError
      */
     static async fromResponse(response) {
-        switch (MediaType.parse(response.headers.get("Content-Type")).normalized) {
+        switch (MediaType.parse(response.headers.get('Content-Type')).normalized) {
             case 'application/failures+json': {
                 const data = await response.json();
                 const message = `${response.status} ${response.statusText}: ${data.length} failures`;
@@ -83,22 +90,30 @@ class HttpClientError extends Failure {
             case 'application/problem+json': {
                 const data = await response.json();
                 const message = `${response.status} ${response.statusText}: ${data.title} ${data.detail}`;
-                return new HttpClientError(message, response.status, data.problems || [{
-                    type: "GENERIC_PROBLEM",
-                    context: null,
-                    reason: message,
-                    details: null
-                }]);
+                return new HttpClientError(
+                    message,
+                    response.status,
+                    data.problems || [
+                        {
+                            type: 'GENERIC_PROBLEM',
+                            context: null,
+                            reason: message,
+                            details: null,
+                        },
+                    ],
+                );
             }
             default: {
                 const text = await response.text();
                 const message = `${response.status} ${response.statusText}: ${text}`;
-                return new HttpClientError(message, response.status, [{
-                    type: "GENERIC_PROBLEM",
-                    context: null,
-                    reason: message,
-                    details: null
-                }]);
+                return new HttpClientError(message, response.status, [
+                    {
+                        type: 'GENERIC_PROBLEM',
+                        context: null,
+                        reason: message,
+                        details: null,
+                    },
+                ]);
             }
         }
     }
@@ -108,10 +123,11 @@ class HttpClientError extends Failure {
  * @implements {HttpInterceptor}
  */
 class CsrfTokenInterceptor {
-    #k; #v;
+    #k;
+    #v;
     constructor() {
-        this.#k = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
-        this.#v = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+        this.#k = document.querySelector("meta[name='_csrf_header']")?.getAttribute('content');
+        this.#v = document.querySelector("meta[name='_csrf']")?.getAttribute('content');
     }
     async intercept(url, request, chain) {
         if (this.#k && this.#v) {
@@ -181,23 +197,27 @@ class HttpInterceptorChain {
     #interceptors;
     #current;
     /**
-     * 
-     * @param {HttpInterceptor[]} interceptors 
-     * @param {number} current 
+     *
+     * @param {HttpInterceptor[]} interceptors
+     * @param {number} current
      */
     constructor(interceptors, current) {
         this.#interceptors = interceptors;
         this.#current = current;
     }
     /**
-     * 
+     *
      * @param {URL} url
-     * @param {RequestInit} request 
+     * @param {RequestInit} request
      * @returns {Promise<Response>} the response
      */
     async proceed(url, request) {
         const interceptor = this.#interceptors[this.#current];
-        return await interceptor.intercept(url, request, new HttpInterceptorChain(this.#interceptors, this.#current + 1));
+        return await interceptor.intercept(
+            url,
+            request,
+            new HttpInterceptorChain(this.#interceptors, this.#current + 1),
+        );
     }
 }
 
@@ -212,7 +232,7 @@ class HttpClient {
     }
     /**
      * Creates an HttpClient.
-     * @param {HttpInterceptor[]|undefined} interceptors - a list of interceptors to be registered for every request performed by the created client. 
+     * @param {HttpInterceptor[]|undefined} interceptors - a list of interceptors to be registered for every request performed by the created client.
      */
     constructor(interceptors) {
         this.#interceptors = interceptors || [];
@@ -226,7 +246,7 @@ class HttpClient {
      * @returns {Promise<Response>} the response
      */
     async exchange(uri, options, interceptors) {
-        const is = [...this.#interceptors, ...interceptors || [], new HttpCall()];
+        const is = [...this.#interceptors, ...(interceptors || []), new HttpCall()];
         const chain = new HttpInterceptorChain(is, 0);
         const url = new URL(new Request(uri).url);
         return await chain.proceed(url, options ?? {});
@@ -242,7 +262,7 @@ class HttpClient {
     }
     /**
      * Creates a request builder.
-     * @param {string} uri - the (possibly relative) request url 
+     * @param {string} uri - the (possibly relative) request url
      * @returns {HttpRequestBuilder} the request builder
      */
     get(uri) {
@@ -291,18 +311,18 @@ class HttpClient {
 }
 
 /**
- * 
- * @param {Response} response 
- * @param {'text'|'json'|'blob'|'arrayBuffer'} type 
- * @returns 
+ *
+ * @param {Response} response
+ * @param {'text'|'json'|'blob'|'arrayBuffer'} type
+ * @returns
  */
 const unmarshal = async (response, type) => {
     try {
         return await response[type]();
     } catch (ex) {
-        throw HttpClientError.of("UNMARSHALING_PROBLEM", ex);
+        throw HttpClientError.of('UNMARSHALING_PROBLEM', ex);
     }
-}
+};
 
 class HttpRequestBuilder {
     #client;
@@ -315,7 +335,7 @@ class HttpRequestBuilder {
     #interceptors;
     /**
      * Creates an HttpRequestBuilder.
-     * @param {HttpClient} client 
+     * @param {HttpClient} client
      * @param {string} method - the HTTP method to be used
      * @param {string} uri - the (possibly relative) request url
      * @returns {HttpRequestBuilder} the builder
@@ -330,19 +350,19 @@ class HttpRequestBuilder {
             new Headers(),
             undefined,
             {},
-            []
+            [],
         );
     }
     /**
      * Creates an HttpRequestBuilder.
-     * @param {HttpClient} client 
+     * @param {HttpClient} client
      * @param {string} method - the HTTP method to be used
      * @param {string} uri - the (possibly relative) request url
-     * @param {URLSearchParams} params 
-     * @param {Headers} headers 
-     * @param {any} body 
-     * @param {Omit<RequestInit,"headers"|"method"|"body">} options 
-     * @param {HttpInterceptor[]} interceptors 
+     * @param {URLSearchParams} params
+     * @param {Headers} headers
+     * @param {any} body
+     * @param {Omit<RequestInit,"headers"|"method"|"body">} options
+     * @param {HttpInterceptor[]} interceptors
      */
     constructor(client, method, uri, params, headers, body, options, interceptors) {
         this.#client = client;
@@ -356,7 +376,7 @@ class HttpRequestBuilder {
     }
     /**
      * Add all passed headers to the request, overriding existing ones if that key already exists. Null and undefined values cause the key to be removed.
-     * @param {HeadersInit} hs 
+     * @param {HeadersInit} hs
      * @returns {HttpRequestBuilder} this builder
      */
     headers(hs) {
@@ -371,8 +391,8 @@ class HttpRequestBuilder {
     }
     /**
      * Adds an header to the request, overriding it if it already exists. Null and undefined values cause the key to be removed
-     * @param {string} k 
-     * @param {string} v 
+     * @param {string} k
+     * @param {string} v
      * @returns {HttpRequestBuilder} this builder
      */
     header(k, v) {
@@ -385,7 +405,7 @@ class HttpRequestBuilder {
     }
     /**
      * Add all query parameters to the request, overriding existing ones if that key already exists. Null and undefined values cause the key to be removed
-     * @param {URLSearchParams|Record<string,string>|string[][]|string} ps 
+     * @param {URLSearchParams|Record<string,string>|string[][]|string} ps
      * @returns {HttpRequestBuilder} this builder
      */
     params(ps) {
@@ -400,7 +420,7 @@ class HttpRequestBuilder {
     }
     /**
      * Adds a query parameter to the request, overriding it if it already exists. Empty vs, or a single null or undefined value cause the key to be removed.
-     * @param {string} k 
+     * @param {string} k
      * @param {...string} vs
      * @returns {HttpRequestBuilder} this builder
      */
@@ -415,11 +435,11 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Sets the request body. 
+     * Sets the request body.
      * `Content-Type: multipart/form-data` header is automatically added by fetch when data is a FormData instance if not explicitly set.
      * `Content-Type: application/x-www-form-urlencoded` header is automatically added by fetch when data is an URLSearchParams instance if not explicitly set.
      * `Content-Type: text/plain` header is automatically added by fetch when data is a string instance if not explicitly set.
-     * @param {string|ArrayBuffer|Blob|DataView|File|FormData|TypedArray|URLSearchParams|ReadableStream} data 
+     * @param {string|ArrayBuffer|Blob|DataView|File|FormData|TypedArray|URLSearchParams|ReadableStream} data
      * @returns {HttpRequestBuilder} this builder
      */
     body(data) {
@@ -432,7 +452,7 @@ class HttpRequestBuilder {
      * @returns {HttpRequestBuilder} this builder
      */
     json(body) {
-        this.#headers.set("Content-Type", "application/json");
+        this.#headers.set('Content-Type', 'application/json');
         this.#body = JSON.stringify(body);
         return this;
     }
@@ -461,8 +481,8 @@ class HttpRequestBuilder {
     }
     /**
      * Sets a fetch option for the request.
-     * @param {keyof Omit<RequestInit,"headers"|"method"|"body">} k 
-     * @param {*} v 
+     * @param {keyof Omit<RequestInit,"headers"|"method"|"body">} k
+     * @param {*} v
      * @returns {HttpRequestBuilder} this builder
      */
     option(k, v) {
@@ -525,7 +545,7 @@ class HttpRequestBuilder {
             if (ex instanceof Failure) {
                 throw ex;
             }
-            throw HttpClientError.of("CONNECTION_PROBLEM", ex);
+            throw HttpClientError.of('CONNECTION_PROBLEM', ex);
         }
     }
     /**
@@ -565,16 +585,16 @@ class HttpRequestBuilder {
 class HttpMultipartRequestCustomizer {
     #formData;
     /**
-     * 
-     * @param {FormData} formData 
+     *
+     * @param {FormData} formData
      */
     constructor(formData) {
         this.#formData = formData;
     }
     /**
      * Appends a value to the FormData.
-     * @param {string} name 
-     * @param {*} value 
+     * @param {string} name
+     * @param {*} value
      * @returns this builder
      */
     field(name, value) {
@@ -582,13 +602,13 @@ class HttpMultipartRequestCustomizer {
         return this;
     }
     /**
-     * Appends a Blob to the FormData. 
+     * Appends a Blob to the FormData.
      * If `filename` is omitted, FormData defaults are applied:
-     * The default filename for Blob objects is "blob"; 
+     * The default filename for Blob objects is "blob";
      * The default filename for File objects is the file's filename.
-     * @param {string} name 
-     * @param {Blob} value 
-     * @param {string|undefined} filename 
+     * @param {string} name
+     * @param {Blob} value
+     * @param {string|undefined} filename
      * @returns this builder
      */
     blob(name, value, filename) {
@@ -596,10 +616,10 @@ class HttpMultipartRequestCustomizer {
         return this;
     }
     /**
-     * Appends multiple Blobs to the FormData with the same name. 
-     * The default filename for Blob objects is "blob"; 
+     * Appends multiple Blobs to the FormData with the same name.
+     * The default filename for Blob objects is "blob";
      * The default filename for File objects is the file's filename.
-     * @param {string} name 
+     * @param {string} name
      * @param {Blob[]} values
      * @returns this builder
      */
@@ -611,9 +631,9 @@ class HttpMultipartRequestCustomizer {
     }
     /**
      * Appends a JSON serialized blob to the FormData.
-     * @param {string} name 
-     * @param {any} value 
-     * @param {string|undefined} filename 
+     * @param {string} name
+     * @param {any} value
+     * @param {string|undefined} filename
      * @returns this builder
      */
     json(name, value, filename) {

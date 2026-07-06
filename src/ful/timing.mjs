@@ -1,14 +1,14 @@
-class Timing  {
+class Timing {
     static sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
     static DEBOUNCE_DEFAULT = 0;
     static DEBOUNCE_IMMEDIATE = 1;
     /**
      * Executes only after a period of inactivity (pause in events).
      * Respond to the "end" of a series of events.
-     * @param {*} timeoutMs 
-     * @param {*} func 
+     * @param {*} timeoutMs
+     * @param {*} func
      * @param {*} [options]
      * @returns {[function, function]}
      */
@@ -19,7 +19,7 @@ class Timing  {
         let previousTimestamp = 0;
 
         const later = () => {
-            const elapsed = performance.now() - previousTimestamp;            
+            const elapsed = performance.now() - previousTimestamp;
             if (timeoutMs > elapsed) {
                 tid = setTimeout(later, timeoutMs - elapsed);
                 return;
@@ -52,8 +52,8 @@ class Timing  {
     static THROTTLE_NO_TRAILING = 2;
     /**
      * Executes at most once per specified time interval, regardless of ongoing events.
-     * @param {*} timeoutMs 
-     * @param {*} func 
+     * @param {*} timeoutMs
+     * @param {*} func
      * @param {*} [options]
      * @returns {[function, function]}
      */
@@ -64,7 +64,7 @@ class Timing  {
         let previousTimestamp = 0;
 
         const later = () => {
-            previousTimestamp = (opts & Timing.THROTTLE_NO_LEADING) ? 0 : performance.now();
+            previousTimestamp = opts & Timing.THROTTLE_NO_LEADING ? 0 : performance.now();
             tid = null;
             func(...args);
             if (tid === null) {
@@ -73,7 +73,7 @@ class Timing  {
         };
         const throttled = function () {
             const now = performance.now();
-            if (!previousTimestamp && (opts & Timing.THROTTLE_NO_LEADING)) {
+            if (!previousTimestamp && opts & Timing.THROTTLE_NO_LEADING) {
                 previousTimestamp = now;
             }
             const remaining = previousTimestamp === 0 ? 0 : timeoutMs - (now - previousTimestamp);

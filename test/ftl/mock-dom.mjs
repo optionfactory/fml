@@ -1,4 +1,4 @@
-import { JSDOM } from "jsdom";
+import { JSDOM } from 'jsdom';
 
 function mockdom(html) {
     let jsdom = new JSDOM(html);
@@ -11,5 +11,4 @@ function mockdom(html) {
     return jsdom;
 }
 
-mockdom("<html></html>");
-
+mockdom('<html></html>');

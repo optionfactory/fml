@@ -1,26 +1,22 @@
-import { Attributes, LightSlots } from "./dom.mjs";
-import { registry } from "./registry.mjs";
-
-
-
-
+import { Attributes, LightSlots } from './dom.mjs';
+import { registry } from './registry.mjs';
 
 class ParsedElement extends HTMLElement {
     static BITS = {
-        enqueue: (el) => { },
+        enqueue: (el) => {},
         SLOTS: false,
         OBSERVED: [],
         /** @type {Record<string, import("./registry.mjs").Mapper>} */
         ATTR_TO_MAPPER: {},
-        TEMPLATES: {}
-    }
+        TEMPLATES: {},
+    };
     static get observedAttributes() {
         return this.BITS.OBSERVED;
     }
     #parsed = false;
     #reflecting = 0;
     #bits() {
-        return /** @type {typeof ParsedElement} */(this.constructor).BITS;
+        return /** @type {typeof ParsedElement} */ (this.constructor).BITS;
     }
     unmarshal(attr, str) {
         return this.#bits().ATTR_TO_MAPPER[attr].unmarshal(str, attr, this);
@@ -71,12 +67,16 @@ class ParsedElement extends HTMLElement {
         }
         this.#parsed = true;
         const slots = this.#bits().SLOTS ? LightSlots.from(this) : undefined;
-        const observed = Object.fromEntries(this.#bits().OBSERVED.map(attribute => [attribute, this.unmarshal(attribute, this.getAttribute(attribute))]));
-        const disabled = this.#disabledBeforeParsed ?? false
+        const observed = Object.fromEntries(
+            this.#bits().OBSERVED.map((attribute) => [
+                attribute,
+                this.unmarshal(attribute, this.getAttribute(attribute)),
+            ]),
+        );
+        const disabled = this.#disabledBeforeParsed ?? false;
         await this.render({ slots, observed, disabled });
     }
-    render(c) {
-    }
+    render(c) {}
     reflect(fn) {
         ++this.#reflecting;
         try {
@@ -94,6 +94,5 @@ class ParsedElement extends HTMLElement {
         }
     }
 }
-
 
 export { ParsedElement };

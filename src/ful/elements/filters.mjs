@@ -1,6 +1,6 @@
-import { Attributes } from "../../ftl/index.mjs";
-import { Instant } from "./temporals.mjs";
-import { Input } from "./input.mjs";
+import { Attributes } from '../../ftl/index.mjs';
+import { Instant } from './temporals.mjs';
+import { Input } from './input.mjs';
 
 class InstantFilter extends Input {
     static observed = ['value:json', 'readonly:presence', 'required:presence'];
@@ -49,17 +49,17 @@ class InstantFilter extends Input {
                 return;
             }
             const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
-            const value = /** @type String */ (target.getAttribute("value"));
+            const value = /** @type String */ (target.getAttribute('value'));
             Attributes.toggle(this.#value2, 'hidden', value !== 'BETWEEN');
             btn.setAttribute('value', value);
             btn.innerHTML = target.innerHTML;
-        })
+        });
     }
 
     get value() {
         const operator = this.#operator.getAttribute('value');
         const values = operator === 'BETWEEN' ? [this.#value1.value, this.#value2.value] : [this.#value1.value];
-        return values.some(v => v === '') ? undefined : [operator, ...values.map(v => new Date(v).toISOString())];
+        return values.some((v) => v === '') ? undefined : [operator, ...values.map((v) => new Date(v).toISOString())];
     }
     set value(v) {
         if (v == null) {
@@ -83,7 +83,7 @@ class InstantFilter extends Input {
 }
 
 class LocalDateFilter extends Input {
-    static observed = ["value:json", 'readonly:presence', 'required:presence'];
+    static observed = ['value:json', 'readonly:presence', 'required:presence'];
     static template = `
         <div class="form-label">
             <label>{{{{ slots.default }}}}</label>
@@ -125,21 +125,21 @@ class LocalDateFilter extends Input {
         this.value = conf.observed.value;
 
         this.addEventListener('click', (evt) => {
-            const target = /** @type HTMLElement */(evt.target);
+            const target = /** @type HTMLElement */ (evt.target);
             if (!target.matches('ul > li > a')) {
                 return;
             }
             const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
-            const value = /** @type String */ (target.getAttribute("value"));
+            const value = /** @type String */ (target.getAttribute('value'));
             Attributes.toggle(this.#value2, 'hidden', value !== 'BETWEEN');
             btn.setAttribute('value', value);
             btn.innerHTML = target.innerHTML;
-        })
+        });
     }
     get value() {
         const operator = this.#operator.getAttribute('value');
         const values = operator == 'BETWEEN' ? [this.#value1.value, this.#value2.value] : [this.#value1.value];
-        return values.some(v => v === '') ? undefined : [operator, ...values];
+        return values.some((v) => v === '') ? undefined : [operator, ...values];
     }
     set value(v) {
         if (v == null) {
@@ -163,7 +163,7 @@ class LocalDateFilter extends Input {
 }
 
 class TextFilter extends Input {
-    static observed = ["value:json", 'readonly:presence', 'required:presence'];
+    static observed = ['value:json', 'readonly:presence', 'required:presence'];
     static template = `
         <div class="form-label">
             <label>{{{{ slots.default }}}}</label>
@@ -199,15 +199,15 @@ class TextFilter extends Input {
         this.value = conf.observed.value;
 
         this.addEventListener('click', (evt) => {
-            const target = /** @type HTMLElement */(evt.target);
+            const target = /** @type HTMLElement */ (evt.target);
             if (!target.matches('ul > li > a')) {
                 return;
             }
             const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
-            const value = /** @type String */ (target.getAttribute("value"));
+            const value = /** @type String */ (target.getAttribute('value'));
             btn.setAttribute('value', value);
             btn.innerHTML = target.innerHTML;
-        })
+        });
     }
     get value() {
         const operator = this.#operator.getAttribute('value');
@@ -224,4 +224,4 @@ class TextFilter extends Input {
     }
 }
 
-export { InstantFilter, LocalDateFilter, TextFilter }
+export { InstantFilter, LocalDateFilter, TextFilter };

@@ -1,6 +1,6 @@
-import { nodes } from "./ast.mjs";
-import { Attributes, Fragments } from "./dom.mjs";
-import { Expressions, ExpressionEvaluator } from "./expressions.mjs";
+import { nodes } from './ast.mjs';
+import { Attributes, Fragments } from './dom.mjs';
+import { Expressions, ExpressionEvaluator } from './expressions.mjs';
 
 class NodeOperations {
     #forRemoval;
@@ -10,8 +10,8 @@ class NodeOperations {
     remove(node) {
         node.replaceChildren?.();
         Object.keys(node.dataset || {})
-            .filter(k => k.startsWith('tpl'))
-            .forEach(k => delete node.dataset[k]);
+            .filter((k) => k.startsWith('tpl'))
+            .forEach((k) => delete node.dataset[k]);
         this.#forRemoval.push(node);
     }
     popData(node, key) {
@@ -38,7 +38,16 @@ class NodeOperations {
 
 class CommandsHandler {
     static ORDERED_COMMANDS = [
-        'tplIf', 'tplWith', 'tplEach', 'tplWhen', 'tplClassAppend', 'tplAttrAppend', 'tplText', 'tplHtml', 'tplRemove', 'tplVerbatim'
+        'tplIf',
+        'tplWith',
+        'tplEach',
+        'tplWhen',
+        'tplClassAppend',
+        'tplAttrAppend',
+        'tplText',
+        'tplHtml',
+        'tplRemove',
+        'tplVerbatim',
     ];
     static tplIf(node, expression, ops, modules, dataStack) {
         const accept = Expressions.interpret(modules, dataStack, expression);
@@ -49,7 +58,9 @@ class CommandsHandler {
     static tplWith(node, expression, ops, modules, dataStack) {
         const evaluated = Expressions.interpret(modules, dataStack, expression);
         const varName = ops.popData(node, 'tplVar');
-        const newNode = new Template(node, modules, dataStack).withOverlay(varName ? { [varName]: evaluated } : evaluated).render();
+        const newNode = new Template(node, modules, dataStack)
+            .withOverlay(varName ? { [varName]: evaluated } : evaluated)
+            .render();
         ops.replace(node, newNode);
     }
     static tplEach(node, expression, ops, modules, dataStack) {
@@ -70,7 +81,7 @@ class CommandsHandler {
             ops.remove(node);
         }
     }
-    static tplVerbatim(node, expression, ops, modules, dataStack){
+    static tplVerbatim(node, expression, ops, modules, dataStack) {
         const newNode = node.cloneNode(true);
         ops.replace(node, newNode);
     }
@@ -79,11 +90,11 @@ class CommandsHandler {
             case 'tag':
                 const fragment = new DocumentFragment();
                 fragment.append(...node.childNodes);
-                if('tplVerbatim' in node.dataset){
+                if ('tplVerbatim' in node.dataset) {
                     //we are removing the parent element so we have to handle the lower priority commands
                     ops.popData(node, 'tplVerbatim');
                     ops.replace(node, fragment);
-                }else {
+                } else {
                     ops.append(node, fragment);
                     ops.remove(node);
                 }
@@ -99,13 +110,13 @@ class CommandsHandler {
     static tplText(node, expression, ops, modules, dataStack) {
         const text = Expressions.interpret(modules, dataStack, expression);
         const newNode = node.cloneNode();
-        newNode.replaceChildren(text == null ? "" : text);
+        newNode.replaceChildren(text == null ? '' : text);
         ops.replace(node, newNode);
     }
     static tplHtml(node, expression, ops, modules, dataStack) {
         const html = Expressions.interpret(modules, dataStack, expression);
         const newNode = node.cloneNode();
-        newNode.innerHTML = html == null ? "" : html;
+        newNode.innerHTML = html == null ? '' : html;
         ops.replace(node, newNode);
     }
     static tplClassAppend(node, expression, ops, modules, dataStack) {
@@ -129,15 +140,20 @@ class CommandsHandler {
                 continue;
             }
             switch (v.type) {
-                case nodes.dom.t: ops.prepend(node, document.createTextNode(v.value)); break;
-                case nodes.dom.h: ops.prepend(node, Fragments.fromHtml(v.value)); break;
-                case nodes.dom.n: ops.prepend(node, v.value); break;
+                case nodes.dom.t:
+                    ops.prepend(node, document.createTextNode(v.value));
+                    break;
+                case nodes.dom.h:
+                    ops.prepend(node, Fragments.fromHtml(v.value));
+                    break;
+                case nodes.dom.n:
+                    ops.prepend(node, v.value);
+                    break;
             }
         }
         ops.remove(node);
     }
 }
-
 
 // Module-isolated string cache for dataset-to-attribute conversions
 const attributeCache = new Map();
@@ -145,13 +161,17 @@ const attributeCache = new Map();
 /**
  * Converts a tpl camelCase dataset key into a kebab-case attribute name.
  * Uses a cache lookup to avoid repetitive regex/string splitting.
- * @param {string} dataSetKey 
+ * @param {string} dataSetKey
  * @returns {string}
  */
 function toAttr(dataSetKey) {
     let cached = attributeCache.get(dataSetKey);
     if (!cached) {
-        cached = dataSetKey.substring(3).split(/(?=[A-Z])/).join('-').toLowerCase();
+        cached = dataSetKey
+            .substring(3)
+            .split(/(?=[A-Z])/)
+            .join('-')
+            .toLowerCase();
         attributeCache.set(dataSetKey, cached);
     }
     return cached;
@@ -173,13 +193,13 @@ class Template {
      * Creates a template from the content of the first template element matching the selector.
      * @param {string} selector for an HTMLTemplateElement
      * @param {{ [k: string] : any }?} [modules]
-     * @param {...*} data 
+     * @param {...*} data
      * @returns the template
      */
     static fromSelector(selector, modules, ...data) {
         const templateEl = document.querySelector(selector);
         if (!(templateEl instanceof HTMLTemplateElement)) {
-            throw new Error("template selector does not match any template tag");
+            throw new Error('template selector does not match any template tag');
         }
         const fragment = document.adoptNode(templateEl.content);
         return new Template(fragment, modules, data);
@@ -187,7 +207,7 @@ class Template {
 
     /**
      * Creates a template from the content of an HTMLTemplateElement.
-     * @param {HTMLTemplateElement} templateEl 
+     * @param {HTMLTemplateElement} templateEl
      * @param {{ [k: string] : any }?} [modules]
      * @param {...*} data
      * @returns the template
@@ -199,9 +219,9 @@ class Template {
 
     /**
      * Creates a template from a DocumentFragment.
-     * @param {DocumentFragment} fragment 
+     * @param {DocumentFragment} fragment
      * @param { { [k: string] : any }? } [modules]
-     * @param {...*} data 
+     * @param {...*} data
      * @returns the template
      */
     static fromFragment(fragment, modules, ...data) {
@@ -225,14 +245,14 @@ class Template {
      * Creates a new Template replacing the modules and dataStack from a context.
      * @param {{modules: { [x: string]: any; } | null | undefined, data: any[]}} context
      */
-    withContext({modules, data}){
+    withContext({ modules, data }) {
         return new Template(this.#fragment, modules, data);
     }
     /**
      * Creates a new Template replacing the modules and dataStack from a registry.
      * @param any registry
      */
-    withContextFrom(registry){
+    withContextFrom(registry) {
         return this.withContext(registry.context());
     }
     /**
@@ -270,7 +290,11 @@ class Template {
      * @param {...*} data
      */
     withOverlay(...data) {
-        return new Template(this.#fragment, this.#modules, data.length === 0 ? this.#dataStack : [...this.#dataStack, ...data]);
+        return new Template(
+            this.#fragment,
+            this.#modules,
+            data.length === 0 ? this.#dataStack : [...this.#dataStack, ...data],
+        );
     }
     /**
      * Evaluates an expression using the configured modules and data.
@@ -286,7 +310,7 @@ class Template {
      */
     evaluator() {
         return new ExpressionEvaluator(this.#modules, this.#dataStack);
-    }   
+    }
     /**
      * Renders the template.
      * @returns a DocumentFragment
@@ -295,12 +319,19 @@ class Template {
         try {
             const ops = new NodeOperations();
             const imported = document.importNode(this.#fragment, true);
-            const fragment = imported.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? imported : (() => {
-                const d = new DocumentFragment();
-                d.appendChild(imported);
-                return d;
-            })();
-            const iterator = document.createNodeIterator(fragment, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, Template.#NODE_FILTER);
+            const fragment =
+                imported.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+                    ? imported
+                    : (() => {
+                          const d = new DocumentFragment();
+                          d.appendChild(imported);
+                          return d;
+                      })();
+            const iterator = document.createNodeIterator(
+                fragment,
+                NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+                Template.#NODE_FILTER,
+            );
             let node;
             while ((node = iterator.nextNode()) !== null) {
                 ops.cleanup();
@@ -308,7 +339,7 @@ class Template {
                     try {
                         CommandsHandler.textNode(node, node.nodeValue, ops, this.#modules, this.#dataStack);
                     } catch (ex) {
-                        throw new RenderError("Error evaluating text node", node, ex);
+                        throw new RenderError('Error evaluating text node', node, ex);
                     }
                     continue;
                 }
@@ -324,8 +355,8 @@ class Template {
                         throw new RenderError(`Error evaluating command ${command}`, el, ex);
                     }
                 }
-                for(const dataSetKey of Object.keys(el.dataset || {})){
-                    if(!dataSetKey.startsWith('tpl')){
+                for (const dataSetKey of Object.keys(el.dataset || {})) {
+                    if (!dataSetKey.startsWith('tpl')) {
                         continue;
                     }
                     const attributeName = toAttr(dataSetKey);
@@ -347,26 +378,26 @@ class Template {
             ops.cleanup();
             return fragment;
         } catch (ex) {
-            throw new RenderError("Error rendering template", this.#fragment, ex)
+            throw new RenderError('Error rendering template', this.#fragment, ex);
         }
     }
     /**
      * Renders this template on the Element (replacing children).
-     * @param {Element} el 
+     * @param {Element} el
      */
     renderTo(el) {
         el.replaceChildren(this.render());
     }
     /**
      * Renders this template appending the resulting fragment to the Element.
-     * @param {Element} el 
+     * @param {Element} el
      */
     appendTo(el) {
         el.appendChild(this.render());
     }
     /**
      * Renders this template appending the resulting fragment to the first Element maching the selector, if exists.
-     * @param {string} selector 
+     * @param {string} selector
      */
     renderToSelector(selector) {
         const el = document.querySelector(selector);
@@ -376,7 +407,7 @@ class Template {
     }
     /**
      * Renders this template appending the resulting fragment to the Element maching the selector, if exists.
-     * @param {string} selector 
+     * @param {string} selector
      */
     appendToSelector(selector) {
         const el = document.querySelector(selector);
@@ -386,10 +417,12 @@ class Template {
     }
     static #NODE_FILTER(node) {
         if (node.nodeType === Node.TEXT_NODE) {
-            return node.nodeValue.includes("{{") && node.nodeValue.includes("}}") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            return node.nodeValue.includes('{{') && node.nodeValue.includes('}}')
+                ? NodeFilter.FILTER_ACCEPT
+                : NodeFilter.FILTER_REJECT;
         }
         for (const attr of node.attributes) {
-            if (attr.name.startsWith("data-tpl-")) {
+            if (attr.name.startsWith('data-tpl-')) {
                 return NodeFilter.FILTER_ACCEPT;
             }
         }
@@ -400,11 +433,11 @@ class Template {
 class RenderError extends Error {
     constructor(message, nodeOrFragment, cause) {
         super(`${message} in \`${RenderError.stringify(nodeOrFragment)}\``, { cause });
-        this.name = "RenderError";
+        this.name = 'RenderError';
         this.node = nodeOrFragment.cloneNode(true);
     }
     static stringify(nodeOrFragment) {
-        const t = document.createElement("template");
+        const t = document.createElement('template');
         t.content.appendChild(RenderError.#cleanup(nodeOrFragment.cloneNode(true)));
         return t.innerHTML;
     }
@@ -420,15 +453,12 @@ class RenderError extends Error {
                     node.removeChild(child);
                     n--;
                 }
-            }
-            else if (child.nodeType === Node.ELEMENT_NODE) {
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
                 RenderError.#cleanup(child);
             }
         }
         return node;
     }
 }
-
-
 
 export { Template, RenderError };

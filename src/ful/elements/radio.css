@@ -14,20 +14,19 @@ ful-radio-group {
     }
 
     &[required] > fieldset > legend::before {
-        content: '* ';
+        content: "* ";
         display: inline;
         font-weight: 700;
         color: var(--ful-color);
     }
 
-
-    &>fieldset {
-        &>legend {
+    & > fieldset {
+        & > legend {
             font-size: 16px;
             margin: 0;
         }
 
-        &>section {
+        & > section {
             display: grid;
             gap: 10px;
             grid-template-columns: 1fr;
@@ -42,22 +41,22 @@ ful-radio-group {
                 height: 100%;
                 cursor: pointer;
 
-                &>div {
-                    flex: 1
+                & > div {
+                    flex: 1;
                 }
             }
 
-            & label:has(input[type=radio]:checked) {
+            & label:has(input[type="radio"]:checked) {
                 background-color: var(--ful-radio-group-label-checked-bg);
                 border-color: var(--ful-radio-group-label-checked-border-color);
             }
 
-            & label:has(input[type=radio]:disabled) {
+            & label:has(input[type="radio"]:disabled) {
                 background-color: var(--ful-radio-group-label-disabled-bg);
                 border-color: var(--ful-radio-group-label-disabled-border-color);
             }
 
-            & input[type=radio] {
+            & input[type="radio"] {
                 margin-left: 8px;
                 margin-right: 12px;
                 height: 16px;
@@ -68,12 +67,12 @@ ful-radio-group {
         }
     }
 
-    &.horizontal>fieldset>section {
+    &.horizontal > fieldset > section {
         gap: 16px;
         grid-template-columns: 1fr 1fr;
     }
 
-    &:invalid>fieldset>section label {
+    &:invalid > fieldset > section label {
         border-color: var(--ful-radio-group-active-bg);
     }
 }

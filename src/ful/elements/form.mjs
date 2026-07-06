@@ -1,7 +1,7 @@
-import { Attributes, ParsedElement, registry } from "../../ftl/index.mjs";
-import { Failure } from "../../httpc/index.mjs";
-import { Bindings } from "./bindings.mjs"
-import { AsyncEvents } from "../events/async.mjs";
+import { Attributes, ParsedElement, registry } from '../../ftl/index.mjs';
+import { Failure } from '../../httpc/index.mjs';
+import { Bindings } from './bindings.mjs';
+import { AsyncEvents } from '../events/async.mjs';
 
 class RemoteJsonFormLoader {
     #http;
@@ -20,9 +20,7 @@ class RemoteJsonFormLoader {
         return this.#requestMapper(values, form);
     }
     async submit(values, form) {
-        return await this.#http.request(this.#method, this.#url)
-            .json(values)
-            .fetch()
+        return await this.#http.request(this.#method, this.#url).json(values).fetch();
     }
     transform(response, form) {
         return this.#responseMapper(response, form);
@@ -49,14 +47,18 @@ class LocalFormLoader {
 
 class FormLoader {
     static create(el, conf) {
-        const http = registry.component("http-client");
-        const requestMapper = el.hasAttribute("request-mapper") ? registry.component(el.getAttribute("request-mapper")) : v => v;
-        const responseMapper = el.hasAttribute("response-mapper") ? registry.component(el.getAttribute("response-mapper")) : v => v;
-        const url = el.getAttribute("action");
+        const http = registry.component('http-client');
+        const requestMapper = el.hasAttribute('request-mapper')
+            ? registry.component(el.getAttribute('request-mapper'))
+            : (v) => v;
+        const responseMapper = el.hasAttribute('response-mapper')
+            ? registry.component(el.getAttribute('response-mapper'))
+            : (v) => v;
+        const url = el.getAttribute('action');
         if (!url) {
             return new LocalFormLoader(requestMapper, responseMapper);
         }
-        const method = el.getAttribute("method") ?? 'POST';
+        const method = el.getAttribute('method') ?? 'POST';
         return new RemoteJsonFormLoader(http, url, method, requestMapper, responseMapper);
     }
 }
@@ -64,72 +66,92 @@ class FormLoader {
 class Form extends ParsedElement {
     form;
     render() {
-        const form = this.form = document.createElement('form');
-        form.setAttribute("novalidate", "");
+        const form = (this.form = document.createElement('form'));
+        form.setAttribute('novalidate', '');
         Attributes.forward('form-', this, form);
         form.replaceChildren(...this.childNodes);
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             e.stopPropagation();
             await this.submit(e.submitter ?? undefined);
-        })
-        if (this.hasAttribute("clear-invalid-on-change")) {
-            this.addEventListener('change', (/** @type any */evt) => {
-                evt.target.setCustomValidity?.("");
+        });
+        if (this.hasAttribute('clear-invalid-on-change')) {
+            this.addEventListener('change', (/** @type any */ evt) => {
+                evt.target.setCustomValidity?.('');
             });
         }
         this.replaceChildren(form);
     }
     /**
-     * 
+     *
      * @param {HTMLElement} [submitter]
-     * @returns 
+     * @returns
      */
     async submit(submitter) {
-        this.spinner(true)
+        this.spinner(true);
         try {
-            const loader = registry.component(this.getAttribute("loader") ?? 'loaders:form').create(this);
+            const loader = registry.component(this.getAttribute('loader') ?? 'loaders:form').create(this);
             const values = Bindings.extractFrom(this.form, submitter);
-            let request = await loader.prepare(values, this)
+            let request = await loader.prepare(values, this);
             try {
-                const se = new CustomEvent('submit', { bubbles: true, cancelable: true, detail: { submitter, values, request } });
+                const se = new CustomEvent('submit', {
+                    bubbles: true,
+                    cancelable: true,
+                    detail: { submitter, values, request },
+                });
                 if (!this.dispatchEvent(se)) {
                     return;
                 }
                 this.errors = [];
-                const sre = new CustomEvent('submit:requested', { bubbles: true, cancelable: false, detail: { submitter, values: se.detail.values, request: se.detail.request} })
-                let response = await AsyncEvents.fireAsync(this, sre, {mode: "pipeline"});
+                const sre = new CustomEvent('submit:requested', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: { submitter, values: se.detail.values, request: se.detail.request },
+                });
+                let response = await AsyncEvents.fireAsync(this, sre, { mode: 'pipeline' });
                 request = sre.detail.request;
 
                 response = await loader.submit(request, this, response);
                 const mapped = await loader.transform(response, this);
-                this.dispatchEvent(new CustomEvent('submit:success', { bubbles: true, cancelable: false, detail: { submitter, values, request, response: mapped } }))
+                this.dispatchEvent(
+                    new CustomEvent('submit:success', {
+                        bubbles: true,
+                        cancelable: false,
+                        detail: { submitter, values, request, response: mapped },
+                    }),
+                );
             } catch (e) {
-                this.dispatchEvent(new CustomEvent('submit:failure', { bubbles: true, cancelable: false, detail: { submitter, values, request, exception: e } }));
+                this.dispatchEvent(
+                    new CustomEvent('submit:failure', {
+                        bubbles: true,
+                        cancelable: false,
+                        detail: { submitter, values, request, exception: e },
+                    }),
+                );
                 if (e instanceof Failure) {
                     this.errors = e.problems;
                 }
-                console.warn("failed to submit form", this, "reason:", e);
+                console.warn('failed to submit form', this, 'reason:', e);
             }
         } finally {
             this.spinner(false);
         }
     }
-    reset(){
+    reset() {
         this.form.reset();
     }
     spinner(spin) {
-        this.querySelectorAll('ful-spinner').forEach(el => {
+        this.querySelectorAll('ful-spinner').forEach((el) => {
             const hel = /** @type HTMLElement */ (el);
             hel.hidden = !spin;
-        })
-        this.querySelectorAll('input,button').forEach(el => {
+        });
+        this.querySelectorAll('input,button').forEach((el) => {
             const hel = /** @type HTMLButtonElement|HTMLInputElement */ (el);
-            if(hel.type !== 'submit' && hel.type !== 'reset'){
+            if (hel.type !== 'submit' && hel.type !== 'reset') {
                 return;
             }
-            hel.disabled = spin
-        })
+            hel.disabled = spin;
+        });
     }
     set values(vs) {
         Bindings.mutateIn(this.form, vs);

@@ -1,4 +1,3 @@
-
 class LocalStorage extends Storage {
     static save(k, v) {
         localStorage.setItem(k, JSON.stringify(v));
@@ -15,10 +14,7 @@ class LocalStorage extends Storage {
         LocalStorage.remove(k);
         return decoded;
     }
-
 }
-
-
 
 class SessionStorage extends Storage {
     static save(k, v) {
@@ -39,15 +35,15 @@ class SessionStorage extends Storage {
 }
 
 class VersionedLocalStorage {
-    static save(key, revision, data){
-        LocalStorage.save(key, {revision, data});
-    }    
-    static load(key, revision){
+    static save(key, revision, data) {
+        LocalStorage.save(key, { revision, data });
+    }
+    static load(key, revision) {
         const stored = LocalStorage.load(key);
-        if(stored === undefined){
+        if (stored === undefined) {
             return undefined;
         }
-        if(stored.revision !== revision){
+        if (stored.revision !== revision) {
             localStorage.removeItem(key);
             return undefined;
         }
@@ -56,21 +52,20 @@ class VersionedLocalStorage {
 }
 
 class VersionedSessionStorage {
-    static save(key, revision, data){
-        SessionStorage.save(key, {revision, data});
-    }    
-    static load(key, revision){
+    static save(key, revision, data) {
+        SessionStorage.save(key, { revision, data });
+    }
+    static load(key, revision) {
         const stored = SessionStorage.load(key);
-        if(stored === undefined){
+        if (stored === undefined) {
             return undefined;
         }
-        if(stored.revision !== revision){
+        if (stored.revision !== revision) {
             localStorage.removeItem(key);
             return undefined;
         }
         return stored.data;
     }
 }
-
 
 export { LocalStorage, VersionedLocalStorage, SessionStorage, VersionedSessionStorage };

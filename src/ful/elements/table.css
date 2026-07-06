@@ -22,14 +22,12 @@ ful-table {
         visibility: hidden;
     }
 
-    & tbody[data-ref=initial],
-    & tbody[data-ref=loading],
-    & tbody[data-ref=feedback]
-    {
+    & tbody[data-ref="initial"],
+    & tbody[data-ref="loading"],
+    & tbody[data-ref="feedback"] {
         height: 360px;
         padding: 1.5rem;
         & td {
-
             text-align: center;
             vertical-align: middle;
             & p {
@@ -41,9 +39,7 @@ ful-table {
     & .pagination-index {
         align-self: center;
     }
-
 }
-
 
 ful-sorter {
     display: block;
@@ -72,11 +68,11 @@ ful-sorter {
         color: #cccccc;
     }
 
-    &[order=asc]::before {
-        content: "\f574"
+    &[order="asc"]::before {
+        content: "\f574";
     }
 
-    &[order=desc]::before {
+    &[order="desc"]::before {
         content: "\f575";
     }
 }

@@ -1,6 +1,6 @@
-import { Attributes, Fragments, ParsedElement, registry, Templates } from "../../ftl/index.mjs";
-import { VersionedLocalStorage } from "../storage.mjs";
-import { Timing } from "../timing.mjs";
+import { Attributes, Fragments, ParsedElement, registry, Templates } from '../../ftl/index.mjs';
+import { VersionedLocalStorage } from '../storage.mjs';
+import { Timing } from '../timing.mjs';
 
 class RemoteLoader {
     #http;
@@ -27,7 +27,7 @@ class RemoteLoader {
     }
     async exact(...keys) {
         await this.#ensureFetched();
-        return this.#data.filter(([k, v]) => keys.some(r => r == k));
+        return this.#data.filter(([k, v]) => keys.some((r) => r == k));
     }
     async load(needle) {
         await this.#ensureFetched();
@@ -39,12 +39,12 @@ class RemoteLoader {
     }
     async #ensureFetched() {
         if (this.#data !== null) {
-            return
+            return;
         }
         const raw = await RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision);
         this.#data = this.#responseMapper(raw);
     }
-    static async #revisionedData(http, method, url, revision){
+    static async #revisionedData(http, method, url, revision) {
         const storageKey = `${method}@${url}`;
         if (revision !== null) {
             const data = VersionedLocalStorage.load(storageKey, revision);
@@ -52,7 +52,7 @@ class RemoteLoader {
                 return data;
             }
         }
-        const data = await http.request(method, url).fetchJson()
+        const data = await http.request(method, url).fetchJson();
         if (revision !== null) {
             VersionedLocalStorage.save(storageKey, revision, data);
         }
@@ -72,21 +72,20 @@ class PartialRemoteLoader {
         this.#responseMapper = responseMapper;
     }
     async exact(...keys) {
-        const response = await this.#http.request(this.#method, this.#url)
-            .param("k", ...keys)
-            .fetchJson()
+        const response = await this.#http
+            .request(this.#method, this.#url)
+            .param('k', ...keys)
+            .fetchJson();
         return this.#responseMapper(response);
     }
     async load(needle) {
-        const response = await this.#http.request(this.#method, this.#url)
-            .param("s", needle)
-            .fetchJson()
+        const response = await this.#http.request(this.#method, this.#url).param('s', needle).fetchJson();
         return this.#responseMapper(response);
     }
 }
 
 class InMemoryLoader {
-    #data
+    #data;
     constructor(data) {
         this.#data = data;
     }
@@ -94,66 +93,68 @@ class InMemoryLoader {
         this.#data = data;
     }
     exact(...keys) {
-        return this.#data.filter(([k, v]) => keys.some(r => r == k));
+        return this.#data.filter(([k, v]) => keys.some((r) => r == k));
     }
     load(needle) {
         return this.#data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase()));
     }
 }
 
-
 class SelectLoader {
     static create(el, conf) {
-        if (!el.hasAttribute("src")) {
+        if (!el.hasAttribute('src')) {
             const els = Array.from(conf.options?.querySelectorAll('option') ?? []);
-            const data = els.map(e => {
-                return [e.getAttribute("value") ?? e.innerText.trim(), e.innerText.trim()];
-            })
+            const data = els.map((e) => {
+                return [e.getAttribute('value') ?? e.innerText.trim(), e.innerText.trim()];
+            });
             return new InMemoryLoader(data);
         }
-        const http = registry.component("http-client");
+        const http = registry.component('http-client');
         const responseMapper = SelectLoader.#responseMapperFrom(el);
 
-        if ("chunked" == el.getAttribute("mode")) {
+        if ('chunked' == el.getAttribute('mode')) {
             return new PartialRemoteLoader({
                 http,
-                url: el.getAttribute("src"),
-                method: el.getAttribute("method") ?? 'POST',
-                responseMapper
-            })
+                url: el.getAttribute('src'),
+                method: el.getAttribute('method') ?? 'POST',
+                responseMapper,
+            });
         }
         return new RemoteLoader({
             http,
-            url: el.getAttribute("src"),
-            method: el.getAttribute("method") ?? 'POST',
+            url: el.getAttribute('src'),
+            method: el.getAttribute('method') ?? 'POST',
             responseMapper,
-            prefetch: el.hasAttribute("preload"),
-            revision: el.getAttribute("revision")
+            prefetch: el.hasAttribute('preload'),
+            revision: el.getAttribute('revision'),
         });
     }
     static #responseMapperFrom(el) {
-        if (el.hasAttribute("k-expr") && el.hasAttribute("l-expr")) {
-            return response => {
-                const rows = registry.evaluator().withOverlay(response).evaluateExpression(el.getAttribute("d-expr") ?? 'self');
-                return rows.map(row => {
+        if (el.hasAttribute('k-expr') && el.hasAttribute('l-expr')) {
+            return (response) => {
+                const rows = registry
+                    .evaluator()
+                    .withOverlay(response)
+                    .evaluateExpression(el.getAttribute('d-expr') ?? 'self');
+                return rows.map((row) => {
                     const evaluator = registry.evaluator().withOverlay(row);
                     return [
-                        evaluator.evaluateExpression(el.getAttribute("k-expr")),
-                        evaluator.evaluateExpression(el.getAttribute("l-expr")),
-                        evaluator.evaluateExpression(el.getAttribute("m-expr") ?? 'self'),
+                        evaluator.evaluateExpression(el.getAttribute('k-expr')),
+                        evaluator.evaluateExpression(el.getAttribute('l-expr')),
+                        evaluator.evaluateExpression(el.getAttribute('m-expr') ?? 'self'),
                     ];
-                })
+                });
             };
         }
-        if (el.hasAttribute("response-mapper")) {
-            return registry.component(el.getAttribute("response-mapper"));
+        if (el.hasAttribute('response-mapper')) {
+            return registry.component(el.getAttribute('response-mapper'));
         }
-        return response => response;
+        return (response) => response;
     }
 }
 
 class Dropdown extends ParsedElement {
-    static slots = true
+    static slots = true;
     static template = `
         <ful-spinner class="centered" hidden></ful-spinner>
         <menu tabindex="-1" hidden></menu>
@@ -163,7 +164,7 @@ class Dropdown extends ParsedElement {
             <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index">
                 {{ label }}
             </li>
-        `
+        `,
     };
     #spinner;
     #menu;
@@ -171,10 +172,12 @@ class Dropdown extends ParsedElement {
     #options = new Map();
     render({ slots }) {
         const fragment = this.template().render();
-        this.#optionstemplate = Fragments.isBlank(slots.default) ? this.template('options') : Templates.fromFragment(slots.default);
-        this.#spinner = fragment.querySelector("ful-spinner");
-        this.#menu = fragment.querySelector("menu");
-        this.#menu.addEventListener('click', evt => {
+        this.#optionstemplate = Fragments.isBlank(slots.default)
+            ? this.template('options')
+            : Templates.fromFragment(slots.default);
+        this.#spinner = fragment.querySelector('ful-spinner');
+        this.#menu = fragment.querySelector('menu');
+        this.#menu.addEventListener('click', (evt) => {
             evt.stopPropagation();
             const li = evt.target.closest('li');
             if (!li) {
@@ -191,24 +194,26 @@ class Dropdown extends ParsedElement {
     }
     update(values) {
         if (values === undefined) {
-            throw new Error("null data");
+            throw new Error('null data');
         }
         this.#options = new Map(values.map((v, i) => [String(i), v]));
-        const data = values.map(([key, label, metadata], index) => ({ index, key, label, metadata}))
+        const data = values.map(([key, label, metadata], index) => ({ index, key, label, metadata }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
     }
     #change(target) {
         const index = target.getAttribute('value');
-        const data = this.#options.get(index)
+        const data = this.#options.get(index);
         this.hide();
-        this.dispatchEvent(new CustomEvent('change', {
-            bubbles: true,
-            cancelable: false,
-            detail: { index, data }
-        }));
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                cancelable: false,
+                detail: { index, data },
+            }),
+        );
     }
     hide() {
-        this.setAttribute('hidden', '')
+        this.setAttribute('hidden', '');
     }
     get shown() {
         return !this.hasAttribute('hidden');
@@ -231,8 +236,8 @@ class Dropdown extends ParsedElement {
             const candidate = selected[`${forward ? 'next' : 'previous'}ElementSibling`];
             if (candidate) {
                 selected.removeAttribute('selected');
-                candidate.setAttribute("selected", "");
-                candidate.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                candidate.setAttribute('selected', '');
+                candidate.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }
             return;
         }
@@ -241,8 +246,8 @@ class Dropdown extends ParsedElement {
 }
 
 class Select extends ParsedElement {
-    static observed = ['value:csvm', 'readonly:presence', "required:presence", 'itemlist:presence']
-    static slots = true
+    static observed = ['value:csvm', 'readonly:presence', 'required:presence', 'itemlist:presence'];
+    static slots = true;
     static template = `
         <div class="form-label">
             <label>{{{{ slots.default }}}}</label>
@@ -270,32 +275,34 @@ class Select extends ParsedElement {
                 <div>{{ entry[1][0] }}</div>
                 <button type="button" class="btn btn-sm btn-outline-danger bi bi-x-lg"></button>
             </ful-item>
-        `
-    }
-    static formAssociated = true
-    internals
-    #loader
-    #badges
-    #ddmenu
-    #input
+        `,
+    };
+    static formAssociated = true;
+    internals;
+    #loader;
+    #badges;
+    #ddmenu;
+    #input;
     #items;
-    #multiple
-    #fieldError
-    #values = new Map()
+    #multiple;
+    #fieldError;
+    #values = new Map();
     constructor() {
         super();
         this.internals = this.attachInternals();
         this.internals.role = 'presentation';
     }
     async render({ slots, observed, disabled }) {
-        const name = this.getAttribute("name");
-        this.#loader = registry.component(this.getAttribute("loader") ?? 'loaders:select').create(this, { options: slots.options });
+        const name = this.getAttribute('name');
+        this.#loader = registry
+            .component(this.getAttribute('loader') ?? 'loaders:select')
+            .create(this, { options: slots.options });
 
-        this.#multiple = this.hasAttribute("multiple");
+        this.#multiple = this.hasAttribute('multiple');
         await this.#loader.prefetch?.();
         const fragment = this.template().withOverlay({ slots, name }).render();
         this.#input = fragment.querySelector('input');
-        this.#items = fragment.querySelector("ful-item-list");
+        this.#items = fragment.querySelector('ful-item-list');
         Attributes.forward('input-', this, this.#input);
         this.#badges = fragment.querySelector('badges');
 
@@ -313,8 +320,10 @@ class Select extends ParsedElement {
         this.#input.ariaLabelledByElements = [label];
 
         const self = this;
-        const [dload, abortdload] = Timing.throttle(400, () => self.#ddmenu.show(() => self.#loader.load(self.#input.value)));
-        this.addEventListener('click', (/** @type any */e) => {
+        const [dload, abortdload] = Timing.throttle(400, () =>
+            self.#ddmenu.show(() => self.#loader.load(self.#input.value)),
+        );
+        this.addEventListener('click', (/** @type any */ e) => {
             if (e.target.matches('input')) {
                 return;
             }
@@ -327,10 +336,10 @@ class Select extends ParsedElement {
             }
             this.#input.focus();
             dload();
-        })
+        });
         this.#items.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!e.target.closest("button")) {
+            if (!e.target.closest('button')) {
                 return;
             }
             if (this.disabled || this.readonly) {
@@ -340,10 +349,10 @@ class Select extends ParsedElement {
             if (idx === -1) {
                 return;
             }
-            this.#values.delete(Array.from(this.#values.keys())[idx])
+            this.#values.delete(Array.from(this.#values.keys())[idx]);
             this.#changed();
             this.#syncBadges();
-        })
+        });
         this.#badges.addEventListener('click', (e) => {
             e.stopPropagation();
             if (this.disabled || this.readonly) {
@@ -353,14 +362,14 @@ class Select extends ParsedElement {
             if (idx === -1) {
                 return;
             }
-            this.#values.delete(Array.from(this.#values.keys())[idx])
+            this.#values.delete(Array.from(this.#values.keys())[idx]);
             this.#changed();
             this.#syncBadges();
-        })
-        this.#input.addEventListener('change', e => {
+        });
+        this.#input.addEventListener('change', (e) => {
             e.stopPropagation();
         });
-        this.#input.addEventListener('blur', e => {
+        this.#input.addEventListener('blur', (e) => {
             e.stopPropagation();
             if (e.relatedTarget && this.contains(e.relatedTarget)) {
                 return;
@@ -369,7 +378,7 @@ class Select extends ParsedElement {
             this.#ddmenu.hide();
             this.#input.value = '';
         });
-        this.#input.addEventListener('keydown', e => {
+        this.#input.addEventListener('keydown', (e) => {
             if (this.disabled || this.readonly) {
                 return;
             }
@@ -397,7 +406,7 @@ class Select extends ParsedElement {
                 case 'Backspace': {
                     //remove last if caret at position 0
                     if (this.#values.size && this.#input.selectionStart === 0 && this.#input.selectionEnd === 0) {
-                        this.#values.delete(Array.from(this.#values.keys()).pop())
+                        this.#values.delete(Array.from(this.#values.keys()).pop());
                         this.#changed();
                         this.#syncBadges();
                     }
@@ -410,7 +419,7 @@ class Select extends ParsedElement {
                 }
             }
         });
-        this.#input.addEventListener('input', e => {
+        this.#input.addEventListener('input', (e) => {
             e.stopPropagation();
             if (this.disabled || this.readonly) {
                 return;
@@ -435,19 +444,25 @@ class Select extends ParsedElement {
         return await fn(this.#loader);
     }
     #changed() {
-        const selection = [...this.#values.entries()].map(e => ({ key: e[0], label: e[1][0], metadata: e[1].slice(1) }))
-        const value = this.#multiple ? selection : (selection[0] ?? null);
-        this.dispatchEvent(new CustomEvent('change', {
-            bubbles: true,
-            cancelable: false,
-            detail: { value }
+        const selection = [...this.#values.entries()].map((e) => ({
+            key: e[0],
+            label: e[1][0],
+            metadata: e[1].slice(1),
         }));
+        const value = this.#multiple ? selection : (selection[0] ?? null);
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                cancelable: false,
+                detail: { value },
+            }),
+        );
     }
     #syncBadges() {
         const badges = Array.from(this.#values.entries()).map(([k, v]) => {
             const b = document.createElement('badge');
-            b.setAttribute("role", "button");
-            b.setAttribute("value", k);
+            b.setAttribute('role', 'button');
+            b.setAttribute('value', k);
             b.innerText = v[0];
             return b;
         });
@@ -464,7 +479,7 @@ class Select extends ParsedElement {
         }
         (async () => {
             const entries = await (this.#multiple ? this.#loader.exact(...vs) : this.#loader.exact(vs));
-            this.#values = new Map(entries.map(e => [e[0], e.slice(1)]));
+            this.#values = new Map(entries.map((e) => [e[0], e.slice(1)]));
             this.#syncBadges();
         })();
     }
@@ -493,16 +508,16 @@ class Select extends ParsedElement {
         this.#input.readOnly = v;
         this.reflect(() => {
             Attributes.toggle(this, 'readonly', v);
-        })
+        });
     }
     get required() {
         return this.#input.getAttribute('aria-required') === 'true';
     }
     set required(d) {
-        Attributes.set(this.#input, "aria-required", d ? "true" : null);
+        Attributes.set(this.#input, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
-        })
+        });
     }
     #useItemlist;
     get itemlist() {
@@ -511,8 +526,8 @@ class Select extends ParsedElement {
     set itemlist(v) {
         this.#useItemlist = v;
         this.reflect(() => {
-            Attributes.toggle(this, "itemlist", v);
-        })
+            Attributes.toggle(this, 'itemlist', v);
+        });
     }
     focus(options) {
         this.#input.focus(options);
@@ -520,10 +535,10 @@ class Select extends ParsedElement {
     setCustomValidity(error) {
         if (!error) {
             this.internals.setValidity({});
-            this.#fieldError.innerText = "";
+            this.#fieldError.innerText = '';
             return;
         }
-        this.internals.setValidity({ customError: true }, " ");
+        this.internals.setValidity({ customError: true }, ' ');
         this.#fieldError.innerText = error;
     }
 }

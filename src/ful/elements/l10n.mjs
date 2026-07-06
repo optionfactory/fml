@@ -1,4 +1,3 @@
-
 class LocalizationModule {
     static t(k, ...args) {
         //@ts-ignore
@@ -13,8 +12,6 @@ class LocalizationModule {
     static tl(k, args = []) {
         return LocalizationModule.t.apply(this, [k, ...args]);
     }
-
 }
 
-
-export { LocalizationModule }
+export { LocalizationModule };

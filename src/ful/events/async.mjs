@@ -16,10 +16,14 @@ class AsyncEvents {
         const promises = evt.async?.promises ?? [];
         const mode = options?.mode ?? 'broadcast';
         if (mode === 'pipeline' && promises.length > 1) {
-            throw new Error(`[AsyncEvents] Event "${evt.type}" is configured in 'pipeline' mode and expects at most one async listener, but ${promises.length} listeners were triggered on this element.`);
+            throw new Error(
+                `[AsyncEvents] Event "${evt.type}" is configured in 'pipeline' mode and expects at most one async listener, but ${promises.length} listeners were triggered on this element.`,
+            );
         }
         if (mode === 'delegate' && promises.length !== 1) {
-            throw new Error(`[AsyncEvents] Event "${evt.type}" is configured in 'delegate' mode and requires exactly one async listener, but ${promises.length} were registered.`);
+            throw new Error(
+                `[AsyncEvents] Event "${evt.type}" is configured in 'delegate' mode and requires exactly one async listener, but ${promises.length} were registered.`,
+            );
         }
         return mode === 'broadcast' ? Promise.all(promises) : Promise.resolve(promises[0]);
     }
@@ -100,7 +104,7 @@ class AsyncEvents {
                  */
                 asyncOff(type, listener, options) {
                     AsyncEvents.asyncOff(this, type, listener, options);
-                }
+                },
             });
         }
     }

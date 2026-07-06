@@ -1,4 +1,4 @@
-import { Attributes, ParsedElement } from "../../ftl/index.mjs";
+import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 
 class Input extends ParsedElement {
     static observed = ['value', 'readonly:presence', 'required:presence'];
@@ -27,7 +27,7 @@ class Input extends ParsedElement {
         this.internals.role = 'presentation';
     }
     _type() {
-        return this.getAttribute("type") ?? 'text';
+        return this.getAttribute('type') ?? 'text';
     }
     _fragment(type, slots) {
         return this.template().withOverlay({ type, slots }).render();
@@ -35,7 +35,7 @@ class Input extends ParsedElement {
     render({ slots, observed, disabled, skipObservedSetup }) {
         const type = this._type();
         const fragment = this._fragment(type, slots);
-        this._input = fragment.querySelector("input,textarea");
+        this._input = fragment.querySelector('input,textarea');
 
         Attributes.forward('input-', this, this._input);
         if (!skipObservedSetup) {
@@ -49,13 +49,13 @@ class Input extends ParsedElement {
                 return;
             }
             const form = this.internals.form;
-            if(!form){
+            if (!form) {
                 return;
             }
-            const candidates =  /** @type [HTMLButtonElement|HTMLInputElement] */ (Array.from(form.querySelectorAll(
-                'button:not(:disabled), input:not(:disabled)'
-            )));
-            const submitter = candidates.find(el => el.type === 'submit');
+            const candidates = /** @type [HTMLButtonElement|HTMLInputElement] */ (
+                Array.from(form.querySelectorAll('button:not(:disabled), input:not(:disabled)'))
+            );
+            const submitter = candidates.find((el) => el.type === 'submit');
             form.requestSubmit(submitter);
         });
         this._input.addEventListener('input', (evt) => {
@@ -75,13 +75,15 @@ class Input extends ParsedElement {
         });
         this._input.addEventListener('change', (evt) => {
             evt.stopPropagation();
-            this.dispatchEvent(new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                    value: this.value
-                }
-            }));
+            this.dispatchEvent(
+                new CustomEvent('change', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: {
+                        value: this.value,
+                    },
+                }),
+            );
         });
         const label = fragment.querySelector('label');
         label.addEventListener('click', () => this.focus());
@@ -94,8 +96,8 @@ class Input extends ParsedElement {
         const uppercase = this.hasAttribute('uppercase');
         const trim = this.hasAttribute('trim');
         const v = this._input.value;
-        const uppercased = uppercase ? v.toUpperCase(): v;
-        const trimmed = trim ? uppercased.trim(): uppercased;
+        const uppercased = uppercase ? v.toUpperCase() : v;
+        const trimmed = trim ? uppercased.trim() : uppercased;
         return trimmed === '' ? null : trimmed;
     }
     set value(value) {
@@ -108,7 +110,7 @@ class Input extends ParsedElement {
         this._input.readOnly = v;
         this.reflect(() => {
             Attributes.toggle(this, 'readonly', v);
-        })
+        });
     }
     get disabled() {
         return this._input.hasAttribute('disabled');
@@ -120,10 +122,10 @@ class Input extends ParsedElement {
         return this._input.getAttribute('aria-required') === 'true';
     }
     set required(d) {
-        Attributes.set(this._input, "aria-required", d ? "true" : null);
+        Attributes.set(this._input, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
-        })
+        });
     }
     focus(options) {
         this._input.focus(options);
@@ -131,14 +133,14 @@ class Input extends ParsedElement {
     setCustomValidity(error) {
         if (!error) {
             this.internals.setValidity({});
-            this._fieldError.innerText = "";
+            this._fieldError.innerText = '';
             return;
         }
-        this.internals.setValidity({ customError: true }, " ");
+        this.internals.setValidity({ customError: true }, ' ');
         this._fieldError.innerText = error;
     }
     formResetCallback() {
-        this.value = this.unmarshal('value', this.getAttribute("value"));
+        this.value = this.unmarshal('value', this.getAttribute('value'));
     }
 }
 

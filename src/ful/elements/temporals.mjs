@@ -1,8 +1,5 @@
-import { ParsedElement } from "../../ftl/index.mjs";
-import { Input } from "./input.mjs";
-
-
-
+import { ParsedElement } from '../../ftl/index.mjs';
+import { Input } from './input.mjs';
 
 class LocalDate extends ParsedElement {
     render() {
@@ -11,7 +8,7 @@ class LocalDate extends ParsedElement {
             this.innerHTML = this.getAttribute('default') ?? '';
             return;
         }
-        const locale = this.getAttribute("locale") ?? Intl.DateTimeFormat().resolvedOptions().locale;
+        const locale = this.getAttribute('locale') ?? Intl.DateTimeFormat().resolvedOptions().locale;
         const formatter = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'numeric', day: 'numeric' });
         const [y, m, d] = content.split('-').map(Number);
         this.innerHTML = formatter.format(new Date(y, m - 1, d));
@@ -25,7 +22,7 @@ class Instant extends ParsedElement {
             this.innerHTML = this.getAttribute('default') ?? '';
             return;
         }
-        const locale = this.getAttribute("locale") ?? Intl.DateTimeFormat().resolvedOptions().locale;
+        const locale = this.getAttribute('locale') ?? Intl.DateTimeFormat().resolvedOptions().locale;
         const format = new Intl.DateTimeFormat(locale, {
             year: 'numeric',
             month: 'numeric',
@@ -33,7 +30,7 @@ class Instant extends ParsedElement {
             hour: 'numeric',
             minute: 'numeric',
             second: 'numeric',
-            hour12: false
+            hour12: false,
         });
         this.innerHTML = format.format(new Date(Instant.isoToLocal(content)));
     }
@@ -43,10 +40,9 @@ class Instant extends ParsedElement {
         const pad = (n, v) => String(v).padStart(n, '0');
         const date = `${d.getFullYear()}-${pad(2, d.getMonth() + 1)}-${pad(2, d.getDate())}`;
         const time = `${pad(2, d.getHours())}:${pad(2, d.getMinutes())}:${pad(2, d.getSeconds())}.${pad(3, d.getMilliseconds())}`;
-        return `${date}T${time}`
+        return `${date}T${time}`;
     }
 }
-
 
 class InputLocalDate extends Input {
     static observed = ['value', 'readonly:presence', 'required:presence', 'min', 'max', 'step'];
@@ -79,14 +75,15 @@ class InputLocalDate extends Input {
         return v === '' ? null : v;
     }
     set step(v) {
-        this._input.step = (v ?? '');
+        this._input.step = v ?? '';
     }
     static #fromIsoOrOffset(v) {
         if (!v) {
             return '';
         }
         //this could be date.toLocaleDateString('en-CA')
-        const formatLocalDate = (date) => new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
+        const formatLocalDate = (date) =>
+            new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
         if (v === 'now') {
             return formatLocalDate(new Date());
         }
@@ -95,7 +92,7 @@ class InputLocalDate extends Input {
         if (!match) {
             return v;
         }
-        const sign = match[1] === "-" ? -1 : 1;
+        const sign = match[1] === '-' ? -1 : 1;
         const offset = +match[2];
         const r = new Date();
         r.setHours(0, 0, 0, 0);
@@ -123,7 +120,6 @@ class InputLocalTime extends InputLocalDate {
         return 'time';
     }
 }
-
 
 class InputInstant extends Input {
     static observed = ['value', 'readonly:presence', 'required:presence', 'min', 'max', 'step'];
@@ -163,11 +159,8 @@ class InputInstant extends Input {
         return v === '' ? null : v;
     }
     set step(v) {
-        this._input.step = (v ?? '');
+        this._input.step = v ?? '';
     }
 }
 
-
-
-
-export { Instant, LocalDate, InputLocalDate, InputLocalTime, InputInstant }
+export { Instant, LocalDate, InputLocalDate, InputLocalTime, InputInstant };

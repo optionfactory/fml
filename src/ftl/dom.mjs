@@ -1,27 +1,27 @@
 class Fragments {
     /**
      * Creates a DocumentFragment from an string.
-     * @param  {...string} html 
+     * @param  {...string} html
      * @returns {DocumentFragment} the fragment
      */
     static fromHtml(...html) {
-        const el = document.createElement("template");
-        el.innerHTML = html.map(h => h.trim()).join("");
+        const el = document.createElement('template');
+        el.innerHTML = html.map((h) => h.trim()).join('');
         return document.adoptNode(el.content);
     }
     /**
      * Creates a string representation (HTML) of a DocumentFragment.
-     * @param {DocumentFragment} fragment 
+     * @param {DocumentFragment} fragment
      * @returns {string} the html
      */
     static toHtml(fragment) {
-        var el = document.createElement("template");
+        var el = document.createElement('template');
         el.content.appendChild(fragment);
         return el.innerHTML;
     }
     /**
      * Checks if a fragment contains only blank text nodes
-     * @param {DocumentFragment} fragment 
+     * @param {DocumentFragment} fragment
      * @returns {boolean} true if the fragment is blank
      */
     static isBlank(fragment) {
@@ -29,7 +29,7 @@ class Fragments {
     }
     /**
      * Creates a DocumentFragment from nodes.
-     * @param  {...Node} nodes 
+     * @param  {...Node} nodes
      * @returns {DocumentFragment} the fragment
      */
     static from(...nodes) {
@@ -39,7 +39,7 @@ class Fragments {
     }
     /**
      * Creates a DocumentFragment from childNodes of an element.
-     * @param {Node} el 
+     * @param {Node} el
      * @returns {DocumentFragment} the fragment
      */
     static fromChildNodes(el) {
@@ -53,18 +53,18 @@ class Attributes {
     static id = 0;
     /**
      * Creates a unique id with the given prefix.
-     * @param {string} prefix 
-     * @returns 
+     * @param {string} prefix
+     * @returns
      */
     static uid(prefix) {
         return `${prefix}-${++Attributes.id}`;
     }
     /**
      * Sets an attribute if not present.
-     * @param {Element} el 
-     * @param {string} k 
-     * @param {string} v 
-     * @returns 
+     * @param {Element} el
+     * @param {string} k
+     * @param {string} v
+     * @returns
      */
     static defaultValue(el, k, v) {
         if (!el.hasAttribute(k)) {
@@ -74,28 +74,32 @@ class Attributes {
     }
     /**
      * Forwards prefixed attributes from an element to another (removing the prefix).
-     * @param {string} prefix 
-     * @param {Element} from 
-     * @param {Element} to 
+     * @param {string} prefix
+     * @param {Element} from
+     * @param {Element} to
      */
     static forward(prefix, from, to) {
         from.getAttributeNames()
-            .filter(a => a.startsWith(prefix))
-            .forEach(a => {
+            .filter((a) => a.startsWith(prefix))
+            .forEach((a) => {
                 const target = a.substring(prefix.length);
                 if (target === 'class') {
-                    const classes = from.getAttribute(prefix + "class")?.split(" ").filter(a => a.length) ?? [];
+                    const classes =
+                        from
+                            .getAttribute(prefix + 'class')
+                            ?.split(' ')
+                            .filter((a) => a.length) ?? [];
                     to.classList.add(...classes);
                     return;
                 }
-                to.setAttribute(target, /** @type {string} */ (from.getAttribute(a)));                
+                to.setAttribute(target, /** @type {string} */ (from.getAttribute(a)));
             });
     }
     /**
      * Changes the presence of an attribute.
-     * @param {Element} el 
-     * @param {string} attr 
-     * @param {boolean} value 
+     * @param {Element} el
+     * @param {string} attr
+     * @param {boolean} value
      */
     static toggle(el, attr, value) {
         if (value) {
@@ -106,8 +110,8 @@ class Attributes {
     }
     /**
      * Changes the presence of an attribute based on its current state.
-     * @param {Element} el 
-     * @param {string} attr 
+     * @param {Element} el
+     * @param {string} attr
      */
     static flip(el, attr) {
         if (el.hasAttribute(attr)) {
@@ -118,9 +122,9 @@ class Attributes {
     }
     /**
      * Sets the value of an attribute. nullish values remove the attribute.
-     * @param {Element} el 
-     * @param {string} attr 
-     * @param {string | null | undefined} value 
+     * @param {Element} el
+     * @param {string} attr
+     * @param {string | null | undefined} value
      */
     static set(el, attr, value) {
         if (value == null) {
@@ -129,24 +133,22 @@ class Attributes {
             el.setAttribute(attr, value);
         }
     }
-
-
 }
 
 class LightSlots {
     /**
      * Extracts light slots from an element. For non default slots in a template tag, the content is extracted.
-     * @param {Element} el 
+     * @param {Element} el
      * @returns the slots
      */
     static from(el) {
         /** @type [string, Element|DocumentFragment][] */
         const namedSlots = Array.from(el.children)
-            .filter(el => el.matches('[slot]'))
-            .map(el => {
+            .filter((el) => el.matches('[slot]'))
+            .map((el) => {
                 el.remove();
-                const slot = el.getAttribute("slot") || 'unnamed';
-                el.removeAttribute("slot");
+                const slot = el.getAttribute('slot') || 'unnamed';
+                el.removeAttribute('slot');
                 return [slot, LightSlots.slotFromNode(el)];
             });
         const slots = {};
@@ -174,8 +176,8 @@ class LightSlots {
 class Nodes {
     /**
      * Checks if an element is already parsed.
-     * @param {Element} el 
-     * @returns 
+     * @param {Element} el
+     * @returns
      */
     static isParsed(el) {
         //@ts-ignore
@@ -193,7 +195,11 @@ class Nodes {
         }
         return new Promise((resolve) => {
             const ac = new AbortController();
-            const clearAndQueue = () => { ac.abort(); observer.disconnect(); resolve(el); }
+            const clearAndQueue = () => {
+                ac.abort();
+                observer.disconnect();
+                resolve(el);
+            };
             el.ownerDocument.addEventListener('DOMContentLoaded', clearAndQueue, { signal: ac.signal });
             const observer = new MutationObserver(() => {
                 if (!Nodes.isParsed(el)) {
@@ -208,9 +214,9 @@ class Nodes {
 
     /**
      * Returns the first child of the element element (if exists) matching the selector.
-     * @param {Element} el 
-     * @param {string} selector 
-     * @returns 
+     * @param {Element} el
+     * @param {string} selector
+     * @returns
      */
     static queryChildren(el, selector) {
         for (const c of el.children) {
@@ -222,9 +228,9 @@ class Nodes {
     }
     /**
      * Returns all children of the element matching the selector.
-     * @param {Element} el 
-     * @param {string} selector 
-     * @returns 
+     * @param {Element} el
+     * @param {string} selector
+     * @returns
      */
     static queryChildrenAll(el, selector) {
         const r = [];
@@ -235,9 +241,6 @@ class Nodes {
         }
         return r;
     }
-
-
 }
-
 
 export { Fragments, Attributes, LightSlots, Nodes };

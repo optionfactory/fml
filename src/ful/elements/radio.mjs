@@ -1,7 +1,7 @@
-import { Attributes, Fragments, ParsedElement } from "../../ftl/index.mjs";
+import { Attributes, Fragments, ParsedElement } from '../../ftl/index.mjs';
 
 class RadioGroup extends ParsedElement {
-    static observed = ['value', 'readonly:presence', "required:presence"];
+    static observed = ['value', 'readonly:presence', 'required:presence'];
     static slots = true;
     static template = `
         <fieldset>
@@ -38,29 +38,31 @@ class RadioGroup extends ParsedElement {
     render({ slots, observed, disabled }) {
         const name = this.getAttribute('name') ?? Attributes.uid('ful-radiogroup');
         const radioEls = Array.from(slots.default.querySelectorAll('ful-radio'));
-        const inputsAndLabels = radioEls.map(el => {
+        const inputsAndLabels = radioEls.map((el) => {
             const input = document.createElement('input');
             input.setAttribute('type', 'radio');
             Attributes.forward('input-', this, input);
             Attributes.forward('', el, input);
             input.setAttribute('name', `${name}-ignore`);
             input.setAttribute('form', ``);
-            input.addEventListener('change', evt => {
+            input.addEventListener('change', (evt) => {
                 evt.stopPropagation();
                 //change is not cancelable
-                this.dispatchEvent(new CustomEvent('change', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: {
-                        value: this.value
-                    }
-                }));
+                this.dispatchEvent(
+                    new CustomEvent('change', {
+                        bubbles: true,
+                        cancelable: false,
+                        detail: {
+                            value: this.value,
+                        },
+                    }),
+                );
             });
             const label = Fragments.fromChildNodes(el);
             return [input, label];
         });
 
-        radioEls.forEach(el => el.remove());
+        radioEls.forEach((el) => el.remove());
         this.template().withOverlay({ name, slots, inputsAndLabels }).renderTo(this);
         this.#fieldset = this.firstElementChild;
         this.disabled = disabled;
@@ -75,12 +77,12 @@ class RadioGroup extends ParsedElement {
     get value() {
         /** @type {HTMLInputElement|null} */
         const checked = this.querySelector('input[type=radio]:checked');
-        return checked ? (this.#booleanType ? (checked.value === 'true') : checked.value) : null;
+        return checked ? (this.#booleanType ? checked.value === 'true' : checked.value) : null;
     }
     set value(value) {
         if (value === null) {
-            this.querySelectorAll(`input[type=radio]`).forEach(el => {
-                (/** @type {HTMLInputElement} */(el)).checked = false
+            this.querySelectorAll(`input[type=radio]`).forEach((el) => {
+                /** @type {HTMLInputElement} */ (el).checked = false;
             });
             return;
         }
@@ -89,41 +91,41 @@ class RadioGroup extends ParsedElement {
         if (el) {
             el.checked = true;
         }
-    }     
-    get readonly(){
+    }
+    get readonly() {
         return this.#fieldset.inert;
     }
     set readonly(v) {
         this.#fieldset.inert = v;
         this.reflect(() => {
             Attributes.toggle(this, 'readonly', v);
-        })
+        });
     }
-    get disabled(){
+    get disabled() {
         return this.#fieldset.hasAttribute('disabled');
     }
-    set disabled(d){
+    set disabled(d) {
         Attributes.toggle(this.#fieldset, 'disabled', d);
-    }    
+    }
     get required() {
         return this.#fieldset.getAttribute('aria-required') === 'true';
     }
     set required(d) {
-        Attributes.set(this.#fieldset, "aria-required", d ? "true" : null);
+        Attributes.set(this.#fieldset, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
-        })
-    }      
+        });
+    }
     focus(options) {
         this.#firstRadio.focus(options);
     }
     setCustomValidity(error) {
         if (!error) {
             this.internals.setValidity({});
-            this.#fieldError.innerText = "";
+            this.#fieldError.innerText = '';
             return;
         }
-        this.internals.setValidity({ customError: true }, " ");
+        this.internals.setValidity({ customError: true }, ' ');
         this.#fieldError.innerText = error;
     }
 }

@@ -1,6 +1,5 @@
 ful-input-file {
-
-    &>.default-dropzone {
+    & > .default-dropzone {
         border: 5px solid blue;
         min-height: 100px;
         display: flex;
@@ -13,26 +12,23 @@ ful-input-file {
         display: none;
     }
 
-    &:not([dropzone])>.default-dropzone,
-    &:not([dropzone])>.dropzone {
+    &:not([dropzone]) > .default-dropzone,
+    &:not([dropzone]) > .dropzone {
         display: none;
     }
 
-    &:not([itemlist])>ful-item-list {
+    &:not([itemlist]) > ful-item-list {
         display: none;
     }
 
     &[readonly] {
-        &>.default-dropzone,
-        &>.dropzone {
+        & > .default-dropzone,
+        & > .dropzone {
             pointer-events: none;
         }
 
-        &>.input-group>input {
+        & > .input-group > input {
             pointer-events: none;
         }
     }
-
-
-
 }

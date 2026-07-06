@@ -1,5 +1,3 @@
-
-
 class Base64 {
     static encode(arrayBuffer, dialect) {
         const d = dialect || Base64.URL_SAFE;
@@ -50,11 +48,10 @@ class Base64 {
 Base64.STANDARD = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 Base64.URL_SAFE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-
 class Hex {
     static decode(hex) {
         if (hex.length % 2 !== 0) {
-            throw new Error("invalid length");
+            throw new Error('invalid length');
         }
         const lenInBytes = hex.length / 2;
         return new Uint8Array(lenInBytes).map((e, i) => {
@@ -65,9 +62,9 @@ class Hex {
     }
     static encode(bytes, upper) {
         return Array.from(bytes)
-            .map(b => b.toString(16))
-            .map(b => upper ? b.toUpperCase() : b)
-            .map(o => o.padStart(2, 0))
+            .map((b) => b.toString(16))
+            .map((b) => (upper ? b.toUpperCase() : b))
+            .map((o) => o.padStart(2, 0))
             .join('');
     }
 }

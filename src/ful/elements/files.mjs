@@ -1,40 +1,49 @@
-import { Attributes } from "../../ftl/index.mjs";
-import { Input } from "./input.mjs";
-
-
+import { Attributes } from '../../ftl/index.mjs';
+import { Input } from './input.mjs';
 
 class InputFile extends Input {
     static l10n = {
         en: {
-            'dropzonelabel': 'Click or drop your files here',
-            'unaccepptablefiletype': "Only files of type {0} are supported",
-            'maxfilesizeexceeded': "Maximum supported file size is {0}",
-            'maxtotalsizeexceeded': "Maximum supported total file size is {0}",
-            'maxfilesexceeded': "Maximum files count exceeded"
+            dropzonelabel: 'Click or drop your files here',
+            unaccepptablefiletype: 'Only files of type {0} are supported',
+            maxfilesizeexceeded: 'Maximum supported file size is {0}',
+            maxtotalsizeexceeded: 'Maximum supported total file size is {0}',
+            maxfilesexceeded: 'Maximum files count exceeded',
         },
         it: {
-            'dropzonelabel': 'Clicca o trascina i file qui',
-            'unaccepptablefiletype': "Solo i file di tipo {0} sono supportati",
-            'maxfilesizeexceeded': "La dimensione massima di un file è di {0}",
-            'maxtotalsizeexceeded': "La dimensione massima complessiva dei file è di {0}",
-            'maxfilesexceeded': "Numero massimo di file superato",
+            dropzonelabel: 'Clicca o trascina i file qui',
+            unaccepptablefiletype: 'Solo i file di tipo {0} sono supportati',
+            maxfilesizeexceeded: 'La dimensione massima di un file è di {0}',
+            maxtotalsizeexceeded: 'La dimensione massima complessiva dei file è di {0}',
+            maxfilesexceeded: 'Numero massimo di file superato',
         },
         es: {
-            'dropzonelabel': 'Haz clic o arrastra tus archivos aquí',
-            'unaccepptablefiletype': "Solo se admiten archivos de tipo {0}",
-            'maxfilesizeexceeded': "El tamaño máximo de archivo admitido es {0}",
-            'maxtotalsizeexceeded': "El tamaño total máximo admitido es {0}",
-            'maxfilesexceeded': "Se ha superado el número máximo de archivos"
+            dropzonelabel: 'Haz clic o arrastra tus archivos aquí',
+            unaccepptablefiletype: 'Solo se admiten archivos de tipo {0}',
+            maxfilesizeexceeded: 'El tamaño máximo de archivo admitido es {0}',
+            maxtotalsizeexceeded: 'El tamaño total máximo admitido es {0}',
+            maxfilesexceeded: 'Se ha superado el número máximo de archivos',
         },
         fr: {
-            'dropzonelabel': 'Cliquez ou déposez vos fichiers ici',
-            'unaccepptablefiletype': "Seuls les fichiers de type {0} sont pris en charge",
-            'maxfilesizeexceeded': "La taille maximale de fichier prise en charge est {0}",
-            'maxtotalsizeexceeded': "La taille totale maximale prise en charge est {0}",
-            'maxfilesexceeded': "Nombre maximal de fichiers dépassé"
-        }
-    }
-    static observed = ['value', 'readonly:presence', 'required:presence', "accept:csv", 'multiple:presence', "itemlist:presence", "dropzone:presence", "maxfiles:number", "maxfilesize:number", "maxtotalsize:number"];
+            dropzonelabel: 'Cliquez ou déposez vos fichiers ici',
+            unaccepptablefiletype: 'Seuls les fichiers de type {0} sont pris en charge',
+            maxfilesizeexceeded: 'La taille maximale de fichier prise en charge est {0}',
+            maxtotalsizeexceeded: 'La taille totale maximale prise en charge est {0}',
+            maxfilesexceeded: 'Nombre maximal de fichiers dépassé',
+        },
+    };
+    static observed = [
+        'value',
+        'readonly:presence',
+        'required:presence',
+        'accept:csv',
+        'multiple:presence',
+        'itemlist:presence',
+        'dropzone:presence',
+        'maxfiles:number',
+        'maxfilesize:number',
+        'maxtotalsize:number',
+    ];
     #accept;
     #items;
     #dropzone;
@@ -72,14 +81,14 @@ class InputFile extends Input {
                 <button type="button" class="btn btn-sm btn-outline-danger bi bi-x-lg" alt="Rimuovi"></button>
             </ful-item>
         `,
-        warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`
-    }
+        warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`,
+    };
     render(conf) {
         const { observed } = conf;
         super.render(conf);
-        this.#items = this.querySelector("ful-item-list");
-        this.#dropzone = this.querySelector("[data-ref=dropzone]");
-        this.#warnings = this.querySelector("ful-field-warnings");
+        this.#items = this.querySelector('ful-item-list');
+        this.#dropzone = this.querySelector('[data-ref=dropzone]');
+        this.#warnings = this.querySelector('ful-field-warnings');
         this.accept = observed.accept;
         this.multiple = observed.multiple;
         this.itemlist = observed.itemlist;
@@ -87,39 +96,43 @@ class InputFile extends Input {
         this.maxfiles = observed.maxfiles;
         this.maxfilesize = observed.maxfilesize;
         this.maxtotalsize = observed.maxtotalsize;
-        this.#warnings.addEventListener('animationend', e => {
+        this.#warnings.addEventListener('animationend', (e) => {
             e.target.remove();
         });
         this.#items.addEventListener('click', (e) => {
-            if (!e.target.closest("button")) {
+            if (!e.target.closest('button')) {
                 return;
             }
-            const fileName = e.target.closest("ful-item").dataset.name;
+            const fileName = e.target.closest('ful-item').dataset.name;
             const dt = new DataTransfer();
-            [...this.files].filter(f => f.name !== fileName).forEach(f => dt.items.add(f));
+            [...this.files].filter((f) => f.name !== fileName).forEach((f) => dt.items.add(f));
             this.files = dt.files;
             this.#update();
-        })
-        this.#dropzone.addEventListener("click", (e) => {
+        });
+        this.#dropzone.addEventListener('click', (e) => {
             this.querySelector('input')?.click();
         });
 
-        this.#dropzone.addEventListener("dragover", (e) => {
+        this.#dropzone.addEventListener('dragover', (e) => {
             e.preventDefault();
         });
-        this.#dropzone.addEventListener("drop", (e) => {
+        this.#dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             const dt = new DataTransfer();
-            [...e.dataTransfer.items].filter(i => i.kind === 'file').forEach(i => dt.items.add(i.getAsFile()));
+            [...e.dataTransfer.items].filter((i) => i.kind === 'file').forEach((i) => dt.items.add(i.getAsFile()));
             this.files = dt.files;
             this.#update();
         });
-        this._input.addEventListener("change", (e) => {
+        this._input.addEventListener('change', (e) => {
             this.#update();
         });
     }
     #formatByteSize(v) {
-        return (v > 1024 * 1024) ? `${Math.round(v / 1024 / 1024 * 100) / 100}MiB` : (v > 1024 ? `${Math.round(v / 1024 * 100) / 100}KiB` : `${v}B`);
+        return v > 1024 * 1024
+            ? `${Math.round((v / 1024 / 1024) * 100) / 100}MiB`
+            : v > 1024
+              ? `${Math.round((v / 1024) * 100) / 100}KiB`
+              : `${v}B`;
     }
     #update() {
         this.setCustomValidity();
@@ -127,7 +140,10 @@ class InputFile extends Input {
         this.#ensureFileSizes();
         this.#ensureTotalSize();
         this.#ensureFilesCount();
-        this.template('items').withOverlay({ files: this.files }).withModule('bytes', { format: this.#formatByteSize }).renderTo(this.#items);
+        this.template('items')
+            .withOverlay({ files: this.files })
+            .withModule('bytes', { format: this.#formatByteSize })
+            .renderTo(this.#items);
     }
     warning(key, args) {
         this.template('warning').withOverlay({ key, args }).renderTo(this.#warnings);
@@ -136,15 +152,16 @@ class InputFile extends Input {
         if (!this.#accept.length) {
             return;
         }
-        const unacceptable = [...this.files]
-            .filter(file => !this.#accept.some(type => file.name.toLowerCase().endsWith(type.toLowerCase())));
+        const unacceptable = [...this.files].filter(
+            (file) => !this.#accept.some((type) => file.name.toLowerCase().endsWith(type.toLowerCase())),
+        );
 
         if (unacceptable.length === 0) {
             return;
         }
-        this.warning('unaccepptablefiletype', this.#accept.join(", "));
+        this.warning('unaccepptablefiletype', this.#accept.join(', '));
         const dt = new DataTransfer();
-        [...this.files].filter(f => !unacceptable.includes(f)).forEach(f => dt.items.add(f));
+        [...this.files].filter((f) => !unacceptable.includes(f)).forEach((f) => dt.items.add(f));
         this.files = dt.files;
     }
     #ensureFilesCount() {
@@ -163,14 +180,13 @@ class InputFile extends Input {
         if (this.#maxfilesize === null) {
             return;
         }
-        const oversized = [...this.files]
-            .filter(file => file.size > this.#maxfilesize);
+        const oversized = [...this.files].filter((file) => file.size > this.#maxfilesize);
         if (oversized.length === 0) {
             return;
         }
         this.warning('maxfilesizeexceeded', this.#formatByteSize(this.#maxfilesize));
         const dt = new DataTransfer();
-        [...this.files].filter(f => !oversized.includes(f)).forEach(f => dt.items.add(f));
+        [...this.files].filter((f) => !oversized.includes(f)).forEach((f) => dt.items.add(f));
         this.files = dt.files;
     }
     #ensureTotalSize() {
@@ -188,11 +204,11 @@ class InputFile extends Input {
         return this.#accept;
     }
     set accept(vs) {
-        this._input.accept = vs.join(",");
+        this._input.accept = vs.join(',');
         this.#accept = vs;
         this.reflect(() => {
             this.setAttribute('accept', this._input.accept);
-        })
+        });
     }
     get multiple() {
         return this._input.multiple;
@@ -200,8 +216,8 @@ class InputFile extends Input {
     set multiple(v) {
         this._input.multiple = v;
         this.reflect(() => {
-            Attributes.toggle(this, "multiple", v);
-        })
+            Attributes.toggle(this, 'multiple', v);
+        });
     }
     get files() {
         return this._input.files;
@@ -218,7 +234,7 @@ class InputFile extends Input {
         this.files = dt.files;
     }
     get value() {
-        const names = Array.from(this._input.files).map(f => f.name);
+        const names = Array.from(this._input.files).map((f) => f.name);
         return this.multiple ? names : (names[0] ?? null);
     }
     set value(v) {
@@ -235,7 +251,7 @@ class InputFile extends Input {
         this.#maxfiles = v;
         this.reflect(() => {
             Attributes.set(this, 'maxfiles', v);
-        })
+        });
     }
     #maxfilesize;
     get maxfilesize() {
@@ -245,7 +261,7 @@ class InputFile extends Input {
         this.#maxfilesize = v;
         this.reflect(() => {
             Attributes.set(this, 'maxfilesize', v);
-        })
+        });
     }
     #maxtotalsize;
     get maxtotalsize() {
@@ -255,7 +271,7 @@ class InputFile extends Input {
         this.#maxtotalsize = v;
         this.reflect(() => {
             Attributes.set(this, 'maxtotalsize', v);
-        })
+        });
     }
     #useItemlist;
     get itemlist() {
@@ -264,8 +280,8 @@ class InputFile extends Input {
     set itemlist(v) {
         this.#useItemlist = v;
         this.reflect(() => {
-            Attributes.toggle(this, "itemlist", v);
-        })
+            Attributes.toggle(this, 'itemlist', v);
+        });
     }
     #useDropzone;
     get dropzone() {
@@ -274,9 +290,9 @@ class InputFile extends Input {
     set dropzone(v) {
         this.#useDropzone = v;
         this.reflect(() => {
-            Attributes.toggle(this, "dropzone", v);
-        })
+            Attributes.toggle(this, 'dropzone', v);
+        });
     }
 }
 
-export { InputFile }
+export { InputFile };

@@ -1,6 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
-import terser from "@rollup/plugin-terser";
-import postcss from "rollup-plugin-postcss";
+import terser from '@rollup/plugin-terser';
+import postcss from 'rollup-plugin-postcss';
 import { createFilter } from '@rollup/pluginutils';
 import peggy from 'peggy';
 import { execSync } from 'child_process';
@@ -17,7 +17,7 @@ class RollupPeggyWithSourceMap {
             output: 'source-and-map',
             grammarSource: id,
             format: 'es',
-            cache: true
+            cache: true,
         });
         const res = generated.toStringWithSourceMap({});
         return { code: res.code, map: res.map.toString() };
@@ -32,7 +32,10 @@ export class RollupTypeGenerator {
     closeBundle = () => {
         console.log(`Post-processing: Extracting type definitions from dist/${this.ns}.mjs...`);
         try {
-            execSync(`npx tsc dist/${this.ns}.mjs --allowJs --declaration --emitDeclarationOnly --outDir dist --target ES2024 --moduleResolution bundler --lib es2024,dom,dom.iterable`, { stdio: 'inherit' });
+            execSync(
+                `npx tsc dist/${this.ns}.mjs --allowJs --declaration --emitDeclarationOnly --outDir dist --target ES2024 --moduleResolution bundler --lib es2024,dom,dom.iterable`,
+                { stdio: 'inherit' },
+            );
             const declarationPath = `dist/${this.ns}.d.mts`;
             if (fs.existsSync(declarationPath)) {
                 fs.appendFileSync(declarationPath, `\nexport as namespace ${this.ns};\n`);
@@ -43,7 +46,7 @@ export class RollupTypeGenerator {
         } catch (error) {
             console.error('Type generation phase failed!', error);
         }
-    }
+    };
 }
 
 export default [
@@ -53,10 +56,10 @@ export default [
             { sourcemap: true, file: 'dist/ftl.mjs', format: 'es' },
             { sourcemap: true, file: 'dist/ftl.min.mjs', format: 'es', plugins: [terser()] },
             { sourcemap: true, file: 'dist/ftl.iife.js', name: 'ftl', format: 'iife' },
-            { sourcemap: true, file: 'dist/ftl.iife.min.js', name: 'ftl', format: 'iife', plugins: [terser()] }
+            { sourcemap: true, file: 'dist/ftl.iife.min.js', name: 'ftl', format: 'iife', plugins: [terser()] },
         ],
         treeshake: true,
-        plugins: [new RollupPeggyWithSourceMap(), resolve(), new RollupTypeGenerator('ftl')]
+        plugins: [new RollupPeggyWithSourceMap(), resolve(), new RollupTypeGenerator('ftl')],
     },
     {
         input: 'src/httpc/index.mjs',
@@ -64,19 +67,19 @@ export default [
             { sourcemap: true, file: 'dist/httpc.mjs', format: 'es' },
             { sourcemap: true, file: 'dist/httpc.min.mjs', format: 'es', plugins: [terser()] },
             { sourcemap: true, file: 'dist/httpc.iife.js', name: 'httpc', format: 'iife' },
-            { sourcemap: true, file: 'dist/httpc.iife.min.js', name: 'httpc', format: 'iife', plugins: [terser()] }
+            { sourcemap: true, file: 'dist/httpc.iife.min.js', name: 'httpc', format: 'iife', plugins: [terser()] },
         ],
         treeshake: true,
-        plugins: [resolve(), new RollupTypeGenerator('httpc')]
+        plugins: [resolve(), new RollupTypeGenerator('httpc')],
     },
     {
         input: 'src/client-errors/client-errors.mjs',
         output: [
             { sourcemap: true, file: 'dist/client-errors.iife.js', format: 'iife' },
-            { sourcemap: true, file: 'dist/client-errors.iife.min.js', format: 'iife', plugins: [terser()] }
+            { sourcemap: true, file: 'dist/client-errors.iife.min.js', format: 'iife', plugins: [terser()] },
         ],
         treeshake: true,
-        plugins: [resolve()]
+        plugins: [resolve()],
     },
     {
         input: 'src/ful/index.mjs',
@@ -89,7 +92,7 @@ export default [
                 paths: (id) => {
                     if (id.includes('/ftl/')) return './ftl.mjs';
                     if (id.includes('/httpc/')) return './httpc.mjs';
-                }
+                },
             },
             {
                 sourcemap: true,
@@ -99,7 +102,7 @@ export default [
                 paths: (id) => {
                     if (id.includes('/ftl/')) return './ftl.min.mjs';
                     if (id.includes('/httpc/')) return './httpc.min.mjs';
-                }
+                },
             },
             {
                 sourcemap: true,
@@ -109,7 +112,7 @@ export default [
                 globals: (id) => {
                     if (id.includes('/ftl/')) return 'ftl';
                     if (id.includes('/httpc/')) return 'httpc';
-                }
+                },
             },
             {
                 sourcemap: true,
@@ -120,15 +123,15 @@ export default [
                     if (id.includes('/ftl/')) return 'ftl';
                     if (id.includes('/httpc/')) return 'httpc';
                 },
-                plugins: [terser()]
-            }
+                plugins: [terser()],
+            },
         ],
         treeshake: true,
         plugins: [
             resolve(),
             postcss({ extract: 'ful.css', inject: false, minimize: true, sourceMap: true }),
-            new RollupTypeGenerator('ful')
-        ]
+            new RollupTypeGenerator('ful'),
+        ],
     },
     {
         input: 'src/index.mjs',
@@ -136,14 +139,14 @@ export default [
             { sourcemap: true, file: 'dist/fml.mjs', format: 'es' },
             { sourcemap: true, file: 'dist/fml.min.mjs', format: 'es', plugins: [terser()] },
             { sourcemap: true, file: 'dist/fml.iife.js', name: 'fml', format: 'iife' },
-            { sourcemap: true, file: 'dist/fml.iife.min.js', name: 'fml', format: 'iife', plugins: [terser()] }
+            { sourcemap: true, file: 'dist/fml.iife.min.js', name: 'fml', format: 'iife', plugins: [terser()] },
         ],
         treeshake: true,
         plugins: [
             new RollupPeggyWithSourceMap(),
             resolve(),
             postcss({ extract: 'fml.css', inject: false, minimize: true, sourceMap: true }),
-            new RollupTypeGenerator('fml')
-        ]
-    }
+            new RollupTypeGenerator('fml'),
+        ],
+    },
 ];

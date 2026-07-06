@@ -16,12 +16,11 @@ ful-input-instant {
     }
 
     &[required] > .form-label > label::before {
-        content: '* ';
+        content: "* ";
         display: inline;
         font-weight: 700;
         color: var(--ful-color);
     }
-
 
     & textarea:focus,
     & input:focus {
@@ -29,15 +28,14 @@ ful-input-instant {
         box-shadow: var(--ful-focus-box-shadow);
     }
 
-
     &:invalid textarea,
     &:invalid input {
         border-color: var(--ful-invalid-border-color);
-        padding-right: calc(1.5em + .75rem);
+        padding-right: calc(1.5em + 0.75rem);
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
         background-repeat: no-repeat;
-        background-position: right calc(.375em + .1875rem) center;
-        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
     }
 
     &:invalid textarea:focus,
@@ -45,15 +43,12 @@ ful-input-instant {
         border-color: var(--ful-invalid-border-color);
         box-shadow: var(--ful-invalid-box-shadow);
     }
-
 }
 
 ful-item-list {
     --ful-item-list-item-color: var(--ful-active-color);
     --ful-item-list-item-border-radius: var(--ful-border-radius);
     --ful-item-list-item-bg: var(--ful-active-bg);
-
-
 
     display: grid;
     grid-template-columns: 1fr auto;
@@ -63,15 +58,15 @@ ful-item-list {
         grid-template-columns: 1fr auto auto;
     }
 
-    &>ful-item:first-child {
+    & > ful-item:first-child {
         margin-top: 6px;
     }
 
-    &>ful-item:last-child {
+    & > ful-item:last-child {
         margin-bottom: 6px;
     }
 
-    &>ful-item {
+    & > ful-item {
         display: grid;
         grid-column: 1 / -1;
         grid-template-columns: subgrid;
@@ -79,7 +74,7 @@ ful-item-list {
         text-align: right;
         line-height: 21px;
 
-        &>*:first-child {
+        & > *:first-child {
             text-align: left;
             min-width: 30px;
             display: inline-block;
@@ -92,7 +87,7 @@ ful-item-list {
             background-color: var(--ful-item-list-item-bg);
         }
 
-        &>*:last-child {
+        & > *:last-child {
             text-align: left;
         }
     }

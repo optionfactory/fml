@@ -1,5 +1,5 @@
-import { parse } from "./expressions-parser.peggy";
-import { nodes } from "./ast.mjs";
+import { parse } from './expressions-parser.peggy';
+import { nodes } from './ast.mjs';
 
 class EvaluatingVisitor {
     #modules;
@@ -17,7 +17,7 @@ class EvaluatingVisitor {
                         return overlay[prop];
                     }
                 }
-            }
+            },
         });
     }
     [nodes.and](node) {
@@ -37,62 +37,62 @@ class EvaluatingVisitor {
         const lhs = this.visit(node.lhs);
         const rhs = this.visit(node.rhs);
         const eq = lhs === rhs;
-        return node.op === "==" ? eq : !eq;
+        return node.op === '==' ? eq : !eq;
     }
     [nodes.cmp](node) {
         const lhs = this.visit(node.lhs);
         const rhs = this.visit(node.rhs);
         switch (node.op) {
-            case ">":
+            case '>':
                 return lhs > rhs;
-            case "<":
+            case '<':
                 return lhs < rhs;
-            case ">=":
+            case '>=':
                 return lhs >= rhs;
-            case "<=":
+            case '<=':
                 return lhs <= rhs;
             default:
-                throw new Error("unknown cmp op " + node.op);
+                throw new Error('unknown cmp op ' + node.op);
         }
     }
     [nodes.call](node) {
         const fnRef = node.value;
         const module = fnRef.module === null ? this.#modules : this.#modules?.[fnRef.module];
         if (!module) {
-            throw new Error(`Module "${fnRef.module}" not found`)
+            throw new Error(`Module "${fnRef.module}" not found`);
         }
         const fn = module[fnRef.value];
         if (!fn) {
-            throw new Error(`Function "#${fnRef.module === null ? '' : fnRef.module + ":"}${fnRef.value}" not found`)
+            throw new Error(`Function "#${fnRef.module === null ? '' : fnRef.module + ':'}${fnRef.value}" not found`);
         }
-        const args = node.args.map(arg => this.visit(arg));
+        const args = node.args.map((arg) => this.visit(arg));
         return fn.apply(this.#data, args);
     }
     [nodes.literal](node) {
         return node.value;
     }
     [nodes.tstring](node) {
-        let result = "";
+        let result = '';
         const parts = node.parts;
         for (let i = 0, len = parts.length; i < len; i++) {
             const evaluated = this.visit(parts[i]);
             if (evaluated !== null && evaluated !== undefined) {
-                result += evaluated; 
+                result += evaluated;
             }
         }
         return result;
-    }    
+    }
     [nodes.symbol](node) {
         return this.#data[node.value];
     }
     [nodes.dict](node) {
-        return Object.fromEntries(node.value.map(entry => [entry[0].value, this.visit(entry[1])]));
+        return Object.fromEntries(node.value.map((entry) => [entry[0].value, this.visit(entry[1])]));
     }
     [nodes.array](node) {
-        return node.value.map(v => this.visit(v));
+        return node.value.map((v) => this.visit(v));
     }
     [nodes.ter](node) {
-        return this.visit(node.cond)? this.visit(node.ifTrue) : this.visit(node.ifFalse);
+        return this.visit(node.cond) ? this.visit(node.ifTrue) : this.visit(node.ifFalse);
     }
     [nodes.elv](node) {
         const cond = this.visit(node.cond);
@@ -109,18 +109,18 @@ class EvaluatingVisitor {
             let value = undefined;
             switch (rhs.type) {
                 case nodes.member: {
-                    value = cur[rhs.rhs]
+                    value = cur[rhs.rhs];
                     break;
                 }
                 case nodes.subscript: {
-                    value = cur[this.visit(rhs.rhs)]
+                    value = cur[this.visit(rhs.rhs)];
                     break;
                 }
                 case nodes.method: {
                     if (!cur) {
-                        throw new Error(`Method missing "${node.rhs[i - 1].rhs}"`)
+                        throw new Error(`Method missing "${node.rhs[i - 1].rhs}"`);
                     }
-                    const args = rhs.args.map(arg => this.visit(arg));
+                    const args = rhs.args.map((arg) => this.visit(arg));
                     value = cur.apply(prev, args);
                     break;
                 }
@@ -134,21 +134,28 @@ class EvaluatingVisitor {
         return this[node.type](node, ...args);
     }
     visitRoot(ast, templated) {
-        return !templated ? this.visit(ast) : ast.map(node => {
-            switch (node.type) {
-                case nodes.templated.tel: return { type: nodes.dom.t, value: node.value };
-                case nodes.templated.tet: return { type: nodes.dom.t, value: this.visit(node.value) };
-                case nodes.templated.teh: return { type: nodes.dom.h, value: this.visit(node.value) };
-                case nodes.templated.ten: return { type: nodes.dom.n, value: this.visit(node.value) };
-                default: throw new Error("unknown node type " + node.type.toString());
-            }
-        });
+        return !templated
+            ? this.visit(ast)
+            : ast.map((node) => {
+                  switch (node.type) {
+                      case nodes.templated.tel:
+                          return { type: nodes.dom.t, value: node.value };
+                      case nodes.templated.tet:
+                          return { type: nodes.dom.t, value: this.visit(node.value) };
+                      case nodes.templated.teh:
+                          return { type: nodes.dom.h, value: this.visit(node.value) };
+                      case nodes.templated.ten:
+                          return { type: nodes.dom.n, value: this.visit(node.value) };
+                      default:
+                          throw new Error('unknown node type ' + node.type.toString());
+                  }
+              });
     }
 }
 
 class Expressions {
-    static MODE_EXPRESSION = Symbol("MODE_EXPRESSION");
-    static MODE_TEMPLATED = Symbol("MODE_TEMPLATED");
+    static MODE_EXPRESSION = Symbol('MODE_EXPRESSION');
+    static MODE_TEMPLATED = Symbol('MODE_TEMPLATED');
 
     /**
      * Parses an expression.
@@ -157,7 +164,9 @@ class Expressions {
      * @returns the ast
      */
     static parse(expression, mode) {
-        return parse(expression, { startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot' });
+        return parse(expression, {
+            startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot',
+        });
     }
     /**
      * Evaluates an expression.
@@ -181,25 +190,27 @@ class Expressions {
     static interpret(modules, dataStack, expression, mode) {
         return Expressions.evaluate(modules, dataStack, Expressions.parse(expression, mode), mode);
     }
-
 }
 
 class ExpressionEvaluator {
     #modules;
     #dataStack;
-    constructor(modules, dataStack){
+    constructor(modules, dataStack) {
         this.#modules = modules;
         this.#dataStack = dataStack;
     }
-    withModule(name, value){
+    withModule(name, value) {
         const module = name ? { [name]: value } : value;
         return new ExpressionEvaluator({ ...this.#modules, ...module }, this.#dataStack);
     }
     withOverlay(...data) {
-        return new ExpressionEvaluator(this.#modules, data.length === 0 ? this.#dataStack : [...this.#dataStack, ...data]);
+        return new ExpressionEvaluator(
+            this.#modules,
+            data.length === 0 ? this.#dataStack : [...this.#dataStack, ...data],
+        );
     }
     evaluate(expression, mode) {
-        return Expressions.interpret(this.#modules,  this.#dataStack, expression, mode);
+        return Expressions.interpret(this.#modules, this.#dataStack, expression, mode);
     }
     evaluateExpression(expression) {
         return this.evaluate(expression, Expressions.MODE_EXPRESSION);
@@ -207,7 +218,6 @@ class ExpressionEvaluator {
     evaluateTemplated(expression) {
         return this.evaluate(expression, Expressions.MODE_TEMPLATED);
     }
-
 }
 
 export { Expressions, ExpressionEvaluator };

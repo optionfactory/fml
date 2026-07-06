@@ -1,6 +1,4 @@
-
 class Bindings {
-
     /**
      * @param {{ [x: string]: any; }} obj
      * @param {string} prefix
@@ -18,14 +16,14 @@ class Bindings {
             return acc;
         }, {});
     }
-    
+
     /**
      * @param {any} result
      * @param {string} path
      * @param {any} value
      */
     static providePath(result, path, value) {
-        const keys = path.split(".").map((k) => /^[0-9]+$/.test(k) ? +k : k);
+        const keys = path.split('.').map((k) => (/^[0-9]+$/.test(k) ? +k : k));
         let current = result ?? {};
         let previous = null;
         for (let i = 0; ; ++i) {
@@ -39,8 +37,8 @@ class Bindings {
                 }
             }
             if (i === keys.length - 1) {
-                //when value is undefined we only want to define the property if it's not defined 
-                current[ckey] = value !== undefined ? value : (ckey in current ? current[ckey] : null);
+                //when value is undefined we only want to define the property if it's not defined
+                current[ckey] = value !== undefined ? value : ckey in current ? current[ckey] : null;
                 return result;
             }
             if (current[ckey] === undefined) {
@@ -51,9 +49,9 @@ class Bindings {
         }
     }
     /**
-     * 
-     * @param {Element & {dataset?: any} & {checked?: boolean} & {value?: any}} el 
-     * @returns 
+     *
+     * @param {Element & {dataset?: any} & {checked?: boolean} & {value?: any}} el
+     * @returns
      */
     static extract(el) {
         if (el.getAttribute('type') === 'radio') {
@@ -75,28 +73,32 @@ class Bindings {
     }
 
     /**
-     * 
-     * @param {HTMLFormElement} form 
+     *
+     * @param {HTMLFormElement} form
      * @param {HTMLElement} [submitter]
-     * @returns 
+     * @returns
      */
-    static extractFrom(form, submitter){
+    static extractFrom(form, submitter) {
         let result = {};
-        for(const el of form.elements){
+        for (const el of form.elements) {
             // we are assuming submitters are disabled during submit.
-            if(!el.hasAttribute("name") || (el.matches(":disabled") && el !== submitter)){
+            if (!el.hasAttribute('name') || (el.matches(':disabled') && el !== submitter)) {
                 continue;
             }
-            result = Bindings.providePath(result, /** @type {string} */(el.getAttribute('name')), Bindings.extract(el))
+            result = Bindings.providePath(
+                result,
+                /** @type {string} */ (el.getAttribute('name')),
+                Bindings.extract(el),
+            );
         }
         return result;
     }
-   
+
     /**
-     * 
-     * @param {Element  & {checked?: boolean} & {value?: any}} el 
-     * @returns 
-     */    
+     *
+     * @param {Element  & {checked?: boolean} & {value?: any}} el
+     * @returns
+     */
     static mutate(el, raw) {
         if (el.getAttribute('type') === 'radio') {
             el.checked = el.getAttribute('value') === raw;
@@ -109,38 +111,39 @@ class Bindings {
         el.value = raw;
     }
 
-    static mutateIn(form, values){
+    static mutateIn(form, values) {
         const names = Array.from(form.elements)
-            .map(el => el.getAttribute("name"))
-            .filter(n => n);
+            .map((el) => el.getAttribute('name'))
+            .filter((n) => n);
         for (const [flattenedKey, value] of Object.entries(Bindings.flatten(values, '', new Set(names)))) {
-            for(const el of form.querySelectorAll(`[name='${CSS.escape(flattenedKey)}']`)){
-                Bindings.mutate(el, value)
+            for (const el of form.querySelectorAll(`[name='${CSS.escape(flattenedKey)}']`)) {
+                Bindings.mutate(el, value);
             }
         }
     }
 
-
-    static errors(form, es, scrollOnError){
-        const fieldErrors = es.filter(e => e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT');
-        const globalErrors = es.filter(e => e.type !== 'FIELD_ERROR' && e.type !== 'INVALID_FORMAT');
-        form.querySelectorAll(`[name]`).forEach(el => el.setCustomValidity?.(""));
-        form.querySelectorAll("ful-errors").forEach(el => {
+    static errors(form, es, scrollOnError) {
+        const fieldErrors = es.filter((e) => e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT');
+        const globalErrors = es.filter((e) => e.type !== 'FIELD_ERROR' && e.type !== 'INVALID_FORMAT');
+        form.querySelectorAll(`[name]`).forEach((el) => el.setCustomValidity?.(''));
+        form.querySelectorAll('ful-errors').forEach((el) => {
             el.replaceChildren();
             el.setAttribute('hidden', '');
         });
-        fieldErrors.forEach(e => {
-            const name = e.context.replace("[", ".").replace("].", ".").replace("]", "");
-            const parts = name.split(".");
+        fieldErrors.forEach((e) => {
+            const name = e.context.replace('[', '.').replace('].', '.').replace(']', '');
+            const parts = name.split('.');
             for (let i = parts.length; i != 0; --i) {
-                const prefix = parts.slice(0, i).join(".");
-                const suffix = parts.slice(i, parts.length).join(".");
-                form.querySelectorAll(`[name='${CSS.escape(prefix)}']`).forEach(input => input.setCustomValidity?.(e.reason, suffix));
+                const prefix = parts.slice(0, i).join('.');
+                const suffix = parts.slice(i, parts.length).join('.');
+                form.querySelectorAll(`[name='${CSS.escape(prefix)}']`).forEach((input) =>
+                    input.setCustomValidity?.(e.reason, suffix),
+                );
             }
         });
-        form.querySelectorAll("ful-errors").forEach(el => {
+        form.querySelectorAll('ful-errors').forEach((el) => {
             const hel = /** @type HTMLElement} */ (el);
-            hel.innerText = globalErrors.map(e => e.reason).join("\n");
+            hel.innerText = globalErrors.map((e) => e.reason).join('\n');
             if (globalErrors.length !== 0) {
                 el.removeAttribute('hidden');
             }
@@ -148,9 +151,10 @@ class Bindings {
         if (es.length == 0 || !scrollOnError) {
             return;
         }
-        Array.from(form.querySelectorAll(`:invalid`)).sort((a,b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y)[0]?.focus();
+        Array.from(form.querySelectorAll(`:invalid`))
+            .sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y)[0]
+            ?.focus();
     }
 }
 
-
-export { Bindings }
+export { Bindings };

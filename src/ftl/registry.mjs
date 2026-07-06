@@ -1,6 +1,6 @@
-import { Nodes } from "./dom.mjs";
-import { ExpressionEvaluator } from "./expressions.mjs";
-import { Template } from "./template.mjs";
+import { Nodes } from './dom.mjs';
+import { ExpressionEvaluator } from './expressions.mjs';
+import { Template } from './template.mjs';
 
 class UpgradeQueue {
     #q = new Map();
@@ -8,10 +8,12 @@ class UpgradeQueue {
         document.addEventListener('DOMContentLoaded', async () => {
             const pending = Array.from(this.entries).map(([child, promise]) => promise);
             await Promise.all(pending);
-            document.dispatchEvent(new CustomEvent('ftl:ready', {
-                bubbles: false,
-                cancelable: false,
-            }));
+            document.dispatchEvent(
+                new CustomEvent('ftl:ready', {
+                    bubbles: false,
+                    cancelable: false,
+                }),
+            );
         });
     }
     enqueue(el) {
@@ -42,68 +44,78 @@ class Registry {
     #tagToClass = {};
     #configured = false;
     #mappers = {
-        'string': {
+        string: {
             unmarshal(str, name, el) {
                 return str;
             },
             marshal(value, name, el) {
                 return value == null ? null : String(value);
-            }
+            },
         },
-        'number': {
+        number: {
             unmarshal(str, name, el) {
-                return str === null ? null : Number(str)
+                return str === null ? null : Number(str);
             },
             marshal(value, name, el) {
                 return value == null ? null : String(value);
-            }
+            },
         },
-        'presence': {
+        presence: {
             unmarshal(str, name, el) {
-                return str !== null
+                return str !== null;
             },
             marshal(value, name, el) {
                 return value == null ? null : '';
-            }
+            },
         },
-        'bool': {
+        bool: {
             unmarshal(str, name, el) {
-                return str === 'true'
+                return str === 'true';
             },
             marshal(value, name, el) {
                 return value == null ? null : String(value === true);
-            }
+            },
         },
-        'json': {
+        json: {
             unmarshal(str, name, el) {
-                return str === null ? null : JSON.parse(str)
+                return str === null ? null : JSON.parse(str);
             },
             marshal(value, name, el) {
                 return value == null ? null : JSON.stringify(value);
-            }
+            },
         },
-        'csv': {
+        csv: {
             unmarshal(str, name, el) {
-                return str === null ? [] : str.split(",").map(e => e.trim()).filter(e => e)
+                return str === null
+                    ? []
+                    : str
+                          .split(',')
+                          .map((e) => e.trim())
+                          .filter((e) => e);
             },
             marshal(value, name, el) {
-                return value == null ? null : value.join(",")
-            }
+                return value == null ? null : value.join(',');
+            },
         },
-        "csvm": {
+        csvm: {
             unmarshal(str, name, el) {
-                if (el.hasAttribute("multiple")) {
-                    return str === null ? [] : str.split(",").map(e => e.trim()).filter(e => e)
+                if (el.hasAttribute('multiple')) {
+                    return str === null
+                        ? []
+                        : str
+                              .split(',')
+                              .map((e) => e.trim())
+                              .filter((e) => e);
                 }
-                return str === null || str === '' ? null : str
+                return str === null || str === '' ? null : str;
             },
             marshal(value, name, el) {
-                if (el.hasAttribute("multiple")) {
-                    return value === null ? null : value.join(",")
+                if (el.hasAttribute('multiple')) {
+                    return value === null ? null : value.join(',');
                 }
                 return value == null ? null : String(value);
-            }
-        }
+            },
+        },
     };
     #components = {};
     #modules;
@@ -119,9 +131,9 @@ class Registry {
     }
     #augmentAndDefineElement(tag, klass) {
         const { observed, attributes, template, templates, slots, mappers } = klass;
-        const observedNames = (observed ?? []).map(a => a.split(":")[0]);
-        const attrToMapper = [...attributes ?? [], ...observed ?? []].reduce((acc, a) => {
-            const [attr, maybeType] = a.split(":");
+        const observedNames = (observed ?? []).map((a) => a.split(':')[0]);
+        const attrToMapper = [...(attributes ?? []), ...(observed ?? [])].reduce((acc, a) => {
+            const [attr, maybeType] = a.split(':');
             const type = maybeType?.trim() ?? 'string';
             if (!(type in this.#mappers) && !(type in (mappers ?? {}))) {
                 throw new Error(`unsupported attribute type: ${type}`);
@@ -130,7 +142,9 @@ class Registry {
             return acc;
         }, {});
 
-        const namesAndTemplates = Object.entries(Object.assign({}, templates, template ? { default: template } : {})).map(([k, v]) => [k, Template.fromHtml(v)]);
+        const namesAndTemplates = Object.entries(
+            Object.assign({}, templates, template ? { default: template } : {}),
+        ).map(([k, v]) => [k, Template.fromHtml(v)]);
         const nameToTemplate = Object.fromEntries(namesAndTemplates);
 
         klass.BITS = {
@@ -138,8 +152,8 @@ class Registry {
             SLOTS: slots,
             OBSERVED: observedNames,
             ATTR_TO_MAPPER: attrToMapper,
-            TEMPLATES: nameToTemplate
-        }
+            TEMPLATES: nameToTemplate,
+        };
         customElements.define(tag, klass);
     }
     defineModule(name, value) {
@@ -195,5 +209,4 @@ class Registry {
 
 const registry = new Registry();
 
-
-export { Registry, registry }
+export { Registry, registry };

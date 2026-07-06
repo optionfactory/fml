@@ -48,17 +48,17 @@ ful-spinner {
         align-items: center;
         justify-content: center;
 
-        &>.ful-spinner-wrapper {
+        & > .ful-spinner-wrapper {
             padding: 2rem;
             background-color: white;
             border-radius: 1rem;
         }
     }
 
-    &>.ful-spinner-wrapper {
+    & > .ful-spinner-wrapper {
         display: inline;
 
-        &>.ful-spinner-icon {
+        & > .ful-spinner-icon {
             display: inline-block;
             width: var(--ful-spinner-icon-width);
             height: var(--ful-spinner-icon-height);
@@ -69,7 +69,6 @@ ful-spinner {
             animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
         }
     }
-
 }
 
 body:has(ful-spinner.backdrop:not([hidden])) {
