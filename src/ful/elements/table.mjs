@@ -1,4 +1,4 @@
-import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from "@optionfactory/ftl"
+import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from "../../ftl/index.mjs";
 
 class SortButton extends ParsedElement {
     static observed = ["order"];

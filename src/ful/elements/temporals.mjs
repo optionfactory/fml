@@ -1,4 +1,4 @@
-import { ParsedElement } from "@optionfactory/ftl";
+import { ParsedElement } from "../../ftl/index.mjs";
 import { Input } from "./input.mjs";
 
 

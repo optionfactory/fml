@@ -1,15 +1,11 @@
 import resolve from '@rollup/plugin-node-resolve';
 import terser from "@rollup/plugin-terser";
 import postcss from "rollup-plugin-postcss";
-import alias from "@rollup/plugin-alias";
 import { createFilter } from '@rollup/pluginutils';
 import peggy from 'peggy';
-import { fileURLToPath } from 'url';
-import { dirname, resolve as pathResolve } from 'path';
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const isPeggy = createFilter(['*.peggy', '**/*.peggy'], []);
 
 class RollupPeggyWithSourceMap {
@@ -30,12 +26,9 @@ class RollupPeggyWithSourceMap {
 
 export class RollupTypeGenerator {
     name = 'rollup-plugin-type-generator';
-
     constructor(ns) {
         this.ns = ns;
     }
-
-
     closeBundle = () => {
         console.log(`Post-processing: Extracting type definitions from dist/${this.ns}.mjs...`);
         try {
@@ -53,7 +46,6 @@ export class RollupTypeGenerator {
     }
 }
 
-
 export default [
     {
         input: 'src/ftl/index.mjs',
@@ -64,11 +56,7 @@ export default [
             { sourcemap: true, file: 'dist/ftl.iife.min.js', name: 'ftl', format: 'iife', plugins: [terser()] }
         ],
         treeshake: true,
-        plugins: [
-            new RollupPeggyWithSourceMap(),
-            resolve(),
-            new RollupTypeGenerator('ftl')
-        ]
+        plugins: [new RollupPeggyWithSourceMap(), resolve(), new RollupTypeGenerator('ftl')]
     },
     {
         input: 'src/httpc/index.mjs',
@@ -79,10 +67,7 @@ export default [
             { sourcemap: true, file: 'dist/httpc.iife.min.js', name: 'httpc', format: 'iife', plugins: [terser()] }
         ],
         treeshake: true,
-        plugins: [
-            resolve(),
-            new RollupTypeGenerator('httpc')
-        ]
+        plugins: [resolve(), new RollupTypeGenerator('httpc')]
     },
     {
         input: 'src/client-errors/client-errors.mjs',
@@ -95,23 +80,46 @@ export default [
     },
     {
         input: 'src/ful/index.mjs',
-        external: ['@optionfactory/ftl', '@optionfactory/httpc'],
+        external: (id) => id.includes('/ftl/') || id.includes('/httpc/'),
         output: [
-            { sourcemap: true, file: 'dist/ful.mjs', format: 'es' },
-            { sourcemap: true, file: 'dist/ful.min.mjs', format: 'es', plugins: [terser()] },
+            { 
+                sourcemap: true, 
+                file: 'dist/ful.mjs', 
+                format: 'es',
+                paths: (id) => {
+                    if (id.includes('/ftl/')) return './ftl.mjs';
+                    if (id.includes('/httpc/')) return './httpc.mjs';
+                }
+            },
+            { 
+                sourcemap: true, 
+                file: 'dist/ful.min.mjs', 
+                format: 'es', 
+                plugins: [terser()],
+                paths: (id) => {
+                    if (id.includes('/ftl/')) return './ftl.min.mjs';
+                    if (id.includes('/httpc/')) return './httpc.min.mjs';
+                }
+            },
             {
                 sourcemap: true,
                 file: 'dist/ful.iife.js',
                 name: 'ful',
                 format: 'iife',
-                globals: { '@optionfactory/ftl': 'ftl', '@optionfactory/httpc': 'httpc' }
+                globals: (id) => {
+                    if (id.includes('/ftl/')) return 'ftl';
+                    if (id.includes('/httpc/')) return 'httpc';
+                }
             },
             {
                 sourcemap: true,
                 file: 'dist/ful.iife.min.js',
                 name: 'ful',
                 format: 'iife',
-                globals: { '@optionfactory/ftl': 'ftl', '@optionfactory/httpc': 'httpc' },
+                globals: (id) => {
+                    if (id.includes('/ftl/')) return 'ftl';
+                    if (id.includes('/httpc/')) return 'httpc';
+                },
                 plugins: [terser()]
             }
         ],
@@ -127,17 +135,11 @@ export default [
         output: [
             { sourcemap: true, file: 'dist/fml.mjs', format: 'es' },
             { sourcemap: true, file: 'dist/fml.min.mjs', format: 'es', plugins: [terser()] },
-            { sourcemap: true, file: 'dist/fml.iife.js', format: 'iife' },
-            { sourcemap: true, file: 'dist/fml.iife.min.js', format: 'iife', plugins: [terser()] }
+            { sourcemap: true, file: 'dist/fml.iife.js', name: 'fml', format: 'iife' },
+            { sourcemap: true, file: 'dist/fml.iife.min.js', name: 'fml', format: 'iife', plugins: [terser()] }
         ],
         treeshake: true,
         plugins: [
-            alias({
-                entries: [
-                    { find: '@optionfactory/ftl', replacement: pathResolve(__dirname, 'src/ftl/index.mjs') },
-                    { find: '@optionfactory/httpc', replacement: pathResolve(__dirname, 'src/httpc/index.mjs') }
-                ]
-            }),
             new RollupPeggyWithSourceMap(),
             resolve(),
             postcss({ extract: 'fml.css', inject: false, minimize: true, sourceMap: true }),

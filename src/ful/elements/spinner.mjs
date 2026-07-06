@@ -1,4 +1,4 @@
-import { ParsedElement } from "@optionfactory/ftl"
+import { ParsedElement } from "../../ftl/index.mjs";
 
 class Spinner extends ParsedElement {
     static slots = true;

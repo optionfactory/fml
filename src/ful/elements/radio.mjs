@@ -1,4 +1,4 @@
-import { Attributes, Fragments, ParsedElement } from "@optionfactory/ftl"
+import { Attributes, Fragments, ParsedElement } from "../../ftl/index.mjs";
 
 class RadioGroup extends ParsedElement {
     static observed = ['value', 'readonly:presence', "required:presence"];

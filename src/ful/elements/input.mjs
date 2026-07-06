@@ -1,4 +1,4 @@
-import { Attributes, ParsedElement } from "@optionfactory/ftl"
+import { Attributes, ParsedElement } from "../../ftl/index.mjs";
 
 class Input extends ParsedElement {
     static observed = ['value', 'readonly:presence', 'required:presence'];

@@ -1,4 +1,4 @@
-import { Attributes, ParsedElement } from "@optionfactory/ftl";
+import { Attributes, ParsedElement } from "../../ftl/index.mjs";
 
 class Checkbox extends ParsedElement {
     static observed = ['value:bool', 'readonly:presence', "required:presence"];

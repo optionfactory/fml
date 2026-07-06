@@ -1,4 +1,4 @@
-import { Attributes, Fragments, ParsedElement, registry, Templates } from "@optionfactory/ftl";
+import { Attributes, Fragments, ParsedElement, registry, Templates } from "../../ftl/index.mjs";
 import { VersionedLocalStorage } from "../storage.mjs";
 import { Timing } from "../timing.mjs";
 

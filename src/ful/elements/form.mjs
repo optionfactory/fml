@@ -1,5 +1,5 @@
-import { Attributes, ParsedElement, registry } from "@optionfactory/ftl"
-import { Failure } from "@optionfactory/httpc";
+import { Attributes, ParsedElement, registry } from "../../ftl/index.mjs";
+import { Failure } from "../../httpc/index.mjs";
 import { Bindings } from "./bindings.mjs"
 import { AsyncEvents } from "../events/async.mjs";
 

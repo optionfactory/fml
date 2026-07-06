@@ -1,4 +1,4 @@
-import { Attributes } from "@optionfactory/ftl";
+import { Attributes } from "../../ftl/index.mjs";
 import { Input } from "./input.mjs";
 
 
