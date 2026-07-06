@@ -1,14 +1,14 @@
 {
-    "name": "@optionfactory/ful",
+    "name": "@optionfactory/httpc",
     "version": "8.0.0-dev",
     "type": "module",
-    "main": "./dist/ful.mjs",
-    "module": "./dist/ful.mjs",
-    "types": "./dist/ful.d.mts",
+    "main": "./dist/httpc.mjs",
+    "module": "./dist/httpc.mjs",
+    "types": "./dist/httpc.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/ful.d.mts",
-            "import": "./dist/ful.mjs"
+            "types": "./dist/httpc.d.mts",
+            "import": "./dist/httpc.mjs"
         }
     },
     "files": [
@@ -18,9 +18,6 @@
         "url": "git+https://github.com/optionfactory/ful.git"
     },
     "keywords": [
-        "ui",
-        "browser",
-        "webcomponents",
         "httpclient"
     ],
     "license": "MIT",
@@ -34,17 +31,12 @@
         "build": "rollup --config rollup.conf.mjs"
     },
     "dependencies": {
-        "@optionfactory/ftl": "*",
-        "@optionfactory/httpc": "*"
+
     },
     "devDependencies": {
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^1.0.0",
         "rollup": "^4.62.2",
-        "rollup-plugin-postcss": "^4.0.2",
-        "sass": "^1.101.0",
-        "terser": "^5.48.0",
-        "jsdom": "^29.1.1",
         "typescript": "^6.0.3"
     }
 }

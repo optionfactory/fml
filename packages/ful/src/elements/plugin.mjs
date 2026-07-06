@@ -1,4 +1,4 @@
-import { HttpClient } from "../http-client.mjs";
+import { HttpClient } from "@optionfactory/httpc";
 import { Checkbox } from "./checkbox.mjs";
 import { LocalDate, Instant, InputLocalDate, InputLocalTime, InputInstant } from "./temporals.mjs";
 import { InstantFilter, LocalDateFilter, TextFilter } from "./filters.mjs";

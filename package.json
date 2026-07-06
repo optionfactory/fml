@@ -1,8 +1,9 @@
 {
-  "name": "optionfactory-fxl",
+  "name": "@optionfactory/fml",
   "private": true,
   "workspaces": [
     "packages/ftl",
+    "packages/httpc",
     "packages/ful"
   ],
   "scripts": {
