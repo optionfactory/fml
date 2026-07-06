@@ -72,8 +72,8 @@ export default [
     {
         input: 'src/client-errors/client-errors.mjs',
         output: [
-            { sourcemap: true, file: 'dist/ful-client-errors.iife.js', format: 'iife' },
-            { sourcemap: true, file: 'dist/ful-client-errors.iife.min.js', format: 'iife', plugins: [terser()] }
+            { sourcemap: true, file: 'dist/client-errors.iife.js', format: 'iife' },
+            { sourcemap: true, file: 'dist/client-errors.iife.min.js', format: 'iife', plugins: [terser()] }
         ],
         treeshake: true,
         plugins: [resolve()]
@@ -82,19 +82,19 @@ export default [
         input: 'src/ful/index.mjs',
         external: (id) => id.includes('/ftl/') || id.includes('/httpc/'),
         output: [
-            { 
-                sourcemap: true, 
-                file: 'dist/ful.mjs', 
+            {
+                sourcemap: true,
+                file: 'dist/ful.mjs',
                 format: 'es',
                 paths: (id) => {
                     if (id.includes('/ftl/')) return './ftl.mjs';
                     if (id.includes('/httpc/')) return './httpc.mjs';
                 }
             },
-            { 
-                sourcemap: true, 
-                file: 'dist/ful.min.mjs', 
-                format: 'es', 
+            {
+                sourcemap: true,
+                file: 'dist/ful.min.mjs',
+                format: 'es',
                 plugins: [terser()],
                 paths: (id) => {
                     if (id.includes('/ftl/')) return './ftl.min.mjs';
