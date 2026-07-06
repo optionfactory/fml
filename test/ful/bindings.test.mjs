@@ -1,8 +1,8 @@
 import "./mock-dom.mjs"
 import { strict as assert } from 'node:assert';
 import { it, describe } from 'node:test'; 
-import { Fragments } from "@optionfactory/ftl"
-import { Bindings } from "../src/elements/bindings.mjs";
+import { Fragments } from "../../src/ftl/dom.mjs"
+import { Bindings } from "../../src/ful/elements/bindings.mjs";
 
 describe('Bindings.flatten', () => {
     it('can flatten an empty object', () => {

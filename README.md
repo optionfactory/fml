@@ -1,17 +1,21 @@
-# FML
+# fml
 
 A minimalist frontend library
 
 
-## FTL
+## ftl
 A no-build templating and web components library.
 
-## HTTPC
+## httpc
 
 An http client
 
-## FUL
+## ful
 A no-build web components library based on ftl
+
+## client-errors
+
+
 
 ## Documentation
 

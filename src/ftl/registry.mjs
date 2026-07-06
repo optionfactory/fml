@@ -185,7 +185,7 @@ class Registry {
     context() {
         return { modules: this.#modules, data: this.#data };
     }
-    evaluator(){
+    evaluator() {
         return new ExpressionEvaluator(this.#modules, this.#data);
     }
     component(name) {

@@ -7,3 +7,8 @@ declare module "*.peggy" {
         options?: { startRule?: string }
     ): any;
 }
+
+declare module "*.css" {
+    const content: any;
+    export default content;
+}

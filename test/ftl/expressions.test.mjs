@@ -1,5 +1,5 @@
 import "./mock-dom.mjs";
-import { Expressions } from "../dist/ftl.mjs";
+import { Expressions } from "../../dist/ftl.mjs";
 import { strict as assert } from 'node:assert';
 import { it, describe } from 'node:test';
 
