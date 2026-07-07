@@ -399,11 +399,13 @@ class Select extends ParsedElement {
                     break;
                 }
                 case 'Escape': {
+                    this.#input.setAttribute('aria-expanded', 'false');                    
                     this.#ddmenu.hide();
                     break;
                 }
                 case 'Enter': {
                     e.preventDefault();
+                    this.#input.setAttribute('aria-expanded', 'false');
                     this.#ddmenu.acceptSelection();
                     this.#input.value = '';
                     break;
@@ -418,6 +420,7 @@ class Select extends ParsedElement {
                     break;
                 }
                 case 'Tab': {
+                    this.#input.setAttribute('aria-expanded', 'false');
                     this.#ddmenu.hide();
                     abortdload();
                     break;
