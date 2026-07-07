@@ -230,7 +230,9 @@ class InputFile extends Input {
     }
     set file(v) {
         const dt = new DataTransfer();
-        dt.items.add(v);
+        if (v) {
+            dt.items.add(v);
+        }
         this.files = dt.files;
     }
     get value() {
