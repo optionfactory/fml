@@ -7,6 +7,9 @@ class NodeOperations {
     constructor() {
         this.#forRemoval = [];
     }
+    removed(node) { 
+        return this.#forRemoval.includes(node); 
+    }
     remove(node) {
         node.replaceChildren?.();
         Object.keys(node.dataset || {})
@@ -362,6 +365,9 @@ class Template {
                         CommandsHandler[command](el, value, ops, this.#modules, this.#dataStack);
                     } catch (ex) {
                         throw new RenderError(`Error evaluating command ${command}`, el, ex);
+                    }
+                    if (ops.removed(el)) {
+                        break;
                     }
                 }
                 for (const dataSetKey of Object.keys(el.dataset || {})) {
