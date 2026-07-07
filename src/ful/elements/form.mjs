@@ -150,6 +150,14 @@ class Form extends ParsedElement {
             if (hel.type !== 'submit' && hel.type !== 'reset') {
                 return;
             }
+            if (spin) {
+                hel.dataset.wasDisabled = String(hel.disabled);
+                hel.disabled = true;
+            } else {
+                hel.disabled = hel.dataset.wasDisabled === 'true';
+                delete hel.dataset.wasDisabled;
+            }
+
             hel.disabled = spin;
         });
     }
