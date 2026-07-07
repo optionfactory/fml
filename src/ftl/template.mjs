@@ -121,8 +121,17 @@ class CommandsHandler {
     }
     static tplClassAppend(node, expression, ops, modules, dataStack) {
         const classes = Expressions.interpret(modules, dataStack, expression);
+        if (!classes) {
+            return;
+        }
         const classesAsArray = Array.isArray(classes) ? classes : [classes];
-        node.classList.add(...classesAsArray);
+        const cleanClasses = classesAsArray
+            .flatMap(c => typeof c === 'string' ? c.split(' ') : c)
+            .filter(Boolean);
+        if(cleanClasses.length === 0){
+            return;
+        }
+        node.classList.add(...cleanClasses);
     }
     static tplAttrAppend(node, expression, ops, modules, dataStack) {
         const attributesAndValues = Expressions.interpret(modules, dataStack, expression);
@@ -323,10 +332,10 @@ class Template {
                 imported.nodeType === Node.DOCUMENT_FRAGMENT_NODE
                     ? imported
                     : (() => {
-                          const d = new DocumentFragment();
-                          d.appendChild(imported);
-                          return d;
-                      })();
+                        const d = new DocumentFragment();
+                        d.appendChild(imported);
+                        return d;
+                    })();
             const iterator = document.createNodeIterator(
                 fragment,
                 NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
