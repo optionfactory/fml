@@ -240,7 +240,11 @@ class InputFile extends Input {
         return this.multiple ? names : (names[0] ?? null);
     }
     set value(v) {
-        //TODO:
+        if (v) {
+            return;
+        }
+        this.files = new DataTransfer().files;
+        this.#update();
     }
     get totalsize() {
         return Array.from(this.files).reduce((a, f) => a + f.size, 0);
