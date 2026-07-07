@@ -148,7 +148,7 @@ class LocalDateFilter extends Input {
             return;
         }
         const [operator, ...values] = v;
-        this.#operator.setAttibute('value', operator);
+        this.#operator.setAttribute('value', operator);
         this.#value1.value = values[0];
         this.#value2.value = values[1];
     }
