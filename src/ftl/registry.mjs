@@ -65,7 +65,7 @@ class Registry {
                 return str !== null;
             },
             marshal(value, name, el) {
-                return value == null ? null : '';
+                return value ? '' : null;
             },
         },
         bool: {
