@@ -3,22 +3,34 @@ import { nodes } from './ast.mjs';
 
 class EvaluatingVisitor {
     #modules;
-    #data;
+    #dataStack;
     constructor(modules, dataStack) {
         this.#modules = modules;
-        this.#data = new Proxy(dataStack, {
-            get(target, prop) {
-                if (prop === 'self') {
-                    return target[target.length - 1];
+        this.#dataStack = dataStack;
+    }
+    #resolve(prop) {
+        if (prop === 'self') {
+            return this.#dataStack[this.#dataStack.length - 1];
+        }
+        for (let i = this.#dataStack.length - 1; i >= 0; i--) {
+            const overlay = this.#dataStack[i];
+            if (overlay != null && (typeof overlay === 'object' || typeof overlay === 'function')) {
+                if (prop in overlay) {
+                    return overlay[prop];
                 }
-                for (let i = target.length; i !== 0; --i) {
-                    const overlay = target[i - 1];
-                    if (overlay.hasOwnProperty(prop)) {
-                        return overlay[prop];
-                    }
-                }
-            },
-        });
+            }
+        }
+        return undefined;
+    }
+
+    #rp;
+    #rproxy() {
+        if (!this.#rp) {
+            this.#rp = new Proxy(this.#dataStack, {
+                get: (target, prop) => this.#resolve(prop)
+            });
+        }
+        return this.#rp;
     }
     [nodes.and](node) {
         return this.visit(node.lhs) && this.visit(node.rhs);
@@ -66,7 +78,7 @@ class EvaluatingVisitor {
             throw new Error(`Function "#${fnRef.module === null ? '' : fnRef.module + ':'}${fnRef.value}" not found`);
         }
         const args = node.args.map((arg) => this.visit(arg));
-        return fn.apply(this.#data, args);
+        return fn.apply(this.#rproxy(), args);
     }
     [nodes.literal](node) {
         return node.value;
@@ -83,7 +95,7 @@ class EvaluatingVisitor {
         return result;
     }
     [nodes.symbol](node) {
-        return this.#data[node.value];
+        return this.#resolve(node.value);
     }
     [nodes.dict](node) {
         return Object.fromEntries(node.value.map((entry) => [entry[0].value, this.visit(entry[1])]));
