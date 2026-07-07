@@ -130,8 +130,8 @@ class InputInstant extends Input {
         const { observed } = conf;
         super.render(conf);
         this.min = observed.min;
-        this.max = observed.min;
-        this.step = observed.min;
+        this.max = observed.max;
+        this.step = observed.step;
     }
     get value() {
         const v = this._input.value;
