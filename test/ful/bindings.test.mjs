@@ -1,4 +1,4 @@
-import './mock-dom.mjs';
+import '../mock-dom.mjs';
 import { strict as assert } from 'node:assert';
 import { it, describe } from 'node:test';
 import { Fragments } from '../../src/ftl/dom.mjs';

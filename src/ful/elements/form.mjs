@@ -151,14 +151,12 @@ class Form extends ParsedElement {
                 return;
             }
             if (spin) {
-                hel.dataset.wasDisabled = String(hel.disabled);
+                hel.dataset.wd = String(hel.disabled);
                 hel.disabled = true;
             } else {
-                hel.disabled = hel.dataset.wasDisabled === 'true';
-                delete hel.dataset.wasDisabled;
+                hel.disabled = hel.dataset.wd === 'true';
+                delete hel.dataset.wd;
             }
-
-            hel.disabled = spin;
         });
     }
     set values(vs) {

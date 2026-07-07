@@ -47,7 +47,7 @@
         "check": "tsc --project ./jsconfig.json",
         "lint": "biome lint .",
         "format": "biome format --write .",
-        "clean": "rimraf dist && npm prune",
+        "clean": "rm -rf dist && npm prune",
         "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info"
     },
     "devDependencies": {
