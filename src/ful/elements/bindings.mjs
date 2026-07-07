@@ -66,7 +66,7 @@ class Bindings {
         if (el.dataset['fulBindType'] === 'boolean') {
             return !el.value ? null : el.value === 'true';
         }
-        if (el.tagName === 'INPUT' || el.tagName === 'SELECT') {
+        if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
             return el.value === '' || el.value === undefined ? null : el.value;
         }
         return el.value;
