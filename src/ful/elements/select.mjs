@@ -157,11 +157,11 @@ class Dropdown extends ParsedElement {
     static slots = true;
     static template = `
         <ful-spinner class="centered" hidden></ful-spinner>
-        <menu tabindex="-1" hidden></menu>
+        <menu tabindex="-1" role="listbox" hidden></menu>
     `;
     static templates = {
         options: `
-            <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index">
+            <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index" role="option" data-tpl-aria-selected="index == 0 ? 'true' : 'false'">
                 {{ label }}
             </li>
         `,
@@ -259,7 +259,7 @@ class Select extends ParsedElement {
             <div class="ful-select-input-container">
                 <div class="ful-select-input">
                     <badges></badges>
-                    <input type="text" form="">
+                    <input type="text" form="" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
                 </div>
                 <ful-dropdown hidden popover="manual">{{{{ slots.dropdown }}}}</ful-dropdown>
             </div>
@@ -320,9 +320,10 @@ class Select extends ParsedElement {
         this.#input.ariaLabelledByElements = [label];
 
         const self = this;
-        const [dload, abortdload] = Timing.throttle(400, () =>
-            self.#ddmenu.show(() => self.#loader.load(self.#input.value)),
-        );
+        const [dload, abortdload] = Timing.throttle(400, () => {
+            self.#input.setAttribute('aria-expanded', 'true');
+            self.#ddmenu.show(() => self.#loader.load(self.#input.value));
+        });
         this.addEventListener('click', (/** @type any */ e) => {
             if (e.target.matches('input')) {
                 return;
@@ -331,6 +332,7 @@ class Select extends ParsedElement {
                 return;
             }
             if (this.#ddmenu.shown) {
+                this.#input.setAttribute('aria-expanded', 'false');
                 this.#ddmenu.hide();
                 return;
             }
@@ -375,6 +377,7 @@ class Select extends ParsedElement {
                 return;
             }
             abortdload();
+            this.#input.setAttribute('aria-expanded', 'false');
             this.#ddmenu.hide();
             this.#input.value = '';
         });
@@ -385,11 +388,13 @@ class Select extends ParsedElement {
             switch (e.code) {
                 case 'ArrowUp': {
                     e.preventDefault();
+                    this.#input.setAttribute('aria-expanded', 'true');
                     this.#ddmenu.moveOrShow(false, () => self.#loader.load(self.#input.value));
                     break;
                 }
                 case 'ArrowDown': {
                     e.preventDefault();
+                    this.#input.setAttribute('aria-expanded', 'true');
                     this.#ddmenu.moveOrShow(true, () => self.#loader.load(self.#input.value));
                     break;
                 }
@@ -435,6 +440,7 @@ class Select extends ParsedElement {
             this.#changed();
             this.#syncBadges();
             this.#input.focus();
+            this.#input.setAttribute('aria-expanded', 'false');
             this.#ddmenu.hide();
             this.#input.value = '';
         });
