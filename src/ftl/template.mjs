@@ -7,8 +7,8 @@ class NodeOperations {
     constructor() {
         this.#forRemoval = [];
     }
-    removed(node) { 
-        return this.#forRemoval.includes(node); 
+    removed(node) {
+        return this.#forRemoval.includes(node);
     }
     remove(node) {
         node.replaceChildren?.();
@@ -131,14 +131,14 @@ class CommandsHandler {
         const cleanClasses = classesAsArray
             .flatMap(c => typeof c === 'string' ? c.split(' ') : c)
             .filter(Boolean);
-        if(cleanClasses.length === 0){
+        if (cleanClasses.length === 0) {
             return;
         }
         node.classList.add(...cleanClasses);
     }
     static tplAttrAppend(node, expression, ops, modules, dataStack) {
         const attributesAndValues = Expressions.interpret(modules, dataStack, expression);
-        if (attributesAndValues.length === 0) {
+        if (!attributesAndValues || attributesAndValues.length === 0) {
             return;
         }
         const tuples = Array.isArray(attributesAndValues[0]) ? attributesAndValues : [attributesAndValues];
