@@ -131,7 +131,7 @@ class Bindings {
             el.setAttribute('hidden', '');
         });
         fieldErrors.forEach((e) => {
-            const name = e.context.replace('[', '.').replace('].', '.').replace(']', '');
+            const name = e.context.replace(/\[/g, '.').replace(/\]\./g, '.').replace(/\]/g, '')
             const parts = name.split('.');
             for (let i = parts.length; i != 0; --i) {
                 const prefix = parts.slice(0, i).join('.');
