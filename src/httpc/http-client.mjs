@@ -151,6 +151,7 @@ class RedirectOnUnauthorizedInterceptor {
         const response = await chain.proceed(url, request);
         if (response.status === 401) {
             window.location.href = this.#redirectUri;
+            return new Promise(() => {});
         }
         return response;
     }
