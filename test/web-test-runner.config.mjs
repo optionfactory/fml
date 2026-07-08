@@ -17,9 +17,9 @@ export default {
     },
     plugins: [
         {
-            name: 'peggy-transformer',
+            name: 'asset-transformer',
             resolveMimeType(context) {
-                if (context.path.endsWith('.peggy')) {
+                if (context.path.endsWith('.peggy') || context.path.endsWith('.css')) {
                     return 'js';
                 }
             },
@@ -28,9 +28,26 @@ export default {
                     const jsSource = peggy.generate(context.body, {
                         format: 'es',
                         output: 'source',
-                        allowedStartRules: ['ExpressionRoot', 'TemplatedRoot']
+                        allowedStartRules: ['*'] 
                     });
+                    return { body: jsSource };
+                }
 
+                if (context.path.endsWith('.css')) {
+                    const escapedCss = context.body
+                        .replace(/\\/g, '\\\\')
+                        .replace(/`/g, '\\`')
+                        .replace(/\$/g, '\\$');
+
+                    const jsSource = `
+                        const css = \`${escapedCss}\`;
+                        if (typeof document !== 'undefined') {
+                            const style = document.createElement('style');
+                            style.textContent = css;
+                            document.head.appendChild(style);
+                        }
+                        export default css;
+                    `;
                     return { body: jsSource };
                 }
             }

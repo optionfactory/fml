@@ -48,12 +48,13 @@
         "lint": "biome lint .",
         "format": "biome format --write .",
         "clean": "rm -rf dist && npm prune",
-        "test": "wtr --config test/web-test-runner.config.mjs"
+        "test": "wtr --config test/web-test-runner.config.mjs",
+        "test:manual": "npm run test -- --manual",
+        "test:watch": "npm run test -- --watch"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.2",
         "@esm-bundle/chai": "^4.3.4-fix.0",
-        "@happy-dom/global-registrator": "^20.10.6",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^1.0.0",
         "@web/test-runner": "^1.0.0",
