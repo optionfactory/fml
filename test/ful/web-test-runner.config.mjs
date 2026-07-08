@@ -10,5 +10,8 @@ export default {
     coverageConfig: {
         include: ['src/ful/**/*.mjs'],
         exclude: ['test/**/*', 'node_modules/**/*'],
+        reportDir: 'coverage/ful', 
+        report: true,
+        reporters: ['text', 'html']        
     },
 };
