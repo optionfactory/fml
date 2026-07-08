@@ -1,7 +1,5 @@
-import './setup.test.mjs';
-import { Template, Fragments } from '../../dist/ftl.mjs';
-import { strict as assert } from 'node:assert';
-import { it, describe } from 'node:test';
+import { assert } from '@esm-bundle/chai';
+import { Template, Fragments } from '../../src/ftl/index.mjs';
 
 const modules = {
     math: {

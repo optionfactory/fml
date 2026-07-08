@@ -1,6 +1,6 @@
 import { assert } from '@esm-bundle/chai';
-import { Fragments } from '../../src/ftl/dom.mjs';
-import { Bindings } from '../../src/ful/elements/bindings.mjs';
+import { Fragments } from '../../src/ftl/index.mjs';
+import { Bindings } from '../../src/ful/index.mjs';
 
 describe('Bindings.flatten', () => {
     it('can flatten an empty object', () => {

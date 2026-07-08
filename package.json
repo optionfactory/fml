@@ -48,9 +48,7 @@
         "lint": "biome lint .",
         "format": "biome format --write .",
         "clean": "rm -rf dist && npm prune",
-        "test": "npm run test:ftl && npm run test:ful",
-        "test:ftl": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/ftl/lcov.info test/ftl/*.test.mjs",
-        "test:ful": "wtr --config test/ful/web-test-runner.config.mjs"
+        "test": "wtr --config test/web-test-runner.config.mjs"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.2",

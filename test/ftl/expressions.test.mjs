@@ -1,7 +1,6 @@
-import './setup.test.mjs';
-import { Expressions } from '../../dist/ftl.mjs';
-import { strict as assert } from 'node:assert';
-import { it, describe } from 'node:test';
+import { assert } from '@esm-bundle/chai';
+
+import { Expressions } from '../../src/ftl/index.mjs';
 
 const modules = {
     one: () => 1,

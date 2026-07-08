@@ -1,6 +1,6 @@
 import { assert } from '@esm-bundle/chai';
-import { registry, Rendering } from '../../dist/ftl.mjs';
-import { Plugin } from '../../dist/ful.mjs';
+import { registry, Rendering } from '../../src/ftl/index.mjs';
+import { Plugin } from '../../src/ful/index.mjs';
 
 
 registry.plugin(new Plugin()).configure();
