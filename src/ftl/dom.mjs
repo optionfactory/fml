@@ -34,7 +34,9 @@ class Fragments {
      */
     static from(...nodes) {
         const fragment = new DocumentFragment();
-        fragment.append(...nodes);
+        for (const node of nodes) {
+            fragment.appendChild(node);
+        }
         return fragment;
     }
     /**
@@ -44,7 +46,9 @@ class Fragments {
      */
     static fromChildNodes(el) {
         const fragment = new DocumentFragment();
-        fragment.append(...el.childNodes);
+        while (el.firstChild) {
+            fragment.appendChild(el.firstChild);
+        }
         return fragment;
     }
 }

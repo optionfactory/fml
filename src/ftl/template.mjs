@@ -92,7 +92,9 @@ class CommandsHandler {
         switch (value.toLowerCase()) {
             case 'tag':
                 const fragment = new DocumentFragment();
-                fragment.append(...node.childNodes);
+                while (node.firstChild) {
+                    fragment.appendChild(node.firstChild);
+                }
                 if ('tplVerbatim' in node.dataset) {
                     //we are removing the parent element so we have to handle the lower priority commands
                     ops.popData(node, 'tplVerbatim');
