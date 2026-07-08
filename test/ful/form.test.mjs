@@ -1,8 +1,6 @@
-import '../mock-dom.mjs';
+import { assert } from '@esm-bundle/chai';
 import { registry } from '../../dist/ftl.mjs';
 import { Plugin } from '../../dist/ful.mjs';
-import { strict as assert } from 'node:assert';
-import { it, describe } from 'node:test';
 
 registry.plugin(new Plugin()).configure();
 

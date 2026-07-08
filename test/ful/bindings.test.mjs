@@ -1,6 +1,4 @@
-import '../mock-dom.mjs';
-import { strict as assert } from 'node:assert';
-import { it, describe } from 'node:test';
+import { assert } from '@esm-bundle/chai';
 import { Fragments } from '../../src/ftl/dom.mjs';
 import { Bindings } from '../../src/ful/elements/bindings.mjs';
 

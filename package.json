@@ -48,13 +48,19 @@
         "lint": "biome lint .",
         "format": "biome format --write .",
         "clean": "rm -rf dist && npm prune",
-        "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info"
+        "test": "npm run test:ftl && npm run test:ful",
+        "test:ftl": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=test/lcov.info test/ftl/*.test.mjs",
+        "test:ful": "wtr --config test/ful/web-test-runner.config.mjs"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.2",
+        "@esm-bundle/chai": "^4.3.4-fix.0",
+        "@happy-dom/global-registrator": "^20.10.6",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^1.0.0",
-        "jsdom": "^29.1.1",
+        "@web/test-runner": "^1.0.0",
+        "@web/test-runner-playwright": "^1.0.0",
+        "happy-dom": "^20.10.6",
         "peggy": "^5.1.0",
         "rimraf": "^6.1.3",
         "rollup": "^4.18.0",

@@ -1,4 +1,4 @@
-import '../mock-dom.mjs';
+import './setup.test.mjs';
 import { Expressions } from '../../dist/ftl.mjs';
 import { strict as assert } from 'node:assert';
 import { it, describe } from 'node:test';
