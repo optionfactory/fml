@@ -35,8 +35,8 @@ class MediaType {
  * @typedef {Int8Array| Uint8Array| Uint8ClampedArray| Int16Array| Uint16Array| Int32Array| Uint32Array| Float32Array| Float64Array| BigInt64Array| BigUint64Array} TypedArray
  */
 /**
- * @typedef HttpInterceptor
- * @property {function(URL,RequestInit|undefined,HttpInterceptorChain):Promise<Response>} intercept
+ * @typedef {object} HttpInterceptor
+ * @property {(url: URL, init: RequestInit|undefined, chain: HttpInterceptorChain) => Promise<Response>} intercept
  */
 
 class HttpClientError extends Failure {

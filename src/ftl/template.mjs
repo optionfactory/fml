@@ -311,7 +311,7 @@ class Template {
     /**
      * Evaluates an expression using the configured modules and data.
      * @param {string} expression
-     * @param {(Expressions.MODE_EXPRESSION | Expressions.MODE_TEMPLATED)?} [mode]
+     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
      * @param {...*} data
      */
     evaluate(expression, mode, ...data) {

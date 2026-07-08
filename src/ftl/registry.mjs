@@ -32,13 +32,6 @@ class UpgradeQueue {
     }
 }
 
-/**
- * An attribute Mapper.
- *
- * @typedef {object} Mapper
- * @property {function(string|null|undefined, string, Element): any} unmarshal
- * @property {function(any, string, Element): (string|null)} marshal
- */
 
 class Registry {
     #tagToClass = {};

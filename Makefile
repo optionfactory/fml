@@ -11,3 +11,7 @@ check:
 	npm run check
 publish: build
 	npm publish --access public
+clean:
+	npm run clean
+clean-deps:
+	npm run clean:deps

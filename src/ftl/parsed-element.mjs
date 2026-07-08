@@ -1,12 +1,21 @@
 import { Attributes, LightSlots } from './dom.mjs';
 import { registry } from './registry.mjs';
 
+/**
+ * An attribute Mapper.
+ *
+ * @typedef {object} Mapper
+ * @property {(val: string|null|undefined, name: string, el: Element) => any} unmarshal
+ * @property {(val: any, name: string, el: Element) => string|null} marshal
+ */
+
+
 class ParsedElement extends HTMLElement {
     static BITS = {
         enqueue: (el) => {},
         SLOTS: false,
         OBSERVED: [],
-        /** @type {Record<string, import("./registry.mjs").Mapper>} */
+        /** @type {Record<string, Mapper>} */
         ATTR_TO_MAPPER: {},
         TEMPLATES: {},
     };

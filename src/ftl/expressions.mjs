@@ -149,19 +149,19 @@ class EvaluatingVisitor {
         return !templated
             ? this.visit(ast)
             : ast.map((node) => {
-                  switch (node.type) {
-                      case nodes.templated.tel:
-                          return { type: nodes.dom.t, value: node.value };
-                      case nodes.templated.tet:
-                          return { type: nodes.dom.t, value: this.visit(node.value) };
-                      case nodes.templated.teh:
-                          return { type: nodes.dom.h, value: this.visit(node.value) };
-                      case nodes.templated.ten:
-                          return { type: nodes.dom.n, value: this.visit(node.value) };
-                      default:
-                          throw new Error('unknown node type ' + node.type.toString());
-                  }
-              });
+                switch (node.type) {
+                    case nodes.templated.tel:
+                        return { type: nodes.dom.t, value: node.value };
+                    case nodes.templated.tet:
+                        return { type: nodes.dom.t, value: this.visit(node.value) };
+                    case nodes.templated.teh:
+                        return { type: nodes.dom.h, value: this.visit(node.value) };
+                    case nodes.templated.ten:
+                        return { type: nodes.dom.n, value: this.visit(node.value) };
+                    default:
+                        throw new Error('unknown node type ' + node.type.toString());
+                }
+            });
     }
 }
 
@@ -169,23 +169,36 @@ class Expressions {
     static MODE_EXPRESSION = Symbol('MODE_EXPRESSION');
     static MODE_TEMPLATED = Symbol('MODE_TEMPLATED');
 
+    static #astCache = new Map();
+    static #MAX_CACHE_SIZE = 1000;
+
     /**
      * Parses an expression.
      * @param {string} expression
-     * @param {(Expressions.MODE_EXPRESSION | Expressions.MODE_TEMPLATED)?} [mode]
+     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
      * @returns the ast
      */
     static parse(expression, mode) {
-        return parse(expression, {
-            startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot',
-        });
+        const key = mode?.toString() + expression;
+
+        if (!this.#astCache.has(key)) {
+            if (this.#astCache.size >= this.#MAX_CACHE_SIZE) {
+                const oldestKey = this.#astCache.keys().next().value;
+                this.#astCache.delete(oldestKey);
+            }
+            this.#astCache.set(key, parse(expression, {
+                startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot',
+            }));
+        }
+
+        return this.#astCache.get(key);
     }
     /**
      * Evaluates an expression.
      * @param {{[k: string]: any } | null | undefined } modules
      * @param {any[]} dataStack
      * @param {any} ast
-     * @param {(Expressions.MODE_EXPRESSION | Expressions.MODE_TEMPLATED)?} [mode]
+     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
      * @returns the result
      */
     static evaluate(modules, dataStack, ast, mode) {
@@ -196,7 +209,7 @@ class Expressions {
      * @param {{ [x: string]: any; } | null | undefined} modules
      * @param {any[]} dataStack
      * @param {string} expression
-     * @param {(Expressions.MODE_EXPRESSION | Expressions.MODE_TEMPLATED)?} [mode]
+     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
      * @returns the result
      */
     static interpret(modules, dataStack, expression, mode) {
