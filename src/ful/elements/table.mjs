@@ -229,9 +229,13 @@ class InMemoryTableLoader {
         this.#data = data;
     }
     async load(pageRequest, sortRequest, filterRequest) {
+        const begin = pageRequest.page * pageRequest.size;
+        const end = begin + pageRequest.size;
+        const page = this.#data.slice(begin, end);
+        const totalElements = this.#data.length;
         return {
-            page: this.#data,
-            size: this.#data.length,
+            data: page,
+            size: totalElements
         };
     }
     update(data) {
