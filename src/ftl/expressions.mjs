@@ -23,14 +23,14 @@ class EvaluatingVisitor {
         return undefined;
     }
 
-    #rp;
-    #rproxy() {
-        if (!this.#rp) {
-            this.#rp = new Proxy(this.#dataStack, {
+    #cached_resolve_proxy;
+    #resolve_proxy() {
+        if (!this.#cached_resolve_proxy) {
+            this.#cached_resolve_proxy = new Proxy(this.#dataStack, {
                 get: (target, prop) => this.#resolve(prop)
             });
         }
-        return this.#rp;
+        return this.#cached_resolve_proxy;
     }
     [nodes.and](node) {
         return this.visit(node.lhs) && this.visit(node.rhs);
@@ -78,7 +78,7 @@ class EvaluatingVisitor {
             throw new Error(`Function "#${fnRef.module === null ? '' : fnRef.module + ':'}${fnRef.value}" not found`);
         }
         const args = node.args.map((arg) => this.visit(arg));
-        return fn.apply(this.#rproxy(), args);
+        return fn.apply(this.#resolve_proxy(), args);
     }
     [nodes.literal](node) {
         return node.value;
