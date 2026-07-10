@@ -124,6 +124,7 @@ AnyLiteral
     = NumberLiteral
     / BooleanLiteral
     / NullLiteral
+    / UndefinedLiteral
     / StringLiteral
     / ArrayLiteral
     / DictLiteral
@@ -139,6 +140,11 @@ BooleanLiteral "boolean-literal"
 NullLiteral "null-literal"
     = "null" {
         return {type: nodes.literal, value: null};
+    }
+
+UndefinedLiteral "undefined-literal"  // <--- Add this
+    = "undefined" {
+        return {type: nodes.literal, value: undefined};
     }    
 
 NumberLiteral "number-literal" 
