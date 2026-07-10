@@ -123,6 +123,7 @@ ModuleFunctionCall "module-function-call"
 AnyLiteral
     = NumberLiteral
     / BooleanLiteral
+    / NullLiteral
     / StringLiteral
     / ArrayLiteral
     / DictLiteral
@@ -134,6 +135,11 @@ BooleanLiteral "boolean-literal"
     / "false" { 
         return {type: nodes.literal, value: false}; 
     }
+
+NullLiteral "null-literal"
+    = "null" {
+        return {type: nodes.literal, value: null};
+    }    
 
 NumberLiteral "number-literal" 
     = value:$( '-'? ([0-9]+ ('.' [0-9]*)? / '.' [0-9]+ ) ) {
