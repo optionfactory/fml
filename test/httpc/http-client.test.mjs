@@ -193,7 +193,6 @@ describe('httpc client', () => {
             const reqHeaders = new Headers(fetchArgs.init.headers);
             expect(reqHeaders.get('X-CSRF-TOKEN')).to.equal('secret-token');
 
-            // Cleanup
             metaHeader.remove();
             metaToken.remove();
         });

@@ -17,7 +17,6 @@ describe('EvaluatingVisitor Optimized Scope Chain', () => {
             { expectedKey: "found-it", valueFromStack: "safe" }
         ];
         
-        // Verifies the 'prop in overlay' safe check doesn't crash on string or number primitives
         const result = Expressions.interpret(modules, stack, 'expectedKey');
         assert.strictEqual(result, 'found-it');
     });
@@ -32,7 +31,6 @@ describe('EvaluatingVisitor Optimized Scope Chain', () => {
     it('should lazily instantiate and provide a working context proxy for module functions', () => {
         const stack = [{ valueFromStack: "success" }];
         
-        // Triggers nodes.call which invokes the lazy proxy initializer (#resolve_proxy)
         const result = Expressions.interpret(modules, stack, '#customModule:checkThisContext()');
         assert.strictEqual(result, 'success');
     });
