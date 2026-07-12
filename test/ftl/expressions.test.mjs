@@ -242,7 +242,7 @@ describe('AST Execution Edge Cases', () => {
             assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
         }
     });
-    it('handles function overlays and null/primitive values in the data stack (line 17 branch coverage)', () => {
+    it('handles function overlays and null/primitive values in the data stack', () => {
         const fnOverlay = () => { };
         fnOverlay.secretKey = 'activated';
         const resFn = Expressions.interpret({}, [fnOverlay], 'secretKey');
