@@ -1,6 +1,8 @@
 import { assert } from '@esm-bundle/chai';
 
-import { Expressions } from '../../src/ftl/index.mjs';
+import { Expressions, ExpressionEvaluator } from '../../src/ftl/index.mjs';
+import { nodes } from '../../src/ftl/ast.mjs';
+
 
 const modules = {
     one: () => 1,
@@ -145,6 +147,99 @@ describe('Expression', () => {
             Expressions.interpret({ waldo: {} }, [], '#waldo:isHidden()');
         } catch (ex) {
             assert.strictEqual(ex.message, 'Function "#waldo:isHidden" not found');
+        }
+    });
+});
+
+describe('Templated Mode Evaluation', () => {
+    it('evaluates literal text', () => {
+        const res = Expressions.interpret({}, [], 'Just some text', Expressions.MODE_TEMPLATED);
+        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: 'Just some text' }]);
+    });
+
+    it('evaluates text expressions', () => {
+        const res = Expressions.interpret({}, [{ a: 'Dynamic Text' }], '{{ a }}', Expressions.MODE_TEMPLATED);
+        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: 'Dynamic Text' }]);
+    });
+
+    it('evaluates html expressions', () => {
+        const res = Expressions.interpret({}, [{ a: '<b>HTML</b>' }], '{{{ a }}}', Expressions.MODE_TEMPLATED);
+        assert.deepStrictEqual(res, [{ type: nodes.dom.h, value: '<b>HTML</b>' }]);
+    });
+
+    it('evaluates node expressions', () => {
+        const div = document.createElement('div');
+        const res = Expressions.interpret({}, [{ a: div }], '{{{{ a }}}}', Expressions.MODE_TEMPLATED);
+        assert.deepStrictEqual(res, [{ type: nodes.dom.n, value: div }]);
+    });
+
+    it('handles mixed templated segments', () => {
+        const res = Expressions.interpret({}, [{ a: 'A' }, { b: 'B' }], 'Text {{ a }} more {{{ b }}}', Expressions.MODE_TEMPLATED);
+        assert.strictEqual(res.length, 4);
+        assert.strictEqual(res[0].value, 'Text ');
+        assert.strictEqual(res[1].value, 'A');
+        assert.strictEqual(res[2].value, ' more ');
+        assert.strictEqual(res[3].value, 'B');
+    });
+
+    it('throws on unknown templated node type (simulated AST corruption)', () => {
+        const badAst = [{ type: Symbol('unknown-fake-type') }];
+        try {
+            Expressions.evaluate({}, [], badAst, Expressions.MODE_TEMPLATED);
+            assert.fail('Should have thrown an error');
+        } catch (ex) {
+            assert.match(ex.message, /unknown node type/);
+        }
+    });
+});
+
+describe('ExpressionEvaluator Class API', () => {
+    it('manages module and overlay chaining seamlessly', () => {
+        const baseEvaluator = new ExpressionEvaluator({ base: { fn: () => 1 } }, [{ a: 10 }]);
+        
+        const withMod = baseEvaluator.withModule('extra', { fn: () => 2 });
+        assert.strictEqual(withMod.evaluateExpression('#base:fn()'), 1);
+        assert.strictEqual(withMod.evaluateExpression('#extra:fn()'), 2);
+
+        const withGlobalMod = baseEvaluator.withModule(null, { globalFn: () => 3 });
+        assert.strictEqual(withGlobalMod.evaluateExpression('#globalFn()'), 3);
+
+        const withData = baseEvaluator.withOverlay({ b: 20 }, { c: 30 });
+        assert.strictEqual(withData.evaluateExpression('a'), 10);
+        assert.strictEqual(withData.evaluateExpression('b'), 20);
+        assert.strictEqual(withData.evaluateExpression('c'), 30);
+        
+        const sameData = withData.withOverlay();
+        assert.strictEqual(sameData.evaluateExpression('b'), 20);
+
+        const tplRes = withData.evaluateTemplated('{{ b }}');
+        assert.deepStrictEqual(tplRes, [{ type: nodes.dom.t, value: 20 }]);
+    });
+});
+
+describe('AST Execution Edge Cases', () => {
+    it('evaluates nullsafe method calls correctly', () => {
+        const result = Expressions.interpret({}, [{ a: null }], 'a?.foo()');
+        assert.isUndefined(result);
+    });
+
+    it('evaluates nested nullsafe member access correctly', () => {
+        const result = Expressions.interpret({}, [{ a: { b: null } }], 'a.b?.c');
+        assert.isUndefined(result);
+    });
+
+    it('throws on unknown comparison operator (simulated AST corruption)', () => {
+        const badAst = {
+            type: nodes.cmp,
+            op: 'INVALID_OP',
+            lhs: { type: nodes.literal, value: 1 },
+            rhs: { type: nodes.literal, value: 2 }
+        };
+        try {
+            Expressions.evaluate({}, [], badAst);
+            assert.fail('Should have thrown an error');
+        } catch (ex) {
+            assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
         }
     });
 });
