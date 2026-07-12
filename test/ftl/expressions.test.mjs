@@ -193,10 +193,10 @@ describe('Templated Mode Evaluation', () => {
     });
 });
 
-describe('ExpressionEvaluator Class API', () => {
+describe('ExpressionEvaluator', () => {
     it('manages module and overlay chaining seamlessly', () => {
         const baseEvaluator = new ExpressionEvaluator({ base: { fn: () => 1 } }, [{ a: 10 }]);
-        
+
         const withMod = baseEvaluator.withModule('extra', { fn: () => 2 });
         assert.strictEqual(withMod.evaluateExpression('#base:fn()'), 1);
         assert.strictEqual(withMod.evaluateExpression('#extra:fn()'), 2);
@@ -208,7 +208,7 @@ describe('ExpressionEvaluator Class API', () => {
         assert.strictEqual(withData.evaluateExpression('a'), 10);
         assert.strictEqual(withData.evaluateExpression('b'), 20);
         assert.strictEqual(withData.evaluateExpression('c'), 30);
-        
+
         const sameData = withData.withOverlay();
         assert.strictEqual(sameData.evaluateExpression('b'), 20);
 
@@ -241,5 +241,28 @@ describe('AST Execution Edge Cases', () => {
         } catch (ex) {
             assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
         }
+    });
+    it('handles function overlays and null/primitive values in the data stack (line 17 branch coverage)', () => {
+        const fnOverlay = () => { };
+        fnOverlay.secretKey = 'activated';
+        const resFn = Expressions.interpret({}, [fnOverlay], 'secretKey');
+        assert.strictEqual(resFn, 'activated');
+
+        const resNull = Expressions.interpret({}, [null, undefined, { targetValue: 42 }], 'targetValue');
+        assert.strictEqual(resNull, 42);
+    });
+    it('correctly handles cached templates', () => {
+        const a = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
+        const b = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
+        assert.strictEqual(a, b);
+    });
+
+    it('correctly handles cache size', () => {
+        const a = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
+        for (let i = 0; i != 1001; ++i) {
+            Expressions.parse(`true == ${i}`, Expressions.MODE_EXPRESSION);
+        }
+        const b = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
+        assert.notStrictEqual(a, b);
     });
 });
