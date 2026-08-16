@@ -125,7 +125,9 @@ class Bindings {
     static errors(form, es, scrollOnError) {
         const fieldErrors = es.filter((e) => e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT');
         const globalErrors = es.filter((e) => e.type !== 'FIELD_ERROR' && e.type !== 'INVALID_FORMAT');
-        form.querySelectorAll(`[name]`).forEach((el) => el.setCustomValidity?.(''));
+        form.querySelectorAll(`[name]`).forEach((el) => {
+            el.setCustomValidity?.('');
+        });
         form.querySelectorAll('ful-errors').forEach((el) => {
             el.replaceChildren();
             el.setAttribute('hidden', '');
@@ -133,12 +135,12 @@ class Bindings {
         fieldErrors.forEach((e) => {
             const name = e.context.replace(/\[/g, '.').replace(/\]\./g, '.').replace(/\]/g, '')
             const parts = name.split('.');
-            for (let i = parts.length; i != 0; --i) {
+            for (let i = parts.length; i !== 0; --i) {
                 const prefix = parts.slice(0, i).join('.');
                 const suffix = parts.slice(i, parts.length).join('.');
-                form.querySelectorAll(`[name='${CSS.escape(prefix)}']`).forEach((input) =>
-                    input.setCustomValidity?.(e.reason, suffix),
-                );
+                form.querySelectorAll(`[name='${CSS.escape(prefix)}']`).forEach((input) => {
+                    input.setCustomValidity?.(e.reason, suffix);
+                });
             }
         });
         form.querySelectorAll('ful-errors').forEach((el) => {
@@ -148,7 +150,7 @@ class Bindings {
                 el.removeAttribute('hidden');
             }
         });
-        if (es.length == 0 || !scrollOnError) {
+        if (es.length === 0 || !scrollOnError) {
             return;
         }
         Array.from(form.querySelectorAll(`:invalid`))

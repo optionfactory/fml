@@ -14,7 +14,9 @@ class NodeOperations {
         node.replaceChildren?.();
         Object.keys(node.dataset || {})
             .filter((k) => k.startsWith('tpl'))
-            .forEach((k) => delete node.dataset[k]);
+            .forEach((k) => {
+                delete node.dataset[k];
+            });
         this.#forRemoval.push(node);
     }
     popData(node, key) {
@@ -90,7 +92,7 @@ class CommandsHandler {
     }
     static tplRemove(node, value, ops, modules, dataStack) {
         switch (value.toLowerCase()) {
-            case 'tag':
+            case 'tag': {
                 const fragment = new DocumentFragment();
                 while (node.firstChild) {
                     fragment.appendChild(node.firstChild);
@@ -104,6 +106,7 @@ class CommandsHandler {
                     ops.remove(node);
                 }
                 break;
+            }
             case 'body':
                 node.replaceChildren();
                 break;
@@ -348,6 +351,7 @@ class Template {
                 Template.#NODE_FILTER,
             );
             let node;
+            // biome-ignore lint/suspicious/noAssignInExpressions: node iterator idiom
             while ((node = iterator.nextNode()) !== null) {
                 ops.cleanup();
                 if (node.nodeType === Node.TEXT_NODE) {
@@ -463,8 +467,8 @@ class RenderError extends Error {
         if (node.nodeType === Node.TEXT_NODE) {
             node.nodeValue = node.nodeValue.trim();
         }
-        for (var n = 0; n < node.childNodes.length; n++) {
-            var child = node.childNodes[n];
+        for (let n = 0; n < node.childNodes.length; n++) {
+            const child = node.childNodes[n];
             if (child.nodeType === Node.TEXT_NODE) {
                 child.nodeValue = child.nodeValue.trim();
                 if (child.nodeValue.length === 0) {

@@ -180,8 +180,7 @@ class Nodes {
      * @returns
      */
     static isParsed(el) {
-        //@ts-ignore
-        for (let c = el; c; c = c.parentNode) {
+        for (let c = /** @type {Node | null} */ (el); c; c = c.parentNode) {
             if (c.nextSibling) {
                 return true;
             }

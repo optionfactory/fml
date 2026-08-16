@@ -20,10 +20,17 @@
     "linter": {
         "enabled": true,
         "rules": {
-            "preset": "recommended"
+            "preset": "recommended",
+            "correctness": {
+                "noUnusedFunctionParameters": "off"
+            },
+            "complexity": {
+                "noStaticOnlyClass": "off",
+                "noThisInStatic": "off"
+            }
         }
     },
     "files": {
-        "includes": ["**", "!dist", "!node_modules"]
+        "includes": ["**", "!dist", "!node_modules", "!coverage"]
     }
 }
