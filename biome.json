@@ -22,14 +22,34 @@
         "rules": {
             "preset": "recommended",
             "correctness": {
-                "noUnusedFunctionParameters": "off"
+                "noUnusedFunctionParameters": "off",
+                "noUnknownTypeSelector": "off"
             },
             "complexity": {
                 "noStaticOnlyClass": "off",
                 "noThisInStatic": "off"
+            },
+            "suspicious": {
+                "noDoubleEquals": "off",
+                "noExplicitAny": "off",
+                "noAssignInExpressions": "off"
+            },
+            "a11y": {
+                "useGenericFontNames": "off"
+            },
+            "style": {
+                "noDescendingSpecificity": "off"
             }
         }
     },
+    "overrides": [
+        {
+            "includes": ["examples/**"],
+            "linter": {
+                "enabled": false
+            }
+        }
+    ],
     "files": {
         "includes": ["**", "!dist", "!node_modules", "!coverage"]
     }
