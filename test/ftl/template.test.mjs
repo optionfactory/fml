@@ -414,7 +414,8 @@ describe('Template', () => {
 
         assert.strictEqual(Fragments.toHtml(t3.render()), 'hello');
 
-        t3.evaluate('val');
+        assert.strictEqual(t3.evaluate('val'), 'hello');
+        assert.strictEqual(t3.evaluate('other', undefined, { other: 42 }), 42);
         assert.isDefined(t3.evaluator());
     });
 

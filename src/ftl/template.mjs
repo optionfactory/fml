@@ -315,9 +315,10 @@ class Template {
      * @param {string} expression
      * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
      * @param {...*} data
+     * @returns the evaluated expression result
      */
     evaluate(expression, mode, ...data) {
-        new ExpressionEvaluator(this.#modules, this.#dataStack).withOverlay(...data).evaluate(expression, mode);
+        return new ExpressionEvaluator(this.#modules, this.#dataStack).withOverlay(...data).evaluate(expression, mode);
     }
     /**
      * Returns an expression evaluator with bound modules and dataStack.
