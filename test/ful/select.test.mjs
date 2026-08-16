@@ -54,3 +54,89 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
         container.remove();
     });
 });
+
+describe('Select & Dropdown load failure handling', () => {
+    const rejections = [];
+    window.addEventListener('unhandledrejection', (e) => {
+        rejections.push(e.reason);
+        e.preventDefault();
+    });
+    let warns = [];
+    let errors = [];
+    let originalWarn;
+    let originalError;
+    beforeEach(() => {
+        originalWarn = console.warn;
+        originalError = console.error;
+        warns = [];
+        errors = [];
+        console.warn = (...args) => warns.push(args);
+        console.error = (...args) => errors.push(args);
+    });
+    afterEach(() => {
+        console.warn = originalWarn;
+        console.error = originalError;
+    });
+
+    it('renders the select and warns when prefetch fails', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({ prefetch: async () => { throw new Error('boom'); }, load: async () => [] })
+        });
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select></ful-select>`;
+        document.body.appendChild(container);
+
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitForChildren(selectEl);
+
+        assert.isNotNull(selectEl.querySelector('input[role=combobox]'));
+        assert.isTrue(warns.some((args) => String(args[0]).includes('prefetch')));
+        container.remove();
+    });
+
+    it('hides the dropdown and reports the rejection when load fails', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({ load: async () => { throw new Error('boom'); } })
+        });
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select></ful-select>`;
+        document.body.appendChild(container);
+
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitForChildren(selectEl);
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        const rejectionsBefore = rejections.length;
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const dropdown = selectEl.querySelector('ful-dropdown');
+        assert.isFalse(dropdown.shown);
+        assert.strictEqual(rejections.length, rejectionsBefore + 1);
+        assert.isTrue(errors.some((args) => String(args[0]).includes('boom')));
+        container.remove();
+    });
+
+    it('reports the rejection when exact lookup fails', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                load: async () => [],
+                exact: async () => { throw new Error('boom'); }
+            })
+        });
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select value="k1"></ful-select>`;
+        document.body.appendChild(container);
+
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitForChildren(selectEl);
+        const rejectionsBefore = rejections.length;
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        assert.strictEqual(rejections.length, rejectionsBefore + 1);
+        assert.isNull(selectEl.value);
+        assert.isTrue(warns.length === 0);
+        container.remove();
+    });
+});

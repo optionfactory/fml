@@ -225,6 +225,9 @@ class Dropdown extends ParsedElement {
         try {
             const data = await loader();
             this.update(data);
+        } catch (e) {
+            this.hide();
+            throw e;
         } finally {
             this.#spinner.setAttribute('hidden', '');
             this.#menu.removeAttribute('hidden');
@@ -299,7 +302,11 @@ class Select extends ParsedElement {
             .create(this, { options: slots.options });
 
         this.#multiple = this.hasAttribute('multiple');
-        await this.#loader.prefetch?.();
+        try {
+            await this.#loader.prefetch?.();
+        } catch (/** @type any */ e) {
+            console.warn('failed to prefetch select options', this, 'reason:', e);
+        }
         const fragment = this.template().withOverlay({ slots, name }).render();
         this.#input = fragment.querySelector('input');
         this.#items = fragment.querySelector('ful-item-list');
