@@ -351,7 +351,6 @@ class Template {
                 Template.#NODE_FILTER,
             );
             let node;
-            // biome-ignore lint/suspicious/noAssignInExpressions: node iterator idiom
             while ((node = iterator.nextNode()) !== null) {
                 ops.cleanup();
                 if (node.nodeType === Node.TEXT_NODE) {

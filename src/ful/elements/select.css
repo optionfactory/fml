@@ -32,7 +32,6 @@ ful-select {
         display: none;
     }
 
-    /* biome-ignore lint/correctness/noUnknownTypeSelector: ful custom element */
     badge {
         padding: 5px 7px;
         margin: 5px 0;
@@ -170,7 +169,6 @@ ful-dropdown {
         margin: 0;
 
         &:not(:has(*))::before {
-            /* biome-ignore lint/a11y/useGenericFontNames: icon font, generic fallback would render wrong glyphs */
         font-family: bootstrap-icons;
             display: block;
             content: "\f8c3";
