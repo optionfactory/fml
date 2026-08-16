@@ -25,7 +25,7 @@ class Checkbox extends ParsedElement {
         this.internals.role = 'presentation';
     }
     render({ slots, observed, disabled }) {
-        const isSwitch = this.getAttribute('type') == 'switch';
+        const isSwitch = this.getAttribute('type') === 'switch';
         const klass = isSwitch ? 'form-check form-switch' : 'form-check';
         const fragment = this.template().withOverlay({ slots, klass, isSwitch }).render();
         this.#container = fragment.firstElementChild;

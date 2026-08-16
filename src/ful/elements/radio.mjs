@@ -62,7 +62,9 @@ class RadioGroup extends ParsedElement {
             return [input, label];
         });
 
-        radioEls.forEach((el) => el.remove());
+        radioEls.forEach((el) => {
+            el.remove();
+        });
         this.template().withOverlay({ name, slots, inputsAndLabels }).renderTo(this);
         this.#fieldset = this.firstElementChild;
         this.disabled = disabled;

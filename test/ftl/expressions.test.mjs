@@ -258,8 +258,8 @@ describe('AST Execution Edge Cases', () => {
     });
 
     it('correctly handles cache size', () => {
-        const a = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
-        for (let i = 0; i != 1001; ++i) {
+        const a = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
+        for (let i = 0; i !== 1001; ++i) {
             Expressions.parse(`true == ${i}`, Expressions.MODE_EXPRESSION);
         }
         const b = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);

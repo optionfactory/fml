@@ -138,7 +138,7 @@ class LocalDateFilter extends Input {
     }
     get value() {
         const operator = this.#operator.getAttribute('value');
-        const values = operator == 'BETWEEN' ? [this.#value1.value, this.#value2.value] : [this.#value1.value];
+        const values = operator === 'BETWEEN' ? [this.#value1.value, this.#value2.value] : [this.#value1.value];
         return values.some((v) => v === '') ? undefined : [operator, ...values];
     }
     set value(v) {

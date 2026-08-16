@@ -27,6 +27,7 @@ class RemoteLoader {
     }
     async exact(...keys) {
         await this.#ensureFetched();
+        // biome-ignore lint/suspicious/noDoubleEquals: keys may come from attributes (string) or remote data (number)
         return this.#data.filter(([k, v]) => keys.some((r) => r == k));
     }
     async load(needle) {
@@ -93,6 +94,7 @@ class InMemoryLoader {
         this.#data = data;
     }
     exact(...keys) {
+        // biome-ignore lint/suspicious/noDoubleEquals: keys may come from attributes (string) or remote data (number)
         return this.#data.filter(([k, v]) => keys.some((r) => r == k));
     }
     load(needle) {
@@ -112,7 +114,7 @@ class SelectLoader {
         const http = registry.component('http-client');
         const responseMapper = SelectLoader.#responseMapperFrom(el);
 
-        if ('chunked' == el.getAttribute('mode')) {
+        if ('chunked' === el.getAttribute('mode')) {
             return new PartialRemoteLoader({
                 http,
                 url: el.getAttribute('src'),

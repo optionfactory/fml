@@ -123,7 +123,7 @@ class Pagination extends ParsedElement {
                 label: current + 1,
             },
         ];
-        for (let mid = current, offset = 1; offset !== maxRender && pages.length != maxRender; ++offset) {
+        for (let mid = current, offset = 1; offset !== maxRender && pages.length !== maxRender; ++offset) {
             const p = mid - offset;
             if (p >= 0) {
                 pages.unshift({ index: p, label: p + 1 });
@@ -417,7 +417,9 @@ class Table extends ParsedElement {
         this.addEventListener('sort-requested', async (/** @type any */ e) => {
             const sortRequest = e.detail.value.order ? e.detail.value : null;
             await this.load(this.#latestRequest.pageRequest, sortRequest, this.#latestRequest.filterRequest);
-            this.#sorters.forEach((s) => (s.order = null));
+            this.#sorters.forEach((s) => {
+                s.order = null;
+            });
             e.target.order = e.detail.value.order;
         });
         if (this.hasAttribute('autoload')) {

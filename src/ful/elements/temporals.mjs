@@ -100,13 +100,14 @@ class InputLocalDate extends Input {
             case 'd':
                 r.setDate(r.getDate() + offset * sign);
                 break;
-            case 'm':
+            case 'm': {
                 const originalDay = r.getDate();
                 r.setMonth(r.getMonth() + offset * sign);
                 if (r.getDate() !== originalDay) {
                     r.setDate(0);
                 }
                 break;
+            }
             case 'y':
                 r.setFullYear(r.getFullYear() + offset * sign);
                 break;

@@ -105,7 +105,9 @@ class InputFile extends Input {
             }
             const fileName = e.target.closest('ful-item').dataset.name;
             const dt = new DataTransfer();
-            [...this.files].filter((f) => f.name !== fileName).forEach((f) => dt.items.add(f));
+            [...this.files].filter((f) => f.name !== fileName).forEach((f) => {
+                dt.items.add(f);
+            });
             this.files = dt.files;
             this.#update();
         });
@@ -119,7 +121,9 @@ class InputFile extends Input {
         this.#dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             const dt = new DataTransfer();
-            [...e.dataTransfer.items].filter((i) => i.kind === 'file').forEach((i) => dt.items.add(i.getAsFile()));
+            [...e.dataTransfer.items].filter((i) => i.kind === 'file').forEach((i) => {
+                dt.items.add(i.getAsFile());
+            });
             this.files = dt.files;
             this.#update();
         });
@@ -161,7 +165,9 @@ class InputFile extends Input {
         }
         this.warning('unaccepptablefiletype', this.#accept.join(', '));
         const dt = new DataTransfer();
-        [...this.files].filter((f) => !unacceptable.includes(f)).forEach((f) => dt.items.add(f));
+        [...this.files].filter((f) => !unacceptable.includes(f)).forEach((f) => {
+                dt.items.add(f);
+            });
         this.files = dt.files;
     }
     #ensureFilesCount() {
@@ -186,7 +192,9 @@ class InputFile extends Input {
         }
         this.warning('maxfilesizeexceeded', this.#formatByteSize(this.#maxfilesize));
         const dt = new DataTransfer();
-        [...this.files].filter((f) => !oversized.includes(f)).forEach((f) => dt.items.add(f));
+        [...this.files].filter((f) => !oversized.includes(f)).forEach((f) => {
+                dt.items.add(f);
+            });
         this.files = dt.files;
     }
     #ensureTotalSize() {

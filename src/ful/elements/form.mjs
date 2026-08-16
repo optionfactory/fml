@@ -66,7 +66,8 @@ class FormLoader {
 class Form extends ParsedElement {
     form;
     render() {
-        const form = (this.form = document.createElement('form'));
+        const form = document.createElement('form');
+        this.form = form;
         form.setAttribute('novalidate', '');
         Attributes.forward('form-', this, form);
         form.replaceChildren(...this.childNodes);
