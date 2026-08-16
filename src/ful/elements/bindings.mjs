@@ -25,7 +25,7 @@ class Bindings {
     static providePath(result, path, value) {
         const keys = path.split('.').map((k) => (/^[0-9]+$/.test(k) ? +k : k));
         let current = result ?? {};
-        let previous = null;
+        let previous = /** @type {any} */ (null);
         for (let i = 0; ; ++i) {
             const ckey = keys[i];
             const pkey = keys[i - 1];

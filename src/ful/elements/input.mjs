@@ -39,10 +39,11 @@ class Input extends ParsedElement {
 
         Attributes.forward('input-', this, this._input);
         if (!skipObservedSetup) {
-            this.disabled = disabled;
-            this.readonly = observed.readonly;
-            this.required = observed.required;
-            this.value = observed.value;
+            const el = this;
+            el.disabled = disabled;
+            el.readonly = observed.readonly;
+            el.required = observed.required;
+            el.value = observed.value;
         }
         this._input.addEventListener('keydown', (evt) => {
             if (evt.key !== 'Enter' || this._type() === 'textarea') {

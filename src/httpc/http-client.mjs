@@ -460,7 +460,7 @@ class HttpRequestBuilder {
     /**
      * Sets the request body as a FormData configured using the callback.
      * `Content-Type: multipart/form-data` header is automatically added by fetch if not explicitly set.
-     * @param {function(HttpMultipartRequestCustomizer):void} callback
+     * @param {(c: HttpMultipartRequestCustomizer) => void} callback
      */
     multipart(callback) {
         const formData = new FormData();

@@ -14,7 +14,7 @@ class Timing {
      */
     static debounce(timeoutMs, func, options) {
         const opts = options ?? Timing.DEBOUNCE_DEFAULT;
-        let tid = null;
+        let tid = /** @type {number | null} */ (null);
         let args = [];
         let previousTimestamp = 0;
 
@@ -44,7 +44,7 @@ class Timing {
                 }
             }
         };
-        const abort = () => clearTimeout(tid);
+        const abort = () => clearTimeout(tid ?? undefined);
         return [debounced, abort];
     }
     static THROTTLE_DEFAULT = 0;
@@ -59,7 +59,7 @@ class Timing {
      */
     static throttle(timeoutMs, func, options) {
         const opts = options ?? Timing.THROTTLE_DEFAULT;
-        let tid = null;
+        let tid = /** @type {number | null} */ (null);
         let args = [];
         let previousTimestamp = 0;
 
@@ -92,7 +92,7 @@ class Timing {
                 tid = setTimeout(later, remaining);
             }
         };
-        const abort = () => clearTimeout(tid);
+        const abort = () => clearTimeout(tid ?? undefined);
         return [throttled, abort];
     }
 }

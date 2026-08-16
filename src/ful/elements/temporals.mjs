@@ -3,23 +3,23 @@ import { Input } from './input.mjs';
 
 class LocalDate extends ParsedElement {
     render() {
-        const content = this.innerHTML.trim();
+        const content = this.textContent.trim();
         if (content === '') {
-            this.innerHTML = this.getAttribute('default') ?? '';
+            this.replaceChildren(this.getAttribute('default') ?? '');
             return;
         }
         const locale = this.getAttribute('locale') ?? Intl.DateTimeFormat().resolvedOptions().locale;
         const formatter = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'numeric', day: 'numeric' });
         const [y, m, d] = content.split('-').map(Number);
-        this.innerHTML = formatter.format(new Date(y, m - 1, d));
+        this.replaceChildren(formatter.format(new Date(y, m - 1, d)));
     }
 }
 
 class Instant extends ParsedElement {
     render() {
-        const content = this.innerHTML.trim();
+        const content = this.textContent.trim();
         if (content === '') {
-            this.innerHTML = this.getAttribute('default') ?? '';
+            this.replaceChildren(this.getAttribute('default') ?? '');
             return;
         }
         const locale = this.getAttribute('locale') ?? Intl.DateTimeFormat().resolvedOptions().locale;
@@ -32,7 +32,7 @@ class Instant extends ParsedElement {
             second: 'numeric',
             hour12: false,
         });
-        this.innerHTML = format.format(new Date(Instant.isoToLocal(content)));
+        this.replaceChildren(format.format(new Date(Instant.isoToLocal(content))));
     }
     static isoToLocal(iso) {
         //this is so sad
