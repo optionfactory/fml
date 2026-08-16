@@ -44,7 +44,7 @@ class VersionedLocalStorage {
             return undefined;
         }
         if (stored.revision !== revision) {
-            localStorage.removeItem(key);
+            LocalStorage.remove(key);
             return undefined;
         }
         return stored.data;
@@ -61,7 +61,7 @@ class VersionedSessionStorage {
             return undefined;
         }
         if (stored.revision !== revision) {
-            localStorage.removeItem(key);
+            SessionStorage.remove(key);
             return undefined;
         }
         return stored.data;
