@@ -1,7 +1,7 @@
 import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 
 class Input extends ParsedElement {
-    static observed = ['value', 'readonly:presence', 'required:presence'];
+    static observed = ['value', 'readonly:presence', 'required:presence', 'placeholder'];
     static slots = true;
     static template = `
         <div class="form-label">
@@ -43,6 +43,7 @@ class Input extends ParsedElement {
             el.disabled = disabled;
             el.readonly = observed.readonly;
             el.required = observed.required;
+            el.placeholder = observed.placeholder;
             el.value = observed.value;
         }
         this._input.addEventListener('keydown', (evt) => {
@@ -126,6 +127,15 @@ class Input extends ParsedElement {
         Attributes.set(this._input, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
+        });
+    }
+    get placeholder() {
+        return this._input.getAttribute('placeholder');
+    }
+    set placeholder(d) {
+        Attributes.set(this._input, 'placeholder', d);
+        this.reflect(() => {
+            Attributes.set(this, 'placeholder', d);
         });
     }
     focus(options) {
