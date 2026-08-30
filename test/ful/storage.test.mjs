@@ -63,3 +63,33 @@ describe('VersionedSessionStorage', () => {
         expect(sessionStorage.getItem('temp-key')).to.be.null;
     });
 });
+describe('corrupt entries', () => {
+    beforeEach(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+    });
+
+    it('LocalStorage.load treats unparseable content as absent and drops it', () => {
+        localStorage.setItem('broken', '{not json');
+
+        expect(LocalStorage.load('broken')).to.be.undefined;
+        expect(localStorage.getItem('broken')).to.be.null;
+    });
+
+    it('SessionStorage.load treats unparseable content as absent and drops it', () => {
+        sessionStorage.setItem('broken', '{not json');
+
+        expect(SessionStorage.load('broken')).to.be.undefined;
+        expect(sessionStorage.getItem('broken')).to.be.null;
+    });
+
+    it('a corrupt entry does not break the versioned readers for good', () => {
+        localStorage.setItem('app-config', 'GET@/x was truncated');
+
+        expect(VersionedLocalStorage.load('app-config', 'v1')).to.be.undefined;
+
+        //the next save is readable again
+        VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });
+        expect(VersionedLocalStorage.load('app-config', 'v1')).to.deep.equal({ theme: 'dark' });
+    });
+});

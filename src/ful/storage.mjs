@@ -4,7 +4,16 @@ class LocalStorage extends Storage {
     }
     static load(k) {
         const got = localStorage.getItem(k);
-        return got === null ? undefined : JSON.parse(got);
+        if (got === null) {
+            return undefined;
+        }
+        try {
+            return JSON.parse(got);
+        } catch {
+            //not what save wrote: drop it, otherwise every later read fails the same way
+            localStorage.removeItem(k);
+            return undefined;
+        }
     }
     static remove(k) {
         localStorage.removeItem(k);
@@ -22,7 +31,16 @@ class SessionStorage extends Storage {
     }
     static load(k) {
         const got = sessionStorage.getItem(k);
-        return got === null ? undefined : JSON.parse(got);
+        if (got === null) {
+            return undefined;
+        }
+        try {
+            return JSON.parse(got);
+        } catch {
+            //not what save wrote: drop it, otherwise every later read fails the same way
+            sessionStorage.removeItem(k);
+            return undefined;
+        }
     }
     static remove(k) {
         sessionStorage.removeItem(k);
