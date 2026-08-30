@@ -141,7 +141,20 @@ class Form extends ParsedElement {
     reset() {
         this.form.reset();
     }
+    #spinning = 0;
     spinner(spin) {
+        //submits can overlap: only the outermost one saves and restores the button states
+        if (spin) {
+            ++this.#spinning;
+            if (this.#spinning !== 1) {
+                return;
+            }
+        } else {
+            this.#spinning = Math.max(0, this.#spinning - 1);
+            if (this.#spinning !== 0) {
+                return;
+            }
+        }
         this.querySelectorAll('ful-spinner').forEach((el) => {
             const hel = /** @type HTMLElement */ (el);
             hel.hidden = !spin;
