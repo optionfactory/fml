@@ -73,9 +73,15 @@ class InstantFilter extends Input {
         this.#value1.value = values[0] ? Instant.isoToLocal(values[0]) : values[0];
         this.#value2.value = values[1] ? Instant.isoToLocal(values[1]) : values[1];
     }
+    get readonly() {
+        return super.readonly;
+    }
     set readonly(v) {
         this.#value2.readOnly = v;
         super.readonly = v;
+    }
+    get disabled() {
+        return super.disabled;
     }
     set disabled(d) {
         Attributes.toggle(this.#value2, 'disabled', d);
@@ -154,9 +160,15 @@ class LocalDateFilter extends Input {
         this.#value1.value = values[0];
         this.#value2.value = values[1];
     }
+    get readonly() {
+        return super.readonly;
+    }
     set readonly(v) {
         this.#value2.readOnly = v;
         super.readonly = v;
+    }
+    get disabled() {
+        return super.disabled;
     }
     set disabled(d) {
         Attributes.toggle(this.#value2, 'disabled', d);

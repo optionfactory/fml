@@ -11,6 +11,9 @@
 - [BUG] `ful-table` collects its sorters after the headers are rendered, so sorting a column clears the order of the others
 - [BUG] `Timing.debounce` and `Timing.throttle` keep working after `abort()`, which used to leave the timer id set and block any further scheduling
 - [BUG] `Bindings.mutate` matches radio values as strings, like `ful-radio-group` already did: booleans and numbers coming from a payload previously matched nothing and left the group unchecked
+- [BUG] `ful-pagination` applies `total` and `current` at render, the properties used to stay at 0 whatever the attributes said
+- [BUG] `ful-filter-instant` and `ful-filter-local-date` expose their `readonly` and `disabled` getters again, a setter declared without its getter shadowed the inherited pair
+- [REF] tests: every registered element is mounted and each of its observed attributes is checked against the property it exposes
 
 ### version 8.0.0
 

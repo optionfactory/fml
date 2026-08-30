@@ -96,7 +96,8 @@ class Pagination extends ParsedElement {
     #total = 0;
     #current = 0;
     render({ observed }) {
-        this.update(observed.current ?? 0, observed.total ?? 0);
+        this.total = observed.total ?? 0;
+        this.current = observed.current ?? 0;
         this.addEventListener('click', (/** @type any */ evt) => {
             const el = evt.target.closest('a');
             if (!el) {
