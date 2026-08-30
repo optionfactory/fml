@@ -130,10 +130,13 @@ class Input extends ParsedElement {
         });
     }
     get placeholder() {
-        return this._input.getAttribute('placeholder');
+        const v = this._input.getAttribute('placeholder');
+        return v === ' ' ? null : v;
     }
     set placeholder(d) {
-        Attributes.set(this._input, 'placeholder', d);
+        //without a placeholder :placeholder-shown never matches, and floating labels
+        //rely on it, so a blank one stands in for none
+        Attributes.set(this._input, 'placeholder', d ?? ' ');
         this.reflect(() => {
             Attributes.set(this, 'placeholder', d);
         });
