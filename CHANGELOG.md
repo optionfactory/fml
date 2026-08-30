@@ -10,6 +10,7 @@
 - [BUG] `ful-sorter` now applies its declared `order` at render, so the first click cycles from the declared order
 - [BUG] `ful-table` collects its sorters after the headers are rendered, so sorting a column clears the order of the others
 - [BUG] `Timing.debounce` and `Timing.throttle` keep working after `abort()`, which used to leave the timer id set and block any further scheduling
+- [BUG] `Bindings.mutate` matches radio values as strings, like `ful-radio-group` already did: booleans and numbers coming from a payload previously matched nothing and left the group unchecked
 
 ### version 8.0.0
 

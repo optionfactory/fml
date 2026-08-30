@@ -163,6 +163,58 @@ describe('Bindings', () => {
 
     });
     
+    describe('mutateIn', () => {
+        const formOf = (html) => Fragments.fromHtml(`<form>${html}</form>`).querySelector('form');
+
+        it('checks the radio matching the value', () => {
+            const form = formOf(`
+                <input type="radio" name="a" value="1">
+                <input type="radio" name="a" value="2">
+            `);
+            Bindings.mutateIn(form, { a: '2' });
+            assert.deepEqual(Bindings.extractFrom(form), { a: '2' });
+        });
+
+        it('round trips boolean radios', () => {
+            const form = formOf(`
+                <input type="radio" name="a" value="true" data-ful-bind-type="boolean">
+                <input type="radio" name="a" value="false" data-ful-bind-type="boolean">
+            `);
+            Bindings.mutateIn(form, { a: true });
+            assert.deepEqual(Bindings.extractFrom(form), { a: true });
+
+            Bindings.mutateIn(form, { a: false });
+            assert.deepEqual(Bindings.extractFrom(form), { a: false });
+        });
+
+        it('matches radios whose value is not a string', () => {
+            const form = formOf(`
+                <input type="radio" name="a" value="1">
+                <input type="radio" name="a" value="2">
+            `);
+            Bindings.mutateIn(form, { a: 2 });
+            assert.deepEqual(Bindings.extractFrom(form), { a: '2' });
+        });
+
+        it('leaves boolean radios unchecked for a null value', () => {
+            const form = formOf(`
+                <input type="radio" name="a" value="true" data-ful-bind-type="boolean" checked>
+                <input type="radio" name="a" value="false" data-ful-bind-type="boolean">
+            `);
+            Bindings.mutateIn(form, { a: null });
+            assert.deepEqual(Bindings.extractFrom(form), { a: null });
+        });
+
+        it('round trips checkboxes and text inputs', () => {
+            const form = formOf(`
+                <input type="checkbox" name="a">
+                <input type="text" name="b">
+            `);
+            Bindings.mutateIn(form, { a: true, b: 'x' });
+            assert.deepEqual(Bindings.extractFrom(form), { a: true, b: 'x' });
+        });
+    });
+
     describe('errors', () => {
         let form, inputName, inputAge, customEl, fulErrors;
 

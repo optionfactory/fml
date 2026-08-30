@@ -96,12 +96,14 @@ class Bindings {
 
     /**
      *
-     * @param {Element  & {checked?: boolean} & {value?: any}} el
+     * @param {Element & {dataset?: any} & {checked?: boolean} & {value?: any}} el
      * @returns
      */
     static mutate(el, raw) {
         if (el.getAttribute('type') === 'radio') {
-            el.checked = el.getAttribute('value') === raw;
+            //values are matched as strings, as ful-radio-group does: extract decodes
+            //boolean radios, and payloads carry numbers where the attribute is text
+            el.checked = raw != null && el.getAttribute('value') === String(raw);
             return;
         }
         if (el.getAttribute('type') === 'checkbox') {
