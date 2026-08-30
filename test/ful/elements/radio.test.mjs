@@ -1,6 +1,6 @@
 import { assert } from 'chai';
-import { registry, Rendering } from '../../src/ftl/index.mjs';
-import { Bindings, Plugin } from '../../src/ful/index.mjs';
+import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { Bindings, Plugin } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin()).configure();
 

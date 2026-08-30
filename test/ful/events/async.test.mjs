@@ -1,5 +1,5 @@
 import { assert, expect } from 'chai';
-import { AsyncEvents } from '../../src/ful/events/async.mjs';
+import { AsyncEvents } from '../../../src/ful/events/async.mjs';
 
 describe('AsyncEvents', () => {
     let el;

@@ -1,7 +1,7 @@
 import { assert } from 'chai';
-import { Failure } from '../../src/httpc/index.mjs';
-import { registry, Rendering } from '../../src/ftl/index.mjs';
-import { AsyncEvents, FormLoader, Plugin } from '../../src/ful/index.mjs';
+import { Failure } from '../../../src/httpc/index.mjs';
+import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { AsyncEvents, FormLoader, Plugin } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin()).configure();
 

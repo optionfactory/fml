@@ -1,6 +1,6 @@
 import { assert } from 'chai';
-import { registry, Rendering } from '../../src/ftl/index.mjs';
-import { Plugin } from '../../src/ful/index.mjs';
+import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { Plugin } from '../../../src/ful/index.mjs';
 
 //records what the plugin registers, so a new element has to be sampled below
 const REGISTERED = [];

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import '../../src/client-errors/client-errors.mjs';
+import '../../../src/client-errors/client-errors.mjs';
 
 /**
  * The reporter listens on window 'error' too, but the test runner fails a test on any
