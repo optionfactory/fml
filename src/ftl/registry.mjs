@@ -15,25 +15,38 @@ class UpgradeQueue {
             );
         });
     }
+    #finished = new Map();
     enqueue(el) {
         if (this.#q.has(el)) {
             //already upgrading, can happen when disconnecting an element
             //while it's already queued for upgrade (e.g.: ful-form)
             return;
         }
+        //settling waits on a signal that only ever resolves, so nothing here attaches a
+        //rejection handler to the upgrade itself: a component that fails is still
+        //reported the way it always was
+        const { promise: finished, resolve: markFinished } = /** @type {PromiseWithResolvers<void>} */ (
+            Promise.withResolvers()
+        );
         const promise = Nodes.waitParsed(el)
             .then(() => el.upgrade())
-            .finally(() => this.#q.delete(el));
+            .finally(() => {
+                this.#q.delete(el);
+                this.#finished.delete(el);
+                markFinished();
+            });
         this.#q.set(el, promise);
+        this.#finished.set(el, finished);
     }
     /**
-     * Waits for every queued upgrade, including the ones enqueued while waiting:
-     * a component is only queued once its parent connects it, so a single pass would
-     * miss everything nested.
+     * Waits for every queued upgrade to settle, including the ones enqueued while
+     * waiting: a component is only queued once its parent connects it, so a single pass
+     * would miss everything nested. A component that fails to upgrade does not hold the
+     * others back, readiness means the queue drained rather than that everything worked.
      */
     async settle() {
-        while (this.#q.size !== 0) {
-            await Promise.all(Array.from(this.#q.values()));
+        while (this.#finished.size !== 0) {
+            await Promise.all(Array.from(this.#finished.values()));
         }
     }
     get entries() {

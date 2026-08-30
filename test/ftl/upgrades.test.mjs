@@ -172,3 +172,46 @@ describe('Rendering waitFor and waitForChildren', () => {
         parent.remove();
     });
 });
+describe('Readiness when a component fails', () => {
+    const rejections = [];
+    const onRejection = (e) => {
+        rejections.push(e.reason);
+        e.preventDefault();
+    };
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+    };
+
+    it('reports ready anyway, and still surfaces the failure', async () => {
+        class Broken extends ParsedElement {
+            render() {
+                throw new Error('boom');
+            }
+        }
+        class Healthy extends ParsedElement {
+            render() {
+                this.textContent = 'rendered';
+            }
+        }
+        registry.defineElement('broken-el', Broken).defineElement('healthy-el', Healthy);
+        registry.configure();
+        window.addEventListener('unhandledrejection', onRejection);
+        const container = document.createElement('div');
+        container.innerHTML = `<broken-el></broken-el><healthy-el></healthy-el>`;
+        document.body.appendChild(container);
+
+        let fired = false;
+        document.addEventListener('ftl:ready', () => { fired = true; }, { once: true });
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+        await settle();
+
+        expect(fired, 'one broken component must not hold the page back').to.be.true;
+        expect(container.querySelector('healthy-el').textContent).to.equal('rendered');
+        expect(rejections.map((r) => r.message)).to.deep.equal(['boom'], 'the failure is still reported');
+
+        window.removeEventListener('unhandledrejection', onRejection);
+        container.remove();
+    });
+});
