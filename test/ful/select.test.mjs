@@ -413,3 +413,84 @@ describe('Select value assignment', () => {
     });
 
 });
+
+describe('Select enter key inside a form', () => {
+    let submits = [];
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const mount = async (html) => {
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+    const enter = (selectEl) => {
+        selectEl.querySelector('input').dispatchEvent(
+            new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }),
+        );
+    };
+    beforeEach(() => {
+        submits = [];
+        registry.defineComponent('loaders:form', {
+            create: () => ({
+                prepare: async (v) => v,
+                submit: async (values) => { submits.push(values); return {}; },
+                transform: async (r) => r,
+            })
+        });
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => { },
+                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+                load: async () => [['k1', 'Label 1']],
+            })
+        });
+    });
+
+    it('submits the form when the dropdown is closed', async () => {
+        const [selectEl, container] = await mount(`
+            <ful-form>
+                <ful-select name="s">label</ful-select>
+                <button type="submit">go</button>
+            </ful-form>`);
+
+        enter(selectEl);
+        await settle();
+
+        assert.strictEqual(submits.length, 1, 'enter reaches the form');
+        container.remove();
+    });
+
+    it('accepts the highlighted option instead of submitting when the dropdown is open', async () => {
+        const [selectEl, container] = await mount(`
+            <ful-form>
+                <ful-select name="s">label</ful-select>
+                <button type="submit">go</button>
+            </ful-form>`);
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        enter(selectEl);
+        await settle();
+
+        assert.strictEqual(selectEl.value, 'k1', 'the option is taken');
+        assert.strictEqual(submits.length, 0, 'the form is not submitted');
+        container.remove();
+    });
+
+    it('does nothing on enter outside a form', async () => {
+        const [selectEl, container] = await mount(`<ful-select name="s">label</ful-select>`);
+
+        enter(selectEl);
+        await settle();
+
+        assert.strictEqual(submits.length, 0);
+        container.remove();
+    });
+});

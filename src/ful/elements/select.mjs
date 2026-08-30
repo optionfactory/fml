@@ -418,6 +418,12 @@ class Select extends ParsedElement {
                     break;
                 }
                 case 'Enter': {
+                    if (!this.#ddmenu.shown) {
+                        //nothing to accept: submit the form as ful-input does. the inner
+                        //input carries form="" so it never submits one on its own
+                        this.#requestSubmit();
+                        return;
+                    }
                     e.preventDefault();
                     this.#input.setAttribute('aria-expanded', 'false');
                     this.#ddmenu.acceptSelection();
@@ -465,6 +471,16 @@ class Select extends ParsedElement {
     }
     async withLoader(fn) {
         return await fn(this.#loader);
+    }
+    #requestSubmit() {
+        const form = this.internals.form;
+        if (!form) {
+            return;
+        }
+        const candidates = /** @type [HTMLButtonElement|HTMLInputElement] */ (
+            Array.from(form.querySelectorAll('button:not(:disabled), input:not(:disabled)'))
+        );
+        form.requestSubmit(candidates.find((el) => el.type === 'submit'));
     }
     #changed() {
         const selection = [...this.#values.entries()].map((e) => ({
