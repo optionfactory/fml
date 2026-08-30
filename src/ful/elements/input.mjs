@@ -38,14 +38,6 @@ class Input extends ParsedElement {
         this._input = fragment.querySelector('input,textarea');
 
         Attributes.forward('input-', this, this._input);
-        if (!skipObservedSetup) {
-            const el = this;
-            el.disabled = disabled;
-            el.readonly = observed.readonly;
-            el.required = observed.required;
-            el.placeholder = observed.placeholder;
-            el.value = observed.value;
-        }
         this._input.addEventListener('keydown', (evt) => {
             if (evt.key !== 'Enter' || this._type() === 'textarea') {
                 return;
@@ -93,6 +85,14 @@ class Input extends ParsedElement {
         this._input.ariaDescribedByElements = [this._fieldError];
         this._input.ariaLabelledByElements = [label];
         this.replaceChildren(fragment);
+        if (!skipObservedSetup) {
+            const el = this;
+            el.disabled = disabled;
+            el.readonly = observed.readonly;
+            el.required = observed.required;
+            el.placeholder = observed.placeholder;
+            el.value = observed.value;
+        }
     }
     get value() {
         const uppercase = this.hasAttribute('uppercase');

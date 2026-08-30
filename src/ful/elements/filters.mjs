@@ -3,7 +3,7 @@ import { Instant } from './temporals.mjs';
 import { Input } from './input.mjs';
 
 class InstantFilter extends Input {
-    static observed = ['value:json', 'readonly:presence', 'required:presence'];
+    static observed = ['value:json', 'readonly:presence', 'required:presence', 'placeholder'];
     static template = `
         <div class="form-label">
             <label>{{{{ slots.default }}}}</label>
@@ -41,6 +41,7 @@ class InstantFilter extends Input {
         this.disabled = conf.disabled;
         this.readonly = conf.observed.readonly;
         this.required = conf.observed.required;
+        this.placeholder = conf.observed.placeholder;
         this.value = conf.observed.value;
 
         this.addEventListener('click', (evt) => {
@@ -83,7 +84,7 @@ class InstantFilter extends Input {
 }
 
 class LocalDateFilter extends Input {
-    static observed = ['value:json', 'readonly:presence', 'required:presence'];
+    static observed = ['value:json', 'readonly:presence', 'required:presence', 'placeholder'];
     static template = `
         <div class="form-label">
             <label>{{{{ slots.default }}}}</label>
@@ -122,6 +123,7 @@ class LocalDateFilter extends Input {
         this.disabled = conf.disabled;
         this.readonly = conf.observed.readonly;
         this.required = conf.observed.required;
+        this.placeholder = conf.observed.placeholder;
         this.value = conf.observed.value;
 
         this.addEventListener('click', (evt) => {
@@ -163,7 +165,7 @@ class LocalDateFilter extends Input {
 }
 
 class TextFilter extends Input {
-    static observed = ['value:json', 'readonly:presence', 'required:presence'];
+    static observed = ['value:json', 'readonly:presence', 'required:presence', 'placeholder'];
     static template = `
         <div class="form-label">
             <label>{{{{ slots.default }}}}</label>
@@ -196,6 +198,7 @@ class TextFilter extends Input {
         this.disabled = conf.disabled;
         this.readonly = conf.observed.readonly;
         this.required = conf.observed.required;
+        this.placeholder = conf.observed.placeholder;
         this.value = conf.observed.value;
 
         this.addEventListener('click', (evt) => {

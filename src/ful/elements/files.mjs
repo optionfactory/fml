@@ -36,6 +36,7 @@ class InputFile extends Input {
         'value',
         'readonly:presence',
         'required:presence',
+        'placeholder',
         'accept:csv',
         'multiple:presence',
         'itemlist:presence',
@@ -85,7 +86,7 @@ class InputFile extends Input {
     };
     render(conf) {
         const { observed } = conf;
-        super.render(conf);
+        super.render({ ...conf, skipObservedSetup: true });
         this.#items = this.querySelector('ful-item-list');
         this.#dropzone = this.querySelector('[data-ref=dropzone]');
         this.#warnings = this.querySelector('ful-field-warnings');
@@ -96,6 +97,12 @@ class InputFile extends Input {
         this.maxfiles = observed.maxfiles;
         this.maxfilesize = observed.maxfilesize;
         this.maxtotalsize = observed.maxtotalsize;
+
+        this.disabled = conf.disabled;
+        this.readonly = observed.readonly;
+        this.required = observed.required;
+        this.placeholder = observed.placeholder;
+        this.value = observed.value;
         this.#warnings.addEventListener('animationend', (e) => {
             e.target.remove();
         });

@@ -4,6 +4,8 @@
 - [BUG] `Template.evaluate` returns the evaluated expression result
 - [ENH] `ful-select` survives prefetch failures and hides its dropdown on load errors
 - [REF] tsc checkJs errors resolved; biome lint gate green (config hygiene + fixes)
+- [BUG] `ful-input-file` no longer throws on render: observed attributes are now applied after the element internals are wired
+- [ENH] `placeholder` is observed by every `ful-input` subclass (`ful-input-file`, `ful-input-local-date`, `ful-input-instant`, `ful-filter-*`)
 
 ### version 8.0.0
 
