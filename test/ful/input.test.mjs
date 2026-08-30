@@ -9,7 +9,7 @@ const mount = async (html) => {
     container.innerHTML = html;
     document.body.appendChild(container);
     const el = container.firstElementChild;
-    await Rendering.waitForChildren(el);
+    await Rendering.waitFor(el);
     return [el, container];
 };
 
@@ -36,7 +36,7 @@ describe('Input placeholder and :placeholder-shown', () => {
         container.innerHTML = html;
         document.body.appendChild(container);
         const el = container.firstElementChild;
-        await Rendering.waitForChildren(el);
+        await Rendering.waitFor(el);
         return [el, container];
     };
 

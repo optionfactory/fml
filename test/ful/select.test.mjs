@@ -5,6 +5,13 @@ import { Plugin } from '../../src/ful/index.mjs';
 
 registry.plugin(new Plugin()).configure();
 
+/** the dropdown opens on the throttle's leading edge, this only lets the loader resolve */
+const opened = async () => {
+    for (let i = 0; i !== 10; ++i) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+};
+
 describe('Select & Dropdown Combobox ARIA Compliance', () => {
     beforeEach(() => {
         registry.defineComponent('loaders:select', {
@@ -19,7 +26,7 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
 
         const selectEl = container.querySelector('ful-select');
 
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
 
         const input = selectEl.querySelector('input');
 
@@ -47,9 +54,6 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
 
         input.dispatchEvent(new Event('blur'));
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-
-        //wait for throttling
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         container.remove();
     });
@@ -87,7 +91,7 @@ describe('Select & Dropdown load failure handling', () => {
         document.body.appendChild(container);
 
         const selectEl = container.querySelector('ful-select');
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
 
         assert.isNotNull(selectEl.querySelector('input[role=combobox]'));
         assert.isTrue(warns.some((args) => String(args[0]).includes('prefetch')));
@@ -103,13 +107,13 @@ describe('Select & Dropdown load failure handling', () => {
         document.body.appendChild(container);
 
         const selectEl = container.querySelector('ful-select');
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
         await new Promise(resolve => setTimeout(resolve, 0));
 
         const rejectionsBefore = rejections.length;
         const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await opened();
 
         const dropdown = selectEl.querySelector('ful-dropdown');
         assert.isFalse(dropdown.shown);
@@ -130,7 +134,7 @@ describe('Select & Dropdown load failure handling', () => {
         document.body.appendChild(container);
 
         const selectEl = container.querySelector('ful-select');
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
         const rejectionsBefore = rejections.length;
         await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -173,7 +177,7 @@ describe('Select & Dropdown keyboard interaction', () => {
 
     it('ignores Enter before the dropdown is rendered', async () => {
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
 
         keydown(selectEl.querySelector('input'), 'Enter');
 
@@ -183,7 +187,7 @@ describe('Select & Dropdown keyboard interaction', () => {
 
     it('ignores Enter when the dropdown was never opened', async () => {
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
         await settle();
 
         const changes = [];
@@ -201,12 +205,12 @@ describe('Select & Dropdown keyboard interaction', () => {
             create: () => ({ prefetch: async () => { }, exact: async () => [], load: async () => [] })
         });
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
         await settle();
 
         const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await opened();
         assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
 
         keydown(input, 'ArrowDown');
@@ -220,12 +224,12 @@ describe('Select & Dropdown keyboard interaction', () => {
 
     it('accepts the highlighted option on Enter', async () => {
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
         await settle();
 
         const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await opened();
 
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
@@ -252,7 +256,7 @@ describe('Select value resolution', () => {
         container.innerHTML = html;
         document.body.appendChild(container);
         const selectEl = container.querySelector('ful-select');
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
         await settle();
         return [selectEl, container];
     };
@@ -331,7 +335,7 @@ describe('Select value assignment', () => {
         container.innerHTML = html;
         document.body.appendChild(container);
         const selectEl = container.querySelector('ful-select');
-        await Rendering.waitForChildren(selectEl);
+        await Rendering.waitFor(selectEl);
         await settle();
         return [selectEl, container];
     };
@@ -475,7 +479,7 @@ describe('Select enter key inside a form', () => {
             </ful-form>`);
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await opened();
         enter(selectEl);
         await settle();
 

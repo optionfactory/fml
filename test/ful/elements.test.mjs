@@ -205,18 +205,13 @@ describe('Registered elements', () => {
         uncaught.push(e.reason);
         e.preventDefault();
     });
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-        }
-    };
     const mount = async (html) => {
         const container = document.createElement('div');
         container.innerHTML = html;
         document.body.appendChild(container);
         const el = container.firstElementChild;
+        //waitFor drains the queue, nested components included, so nothing else to await
         await Rendering.waitFor(el);
-        await settle();
         return [el, container];
     };
     const withAttribute = (html, attribute, value) =>
