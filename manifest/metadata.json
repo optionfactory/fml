@@ -1,0 +1,175 @@
+{
+    "$comment": "Prose that cannot be introspected from the source. Tags, attributes, slots and events are derived from the code itself; test/manifest/metadata.test.mjs fails when this file and the code disagree in either direction.",
+    "common": {
+        "attributes": {
+            "value": "The current value.",
+            "readonly": "Renders the control but does not let it be edited. A readonly field still contributes its value to the form.",
+            "required": "Marks the field as required for assistive technologies and shows the required marker on its label.",
+            "placeholder": "Placeholder shown while the field is empty."
+        },
+        "slots": {
+            "default": "The label of the field.",
+            "info": "Extra content rendered next to the label, for a hint or a help icon.",
+            "ibefore": "An addon rendered inside the input group, before the control.",
+            "iafter": "An addon rendered inside the input group, after the control.",
+            "before": "Content rendered before the control, outside the addon styling.",
+            "after": "Content rendered after the control, outside the addon styling."
+        }
+    },
+    "elements": {
+        "ful-spinner": {
+            "description": "A busy indicator. ful-form shows and hides the ones it contains while submitting.",
+            "attributes": {},
+            "slots": { "default": "Text shown next to the spinner." },
+            "events": []
+        },
+        "ful-form": {
+            "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to a loader on submit.",
+            "attributes": {},
+            "slots": {},
+            "events": {
+                "submit": "Cancelable. Fired before anything is sent: preventDefault aborts the submit.",
+                "submit:requested": "Fired after the submit was accepted, to let a listener resolve the response itself.",
+                "submit:success": "Fired with the submitted values and the mapped response.",
+                "submit:failure": "Fired with the exception when the submit fails. The form does not rethrow."
+            }
+        },
+        "ful-checkbox": {
+            "description": "A checkbox, or a switch with type=\"switch\".",
+            "attributes": { "value": "Checked when the attribute is the string true." },
+            "slots": {},
+            "events": { "change": "Fired with the new checked state when the box or its label is clicked." }
+        },
+        "ful-input": {
+            "description": "A labelled text input. Use type to pick any native input type, or textarea.",
+            "attributes": {},
+            "slots": {},
+            "events": { "change": "Fired with the current value when the field is committed." }
+        },
+        "ful-input-file": {
+            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares.",
+            "attributes": {
+                "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
+                "accept": "Comma separated list of accepted extensions. Files that do not match are dropped with a warning.",
+                "multiple": "Allows selecting more than one file.",
+                "itemlist": "Shows the list of selected files.",
+                "dropzone": "Shows the dropzone.",
+                "maxfiles": "Maximum number of files. Exceeding it clears the selection.",
+                "maxfilesize": "Maximum size of a single file, in bytes. Larger files are dropped.",
+                "maxtotalsize": "Maximum size of all the selected files, in bytes. Exceeding it clears the selection."
+            },
+            "slots": { "dropzone": "Replaces the contents of the default dropzone." },
+            "events": { "change": "Fired with the names of the selected files." }
+        },
+        "ful-local-date": {
+            "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page.",
+            "attributes": {},
+            "slots": {},
+            "events": []
+        },
+        "ful-instant": {
+            "description": "Formats the ISO instant in its content in the locale and timezone of the page.",
+            "attributes": {},
+            "slots": {},
+            "events": []
+        },
+        "ful-input-local-date": {
+            "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y.",
+            "attributes": {
+                "min": "Earliest selectable date. Accepts a date, now, or a day, month or year offset.",
+                "max": "Latest selectable date. Accepts a date, now, or a day, month or year offset.",
+                "step": "Step between selectable dates, in days."
+            },
+            "slots": {},
+            "events": { "change": "Fired with the current date." }
+        },
+        "ful-input-local-time": {
+            "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid.",
+            "attributes": {
+                "min": "Earliest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
+                "max": "Latest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
+                "step": "Step between selectable times, in seconds. The bounds are truncated to this grid."
+            },
+            "slots": {},
+            "events": { "change": "Fired with the current time." }
+        },
+        "ful-input-instant": {
+            "description": "A datetime input whose value is read and written as an ISO instant.",
+            "attributes": {
+                "min": "Earliest selectable instant, as an ISO instant.",
+                "max": "Latest selectable instant, as an ISO instant.",
+                "step": "Step between selectable instants, in seconds."
+            },
+            "slots": {},
+            "events": { "change": "Fired with the current instant." }
+        },
+        "ful-radio-group": {
+            "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean.",
+            "attributes": { "value": "The value of the selected radio." },
+            "slots": {
+                "default": "The legend of the group, and its ful-radio children.",
+                "header": "Content rendered above the radios.",
+                "footer": "Content rendered below the radios."
+            },
+            "events": { "change": "Fired with the value of the selected radio." }
+        },
+        "ful-table": {
+            "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot.",
+            "attributes": {},
+            "slots": {
+                "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
+                "caption": "The caption of the table.",
+                "footer": "Content rendered in the table footer."
+            },
+            "events": []
+        },
+        "ful-pagination": {
+            "description": "The pager of a ful-table. Rarely used on its own.",
+            "attributes": {
+                "total": "Number of pages.",
+                "current": "Zero based index of the page being shown."
+            },
+            "slots": {},
+            "events": { "page-requested": "Fired with the zero based index of the page the user asked for." }
+        },
+        "ful-sorter": {
+            "description": "The sort control rendered in a ful-table header. Rarely used on its own.",
+            "attributes": { "order": "The sort currently applied, asc or desc, or absent when unsorted." },
+            "slots": {},
+            "events": { "sort-requested": "Fired with the sorter and the next order when clicked." }
+        },
+        "ful-filter-instant": {
+            "description": "A ful-table filter over an instant, with an operator and one or two bounds.",
+            "attributes": { "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to]." },
+            "slots": {},
+            "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
+        },
+        "ful-filter-local-date": {
+            "description": "A ful-table filter over a date, with an operator and one or two bounds.",
+            "attributes": { "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to]." },
+            "slots": {},
+            "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
+        },
+        "ful-filter-text": {
+            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH.",
+            "attributes": { "value": "JSON tuple of the operator, the sensitivity and the text." },
+            "slots": {},
+            "events": { "change": "Fired with the whole tuple, or undefined when the filter is empty." }
+        },
+        "ful-select": {
+            "description": "A combobox backed by a loader, with badges for the current selection.",
+            "attributes": {
+                "value": "The selected key, or a comma separated list of keys when multiple.",
+                "itemlist": "Shows the selection as a list under the control as well as badges."
+            },
+            "slots": { "dropdown": "Replaces the template used to render the options." },
+            "events": { "change": "Fired with the selection, an array when multiple." }
+        },
+        "ful-dropdown": {
+            "description": "The options popup of a ful-select. Rarely used on its own.",
+            "attributes": {},
+            "slots": {},
+            "events": { "change": "Fired with the option that was picked." }
+        }
+    }
+}

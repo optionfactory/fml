@@ -1,6 +1,7 @@
 ### version 8.0.2
 
 - [BUG] a component that throws while upgrading no longer keeps `ftl:ready` from firing for the whole page. The failure still reaches the console and the global error reporter as before, it just does not hold back everything else
+- [ENH] the package ships IDE metadata for its custom elements: a custom elements manifest, web-types for the JetBrains IDEs and custom data for VS Code, so tags, attributes, slots and events complete in a template
 
 ### version 8.0.1
 
