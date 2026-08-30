@@ -6,8 +6,7 @@ class UpgradeQueue {
     #q = new Map();
     constructor() {
         document.addEventListener('DOMContentLoaded', async () => {
-            const pending = Array.from(this.entries).map(([child, promise]) => promise);
-            await Promise.all(pending);
+            await this.settle();
             document.dispatchEvent(
                 new CustomEvent('ftl:ready', {
                     bubbles: false,
@@ -26,6 +25,16 @@ class UpgradeQueue {
             .then(() => el.upgrade())
             .finally(() => this.#q.delete(el));
         this.#q.set(el, promise);
+    }
+    /**
+     * Waits for every queued upgrade, including the ones enqueued while waiting:
+     * a component is only queued once its parent connects it, so a single pass would
+     * miss everything nested.
+     */
+    async settle() {
+        while (this.#q.size !== 0) {
+            await Promise.all(Array.from(this.#q.values()));
+        }
     }
     get entries() {
         return this.#q.entries();

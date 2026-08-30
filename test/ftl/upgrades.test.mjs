@@ -49,7 +49,7 @@ describe('Upgrade ordering and readiness', () => {
         container.remove();
     });
 
-    it('reports ready before a component enqueued during another upgrade has rendered', async () => {
+    it('reports ready once components enqueued during another upgrade have rendered', async () => {
         registry.defineElement('ready-child', slow('child'));
         registry.defineElement('ready-parent', nesting('parent', 'ready-child'));
         registry.configure();
@@ -60,11 +60,11 @@ describe('Upgrade ordering and readiness', () => {
         document.dispatchEvent(new Event('DOMContentLoaded'));
         await settle();
 
-        expect(atReady).to.deep.equal(['parent'], 'the nested child had not rendered yet');
-        expect(order).to.deep.equal(['parent', 'child'], 'it renders, just after ready');
+        expect(atReady).to.deep.equal(['parent', 'child'], 'the nested child is covered too');
+        expect(order).to.deep.equal(['parent', 'child']);
     });
 
-    it('waitFor covers the element but not what its own upgrade enqueues', async () => {
+    it('waitFor covers what the element\'s own upgrade enqueues', async () => {
         registry.defineElement('waitfor-child', slow('child'));
         registry.defineElement('waitfor-parent', nesting('parent', 'waitfor-child'));
         registry.configure();
@@ -73,9 +73,7 @@ describe('Upgrade ordering and readiness', () => {
 
         await Rendering.waitFor(el);
 
-        expect(order).to.deep.equal(['parent'], 'the child was queued after the snapshot was taken');
-        await settle();
-        expect(order).to.deep.equal(['parent', 'child']);
+        expect(order).to.deep.equal(['parent', 'child'], 'the child is queued while waiting, and covered');
     });
 
     it('waitForChildren does not cover the element itself', async () => {
