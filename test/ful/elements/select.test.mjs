@@ -498,3 +498,382 @@ describe('Select enter key inside a form', () => {
         container.remove();
     });
 });
+
+describe('Select selection removal', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const labelling = () => ({
+        prefetch: async () => { },
+        load: async () => [['k1', 'Label 1']],
+        exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+    });
+    const mount = async (html, loader) => {
+        registry.defineComponent('loaders:select', { create: () => loader ?? labelling() });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+    const click = (el) => el.dispatchEvent(new Event('click', { bubbles: true }));
+    const badges = (selectEl) => [...selectEl.querySelectorAll('badges > badge')];
+    const items = (selectEl) => [...selectEl.querySelectorAll('ful-item-list > ful-item')];
+
+    it('drops the entry whose badge was clicked, keeping the others', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2,k3"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+
+        click(badges(selectEl)[1]);
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k3'], 'the clicked badge is the one removed');
+        assert.strictEqual(changes.length, 1);
+        assert.deepStrictEqual(changes[0].map((v) => v.key), ['k1', 'k3']);
+        assert.deepStrictEqual(badges(selectEl).map((b) => b.innerText), ['Label k1', 'Label k3']);
+        assert.deepStrictEqual(items(selectEl).map((i) => i.getAttribute('data-key')), ['k1', 'k3']);
+        container.remove();
+    });
+
+    it('drops the entry whose item remove button was clicked', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple itemlist value="k1,k2,k3"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+
+        click(items(selectEl)[2].querySelector('button'));
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.strictEqual(changes.length, 1);
+        assert.deepStrictEqual(changes[0].map((v) => v.key), ['k1', 'k2']);
+        assert.deepStrictEqual(items(selectEl).map((i) => i.getAttribute('data-key')), ['k1', 'k2']);
+        assert.deepStrictEqual(badges(selectEl).map((b) => b.innerText), ['Label k1', 'Label k2']);
+        container.remove();
+    });
+
+    it('removes nothing when the click misses both a badge and a remove button', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+
+        click(selectEl.querySelector('badges'));
+        click(items(selectEl)[0].querySelector('div'));
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(changes, []);
+        container.remove();
+    });
+
+    it('keeps the selection when a disabled select is clicked', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        selectEl.disabled = true;
+
+        click(badges(selectEl)[0]);
+        click(items(selectEl)[0].querySelector('button'));
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(changes, []);
+        container.remove();
+    });
+
+    it('keeps the selection when a readonly select is clicked', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        selectEl.readonly = true;
+
+        click(badges(selectEl)[0]);
+        click(items(selectEl)[0].querySelector('button'));
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(changes, []);
+        container.remove();
+    });
+
+    it('reports a single select as empty once its only badge is removed', async () => {
+        const [selectEl, container] = await mount(`<ful-select value="k1"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+
+        click(badges(selectEl)[0]);
+
+        assert.isNull(selectEl.value);
+        assert.deepStrictEqual(changes, [null], 'a single select reports no selection as null');
+        assert.deepStrictEqual(badges(selectEl), []);
+        container.remove();
+    });
+});
+
+describe('Select backspace', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const mount = async (html) => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => { },
+                load: async () => [['k1', 'Label 1']],
+                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+            })
+        });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+    const backspace = (input) => input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', bubbles: true }));
+
+    it('removes the last selection when the caret sits at the start', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        const input = selectEl.querySelector('input');
+        input.setSelectionRange(0, 0);
+
+        backspace(input);
+
+        assert.deepStrictEqual(selectEl.value, ['k1'], 'the last entry goes first');
+        assert.deepStrictEqual(changes[0].map((v) => v.key), ['k1']);
+        assert.deepStrictEqual([...selectEl.querySelectorAll('badges > badge')].map((b) => b.innerText), ['Label k1']);
+        container.remove();
+    });
+
+    it('leaves the selection alone while the caret is inside the typed text', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        const input = selectEl.querySelector('input');
+        input.value = 'ab';
+        input.setSelectionRange(2, 2);
+
+        backspace(input);
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'backspace belongs to the text being typed');
+        assert.deepStrictEqual(changes, []);
+        container.remove();
+    });
+
+    it('leaves the selection alone while text is selected from the start', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        const input = selectEl.querySelector('input');
+        input.value = 'ab';
+        input.setSelectionRange(0, 2);
+
+        backspace(input);
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'backspace deletes the highlighted text');
+        assert.deepStrictEqual(changes, []);
+        container.remove();
+    });
+
+    it('does not fire a change when there is nothing to remove', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        const input = selectEl.querySelector('input');
+        input.setSelectionRange(0, 0);
+
+        backspace(input);
+
+        assert.deepStrictEqual(selectEl.value, []);
+        assert.deepStrictEqual(changes, []);
+        container.remove();
+    });
+
+    it('ignores backspace on a readonly select', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        selectEl.readonly = true;
+        const input = selectEl.querySelector('input');
+        input.setSelectionRange(0, 0);
+
+        backspace(input);
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        container.remove();
+    });
+});
+
+describe('Select blur', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const mount = async (html) => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => { },
+                load: async () => [['k1', 'Label 1']],
+                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+            })
+        });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+
+    it('clears the typed text and closes the dropdown when focus leaves', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        input.value = 'typed';
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+
+        input.dispatchEvent(new FocusEvent('blur'));
+
+        assert.strictEqual(input.value, '', 'a half typed needle is not kept around');
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        container.remove();
+    });
+
+    it('stays open when focus moves to something inside the select', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        input.value = 'typed';
+
+        input.dispatchEvent(new FocusEvent('blur', { relatedTarget: selectEl.querySelector('menu') }));
+
+        assert.strictEqual(input.value, 'typed', 'clicking an option must not wipe the needle first');
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        container.remove();
+    });
+
+    it('does not let a throttled search reopen the dropdown after blur', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const input = selectEl.querySelector('input');
+        //the leading edge opens it, the second request is queued on the trailing edge
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        input.value = 'ty';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        input.dispatchEvent(new FocusEvent('blur'));
+        //the throttle window is 400ms: outlive it to catch a load that was not aborted
+        await new Promise(resolve => setTimeout(resolve, 450));
+
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        container.remove();
+    });
+});
+
+describe('Select loader access and entries', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const mount = async (html, loader) => {
+        registry.defineComponent('loaders:select', { create: () => loader });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+    const updatable = () => {
+        let data = [['k1', 'Label 1']];
+        return {
+            prefetch: async () => { },
+            load: async () => data,
+            exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+            update: (d) => { data = d; return 'updated'; },
+        };
+    };
+    const described = () => ({
+        prefetch: async () => { },
+        load: async () => [],
+        exact: async (...keys) => keys.map((k) => [k, `Label ${k}`, { id: k }]),
+    });
+
+    it('hands the live loader to withLoader, so the next search sees the new options', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, updatable());
+
+        const outcome = await selectEl.withLoader((loader) => loader.update([['k9', 'Nine']]));
+
+        assert.strictEqual(outcome, 'updated', 'withLoader returns what the caller returns');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        assert.deepStrictEqual(
+            [...selectEl.querySelectorAll('menu li')].map((li) => li.textContent.trim()),
+            ['Nine'],
+        );
+        container.remove();
+    });
+
+    it('reports label and metadata through entry, keys through value', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`, described());
+
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(selectEl.entry, [
+            ['k1', ['Label k1', { id: 'k1' }]],
+            ['k2', ['Label k2', { id: 'k2' }]],
+        ]);
+        container.remove();
+    });
+
+    it('reports the one entry of a single select, and null when it has none', async () => {
+        const [selectEl, container] = await mount(`<ful-select value="k1"></ful-select>`, described());
+
+        assert.deepStrictEqual(selectEl.entry, ['k1', ['Label k1', { id: 'k1' }]]);
+
+        selectEl.value = null;
+        await settle();
+
+        assert.isNull(selectEl.entry);
+        assert.isNull(selectEl.value);
+        container.remove();
+    });
+});
+
+describe('Select edits made while a lookup is in flight', () => {
+    it('does not bring back a selection removed before the labels arrived', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => { },
+                load: async () => [],
+                exact: async (...keys) => {
+                    await new Promise((resolve) => setTimeout(resolve, 40));
+                    return keys.map((k) => [k, `Label ${k}`]);
+                },
+            })
+        });
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select multiple name="s" value="k1,k2">label</ful-select>`;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+
+        selectEl.querySelectorAll('badge')[1].dispatchEvent(new Event('click', { bubbles: true }));
+        assert.deepStrictEqual(selectEl.value, ['k1']);
+
+        await new Promise((resolve) => setTimeout(resolve, 120));
+
+        assert.deepStrictEqual(selectEl.value, ['k1'], 'the lookup must not undo the removal');
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label k1', 'the survivor is still labelled');
+        container.remove();
+    });
+});

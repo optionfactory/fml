@@ -534,7 +534,19 @@ class Select extends ParsedElement {
             //a newer assignment has been made in the meantime
             return;
         }
-        this.#values = new Map(entries.map((e) => [e[0], e.slice(1)]));
+        //label the keys that are still selected: a removal made while the lookup was in
+        //flight must not be undone by it, and a key the loader does not know is dropped
+        const resolved = new Map(entries.map((e) => [e[0], e.slice(1)]));
+        for (const key of keys) {
+            if (!this.#values.has(key)) {
+                continue;
+            }
+            if (resolved.has(key)) {
+                this.#values.set(key, resolved.get(key));
+            } else {
+                this.#values.delete(key);
+            }
+        }
         this.#syncBadges();
     }
     get value() {

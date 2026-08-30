@@ -53,19 +53,26 @@ class Input extends ParsedElement {
             form.requestSubmit(submitter);
         });
         this._input.addEventListener('input', (evt) => {
-            const re = this.getAttribute('mask');
-            if (!re) {
+            const mask = this.getAttribute('mask');
+            if (!mask) {
                 return;
             }
+            const strip = (v) => v.replace(new RegExp(mask, 'g'), '');
             const before = evt.target.value;
-            const after = before.replace(new RegExp(re, 'g'), '');
+            const after = strip(before);
             if (before === after) {
                 return;
             }
             const start = evt.target.selectionStart;
-            const offset = before.length - after.length;
             evt.target.value = after;
-            evt.target.setSelectionRange(start - offset, start - offset);
+            if (start === null) {
+                //email, number and the date types have no selection to restore
+                return;
+            }
+            //the caret keeps its place among the characters that survived, so only the
+            //ones stripped before it count
+            const caret = strip(before.slice(0, start)).length;
+            evt.target.setSelectionRange(caret, caret);
         });
         this._input.addEventListener('change', (evt) => {
             evt.stopPropagation();

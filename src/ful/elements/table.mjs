@@ -100,7 +100,8 @@ class Pagination extends ParsedElement {
         this.current = observed.current ?? 0;
         this.addEventListener('click', (/** @type any */ evt) => {
             const el = evt.target.closest('a');
-            if (!el) {
+            if (!el || el.classList.contains('disabled')) {
+                //a disabled link leads nowhere: the page it would ask for does not exist
                 return;
             }
             this.dispatchEvent(
@@ -116,25 +117,20 @@ class Pagination extends ParsedElement {
     }
     update(current, total) {
         const maxRender = Number(this.getAttribute('pages') ?? '5');
-        const prev = { index: Math.max(0, current - 1), enabled: current > 0 };
+        const hasPrev = current > 0;
+        const hasNext = current + 1 < total;
+        //a disabled arrow carries no page: there is nothing valid for it to point at
+        const prev = { index: hasPrev ? current - 1 : null, enabled: hasPrev };
         const curr = { index: current, label: current + 1 };
-        const next = { index: Math.min(total, current + 1), enabled: current + 1 < total };
-        const pages = [
-            {
-                index: current,
-                label: current + 1,
-            },
-        ];
-        for (let mid = current, offset = 1; offset !== maxRender && pages.length !== maxRender; ++offset) {
-            const p = mid - offset;
-            if (p >= 0) {
-                pages.unshift({ index: p, label: p + 1 });
-            }
-            const n = mid + offset;
-            if (n < total) {
-                pages.push({ index: n, label: n + 1 });
-            }
-        }
+        const next = { index: hasNext ? current + 1 : null, enabled: hasNext };
+        //the window holds at most maxRender pages, centered on the current one and slid
+        //back towards the end so it stays full on the last pages
+        const rendered = Math.max(1, Math.min(maxRender, total));
+        const first = Math.max(0, Math.min(current - Math.floor((rendered - 1) / 2), total - rendered));
+        const pages = Array.from({ length: rendered }, (_, offset) => ({
+            index: first + offset,
+            label: first + offset + 1,
+        }));
         this.template().withOverlay({ total, prev, curr, next, pages }).renderTo(this);
     }
     get total() {

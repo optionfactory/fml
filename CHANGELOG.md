@@ -39,6 +39,11 @@
 - [BUG] `ful-input-file` enforces its constraints and refreshes its item list when `files` or `file` is assigned programmatically, not only when the user picks or drops
 - [BUG] `ful-input-file` removes only the clicked item when two selected files share a name
 - [REF] the `unaccepptablefiletype` localization key is spelled `unacceptablefiletype`
+- [BUG] the `mask` of a `ful-input` no longer throws on the input types that have no caret, `email`, `number` and the date ones: the value is masked and only the caret restore is skipped
+- [BUG] the `mask` of a `ful-input` keeps the caret among the characters that survived. It used to shift left by every stripped character, including the ones after the caret
+- [BUG] `ful-select` no longer brings back a selection removed while its label lookup was still in flight, which left the element disagreeing with the `change` it had just emitted
+- [BUG] `ful-pagination` renders at most as many page links as `pages` asks for. An even value used to overshoot, `pages="4"` rendering seven links. With an even value the current page now sits just left of centre
+- [BUG] a disabled previous or next in `ful-pagination` no longer requests a page, and next no longer points one past the last: clicking the greyed out arrow on the last page used to load a page that does not exist. Disabled arrows now carry no `data-page` at all
 
 ### version 8.0.0
 
