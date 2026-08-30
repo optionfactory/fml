@@ -44,7 +44,11 @@ class Timing {
                 }
             }
         };
-        const abort = () => clearTimeout(tid ?? undefined);
+        const abort = () => {
+            clearTimeout(tid ?? undefined);
+            tid = null;
+            args = [];
+        };
         return [debounced, abort];
     }
     static THROTTLE_DEFAULT = 0;
@@ -92,7 +96,11 @@ class Timing {
                 tid = setTimeout(later, remaining);
             }
         };
-        const abort = () => clearTimeout(tid ?? undefined);
+        const abort = () => {
+            clearTimeout(tid ?? undefined);
+            tid = null;
+            args = [];
+        };
         return [throttled, abort];
     }
 }

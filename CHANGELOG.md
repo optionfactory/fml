@@ -9,6 +9,7 @@
 - [BUG] `ful-select` no longer throws on `Enter` or arrow keys when the dropdown is empty or not rendered yet
 - [BUG] `ful-sorter` now applies its declared `order` at render, so the first click cycles from the declared order
 - [BUG] `ful-table` collects its sorters after the headers are rendered, so sorting a column clears the order of the others
+- [BUG] `Timing.debounce` and `Timing.throttle` keep working after `abort()`, which used to leave the timer id set and block any further scheduling
 
 ### version 8.0.0
 
