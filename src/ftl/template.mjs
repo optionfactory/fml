@@ -3,12 +3,9 @@ import { Attributes, Fragments } from './dom.mjs';
 import { Expressions, ExpressionEvaluator } from './expressions.mjs';
 
 class NodeOperations {
-    #forRemoval;
-    constructor() {
-        this.#forRemoval = [];
-    }
+    #forRemoval = new Set();
     removed(node) {
-        return this.#forRemoval.includes(node);
+        return this.#forRemoval.has(node);
     }
     remove(node) {
         node.replaceChildren?.();
@@ -17,7 +14,7 @@ class NodeOperations {
             .forEach((k) => {
                 delete node.dataset[k];
             });
-        this.#forRemoval.push(node);
+        this.#forRemoval.add(node);
     }
     popData(node, key) {
         const v = node.dataset[key];
@@ -35,9 +32,10 @@ class NodeOperations {
         this.remove(ref);
     }
     cleanup() {
-        while (this.#forRemoval.length) {
-            this.#forRemoval.pop().remove();
+        for (const node of this.#forRemoval) {
+            node.remove();
         }
+        this.#forRemoval.clear();
     }
 }
 
