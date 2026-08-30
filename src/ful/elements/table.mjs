@@ -426,7 +426,10 @@ class Table extends ParsedElement {
             e.target.order = e.detail.value.order;
         });
         if (this.hasAttribute('autoload')) {
-            await this.reload();
+            //not awaited: the first load must not hold up the upgrade, and a loader that
+            //fails or never answers must not keep ftl:ready from firing for the page.
+            //load renders its own error state and lets the failure reject, so it is reported
+            this.reload();
         }
     }
 

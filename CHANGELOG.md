@@ -21,6 +21,7 @@
 - [BUG] `ful-select` applies assigned keys synchronously, `value` used to lag behind the assignment until the loader answered: setting a form's values and reading them back lost every select
 - [BUG] `ful-select` discards a lookup that resolves after a newer assignment, which used to overwrite the newer selection
 - [BUG] `ful-select` keeps the requested keys when the `exact` lookup fails, instead of clearing them. The failure is still reported. Until the labels are resolved a key stands in for its own label, so badges can show a key briefly
+- [BUG] `ful-table` does not hold up its own upgrade with the first load: a loader that fails or never answers used to keep `ftl:ready` from firing for the whole page. The error state is rendered and the failure stays reportable as before
 
 ### version 8.0.0
 

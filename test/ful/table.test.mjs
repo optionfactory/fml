@@ -86,3 +86,60 @@ describe('Table sorting', () => {
         container.remove();
     });
 });
+
+describe('Table load failures', () => {
+    const rejections = [];
+    window.addEventListener('unhandledrejection', (e) => {
+        rejections.push(e.reason);
+        e.preventDefault();
+    });
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const mount = (loader) => {
+        registry.defineComponent('loaders:table', { create: () => loader });
+        const container = document.createElement('div');
+        container.innerHTML = `
+            <ful-table autoload>
+                <template slot="schema">
+                    <schema><column title="A" sorter="a">{{ a }}</column></schema>
+                </template>
+            </ful-table>`;
+        document.body.appendChild(container);
+        return [container.querySelector('ful-table'), container];
+    };
+
+    it('upgrades and shows the error state when the first load fails', async () => {
+        const rejectionsBefore = rejections.length;
+        const [tableEl, container] = mount({ load: async () => { throw new Error('boom'); } });
+
+        const outcome = await Promise.race([
+            Rendering.waitFor(tableEl).then(() => 'upgraded'),
+            new Promise((resolve) => setTimeout(() => resolve('still waiting'), 300)),
+        ]);
+        await settle();
+
+        assert.strictEqual(outcome, 'upgraded', 'a failing load must not hold up the upgrade');
+        const feedback = tableEl.querySelector('tbody[data-ref=feedback]');
+        assert.isFalse(feedback.hasAttribute('hidden'), 'the error row is shown');
+        assert.include(feedback.textContent, 'boom');
+        assert.strictEqual(rejections.length, rejectionsBefore + 1, 'the failure stays reportable');
+        container.remove();
+    });
+
+    it('upgrades when the loader never answers', async () => {
+        const [tableEl, container] = mount({ load: () => new Promise(() => { }) });
+
+        const outcome = await Promise.race([
+            Rendering.waitFor(tableEl).then(() => 'upgraded'),
+            new Promise((resolve) => setTimeout(() => resolve('still waiting'), 300)),
+        ]);
+
+        assert.strictEqual(outcome, 'upgraded');
+        const loading = tableEl.querySelector('tbody[data-ref=loading]');
+        assert.isFalse(loading.hasAttribute('hidden'), 'the table is still showing its spinner');
+        container.remove();
+    });
+});
