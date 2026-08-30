@@ -93,6 +93,9 @@ function ful_report_error(evt) {
                 message: message(),
                 stack: split_stack(),
             }),
+        }).catch(() => {
+            // the endpoint is unreachable: swallowing the rejection keeps it from being
+            // reported as an unhandled rejection, which would call this handler again
         });
     } catch (e) {
         // nothing to do here
