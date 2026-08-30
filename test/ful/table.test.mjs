@@ -140,3 +140,24 @@ describe('Table load failures', () => {
         container.remove();
     });
 });
+
+describe('Table schema', () => {
+    it('reports a missing schema slot instead of failing on undefined', async () => {
+        registry.defineComponent('loaders:table', { create: () => ({ load: async () => ({ data: [], size: 0 }) }) });
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-table></ful-table>`;
+        document.body.appendChild(container);
+        const tableEl = container.querySelector('ful-table');
+
+        let caught = null;
+        try {
+            await Rendering.waitFor(tableEl);
+        } catch (e) {
+            caught = e;
+        }
+
+        assert.isNotNull(caught);
+        assert.include(String(caught.cause?.message ?? caught.message), 'missing expected <schema>');
+        container.remove();
+    });
+});

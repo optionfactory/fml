@@ -13,6 +13,18 @@ describe('Encodings', () => {
             expect(decodedText).to.equal(text);
         });
 
+        it('round trips every payload length, writing exactly as many bytes as encoded', () => {
+            for (let length = 0; length !== 12; ++length) {
+                const bytes = new Uint8Array(Array.from({ length }, (_, i) => (i * 37) % 256));
+                for (const dialect of [undefined, Base64.STANDARD]) {
+                    const encoded = Base64.encode(bytes.buffer, dialect);
+                    const decoded = new Uint8Array(Base64.decode(encoded, dialect));
+                    expect(decoded.length, `length ${length}`).to.equal(length);
+                    expect(Array.from(decoded), `length ${length}`).to.deep.equal(Array.from(bytes));
+                }
+            }
+        });
+
         it('handles padding correctly for URL_SAFE payloads', () => {
             const buffer = new TextEncoder().encode('foob').buffer;
             const encoded = Base64.encode(buffer, Base64.URL_SAFE);
@@ -34,6 +46,11 @@ describe('Encodings', () => {
 
         it('throws a specific error for uneven/invalid hex lengths', () => {
             expect(() => Hex.decode('FFF')).to.throw('invalid length');
+        });
+
+        it('pads single digit bytes', () => {
+            expect(Hex.encode(new Uint8Array([0, 5, 15, 16]))).to.equal('00050f10');
+            expect(Hex.encode(new Uint8Array([0, 5, 15, 16]), true)).to.equal('00050F10');
         });
     });
 });

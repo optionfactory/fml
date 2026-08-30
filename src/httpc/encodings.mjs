@@ -31,13 +31,22 @@ class Base64 {
 
         let vi = 0;
         let si = 0;
-        while (vi < str.length * 0.75) {
+        //every group yields three bytes, but a padded input stops short of the last
+        //one or two: writing them anyway would rely on typed arrays dropping writes
+        //past their length
+        while (vi < nbytes) {
             const v1 = d.indexOf(str.charAt(si++));
             const v2 = d.indexOf(str.charAt(si++));
             const v3 = d.indexOf(str.charAt(si++));
             const v4 = d.indexOf(str.charAt(si++));
             view[vi++] = (v1 << 2) | (v2 >> 4);
+            if (vi === nbytes) {
+                break;
+            }
             view[vi++] = ((v2 & 15) << 4) | (v3 >> 2);
+            if (vi === nbytes) {
+                break;
+            }
             view[vi++] = ((v3 & 3) << 6) | v4;
         }
 
@@ -64,7 +73,7 @@ class Hex {
         return Array.from(bytes)
             .map((b) => b.toString(16))
             .map((b) => (upper ? b.toUpperCase() : b))
-            .map((o) => o.padStart(2, 0))
+            .map((o) => o.padStart(2, '0'))
             .join('');
     }
 }

@@ -161,9 +161,10 @@ class Pagination extends ParsedElement {
 
 class TableSchemaParser {
     static parse(nodeOrFragment, template) {
-        const schema = Nodes.queryChildren(nodeOrFragment, 'schema');
+        //nodeOrFragment is undefined when the slot is missing altogether
+        const schema = nodeOrFragment ? Nodes.queryChildren(nodeOrFragment, 'schema') : null;
         if (!schema) {
-            throw new Error(`missing expected <schema> in ${nodeOrFragment}`);
+            throw new Error('missing expected <schema>: ful-table needs a <template slot="schema"> holding one');
         }
         const headersTr = document.createElement('tr');
         const rowsTr = document.createElement('tr');

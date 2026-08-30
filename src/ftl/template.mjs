@@ -170,8 +170,10 @@ class CommandsHandler {
     }
 }
 
-// Module-isolated string cache for dataset-to-attribute conversions
+// Module-isolated string cache for dataset-to-attribute conversions, bounded with
+// FIFO eviction like the expression ast cache
 const attributeCache = new Map();
+const ATTRIBUTE_CACHE_MAX_SIZE = 1000;
 
 /**
  * Converts a tpl camelCase dataset key into a kebab-case attribute name.
@@ -182,6 +184,9 @@ const attributeCache = new Map();
 function toAttr(dataSetKey) {
     let cached = attributeCache.get(dataSetKey);
     if (!cached) {
+        if (attributeCache.size >= ATTRIBUTE_CACHE_MAX_SIZE) {
+            attributeCache.delete(attributeCache.keys().next().value);
+        }
         cached = dataSetKey
             .substring(3)
             .split(/(?=[A-Z])/)
