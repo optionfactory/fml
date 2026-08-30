@@ -7,6 +7,8 @@
 - [BUG] `ful-input-file` no longer throws on render: observed attributes are now applied after the element internals are wired
 - [ENH] `placeholder` is observed by every `ful-input` subclass (`ful-input-file`, `ful-input-local-date`, `ful-input-instant`, `ful-filter-*`)
 - [BUG] `ful-select` no longer throws on `Enter` or arrow keys when the dropdown is empty or not rendered yet
+- [BUG] `ful-sorter` now applies its declared `order` at render, so the first click cycles from the declared order
+- [BUG] `ful-table` collects its sorters after the headers are rendered, so sorting a column clears the order of the others
 
 ### version 8.0.0
 

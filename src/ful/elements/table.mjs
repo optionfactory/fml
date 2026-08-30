@@ -3,9 +3,10 @@ import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from
 class SortButton extends ParsedElement {
     static observed = ['order'];
     #order;
-    render() {
+    render({ observed }) {
         const sorter = this.getAttribute('sorter');
         const orders = ['asc', 'desc', null];
+        this.order = observed.order;
         this.addEventListener('click', () => {
             const nextOrder = orders[(orders.indexOf(this.order) + 1) % 3];
             this.dispatchEvent(
@@ -380,9 +381,10 @@ class Table extends ParsedElement {
         this.#noAutoload = table.querySelector(':scope > tbody[data-ref=initial]');
         this.#feedback = table.querySelector(':scope > tbody[data-ref=feedback]');
         this.#paginator = Nodes.queryChildren(fragment, 'ful-pagination');
-        this.#sorters = table.querySelectorAll(':scope > thead ful-sorter') ?? [];
         this.replaceChildren(fragment);
-        schema.headersTemplate.renderTo(this.querySelector('thead'));
+        const thead = /** @type HTMLTableSectionElement */ (this.querySelector('thead'));
+        schema.headersTemplate.renderTo(thead);
+        this.#sorters = thead.querySelectorAll('ful-sorter');
         await Rendering.waitForChildren(this);
 
         const maybeForm = /** @type any */ (Nodes.queryChildren(this, 'ful-form'));
