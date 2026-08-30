@@ -1,3 +1,7 @@
+### version 8.1.0
+
+- [BUG] `HttpRequestBuilder.param` overrides a parameter already set, as its documentation always said and as `header`, `headers` and `params` all do. It used to append, so setting the same key twice silently sent it twice. Pass every value in one call, `param('k', 'a', 'b')`, to get a multi valued parameter
+
 ### version 8.0.1
 
 - [BUG] `VersionedSessionStorage` evicts from `sessionStorage` instead of `localStorage` on revision mismatch

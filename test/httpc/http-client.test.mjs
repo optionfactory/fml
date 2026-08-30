@@ -113,6 +113,18 @@ describe('httpc client', () => {
             expect(reqHeaders.has('X-Remove')).to.be.false;
         });
 
+        it('overrides a param already set, and keeps every value of a single call', async () => {
+            await client.get('/test')
+                .param('page', '1')
+                .param('page', '2')
+                .param('k', 'a', 'b')
+                .fetch();
+
+            const url = new URL(fetchArgs.url.toString());
+            expect(url.searchParams.getAll('page')).to.deep.equal(['2']);
+            expect(url.searchParams.getAll('k')).to.deep.equal(['a', 'b']);
+        });
+
         it('removes headers and params set to null through the plural forms', async () => {
             await client.get('/test')
                 .headers({ 'X-Keep': '1', 'X-Remove': '2' })

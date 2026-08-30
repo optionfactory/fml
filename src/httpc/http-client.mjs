@@ -446,8 +446,10 @@ class HttpRequestBuilder {
      * @returns {HttpRequestBuilder} this builder
      */
     param(k, ...vs) {
+        //overriding, as header, headers and params all do: pass every value in one
+        //call to get a multi valued parameter
+        this.#params.delete(k);
         if (vs.length === 0 || vs[0] == null) {
-            this.#params.delete(k);
             return this;
         }
         for (const v of vs) {
