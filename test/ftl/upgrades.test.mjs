@@ -173,18 +173,13 @@ describe('Rendering waitFor and waitForChildren', () => {
     });
 });
 describe('Readiness when a component fails', () => {
-    const rejections = [];
-    const onRejection = (e) => {
-        rejections.push(e.reason);
-        e.preventDefault();
-    };
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
             await new Promise((resolve) => setTimeout(resolve, 1));
         }
     };
 
-    it('reports ready anyway, and still surfaces the failure', async () => {
+    it('reports ready anyway, and hands the failure out rather than swallowing it', async () => {
         class Broken extends ParsedElement {
             render() {
                 throw new Error('boom');
@@ -197,10 +192,19 @@ describe('Readiness when a component fails', () => {
         }
         registry.defineElement('broken-el', Broken).defineElement('healthy-el', Healthy);
         registry.configure();
-        window.addEventListener('unhandledrejection', onRejection);
         const container = document.createElement('div');
         container.innerHTML = `<broken-el></broken-el><healthy-el></healthy-el>`;
         document.body.appendChild(container);
+
+        //the queue must not attach a handler of its own, which is what leaves the failure
+        //free to reach the console and the error reporter. taking it here proves that and
+        //keeps this test from producing an uncaught rejection of its own
+        const broken = container.querySelector('broken-el');
+        const queued = Array.from(registry.upgrades).find(([el]) => el === broken)?.[1];
+        let caught = null;
+        queued?.catch((e) => {
+            caught = e;
+        });
 
         let fired = false;
         document.addEventListener('ftl:ready', () => { fired = true; }, { once: true });
@@ -209,9 +213,8 @@ describe('Readiness when a component fails', () => {
 
         expect(fired, 'one broken component must not hold the page back').to.be.true;
         expect(container.querySelector('healthy-el').textContent).to.equal('rendered');
-        expect(rejections.map((r) => r.message)).to.deep.equal(['boom'], 'the failure is still reported');
+        expect(caught?.message, 'the failure is still there to be reported').to.equal('boom');
 
-        window.removeEventListener('unhandledrejection', onRejection);
         container.remove();
     });
 });
