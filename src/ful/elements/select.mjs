@@ -296,6 +296,7 @@ class Select extends ParsedElement {
     #multiple;
     #fieldError;
     #values = new Map();
+    #token = 0;
     constructor() {
         super();
         this.internals = this.attachInternals();
@@ -494,18 +495,31 @@ class Select extends ParsedElement {
         this.template('items').withOverlay({ entries: this.#values.entries() }).renderTo(this.#items);
     }
     set value(vs) {
-        //no keys to resolve: the csvm mapper yields [] for a missing multiple value.
-        //an empty string is left alone, it is a usable key for an <option value="">
-        if (vs == null || (Array.isArray(vs) && vs.length === 0)) {
-            this.#values = new Map();
-            this.#syncBadges();
+        //the csvm mapper yields [] for a missing multiple value, an empty string is
+        //left alone: it is a usable key for an <option value="">
+        const keys = vs == null ? [] : Array.isArray(vs) ? vs : [vs];
+        //the keys are known synchronously and are all `value` reads, so they are applied
+        //now: only the labels need the loader, until then a key stands in for its own
+        this.#values = new Map(keys.map((k) => [k, [k]]));
+        this.#syncBadges();
+        const token = ++this.#token;
+        if (keys.length === 0) {
             return;
         }
-        (async () => {
-            const entries = await (this.#multiple ? this.#loader.exact(...vs) : this.#loader.exact(vs));
-            this.#values = new Map(entries.map((e) => [e[0], e.slice(1)]));
-            this.#syncBadges();
-        })();
+        this.#resolve(keys, token);
+    }
+    /**
+     * Resolves the labels of the assigned keys. A failed lookup is left to reject so
+     * that it is reported like any other failure: the keys stay applied either way.
+     */
+    async #resolve(keys, token) {
+        const entries = await this.#loader.exact(...keys);
+        if (token !== this.#token) {
+            //a newer assignment has been made in the meantime
+            return;
+        }
+        this.#values = new Map(entries.map((e) => [e[0], e.slice(1)]));
+        this.#syncBadges();
     }
     get value() {
         if (this.#multiple) {

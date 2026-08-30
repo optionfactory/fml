@@ -118,7 +118,7 @@ describe('Select & Dropdown load failure handling', () => {
         container.remove();
     });
 
-    it('reports the rejection when exact lookup fails', async () => {
+    it('reports the rejection and keeps the requested keys when exact lookup fails', async () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 load: async () => [],
@@ -135,7 +135,7 @@ describe('Select & Dropdown load failure handling', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
 
         assert.strictEqual(rejections.length, rejectionsBefore + 1);
-        assert.isNull(selectEl.value);
+        assert.strictEqual(selectEl.value, 'k1', 'the requested key is kept');
         assert.isTrue(warns.length === 0);
         container.remove();
     });
@@ -315,6 +315,121 @@ describe('Select value resolution', () => {
 
         assert.deepStrictEqual(exactCalls, [['k1']]);
         assert.deepStrictEqual(selectEl.value, []);
+        container.remove();
+    });
+});
+
+describe('Select value assignment', () => {
+    const rejections = [];
+    window.addEventListener('unhandledrejection', (e) => {
+        rejections.push(e.reason);
+        e.preventDefault();
+    });
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const mount = async (html, loader) => {
+        registry.defineComponent('loaders:select', { create: () => loader });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitForChildren(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+    const labelling = (delays = {}) => ({
+        prefetch: async () => { },
+        load: async () => [],
+        exact: async (...keys) => {
+            await new Promise(resolve => setTimeout(resolve, delays[keys[0]] ?? 0));
+            return keys.map((k) => [k, `Label ${k}`]);
+        }
+    });
+
+    it('exposes the assigned keys synchronously', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling());
+
+        selectEl.value = 'k1';
+
+        assert.strictEqual(selectEl.value, 'k1', 'value must not lag behind the assignment');
+        await settle();
+        assert.strictEqual(selectEl.value, 'k1');
+        container.remove();
+    });
+
+    it('labels the badges once the loader resolves them', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling({ k1: 20 }));
+
+        selectEl.value = 'k1';
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'k1', 'the key stands in for its label');
+
+        await settle();
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label k1');
+        container.remove();
+    });
+
+    it('keeps the newest assignment when an older lookup resolves late', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling({ slow: 40 }));
+
+        selectEl.value = 'slow';
+        selectEl.value = 'fast';
+        await settle();
+
+        assert.strictEqual(selectEl.value, 'fast');
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label fast');
+        container.remove();
+    });
+
+    it('carries its value as soon as the upgrade completes, labels follow', async () => {
+        registry.defineComponent('loaders:select', { create: () => labelling({ k1: 20 }) });
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select value="k1"></ful-select>`;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+
+        await Rendering.waitFor(selectEl);
+
+        assert.strictEqual(selectEl.value, 'k1', 'the value does not wait for the loader');
+        await settle();
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label k1');
+        container.remove();
+    });
+
+    it('does not hold up the upgrade when the loader never answers', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({ prefetch: async () => { }, load: async () => [], exact: () => new Promise(() => { }) })
+        });
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select value="k1"></ful-select>`;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+
+        const outcome = await Promise.race([
+            Rendering.waitFor(selectEl).then(() => 'upgraded'),
+            new Promise((resolve) => setTimeout(() => resolve('still waiting'), 300)),
+        ]);
+
+        assert.strictEqual(outcome, 'upgraded');
+        assert.strictEqual(selectEl.value, 'k1');
+        container.remove();
+    });
+
+    it('does not swallow a failure of its own rendering', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, {
+            prefetch: async () => { },
+            load: async () => [],
+            //a malformed response is a bug, not an expected lookup failure
+            exact: async () => 'not an array'
+        });
+        const rejectionsBefore = rejections.length;
+
+        selectEl.value = 'k1';
+        await settle();
+
+        assert.strictEqual(rejections.length, rejectionsBefore + 1, 'the failure must surface');
         container.remove();
     });
 });

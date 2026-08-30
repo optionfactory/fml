@@ -18,6 +18,9 @@
 - [BUG] the client error reporter swallows the failure of its own report: an unreachable endpoint used to surface as an unhandled rejection, which re-entered the handler and looped, flooding the endpoint
 - [BUG] `ful-select` no longer looks up an empty key set: a `multiple` select without a value, or one whose `value` attribute is removed, used to query its loader, which is a request per element with `mode="chunked"`
 - [BUG] `ful-form` counts nested submits when spinning: overlapping submits used to hide the spinner early and to enable buttons that were disabled before the submit started
+- [BUG] `ful-select` applies assigned keys synchronously, `value` used to lag behind the assignment until the loader answered: setting a form's values and reading them back lost every select
+- [BUG] `ful-select` discards a lookup that resolves after a newer assignment, which used to overwrite the newer selection
+- [BUG] `ful-select` keeps the requested keys when the `exact` lookup fails, instead of clearing them. The failure is still reported. Until the labels are resolved a key stands in for its own label, so badges can show a key briefly
 
 ### version 8.0.0
 
