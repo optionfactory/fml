@@ -140,3 +140,102 @@ describe('Select & Dropdown load failure handling', () => {
         container.remove();
     });
 });
+describe('Select & Dropdown keyboard interaction', () => {
+    const uncaught = [];
+    window.addEventListener('error', (e) => {
+        uncaught.push(e.error ?? e.message);
+        e.preventDefault();
+    });
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    const mount = (html) => {
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        return [container.querySelector('ful-select'), container];
+    };
+    const keydown = (input, code) => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    };
+    beforeEach(() => {
+        uncaught.length = 0;
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => { },
+                exact: async () => [],
+                load: async () => [['k1', 'Label 1'], ['k2', 'Label 2']]
+            })
+        });
+    });
+
+    it('ignores Enter before the dropdown is rendered', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitForChildren(selectEl);
+
+        keydown(selectEl.querySelector('input'), 'Enter');
+
+        assert.deepStrictEqual(uncaught, []);
+        container.remove();
+    });
+
+    it('ignores Enter when the dropdown was never opened', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitForChildren(selectEl);
+        await settle();
+
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        keydown(selectEl.querySelector('input'), 'Enter');
+
+        assert.deepStrictEqual(uncaught, []);
+        assert.deepStrictEqual(changes, []);
+        assert.isNull(selectEl.value);
+        container.remove();
+    });
+
+    it('ignores arrow keys when the shown dropdown has no options', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({ prefetch: async () => { }, exact: async () => [], load: async () => [] })
+        });
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitForChildren(selectEl);
+        await settle();
+
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+
+        keydown(input, 'ArrowDown');
+        keydown(input, 'ArrowUp');
+        keydown(input, 'Enter');
+
+        assert.deepStrictEqual(uncaught, []);
+        assert.isNull(selectEl.value);
+        container.remove();
+    });
+
+    it('accepts the highlighted option on Enter', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitForChildren(selectEl);
+        await settle();
+
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        keydown(input, 'Enter');
+
+        assert.deepStrictEqual(uncaught, []);
+        assert.strictEqual(selectEl.value, 'k1');
+        assert.strictEqual(changes.length, 1);
+        assert.strictEqual(changes[0].label, 'Label 1');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        container.remove();
+    });
+});

@@ -188,8 +188,14 @@ class Dropdown extends ParsedElement {
         });
         this.replaceChildren(fragment);
     }
+    #selected() {
+        return this.#menu?.querySelector('[selected]') ?? this.#menu?.firstElementChild ?? null;
+    }
     acceptSelection() {
-        const selected = this.#menu.querySelector('[selected]') ?? this.#menu.firstElementChild;
+        const selected = this.#selected();
+        if (!selected) {
+            return;
+        }
         this.#change(selected);
     }
     update(values) {
@@ -235,9 +241,9 @@ class Dropdown extends ParsedElement {
     }
     async moveOrShow(forward, loader) {
         if (this.shown) {
-            const selected = this.#menu.querySelector('[selected]') ?? this.#menu.firstElementChild;
-            const candidate = selected[`${forward ? 'next' : 'previous'}ElementSibling`];
-            if (candidate) {
+            const selected = this.#selected();
+            const candidate = selected?.[`${forward ? 'next' : 'previous'}ElementSibling`];
+            if (selected && candidate) {
                 selected.removeAttribute('selected');
                 candidate.setAttribute('selected', '');
                 candidate.scrollIntoView({ block: 'nearest', behavior: 'smooth' });

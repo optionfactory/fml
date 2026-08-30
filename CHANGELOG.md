@@ -6,6 +6,7 @@
 - [REF] tsc checkJs errors resolved; biome lint gate green (config hygiene + fixes)
 - [BUG] `ful-input-file` no longer throws on render: observed attributes are now applied after the element internals are wired
 - [ENH] `placeholder` is observed by every `ful-input` subclass (`ful-input-file`, `ful-input-local-date`, `ful-input-instant`, `ful-filter-*`)
+- [BUG] `ful-select` no longer throws on `Enter` or arrow keys when the dropdown is empty or not rendered yet
 
 ### version 8.0.0
 
