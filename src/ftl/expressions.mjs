@@ -64,7 +64,7 @@ class EvaluatingVisitor {
             case '<=':
                 return lhs <= rhs;
             default:
-                throw new Error('unknown cmp op ' + node.op);
+                throw new Error(`unknown cmp op ${node.op}`);
         }
     }
     [nodes.call](node) {
@@ -75,7 +75,7 @@ class EvaluatingVisitor {
         }
         const fn = module[fnRef.value];
         if (!fn) {
-            throw new Error(`Function "#${fnRef.module === null ? '' : fnRef.module + ':'}${fnRef.value}" not found`);
+            throw new Error(`Function "#${fnRef.module === null ? '' : `${fnRef.module}:`}${fnRef.value}" not found`);
         }
         const args = node.args.map((arg) => this.visit(arg));
         return fn.apply(this.#resolve_proxy(), args);
@@ -111,14 +111,14 @@ class EvaluatingVisitor {
         return cond ? cond : this.visit(node.ifFalse);
     }
     [nodes.access](node) {
-        let prev = undefined;
+        let prev ;
         let cur = this.visit(node.lhs);
         for (let i = 0; i !== node.rhs.length; ++i) {
             const rhs = node.rhs[i];
             if (rhs.ns && cur == null) {
                 return undefined;
             }
-            let value = undefined;
+            let value ;
             switch (rhs.type) {
                 case nodes.member: {
                     value = cur[rhs.rhs];
@@ -159,7 +159,7 @@ class EvaluatingVisitor {
                     case nodes.templated.ten:
                         return { type: nodes.dom.n, value: this.visit(node.value) };
                     default:
-                        throw new Error('unknown node type ' + node.type.toString());
+                        throw new Error(`unknown node type ${node.type.toString()}`);
                 }
             });
     }

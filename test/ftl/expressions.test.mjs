@@ -118,12 +118,12 @@ describe('Expression', () => {
     verify(null, '[1,2][1]', {}, 2);
 
     it('can use overlays', () => {
-        let result = Expressions.interpret(modules, [{}, { a: true }], 'a');
+        const result = Expressions.interpret(modules, [{}, { a: true }], 'a');
         assert.strictEqual(result, true);
     });
 
     it('latest overlay data wins', () => {
-        let result = Expressions.interpret({}, [{ a: false }, { a: true }], 'a');
+        const result = Expressions.interpret({}, [{ a: false }, { a: true }], 'a');
         assert.strictEqual(result, true);
     });
 

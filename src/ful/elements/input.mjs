@@ -93,6 +93,7 @@ class Input extends ParsedElement {
         this._input.ariaLabelledByElements = [label];
         this.replaceChildren(fragment);
         if (!skipObservedSetup) {
+            // biome-ignore lint/complexity/noUselessThisAlias: keeps checkJs from seeing these as class fields
             const el = this;
             el.disabled = disabled;
             el.readonly = observed.readonly;

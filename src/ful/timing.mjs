@@ -34,8 +34,8 @@ class Timing {
             }
         };
 
-        const debounced = function () {
-            args = [...arguments];
+        const debounced = (...called) => {
+            args = called;
             previousTimestamp = performance.now();
             if (tid === null) {
                 tid = setTimeout(later, timeoutMs);
@@ -75,13 +75,13 @@ class Timing {
                 args = [];
             }
         };
-        const throttled = function () {
+        const throttled = (...called) => {
             const now = performance.now();
             if (!previousTimestamp && opts & Timing.THROTTLE_NO_LEADING) {
                 previousTimestamp = now;
             }
             const remaining = previousTimestamp === 0 ? 0 : timeoutMs - (now - previousTimestamp);
-            args = [...arguments];
+            args = called;
             if (remaining <= 0 || remaining > timeoutMs) {
                 if (tid !== null) {
                     clearTimeout(tid);

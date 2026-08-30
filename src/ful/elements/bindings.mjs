@@ -7,7 +7,7 @@ class Bindings {
      */
     static flatten(obj, prefix, stops) {
         return Object.keys(obj).reduce((acc, k) => {
-            const pre = prefix.length ? prefix + '.' + k : k;
+            const pre = prefix.length ? `${prefix}.${k}` : k;
             if (!stops.has(pre) && typeof obj[k] === 'object' && obj[k] !== null) {
                 Object.assign(acc, Bindings.flatten(obj[k], pre, stops));
             } else {
@@ -58,12 +58,12 @@ class Bindings {
             if (!el.checked) {
                 return undefined;
             }
-            return el.dataset['fulBindType'] === 'boolean' ? el.value === 'true' : el.value;
+            return el.dataset.fulBindType === 'boolean' ? el.value === 'true' : el.value;
         }
         if (el.getAttribute('type') === 'checkbox') {
             return el.checked;
         }
-        if (el.dataset['fulBindType'] === 'boolean') {
+        if (el.dataset.fulBindType === 'boolean') {
             return !el.value ? null : el.value === 'true';
         }
         if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {

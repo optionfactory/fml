@@ -332,11 +332,9 @@ class Select extends ParsedElement {
         this.#fieldError = fragment.querySelector('ful-field-error');
         this.#input.ariaDescribedByElements = [this.#fieldError];
         this.#input.ariaLabelledByElements = [label];
-
-        const self = this;
         const [dload, abortdload] = Timing.throttle(400, () => {
-            self.#input.setAttribute('aria-expanded', 'true');
-            self.#ddmenu.show(() => self.#loader.load(self.#input.value));
+            this.#input.setAttribute('aria-expanded', 'true');
+            this.#ddmenu.show(() => this.#loader.load(this.#input.value));
         });
         this.addEventListener('click', (/** @type any */ e) => {
             if (e.target.matches('input')) {
@@ -403,13 +401,13 @@ class Select extends ParsedElement {
                 case 'ArrowUp': {
                     e.preventDefault();
                     this.#input.setAttribute('aria-expanded', 'true');
-                    this.#ddmenu.moveOrShow(false, () => self.#loader.load(self.#input.value));
+                    this.#ddmenu.moveOrShow(false, () => this.#loader.load(this.#input.value));
                     break;
                 }
                 case 'ArrowDown': {
                     e.preventDefault();
                     this.#input.setAttribute('aria-expanded', 'true');
-                    this.#ddmenu.moveOrShow(true, () => self.#loader.load(self.#input.value));
+                    this.#ddmenu.moveOrShow(true, () => this.#loader.load(this.#input.value));
                     break;
                 }
                 case 'Escape': {

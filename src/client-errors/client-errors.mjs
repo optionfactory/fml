@@ -11,7 +11,7 @@ function ful_report_error(evt) {
     function meta_content(name) {
         var cleanName = name.replace(/["\\]/g, '\\$&');
         /** @type {HTMLMetaElement | null} */
-        var metaEl = document.querySelector('meta[name="' + cleanName + '"]');
+        var metaEl = document.querySelector(`meta[name="${cleanName}"]`);
         return metaEl ? metaEl.content : undefined;
     }
 
@@ -23,7 +23,7 @@ function ful_report_error(evt) {
         /** @type {HTMLScriptElement | null} */
         var scriptEl = document.querySelector('script[data-report-client-errors-uri]');
         if (!scriptEl) {
-            console && console.error && console.error('missing attribute data-report-client-errors-uri');
+            console?.error?.('missing attribute data-report-client-errors-uri');
             return null;
         }
         return scriptEl.getAttribute('data-report-client-errors-uri');
@@ -34,10 +34,10 @@ function ful_report_error(evt) {
      * @returns {string[]|undefined} An array of stack trace lines, or undefined if unavailable.
      */
     function split_stack() {
-        if (evt.error && evt.error.stack && evt.error.stack.split) {
+        if (evt.error?.stack?.split) {
             return evt.error.stack.split('\n');
         }
-        if (evt.reason && evt.reason.stack && evt.reason.stack.split) {
+        if (evt.reason?.stack?.split) {
             return evt.reason.stack.split('\n');
         }
         return undefined;
@@ -51,10 +51,10 @@ function ful_report_error(evt) {
         if (evt.message) {
             return evt.message;
         }
-        if (evt.reason && evt.reason.message) {
+        if (evt.reason?.message) {
             return evt.reason.message;
         }
-        if (evt.error && evt.error.message) {
+        if (evt.error?.message) {
             return evt.error.message;
         }
         return undefined;
@@ -86,7 +86,7 @@ function ful_report_error(evt) {
             redirect: 'error',
             referrerPolicy: 'no-referrer-when-downgrade',
             body: JSON.stringify({
-                page: window.location && window.location.href ? window.location.href : 'unknown',
+                page: window.location?.href ? window.location.href : 'unknown',
                 filename: evt.filename,
                 line: evt.lineno,
                 col: evt.colno,
@@ -97,7 +97,7 @@ function ful_report_error(evt) {
             // the endpoint is unreachable: swallowing the rejection keeps it from being
             // reported as an unhandled rejection, which would call this handler again
         });
-    } catch (e) {
+    } catch {
         // nothing to do here
     }
 }

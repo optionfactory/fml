@@ -39,5 +39,6 @@
 }
 
 [hidden] {
+    /* biome-ignore lint/complexity/noImportantStyles: must beat an element's own display */
     display: none !important;
 }

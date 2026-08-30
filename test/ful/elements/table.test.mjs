@@ -409,7 +409,7 @@ describe('Table filters', () => {
         </ful-table>`);
 
     it('seeds the first load with the values already in the filters slot', async () => {
-        const [tableEl, container] = await mountWithFilters();
+        const [, container] = await mountWithFilters();
 
         assert.deepStrictEqual(requests[0].filterRequest, { q: 'initial' });
         container.remove();

@@ -647,7 +647,7 @@ class HttpMultipartRequestCustomizer {
      * @returns this builder
      */
     blobs(name, values) {
-        for (let v of values) {
+        for (const v of values) {
             this.#formData.append(name, v);
         }
         return this;

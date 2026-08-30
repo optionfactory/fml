@@ -88,7 +88,7 @@ class Attributes {
             .forEach((a) => {
                 const target = a.substring(prefix.length);
                 if (target === 'class') {
-                    const classes = from.getAttribute(prefix + 'class')?.split(/\s+/).filter((a) => a.length) ?? [];
+                    const classes = from.getAttribute(`${prefix}class`)?.split(/\s+/).filter((a) => a.length) ?? [];
                     to.classList.add(...classes);
                     return;
                 }

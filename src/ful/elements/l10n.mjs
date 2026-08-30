@@ -1,7 +1,7 @@
 class LocalizationModule {
     static t(k, ...args) {
-        //@ts-ignore
-        const format = this.l10n?.[this.language]?.[k] ?? this.l10n?.['en']?.[k] ?? k;
+        //@ts-expect-error l10n and language come from the element class and the data stack
+        const format = this.l10n?.[this.language]?.[k] ?? this.l10n?.en?.[k] ?? k;
         if (args.length === 0) {
             return format;
         }

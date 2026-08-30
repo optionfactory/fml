@@ -111,7 +111,6 @@ describe('Select & Dropdown load failure handling', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
 
         const rejectionsBefore = rejections.length;
-        const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
