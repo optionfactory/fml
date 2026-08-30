@@ -1,10 +1,13 @@
 import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
-import postcss from 'rollup-plugin-postcss';
+import postcss from 'postcss';
+import cssnano from 'cssnano';
+import { decode, encode } from '@jridgewell/sourcemap-codec';
+import path from 'node:path';
 import { createFilter } from '@rollup/pluginutils';
 import peggy from 'peggy';
-import { execSync } from 'child_process';
-import fs from 'fs';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
 
 const isPeggy = createFilter(['*.peggy', '**/*.peggy'], []);
 
@@ -23,6 +26,73 @@ class RollupPeggyWithSourceMap {
         return { code: res.code, map: res.map.toString() };
     }
 }
+
+
+/**
+ * Collects every imported stylesheet and emits them as a single minified asset with a
+ * source map that points back at the original files. Replaces rollup-plugin-postcss, of
+ * which only extract, minimize and sourceMap were ever used. A factory rather than a
+ * class: the hooks need `this` to be the rollup plugin context for emitFile, so the
+ * state has to live in a closure.
+ *
+ * Each stylesheet is processed on its own so that postcss knows its `from`, then the
+ * results are concatenated and their maps merged by shifting generated lines and source
+ * indices. Processing the concatenation in one go would lose the original file names.
+ */
+const css = (fileName) => {
+    const sources = new Map();
+    return {
+        name: 'rollup-plugin-css',
+        transform(code, id) {
+            if (!id.endsWith('.css')) {
+                return null;
+            }
+            sources.set(id, code);
+            return { code: '', map: { mappings: '' } };
+        },
+        async generateBundle(options) {
+            if (sources.size === 0) {
+                return;
+            }
+            const dir = options.dir ?? path.dirname(options.file);
+            const chunks = [];
+            const merged = { version: 3, file: fileName, sources: [], sourcesContent: [], names: [], mappings: '' };
+            const lines = [];
+            for (const [id, code] of sources) {
+                const result = await postcss([cssnano({ preset: 'default' })]).process(code, {
+                    from: id,
+                    to: path.join(dir, fileName),
+                    map: { inline: false, annotation: false },
+                });
+                const map = result.map.toJSON();
+                const sourceBase = merged.sources.length;
+                const nameBase = merged.names.length;
+                merged.sources.push(...map.sources);
+                merged.sourcesContent.push(...(map.sourcesContent ?? map.sources.map(() => null)));
+                merged.names.push(...(map.names ?? []));
+                for (const line of decode(map.mappings)) {
+                    lines.push(
+                        line.map((segment) =>
+                            segment.length === 1
+                                ? segment
+                                : segment.length === 4
+                                  ? [segment[0], segment[1] + sourceBase, segment[2], segment[3]]
+                                  : [segment[0], segment[1] + sourceBase, segment[2], segment[3], segment[4] + nameBase],
+                        ),
+                    );
+                }
+                chunks.push(result.css);
+            }
+            merged.mappings = encode(lines);
+            this.emitFile({
+                type: 'asset',
+                fileName,
+                source: `${chunks.join('\n')}\n/*# sourceMappingURL=${fileName}.map */`,
+            });
+            this.emitFile({ type: 'asset', fileName: `${fileName}.map`, source: JSON.stringify(merged) });
+        },
+    };
+};
 
 export class RollupTypeGenerator {
     name = 'rollup-plugin-type-generator';
@@ -129,7 +199,7 @@ export default [
         treeshake: true,
         plugins: [
             resolve(),
-            postcss({ extract: 'ful.css', inject: false, minimize: true, sourceMap: true }),
+            css('ful.css'),
             new RollupTypeGenerator('ful'),
         ],
     },
@@ -145,7 +215,7 @@ export default [
         plugins: [
             new RollupPeggyWithSourceMap(),
             resolve(),
-            postcss({ extract: 'fml.css', inject: false, minimize: true, sourceMap: true }),
+            css('fml.css'),
             new RollupTypeGenerator('fml'),
         ],
     },

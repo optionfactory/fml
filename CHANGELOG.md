@@ -22,6 +22,7 @@
 - [BUG] `ful-select` discards a lookup that resolves after a newer assignment, which used to overwrite the newer selection
 - [BUG] `ful-select` keeps the requested keys when the `exact` lookup fails, instead of clearing them. The failure is still reported. Until the labels are resolved a key stands in for its own label, so badges can show a key briefly
 - [BUG] `ful-table` does not hold up its own upgrade with the first load: a loader that fails or never answers used to keep `ftl:ready` from firing for the whole page. The error state is rendered and the failure stays reportable as before
+- [REF] the css bundle is minified by postcss and cssnano directly instead of rollup-plugin-postcss, unmaintained since 2023: same rules, slightly different minification of svg data uris, source maps still resolve to the original stylesheets
 
 ### version 8.0.0
 
