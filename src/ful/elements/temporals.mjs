@@ -52,9 +52,10 @@ class InputLocalDate extends Input {
     render(conf) {
         const { observed } = conf;
         super.render(conf);
+        //step first: on a time input min and max are snapped to its grid
+        this.step = observed.step;
         this.min = observed.min;
         this.max = observed.max;
-        this.step = observed.step;
     }
     get min() {
         const v = this._input.min;
@@ -119,6 +120,58 @@ class InputLocalDate extends Input {
 class InputLocalTime extends InputLocalDate {
     _type() {
         return 'time';
+    }
+    get min() {
+        const v = this._input.min;
+        return v === '' ? null : v;
+    }
+    set min(v) {
+        this._input.min = this.#fromNowOrOffset(v);
+    }
+    get max() {
+        const v = this._input.max;
+        return v === '' ? null : v;
+    }
+    set max(v) {
+        this._input.max = this.#fromNowOrOffset(v);
+    }
+    /**
+     * Resolves `now` and hour or minute offsets against the current time, wrapping
+     * around midnight. `m` is minutes here, unlike the date offsets of the parent where
+     * it is months: months mean nothing on a time. Anything else is passed through.
+     */
+    #fromNowOrOffset(v) {
+        if (!v) {
+            return '';
+        }
+        const resolved = new Date();
+        if (v !== 'now') {
+            const re = /^([+-])(\d+)([hm])$/;
+            const match = re.exec(v);
+            if (!match) {
+                return v;
+            }
+            const sign = match[1] === '-' ? -1 : 1;
+            const offset = +match[2] * sign;
+            if (match[3] === 'h') {
+                resolved.setHours(resolved.getHours() + offset);
+            } else {
+                resolved.setMinutes(resolved.getMinutes() + offset);
+            }
+        }
+        return InputLocalTime.#snapped(resolved, Number(this._input.step) || 60);
+    }
+    /**
+     * Truncates a time to the step grid: min anchors that grid, so a bound that is not
+     * on it makes every value on it invalid.
+     */
+    static #snapped(date, stepSeconds) {
+        const pad = (n) => String(n).padStart(2, '0');
+        const seconds = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+        const snapped = Math.floor(seconds / stepSeconds) * stepSeconds;
+        const hh = pad(Math.floor(snapped / 3600));
+        const mm = pad(Math.floor((snapped % 3600) / 60));
+        return stepSeconds % 60 === 0 ? `${hh}:${mm}` : `${hh}:${mm}:${pad(snapped % 60)}`;
     }
 }
 

@@ -27,6 +27,7 @@
 - [REF] the css bundle is minified by postcss and cssnano directly instead of rollup-plugin-postcss, unmaintained since 2023: same rules, slightly different minification of svg data uris, source maps still resolve to the original stylesheets
 - [BUG] `HttpRequestBuilder.param` overrides a parameter already set, as its documentation always said and as `header`, `headers` and `params` all do. It used to append, so setting the same key twice silently sent it twice. Pass every value in one call, `param('k', 'a', 'b')`, to get a multi valued parameter
 - [BUG] `LocalStorage.load` and `SessionStorage.load` treat unparseable content as absent and drop it, instead of throwing on every read: a single corrupt entry used to break a preloaded `ful-select` for good
+- [ENH] `ful-input-local-time` resolves `now` and `+/-Nh`, `+/-Nm` offsets for `min` and `max`, truncated to the `step` grid so that every value on that grid stays selectable. It used to inherit the date offsets of `ful-input-local-date`, so `now` yielded a date and `-30m` was read as thirty months
 
 ### version 8.0.0
 
