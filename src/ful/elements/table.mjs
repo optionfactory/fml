@@ -442,7 +442,7 @@ class Table extends ParsedElement {
     }
     async load(pageRequest, sortRequest, filterRequest) {
         this.#body.replaceChildren();
-        this.#loading.removeAttribute('hidden', '');
+        this.#loading.removeAttribute('hidden');
         this.#feedback.setAttribute('hidden', '');
         this.#noAutoload.setAttribute('hidden', '');
         try {
@@ -451,7 +451,7 @@ class Table extends ParsedElement {
             this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
         } catch (/** @type any */ error) {
             this.#loading.setAttribute('hidden', '');
-            this.#feedback.removeAttribute('hidden', '');
+            this.#feedback.removeAttribute('hidden');
             if (!error.problems) {
                 this.#feedback.querySelector('[data-ref=feedback-error]').textContent = error;
             } else {
