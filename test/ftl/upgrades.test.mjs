@@ -1,0 +1,136 @@
+import { expect } from '@esm-bundle/chai';
+import { ParsedElement } from '../../src/ftl/parsed-element.mjs';
+import { registry } from '../../src/ftl/registry.mjs';
+import { Rendering } from '../../src/ftl/rendering.mjs';
+
+/**
+ * Characterizes when an element counts as upgraded, which is what `ftl:ready` and
+ * `Rendering.waitFor`/`waitForChildren` report on. Both walk the upgrade queue once,
+ * so what they cover depends on what happens to be queued when they are called.
+ */
+describe('Upgrade ordering and readiness', () => {
+    let container;
+    let order;
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await sleep(1);
+        }
+    };
+    /** an element that takes a while to render, so nothing can pass by luck of timing */
+    const slow = (name) => {
+        class Slow extends ParsedElement {
+            async render() {
+                await sleep(30);
+                order.push(name);
+            }
+        }
+        return Slow;
+    };
+    /** an element that renders a child element, enqueueing it during its own upgrade */
+    const nesting = (name, childTag) => {
+        class Nesting extends ParsedElement {
+            render() {
+                this.replaceChildren(document.createElement(childTag));
+                order.push(name);
+            }
+        }
+        return Nesting;
+    };
+
+    beforeEach(() => {
+        order = [];
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(async () => {
+        await settle();
+        container.remove();
+    });
+
+    it('reports ready before a component enqueued during another upgrade has rendered', async () => {
+        registry.defineElement('ready-child', slow('child'));
+        registry.defineElement('ready-parent', nesting('parent', 'ready-child'));
+        registry.configure();
+        container.appendChild(document.createElement('ready-parent'));
+
+        let atReady = null;
+        document.addEventListener('ftl:ready', () => { atReady = [...order]; }, { once: true });
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+        await settle();
+
+        expect(atReady).to.deep.equal(['parent'], 'the nested child had not rendered yet');
+        expect(order).to.deep.equal(['parent', 'child'], 'it renders, just after ready');
+    });
+
+    it('waitFor covers the element but not what its own upgrade enqueues', async () => {
+        registry.defineElement('waitfor-child', slow('child'));
+        registry.defineElement('waitfor-parent', nesting('parent', 'waitfor-child'));
+        registry.configure();
+        const el = document.createElement('waitfor-parent');
+        container.appendChild(el);
+
+        await Rendering.waitFor(el);
+
+        expect(order).to.deep.equal(['parent'], 'the child was queued after the snapshot was taken');
+        await settle();
+        expect(order).to.deep.equal(['parent', 'child']);
+    });
+
+    it('waitForChildren does not cover the element itself', async () => {
+        registry.defineElement('children-only', slow('self'));
+        registry.configure();
+        const el = document.createElement('children-only');
+        container.appendChild(el);
+
+        await Rendering.waitForChildren(el);
+
+        expect(order).to.deep.equal([], 'the element itself is excluded');
+        await settle();
+        expect(order).to.deep.equal(['self']);
+    });
+
+    it('waitForChildren covers children connected earlier in the same render', async () => {
+        registry.defineElement('host-child', slow('child'));
+        class Host extends ParsedElement {
+            async render() {
+                this.replaceChildren(document.createElement('host-child'));
+                await Rendering.waitForChildren(this);
+                order.push('host');
+            }
+        }
+        registry.defineElement('awaiting-host', Host);
+        registry.configure();
+        const el = document.createElement('awaiting-host');
+        container.appendChild(el);
+
+        await Rendering.waitFor(el);
+
+        expect(order).to.deep.equal(['child', 'host'], 'this is what ful-table relies on');
+    });
+
+    it('a failing upgrade rejects waitFor', async () => {
+        class Failing extends ParsedElement {
+            render() {
+                throw new Error('boom');
+            }
+        }
+        registry.defineElement('failing-el', Failing);
+        registry.configure();
+        const el = document.createElement('failing-el');
+        container.appendChild(el);
+
+        let caught = null;
+        try {
+            await Rendering.waitFor(el);
+        } catch (e) {
+            caught = e;
+        }
+
+        //the same rejection reaches the queue's own ftl:ready handler, which is why a
+        //single failing component keeps the event from firing for the whole page
+        expect(caught?.message).to.equal('boom');
+    });
+
+});
