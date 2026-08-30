@@ -90,50 +90,53 @@ class Form extends ParsedElement {
      */
     async submit(submitter) {
         this.spinner(true);
+        //one try: building the loader and preparing the request are as much part of a
+        //submit as sending it, and a mapper that throws is how a caller reports a
+        //problem with the values
+        let values;
+        let request;
         try {
             const loader = registry.component(this.getAttribute('loader') ?? 'loaders:form').create(this);
-            const values = Bindings.extractFrom(this.form, submitter);
-            let request = await loader.prepare(values, this);
-            try {
-                const se = new CustomEvent('submit', {
-                    bubbles: true,
-                    cancelable: true,
-                    detail: { submitter, values, request },
-                });
-                if (!this.dispatchEvent(se)) {
-                    return;
-                }
-                this.errors = [];
-                const sre = new CustomEvent('submit:requested', {
+            values = Bindings.extractFrom(this.form, submitter);
+            request = await loader.prepare(values, this);
+            const se = new CustomEvent('submit', {
+                bubbles: true,
+                cancelable: true,
+                detail: { submitter, values, request },
+            });
+            if (!this.dispatchEvent(se)) {
+                return;
+            }
+            this.errors = [];
+            const sre = new CustomEvent('submit:requested', {
+                bubbles: true,
+                cancelable: false,
+                detail: { submitter, values: se.detail.values, request: se.detail.request },
+            });
+            let response = await AsyncEvents.fireAsync(this, sre, { mode: 'pipeline' });
+            request = sre.detail.request;
+
+            response = await loader.submit(request, this, response);
+            const mapped = await loader.transform(response, this);
+            this.dispatchEvent(
+                new CustomEvent('submit:success', {
                     bubbles: true,
                     cancelable: false,
-                    detail: { submitter, values: se.detail.values, request: se.detail.request },
-                });
-                let response = await AsyncEvents.fireAsync(this, sre, { mode: 'pipeline' });
-                request = sre.detail.request;
-
-                response = await loader.submit(request, this, response);
-                const mapped = await loader.transform(response, this);
-                this.dispatchEvent(
-                    new CustomEvent('submit:success', {
-                        bubbles: true,
-                        cancelable: false,
-                        detail: { submitter, values, request, response: mapped },
-                    }),
-                );
-            } catch (e) {
-                this.dispatchEvent(
-                    new CustomEvent('submit:failure', {
-                        bubbles: true,
-                        cancelable: false,
-                        detail: { submitter, values, request, exception: e },
-                    }),
-                );
-                if (e instanceof Failure) {
-                    this.errors = e.problems;
-                }
-                console.warn('failed to submit form', this, 'reason:', e);
+                    detail: { submitter, values, request, response: mapped },
+                }),
+            );
+        } catch (e) {
+            this.dispatchEvent(
+                new CustomEvent('submit:failure', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: { submitter, values, request, exception: e },
+                }),
+            );
+            if (e instanceof Failure) {
+                this.errors = e.problems;
             }
+            console.warn('failed to submit form', this, 'reason:', e);
         } finally {
             this.spinner(false);
         }

@@ -29,6 +29,16 @@
 - [BUG] `LocalStorage.load` and `SessionStorage.load` treat unparseable content as absent and drop it, instead of throwing on every read: a single corrupt entry used to break a preloaded `ful-select` for good
 - [ENH] `ful-input-local-time` resolves `now` and `+/-Nh`, `+/-Nm` offsets for `min` and `max`, truncated to the `step` grid so that every value on that grid stays selectable. It used to inherit the date offsets of `ful-input-local-date`, so `now` yielded a date and `-30m` was read as thirty months
 - [BUG] an unset `placeholder` leaves a blank one on the inner input rather than none, so `:placeholder-shown` keeps matching and floating labels keep working. The property still reads `null`, and the blank one is not reflected onto the host
+- [BUG] a disabled `ful-input`, `ful-checkbox`, `ful-select`, `ful-radio-group` or `ful-filter-*` is left out of the submitted values. Disabling put the attribute on the inner control only, so the element never matched `:disabled` and `Bindings.extractFrom` kept sending it
+- [BUG] `ful-form` reports a failing request mapper, or a missing loader component, as a `submit:failure` like any other failure. It used to escape `submit()` as an unhandled rejection with no event at all
+- [BUG] a `ful-filter-*` rendered from a `value` attribute shows the operator it is actually using, and a `BETWEEN` range reveals the second bound it carries. Both used to keep the template defaults, so the control disagreed with its own value
+- [BUG] `ful-filter-text` reports back the sensitivity it was given instead of always reporting `IGNORE_CASE`, which silently downgraded a `CASE_SENSITIVE` query
+- [ENH] `ful-filter-*` emits `change` when the second bound of a range is edited or a new operator is picked, not only when the first bound changes
+- [BUG] `ful-input-file` shows one warning per violated constraint instead of only the last one, and clears them as soon as a later selection is clean
+- [BUG] `ful-input-file` keeps its selection when a drop carries no file, so dragging text or a link over the dropzone no longer wipes the picked files
+- [BUG] `ful-input-file` enforces its constraints and refreshes its item list when `files` or `file` is assigned programmatically, not only when the user picks or drops
+- [BUG] `ful-input-file` removes only the clicked item when two selected files share a name
+- [REF] the `unaccepptablefiletype` localization key is spelled `unacceptablefiletype`
 
 ### version 8.0.0
 

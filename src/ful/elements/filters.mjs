@@ -37,6 +37,11 @@ class InstantFilter extends Input {
         this.#operator = this.querySelector('[data-ref=operator]');
         this.#value1 = this.querySelector('[data-ref=value1]');
         this.#value2 = this.querySelector('[data-ref=value2]');
+        //Input.render only re-dispatches changes coming from the first operand
+        this.#value2.addEventListener('change', (evt) => {
+            evt.stopPropagation();
+            this.#notifyChange();
+        });
 
         this.disabled = conf.disabled;
         this.readonly = conf.observed.readonly;
@@ -51,9 +56,13 @@ class InstantFilter extends Input {
             }
             const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
             const value = /** @type String */ (target.getAttribute('value'));
+            const previous = btn.getAttribute('value');
             Attributes.toggle(this.#value2, 'hidden', value !== 'BETWEEN');
             btn.setAttribute('value', value);
             btn.innerHTML = target.innerHTML;
+            if (previous !== value) {
+                this.#notifyChange();
+            }
         });
     }
 
@@ -69,9 +78,29 @@ class InstantFilter extends Input {
             return;
         }
         const [operator, ...values] = v;
-        this.#operator.setAttribute('value', operator);
+        this.#showOperator(operator);
         this.#value1.value = values[0] ? Instant.isoToLocal(values[0]) : values[0];
         this.#value2.value = values[1] ? Instant.isoToLocal(values[1]) : values[1];
+    }
+    #showOperator(operator) {
+        this.#operator.setAttribute('value', operator);
+        const items = Array.from(this.#operator.nextElementSibling?.querySelectorAll('li > a[value]') ?? []);
+        const item = items.find((a) => a.getAttribute('value') === operator);
+        if (item) {
+            this.#operator.innerHTML = item.innerHTML;
+        }
+        Attributes.toggle(this.#value2, 'hidden', operator !== 'BETWEEN');
+    }
+    #notifyChange() {
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                cancelable: false,
+                detail: {
+                    value: this.value,
+                },
+            }),
+        );
     }
     get readonly() {
         return super.readonly;
@@ -125,6 +154,11 @@ class LocalDateFilter extends Input {
         this.#operator = this.querySelector('[data-ref=operator]');
         this.#value1 = this.querySelector('[data-ref=value1]');
         this.#value2 = this.querySelector('[data-ref=value2]');
+        //Input.render only re-dispatches changes coming from the first operand
+        this.#value2.addEventListener('change', (evt) => {
+            evt.stopPropagation();
+            this.#notifyChange();
+        });
 
         this.disabled = conf.disabled;
         this.readonly = conf.observed.readonly;
@@ -139,9 +173,13 @@ class LocalDateFilter extends Input {
             }
             const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
             const value = /** @type String */ (target.getAttribute('value'));
+            const previous = btn.getAttribute('value');
             Attributes.toggle(this.#value2, 'hidden', value !== 'BETWEEN');
             btn.setAttribute('value', value);
             btn.innerHTML = target.innerHTML;
+            if (previous !== value) {
+                this.#notifyChange();
+            }
         });
     }
     get value() {
@@ -156,9 +194,29 @@ class LocalDateFilter extends Input {
             return;
         }
         const [operator, ...values] = v;
-        this.#operator.setAttribute('value', operator);
+        this.#showOperator(operator);
         this.#value1.value = values[0];
         this.#value2.value = values[1];
+    }
+    #showOperator(operator) {
+        this.#operator.setAttribute('value', operator);
+        const items = Array.from(this.#operator.nextElementSibling?.querySelectorAll('li > a[value]') ?? []);
+        const item = items.find((a) => a.getAttribute('value') === operator);
+        if (item) {
+            this.#operator.innerHTML = item.innerHTML;
+        }
+        Attributes.toggle(this.#value2, 'hidden', operator !== 'BETWEEN');
+    }
+    #notifyChange() {
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                cancelable: false,
+                detail: {
+                    value: this.value,
+                },
+            }),
+        );
     }
     get readonly() {
         return super.readonly;
@@ -201,6 +259,8 @@ class TextFilter extends Input {
     `;
     #operator;
     #value;
+    //the sensitivity has no control of its own: it is carried through from whoever set the value
+    #sensitivity = 'IGNORE_CASE';
     render(conf) {
         super.render({ ...conf, skipObservedSetup: true });
 
@@ -220,13 +280,17 @@ class TextFilter extends Input {
             }
             const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
             const value = /** @type String */ (target.getAttribute('value'));
+            const previous = btn.getAttribute('value');
             btn.setAttribute('value', value);
             btn.innerHTML = target.innerHTML;
+            if (previous !== value) {
+                this.#notifyChange();
+            }
         });
     }
     get value() {
         const operator = this.#operator.getAttribute('value');
-        return this.#value.value === '' ? undefined : [operator, 'IGNORE_CASE', this.#value.value];
+        return this.#value.value === '' ? undefined : [operator, this.#sensitivity, this.#value.value];
     }
     set value(v) {
         if (v == null) {
@@ -234,8 +298,28 @@ class TextFilter extends Input {
             return;
         }
         const [operator, sensitivity, value] = v;
-        this.#operator.setAttribute('value', operator);
+        this.#showOperator(operator);
+        this.#sensitivity = sensitivity ?? 'IGNORE_CASE';
         this.#value.value = value;
+    }
+    #showOperator(operator) {
+        this.#operator.setAttribute('value', operator);
+        const items = Array.from(this.#operator.nextElementSibling?.querySelectorAll('li > a[value]') ?? []);
+        const item = items.find((a) => a.getAttribute('value') === operator);
+        if (item) {
+            this.#operator.innerHTML = item.innerHTML;
+        }
+    }
+    #notifyChange() {
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                cancelable: false,
+                detail: {
+                    value: this.value,
+                },
+            }),
+        );
     }
 }
 

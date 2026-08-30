@@ -119,6 +119,11 @@ class Input extends ParsedElement {
     }
     set disabled(d) {
         Attributes.toggle(this._input, 'disabled', d);
+        //also on the host: a form associated element only matches :disabled through its
+        //own attribute, and that is what keeps it out of the submitted values. no reflect
+        //is needed, disabled is deliberately not observed: the platform delivers it
+        //through formDisabledCallback, which also covers a disabled ancestor fieldset
+        Attributes.toggle(this, 'disabled', d);
     }
     get required() {
         return this._input.getAttribute('aria-required') === 'true';
