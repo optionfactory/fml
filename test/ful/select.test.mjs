@@ -239,3 +239,82 @@ describe('Select & Dropdown keyboard interaction', () => {
         container.remove();
     });
 });
+
+describe('Select value resolution', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    };
+    let exactCalls = [];
+    const mount = async (html) => {
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitForChildren(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+    beforeEach(() => {
+        exactCalls = [];
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => { },
+                load: async () => [],
+                exact: async (...keys) => {
+                    exactCalls.push(keys);
+                    return keys.map((k) => [k, `Label ${k}`]);
+                }
+            })
+        });
+    });
+
+    it('does not query the loader when there is no value', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+
+        assert.deepStrictEqual(exactCalls, []);
+        assert.isNull(selectEl.value);
+        container.remove();
+    });
+
+    it('does not query the loader when a multiple select has no value', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple></ful-select>`);
+
+        assert.deepStrictEqual(exactCalls, []);
+        assert.deepStrictEqual(selectEl.value, []);
+        container.remove();
+    });
+
+    it('still resolves an empty key, which an <option value=""> can carry', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        assert.deepStrictEqual(exactCalls, []);
+
+        selectEl.value = '';
+        await settle();
+
+        assert.deepStrictEqual(exactCalls, [['']]);
+        assert.strictEqual(selectEl.value, '');
+        container.remove();
+    });
+
+    it('resolves the declared keys', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+
+        assert.deepStrictEqual(exactCalls, [['k1', 'k2']]);
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        container.remove();
+    });
+
+    it('clears without querying the loader when the value attribute is removed', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1"></ful-select>`);
+        assert.deepStrictEqual(exactCalls, [['k1']]);
+
+        selectEl.removeAttribute('value');
+        await settle();
+
+        assert.deepStrictEqual(exactCalls, [['k1']]);
+        assert.deepStrictEqual(selectEl.value, []);
+        container.remove();
+    });
+});

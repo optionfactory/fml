@@ -494,7 +494,9 @@ class Select extends ParsedElement {
         this.template('items').withOverlay({ entries: this.#values.entries() }).renderTo(this.#items);
     }
     set value(vs) {
-        if (vs === null) {
+        //no keys to resolve: the csvm mapper yields [] for a missing multiple value.
+        //an empty string is left alone, it is a usable key for an <option value="">
+        if (vs == null || (Array.isArray(vs) && vs.length === 0)) {
             this.#values = new Map();
             this.#syncBadges();
             return;

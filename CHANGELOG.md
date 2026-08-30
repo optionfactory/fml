@@ -16,6 +16,7 @@
 - [REF] tests: every registered element is mounted and each of its observed attributes is checked against the property it exposes
 - [BUG] `HttpRequestBuilder.headers` and `.params` remove keys whose value is nullish, as documented: normalizing the initializer through `Headers`/`URLSearchParams` first turned them into the literal strings "null" and "undefined"
 - [BUG] the client error reporter swallows the failure of its own report: an unreachable endpoint used to surface as an unhandled rejection, which re-entered the handler and looped, flooding the endpoint
+- [BUG] `ful-select` no longer looks up an empty key set: a `multiple` select without a value, or one whose `value` attribute is removed, used to query its loader, which is a request per element with `mode="chunked"`
 
 ### version 8.0.0
 
