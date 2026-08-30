@@ -113,6 +113,43 @@ describe('httpc client', () => {
             expect(reqHeaders.has('X-Remove')).to.be.false;
         });
 
+        it('removes headers and params set to null through the plural forms', async () => {
+            await client.get('/test')
+                .headers({ 'X-Keep': '1', 'X-Remove': '2' })
+                .headers({ 'X-Remove': null, 'X-Undefined': undefined })
+                .params({ p1: 'v1', p2: 'v2' })
+                .params({ p2: null })
+                .fetch();
+
+            expect(fetchArgs.url.toString()).to.include('p1=v1');
+            expect(fetchArgs.url.toString()).to.not.include('p2');
+
+            const reqHeaders = new Headers(fetchArgs.init.headers);
+            expect(reqHeaders.get('X-Keep')).to.equal('1');
+            expect(reqHeaders.has('X-Remove')).to.be.false;
+            expect(reqHeaders.has('X-Undefined')).to.be.false;
+        });
+
+        it('accepts the other headers and params initializer shapes', async () => {
+            await client.get('/test?q=0')
+                .headers([['X-Pair', 'a']])
+                .headers(new Headers({ 'X-Instance': 'b' }))
+                .params([['p1', 'v1']])
+                .params(new URLSearchParams('p2=v2'))
+                .params('p3=v3')
+                .fetch();
+
+            const url = fetchArgs.url.toString();
+            expect(url).to.include('q=0');
+            expect(url).to.include('p1=v1');
+            expect(url).to.include('p2=v2');
+            expect(url).to.include('p3=v3');
+
+            const reqHeaders = new Headers(fetchArgs.init.headers);
+            expect(reqHeaders.get('X-Pair')).to.equal('a');
+            expect(reqHeaders.get('X-Instance')).to.equal('b');
+        });
+
         it('serializes JSON bodies automatically', async () => {
             await client.post('/test').json({ a: 1 }).fetch();
             

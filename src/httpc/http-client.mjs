@@ -325,6 +325,26 @@ const unmarshal = async (response, type) => {
     }
 };
 
+/**
+ * Yields the entries of a headers or params initializer preserving nullish values:
+ * normalizing through `Headers`/`URLSearchParams` first would stringify them to
+ * "null"/"undefined" instead of removing the key.
+ * @param {any} source
+ * @returns {Iterable<[string, any]>}
+ */
+const rawEntries = (source) => {
+    if (source == null) {
+        return [];
+    }
+    if (typeof source === 'string') {
+        return new URLSearchParams(source);
+    }
+    if (typeof source[Symbol.iterator] === 'function') {
+        return source;
+    }
+    return Object.entries(source);
+};
+
 class HttpRequestBuilder {
     #client;
     #method;
@@ -377,11 +397,11 @@ class HttpRequestBuilder {
     }
     /**
      * Add all passed headers to the request, overriding existing ones if that key already exists. Null and undefined values cause the key to be removed.
-     * @param {HeadersInit} hs
+     * @param {HeadersInit|Record<string,string|null|undefined>} hs
      * @returns {HttpRequestBuilder} this builder
      */
     headers(hs) {
-        for (const [k, v] of new Headers(hs).entries()) {
+        for (const [k, v] of rawEntries(hs)) {
             if (v == null) {
                 this.#headers.delete(k);
             } else {
@@ -406,11 +426,11 @@ class HttpRequestBuilder {
     }
     /**
      * Add all query parameters to the request, overriding existing ones if that key already exists. Null and undefined values cause the key to be removed
-     * @param {URLSearchParams|Record<string,string>|string[][]|string} ps
+     * @param {URLSearchParams|Record<string,string|null|undefined>|string[][]|string} ps
      * @returns {HttpRequestBuilder} this builder
      */
     params(ps) {
-        for (const [k, v] of new URLSearchParams(ps).entries()) {
+        for (const [k, v] of rawEntries(ps)) {
             if (v == null) {
                 this.#params.delete(k);
             } else {
