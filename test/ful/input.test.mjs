@@ -1,4 +1,4 @@
-import { assert } from '@esm-bundle/chai';
+import { assert } from 'chai';
 import { registry, Rendering } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/index.mjs';
 

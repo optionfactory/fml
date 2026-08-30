@@ -1,4 +1,4 @@
-import { assert } from '@esm-bundle/chai';
+import { assert } from 'chai';
 import { Timing } from '../../src/ful/index.mjs';
 
 describe('Timing.debounce', () => {

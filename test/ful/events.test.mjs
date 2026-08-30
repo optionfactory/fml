@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from 'chai';
 import { AsyncEvents } from '../../src/ful/events/async.mjs';
 
 describe('AsyncEvents', () => {

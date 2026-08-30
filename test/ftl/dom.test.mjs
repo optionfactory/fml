@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from 'chai';
 import { Fragments, Attributes, LightSlots, Nodes } from '../../src/ftl/dom.mjs';
 
 describe('dom.mjs', () => {

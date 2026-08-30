@@ -1,4 +1,4 @@
-import { assert } from '@esm-bundle/chai';
+import { assert } from 'chai';
 import { Template, Fragments } from '../../src/ftl/index.mjs';
 
 const modules = {

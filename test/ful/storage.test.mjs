@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from 'chai';
 import { VersionedLocalStorage, VersionedSessionStorage, LocalStorage, SessionStorage } from '../../src/ful/storage.mjs';
 
 describe('VersionedLocalStorage', () => {

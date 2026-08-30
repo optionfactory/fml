@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from 'chai';
 import { Base64, Hex } from '../../src/httpc/encodings.mjs';
 
 describe('Encodings', () => {

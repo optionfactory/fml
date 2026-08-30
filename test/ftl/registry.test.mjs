@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from 'chai';
 import { Registry } from '../../src/ftl/registry.mjs';
 
 describe('Registry', () => {

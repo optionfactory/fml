@@ -1,4 +1,4 @@
-import { assert } from '@esm-bundle/chai';
+import { assert } from 'chai';
 
 import { Expressions, ExpressionEvaluator } from '../../src/ftl/index.mjs';
 import { nodes } from '../../src/ftl/ast.mjs';

@@ -1,4 +1,4 @@
-import { assert } from '@esm-bundle/chai';
+import { assert } from 'chai';
 import { Expressions } from '../../src/ftl/index.mjs';
 
 describe('EvaluatingVisitor Optimized Scope Chain', () => {

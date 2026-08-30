@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from 'chai';
 import { Templates } from '../../src/ftl/templates.mjs';
 import { registry } from '../../src/ftl/registry.mjs';
 

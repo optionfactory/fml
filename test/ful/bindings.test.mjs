@@ -1,4 +1,4 @@
-import { assert, expect } from '@esm-bundle/chai';
+import { assert, expect } from 'chai';
 import { Fragments } from '../../src/ftl/index.mjs';
 import { Bindings } from '../../src/ful/index.mjs';
 
