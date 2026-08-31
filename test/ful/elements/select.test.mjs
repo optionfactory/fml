@@ -362,10 +362,10 @@ describe('Select value assignment', () => {
         const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling({ k1: 20 }));
 
         selectEl.value = 'k1';
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'k1', 'the key stands in for its label');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'k1', 'the key stands in for its label');
 
         await settle();
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label k1');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1');
         container.remove();
     });
 
@@ -377,7 +377,7 @@ describe('Select value assignment', () => {
         await settle();
 
         assert.strictEqual(selectEl.value, 'fast');
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label fast');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label fast');
         container.remove();
     });
 
@@ -392,7 +392,7 @@ describe('Select value assignment', () => {
 
         assert.strictEqual(selectEl.value, 'k1', 'the value does not wait for the loader');
         await settle();
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label k1');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1');
         container.remove();
     });
 
@@ -450,7 +450,7 @@ describe('Select key types', () => {
         const [selectEl, container] = await mount(`<ful-select value="16"></ful-select>`, numeric());
 
         assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
         container.remove();
     });
 
@@ -461,7 +461,7 @@ describe('Select key types', () => {
         await settle();
 
         assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
         container.remove();
     });
 
@@ -469,7 +469,7 @@ describe('Select key types', () => {
         const [selectEl, container] = await mount(`<ful-select k-type="number" value="16"></ful-select>`, numeric());
 
         assert.strictEqual(selectEl.value, 16);
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
         assert.deepStrictEqual(selectEl.entry, [16, ['Label 16']]);
         container.remove();
     });
@@ -485,7 +485,7 @@ describe('Select key types', () => {
         const [selectEl, container] = await mount(`<ful-select k-type="boolean" value="true"></ful-select>`, booleany());
 
         assert.strictEqual(selectEl.value, true);
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Yes');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Yes');
         container.remove();
     });
 
@@ -493,7 +493,7 @@ describe('Select key types', () => {
         const [selectEl, container] = await mount(`<ful-select k-type="number" value="abc"></ful-select>`, echoing());
 
         assert.strictEqual(selectEl.value, 'abc');
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label abc');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label abc');
         container.remove();
     });
 
@@ -505,7 +505,7 @@ describe('Select key types', () => {
         selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
 
         assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
         container.remove();
     });
 
@@ -517,7 +517,7 @@ describe('Select key types', () => {
         selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
 
         assert.strictEqual(selectEl.value, 16);
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
         container.remove();
     });
 });
@@ -625,7 +625,7 @@ describe('Select selection removal', () => {
         return [selectEl, container];
     };
     const click = (el) => el.dispatchEvent(new Event('click', { bubbles: true }));
-    const badges = (selectEl) => [...selectEl.querySelectorAll('badges > badge')];
+    const badges = (selectEl) => [...selectEl.querySelectorAll('ful-control > ful-badge')];
     const items = (selectEl) => [...selectEl.querySelectorAll('ful-item-list > ful-item')];
 
     it('drops the entry whose badge was clicked, keeping the others', async () => {
@@ -663,7 +663,7 @@ describe('Select selection removal', () => {
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
 
-        click(selectEl.querySelector('badges'));
+        click(selectEl.querySelector('ful-control'));
         click(items(selectEl)[0].querySelector('div'));
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
@@ -748,7 +748,7 @@ describe('Select backspace', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the last entry goes first');
         assert.deepStrictEqual(changes[0].map((v) => v.key), ['k1']);
-        assert.deepStrictEqual([...selectEl.querySelectorAll('badges > badge')].map((b) => b.innerText), ['Label k1']);
+        assert.deepStrictEqual([...selectEl.querySelectorAll('ful-control > ful-badge')].map((b) => b.innerText), ['Label k1']);
         container.remove();
     });
 
@@ -971,13 +971,13 @@ describe('Select edits made while a lookup is in flight', () => {
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
 
-        selectEl.querySelectorAll('badge')[1].dispatchEvent(new Event('click', { bubbles: true }));
+        selectEl.querySelectorAll('ful-badge')[1].dispatchEvent(new Event('click', { bubbles: true }));
         assert.deepStrictEqual(selectEl.value, ['k1']);
 
         await new Promise((resolve) => setTimeout(resolve, 120));
 
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the lookup must not undo the removal');
-        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label k1', 'the survivor is still labelled');
+        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1', 'the survivor is still labelled');
         container.remove();
     });
 });

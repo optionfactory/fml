@@ -23,7 +23,9 @@
         "./ful": {
             "types": "./dist/ful.d.mts",
             "import": "./dist/ful.mjs"
-        }
+        },
+        "./ful.css": "./dist/ful.css",
+        "./fml.css": "./dist/fml.css"
     },
     "files": [
         "dist"

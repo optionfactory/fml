@@ -4,18 +4,16 @@ class Input extends ParsedElement {
     static observed = ['value', 'readonly:presence', 'required:presence', 'placeholder'];
     static slots = true;
     static template = `
-        <div class="form-label">
-            <label>{{{{ slots.default }}}}</label>
-            {{{{ slots.info }}}}
-        </div>
-        <div class="input-group">
-            <span data-tpl-if="slots.ibefore" class="input-group-text">{{{{ slots.ibefore }}}}</span>
+        <label>{{{{ slots.default }}}}</label>
+        {{{{ slots.info }}}}
+        <ful-control-group>
+            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
             {{{{ slots.before }}}}
-            <input data-tpl-if="type != 'textarea'" class="form-control" data-tpl-type="type" placeholder=" " form="">
-            <textarea data-tpl-if="type == 'textarea'" class="form-control" placeholder=" " form=""></textarea>
+            <input data-tpl-if="type != 'textarea'" data-tpl-type="type" placeholder=" " form="">
+            <textarea data-tpl-if="type == 'textarea'" placeholder=" " form=""></textarea>
             {{{{ slots.after }}}}
-            <span data-tpl-if="slots.iafter" class="input-group-text">{{{{ slots.iafter }}}}</span>
-        </div>
+            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+        </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
     static formAssociated = true;

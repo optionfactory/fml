@@ -19,3 +19,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+The SVG paths embedded in `dist/ful.css` as `ful-icon` masks come from
+bootstrap-icons (https://icons.getbootstrap.com), Copyright (c) 2019-2024 The
+Bootstrap Authors, licensed under the MIT license
+(https://github.com/twbs/icons/blob/main/LICENSE.md).

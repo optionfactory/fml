@@ -195,11 +195,13 @@ describe('Checkbox rendering', () => {
     it('renders the switch variant with the switch role, and the plain one without it', async () => {
         const [el, container, input] = await mount(`<ful-checkbox name="a" type="switch">label</ful-checkbox>`);
 
-        assert.deepStrictEqual([...el.firstElementChild.classList], ['form-check', 'form-switch']);
+        assert.strictEqual(el.firstElementChild.localName, 'ful-choice');
+        assert.isTrue(el.firstElementChild.hasAttribute('switch'));
         assert.strictEqual(input.getAttribute('role'), 'switch');
 
         const [plain, plainContainer, plainInput] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
-        assert.deepStrictEqual([...plain.firstElementChild.classList], ['form-check']);
+        assert.strictEqual(plain.firstElementChild.localName, 'ful-choice');
+        assert.isFalse(plain.firstElementChild.hasAttribute('switch'));
         assert.isFalse(plainInput.hasAttribute('role'), 'a plain checkbox keeps the native checkbox role');
         container.remove();
         plainContainer.remove();

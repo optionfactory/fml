@@ -185,9 +185,9 @@ const mount = async (html) => {
 
 const click = (el) => el.dispatchEvent(new Event('click', { bubbles: true }));
 
-//the page links are the only .page-item without a role of their own
+//the page links are the li[data-ref=page] anchors
 const pageLinks = (paginator) => Array.from(
-    paginator.querySelectorAll('li.page-item:not(.prev):not(.next):not(.reload):not(.pagination-index) a'));
+    paginator.querySelectorAll('li[data-ref=page] a'));
 const pageLabels = (paginator) => pageLinks(paginator).map((a) => a.textContent.trim());
 const pageLink = (paginator, label) => pageLinks(paginator).find((a) => a.textContent.trim() === label);
 const rowTexts = (tableEl) => Array.from(
@@ -256,7 +256,7 @@ describe('Table pagination', () => {
                 </template>
             </ful-table>`);
         const paginator = tableEl.querySelector('ful-pagination');
-        const label = () => paginator.querySelector('.pagination-index').textContent.trim();
+        const label = () => paginator.querySelector('li[data-ref=index]').textContent.trim();
 
         assert.strictEqual(label(), 'Page 1 of 5', '45 elements over pages of 10 are 5 pages');
 
@@ -278,7 +278,7 @@ describe('Table pagination', () => {
 
         click(pageLink(paginator, '3'));
         await settle();
-        click(paginator.querySelector('li.reload a'));
+        click(paginator.querySelector('li[data-ref=reload] a'));
         await settle();
 
         assert.strictEqual(requests.length, 3);
@@ -331,22 +331,22 @@ describe('Pagination links', () => {
     it('disables the link to the page already being shown', async () => {
         const [el, container] = await mountPagination(`current="1" total="3"`);
 
-        const disabled = pageLinks(el).filter((a) => a.classList.contains('disabled')).map((a) => a.textContent.trim());
+        const disabled = pageLinks(el).filter((a) => a.hasAttribute('disabled')).map((a) => a.textContent.trim());
         assert.deepStrictEqual(disabled, ['2']);
         container.remove();
     });
 
     it('disables previous on the first page and next on the last one', async () => {
         const [el, container] = await mountPagination(`current="0" total="3"`);
-        const prev = () => el.querySelector('li.prev a');
-        const next = () => el.querySelector('li.next a');
+        const prev = () => el.querySelector('li[data-ref=prev] a');
+        const next = () => el.querySelector('li[data-ref=next] a');
 
-        assert.isTrue(prev().classList.contains('disabled'), 'there is no page before the first');
-        assert.isFalse(next().classList.contains('disabled'));
+        assert.isTrue(prev().hasAttribute('disabled'), 'there is no page before the first');
+        assert.isFalse(next().hasAttribute('disabled'));
 
         el.current = 2;
-        assert.isFalse(prev().classList.contains('disabled'));
-        assert.isTrue(next().classList.contains('disabled'), 'there is no page after the last');
+        assert.isFalse(prev().hasAttribute('disabled'));
+        assert.isTrue(next().hasAttribute('disabled'), 'there is no page after the last');
         container.remove();
     });
 
@@ -355,9 +355,9 @@ describe('Pagination links', () => {
         const requested = [];
         el.addEventListener('page-requested', (e) => requested.push(e.detail.value));
 
-        click(el.querySelector('li.prev a'));
+        click(el.querySelector('li[data-ref=prev] a'));
         el.current = 4;
-        click(el.querySelector('li.next a'));
+        click(el.querySelector('li[data-ref=next] a'));
 
         assert.deepStrictEqual(requested, [], 'there is no page before the first nor after the last');
         container.remove();
@@ -365,7 +365,7 @@ describe('Pagination links', () => {
 
     it('points next at the following page, and nowhere on the last one', async () => {
         const [el, container] = await mountPagination(`current="3" total="5"`);
-        const next = () => el.querySelector('li.next a');
+        const next = () => el.querySelector('li[data-ref=next] a');
 
         assert.strictEqual(next().dataset.page, '4');
 
@@ -380,7 +380,7 @@ describe('Pagination links', () => {
         el.addEventListener('page-requested', (e) => requested.push(e.detail.value));
 
         click(pageLink(el, '3'));
-        click(el.querySelector('li.next a'));
+        click(el.querySelector('li[data-ref=next] a'));
 
         assert.deepStrictEqual(requested, [2, 1]);
         container.remove();
@@ -510,7 +510,7 @@ describe('In memory table loader', () => {
 
         await tableEl.reload();
         assert.deepStrictEqual(rowTexts(tableEl), ['1', '2']);
-        assert.strictEqual(tableEl.querySelector('.pagination-index').textContent.trim(), 'Page 1 of 3');
+        assert.strictEqual(tableEl.querySelector('li[data-ref=index]').textContent.trim(), 'Page 1 of 3');
 
         click(pageLink(tableEl.querySelector('ful-pagination'), '3'));
         await settle();
@@ -527,7 +527,7 @@ describe('In memory table loader', () => {
         await tableEl.reload();
 
         assert.deepStrictEqual(rowTexts(tableEl), ['new']);
-        assert.strictEqual(tableEl.querySelector('.pagination-index').textContent.trim(), 'Page 1 of 1');
+        assert.strictEqual(tableEl.querySelector('li[data-ref=index]').textContent.trim(), 'Page 1 of 1');
         container.remove();
     });
 });

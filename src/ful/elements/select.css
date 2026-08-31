@@ -1,105 +1,25 @@
 ful-select {
-    --ful-select-border-width: var(--ful-inputs-border-width);
-    --ful-select-border-radius: var(--ful-inputs-border-radius);
-    --ful-select-border-color: var(--ful-inputs-border-color);
-    --ful-select-bg: var(--ful-inputs-bg);
-
-    --ful-select-badge-color: var(--ful-active-color);
-    --ful-select-badge-bg: var(--ful-active-bg);
-    --ful-select-badge-border-radius: var(--ful-border-radius);
-    --ful-select-focus-border-color: var(--ful-focus-border-color);
-    --ful-select-focus-box-shadow: var(--ful-focus-box-shadow);
-
     display: block;
     cursor: pointer;
-
-    badges {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 3px;
-        overflow: hidden;
-
-        &:has(badge) {
-            min-width: 2em;
-        }
-    }
-
-    &[itemlist] badges {
-        display: none;
-    }
 
     &:not([itemlist]) > ful-item-list {
         display: none;
     }
 
-    badge {
-        padding: 5px 7px;
-        margin: 5px 0;
-        color: var(--ful-select-badge-color);
-        white-space: nowrap;
-        border-radius: var(--ful-select-badge-border-radius);
-        background-color: var(--ful-select-badge-bg);
-        display: flex;
-        align-items: center;
-        line-height: 1em;
-    }
-
-    .ful-select-input-container {
-        position: relative;
-        display: block;
-        flex: 1 1 auto;
-        width: 1%;
-        border: var(--ful-select-border-width) solid var(--ful-select-border-color);
-        border-radius: var(--ful-select-border-radius);
-
-        &:has(input:focus) {
-            border-color: var(--ful-select-focus-border-color);
-            outline: 0;
-            box-shadow: var(--ful-select-focus-box-shadow);
-        }
-    }
-
-    .ful-select-input {
-        display: flex;
-        flex: 1 1 auto;
+    & > ful-control-group > ful-control {
         padding-left: 5px;
         padding-right: 2.25rem;
+        overflow: hidden;
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
         background-position: right 0.75rem center;
         background-repeat: no-repeat;
         background-size: 16px 12px;
-        background-color: var(--ful-select-bg);
-        overflow: hidden;
-        z-index: 5;
-        border-radius: var(--ful-select-border-radius);
-    }
-
-    .ful-select-input-container:not(:first-child) .ful-select-input {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-    }
-
-    .ful-select-input-container:not(:last-child) .ful-select-input {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-    }
-
-    &:invalid .ful-select-input-container {
-        border-color: var(--ful-invalid-border-color);
-    }
-
-    &:disabled .ful-select-input {
-        background-size: 0;
-        background-color: var(--ful-disabled-bg);
-    }
-
-    &[readonly] .ful-select-input {
-        background-size: 0;
-    }
-
-    &[itemlist][readonly],
+        & > ful-badge + ful-badge {
+            margin-left: 3px;
+        }
+    }    &[itemlist][readonly],
     &[itemlist]:disabled {
-        & > .input-group {
+        & > ful-control-group {
             display: none;
         }
         & > ful-item-list > ful-item:first-child {
@@ -115,23 +35,27 @@ ful-select {
         }
     }
 
-    &[required] > .form-label > label::before {
-        content: "* ";
-        display: inline;
-        font-weight: 700;
-        color: var(--ful-color);
+    &:disabled > ful-control-group > ful-control {
+        background-size: 0;
     }
 
-    input {
-        border: 0;
-        margin: 0;
-        outline: 0;
-        padding: 0.375rem 0 0.375rem 7px;
-        line-height: 1.5;
+    &[readonly] > ful-control-group > ful-control {
+        background-size: 0;
+    }
+
+    & > ful-control-group > ful-control > input {
         flex: 1 1 auto;
-        min-width: 1em;
         width: 1em;
+        min-width: 1em;
+        margin: 0;
+        padding: 0.375rem 0 0.375rem 7px;
+        font-size: inherit;
+        font-family: inherit;
+        line-height: 1.5;
+        color: var(--ful-color);
         background-color: transparent;
+        border: 0;
+        outline: 0;
     }
 }
 
@@ -169,11 +93,16 @@ ful-dropdown {
         margin: 0;
 
         &:not(:has(*))::before {
-        font-family: bootstrap-icons;
+            content: '';
             display: block;
-            content: "\f8c3";
             margin: auto;
             width: 1rem;
+            height: 1rem;
+            background-color: var(--ful-color);
+            mask-repeat: no-repeat;
+            mask-position: center;
+            mask-size: contain;
+            mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='black' viewBox='0 0 16 16'><path d='M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438zM3.809 3.563A1.5 1.5 0 0 1 4.981 3h6.038a1.5 1.5 0 0 1 1.172.563l3.7 4.625a.5.5 0 0 1 .105.374l-.39 3.124A1.5 1.5 0 0 1 14.117 13H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374z'/></svg>");
         }
 
         &::-webkit-scrollbar {

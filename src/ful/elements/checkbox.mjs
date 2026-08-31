@@ -4,15 +4,11 @@ class Checkbox extends ParsedElement {
     static observed = ['value:bool', 'readonly:presence', 'required:presence'];
     static slots = true;
     static template = `
-        <div data-tpl-class="klass">
-            <div class="input-container">
-                <input class="form-check-input" type="checkbox" data-tpl-role="isSwitch ? 'switch' : false" form="" placeholder=" ">
-            </div>
-            <div class="form-check-label">
-                <label>{{{{ slots.default }}}}</label>
-                {{{{ slots.info }}}}
-            </div>
-        </div>
+        <ful-choice data-tpl-switch="isSwitch">
+            <input type="checkbox" data-tpl-role="isSwitch ? 'switch' : false" form="" placeholder=" ">
+            <label>{{{{ slots.default }}}}</label>
+            {{{{ slots.info }}}}
+        </ful-choice>
         <ful-field-error></ful-field-error>
     `;
     #container;
@@ -26,8 +22,7 @@ class Checkbox extends ParsedElement {
     }
     render({ slots, observed, disabled }) {
         const isSwitch = this.getAttribute('type') === 'switch';
-        const klass = isSwitch ? 'form-check form-switch' : 'form-check';
-        const fragment = this.template().withOverlay({ slots, klass, isSwitch }).render();
+        const fragment = this.template().withOverlay({ slots, isSwitch }).render();
         this.#container = fragment.firstElementChild;
         this.#input = fragment.querySelector('input');
         Attributes.forward('input-', this, this.#input);

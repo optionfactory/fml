@@ -5,6 +5,7 @@ class InputFile extends Input {
     static l10n = {
         en: {
             dropzonelabel: 'Click or drop your files here',
+            remove: 'Remove',
             unacceptablefiletype: 'Only files of type {0} are supported',
             maxfilesizeexceeded: 'Maximum supported file size is {0}',
             maxtotalsizeexceeded: 'Maximum supported total file size is {0}',
@@ -12,6 +13,7 @@ class InputFile extends Input {
         },
         it: {
             dropzonelabel: 'Clicca o trascina i file qui',
+            remove: 'Rimuovi',
             unacceptablefiletype: 'Solo i file di tipo {0} sono supportati',
             maxfilesizeexceeded: 'La dimensione massima di un file è di {0}',
             maxtotalsizeexceeded: 'La dimensione massima complessiva dei file è di {0}',
@@ -19,6 +21,7 @@ class InputFile extends Input {
         },
         es: {
             dropzonelabel: 'Haz clic o arrastra tus archivos aquí',
+            remove: 'Eliminar',
             unacceptablefiletype: 'Solo se admiten archivos de tipo {0}',
             maxfilesizeexceeded: 'El tamaño máximo de archivo admitido es {0}',
             maxtotalsizeexceeded: 'El tamaño total máximo admitido es {0}',
@@ -26,6 +29,7 @@ class InputFile extends Input {
         },
         fr: {
             dropzonelabel: 'Cliquez ou déposez vos fichiers ici',
+            remove: 'Retirer',
             unacceptablefiletype: 'Seuls les fichiers de type {0} sont pris en charge',
             maxfilesizeexceeded: 'La taille maximale de fichier prise en charge est {0}',
             maxtotalsizeexceeded: 'La taille totale maximale prise en charge est {0}',
@@ -53,17 +57,15 @@ class InputFile extends Input {
         return 'file';
     }
     static template = `
-        <div class="form-label">
-            <label>{{{{ slots.default }}}}</label>
-            {{{{ slots.info }}}}
-        </div>
-        <div class="input-group">
-            <span data-tpl-if="slots.ibefore" class="input-group-text">{{{{ slots.ibefore }}}}</span>
+        <label>{{{{ slots.default }}}}</label>
+        {{{{ slots.info }}}}
+        <ful-control-group>
+            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
             {{{{ slots.before }}}}
-            <input class="form-control" data-tpl-type="type" placeholder=" " form="">
+            <input data-tpl-type="type" placeholder=" " form="">
             {{{{ slots.after }}}}
-            <span data-tpl-if="slots.iafter" class="input-group-text">{{{{ slots.iafter }}}}</span>
-        </div>
+            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+        </ful-control-group>
         <div data-ref="dropzone" class="dropzone" data-tpl-if="slots.dropzone">
             {{{{ slots.dropzone }}}}
         </div>
@@ -79,7 +81,7 @@ class InputFile extends Input {
             <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
                 <div>{{ file.name }}</div>
                 <div>{{ #bytes:format(file.size) }}</div>
-                <button type="button" class="btn btn-sm btn-outline-danger bi bi-x-lg" alt="Rimuovi"></button>
+                <button type="button" data-tpl-aria-label="#l10n:t('remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </ful-item>
         `,
         warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`,
@@ -128,9 +130,14 @@ class InputFile extends Input {
 
         this.#dropzone.addEventListener('dragover', (e) => {
             e.preventDefault();
+            this.toggleAttribute('dragover', true);
+        });
+        this.#dropzone.addEventListener('dragleave', () => {
+            this.toggleAttribute('dragover', false);
         });
         this.#dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
+            this.toggleAttribute('dragover', false);
             const dropped = [...e.dataTransfer.items].filter((i) => i.kind === 'file');
             if (dropped.length === 0) {
                 return;

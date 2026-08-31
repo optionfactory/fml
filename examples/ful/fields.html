@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="../../dist/ftl.iife.js"></script>
+    <link href="../../dist/ful.css" rel="stylesheet">
+    <script src="../../dist/httpc.iife.min.js"></script>
+    <script src="../../dist/ful.iife.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 0 auto;
+            padding: 2rem;
+            max-width: 60rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin-top: 2.5rem;
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+            gap: 1rem;
+        }
+
+        button[type='submit'] {
+            align-self: start;
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #007376;
+            border-radius: 0.375rem;
+            color: white;
+            background: #007376;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ful without bootstrap</h1>
+    <p>Every control on this page is styled by dist/ful.css alone: no bootstrap css, no bootstrap js, no icon font.</p>
+
+    <h2>inputs</h2>
+    <ful-form>
+        <ful-input name="plain" required>Plain required</ful-input>
+        <ful-input name="affixed" value="42"><b slot="ibefore">&euro;</b><span slot="iafter">kg</span>With affixes</ful-input>
+        <ful-input name="masked" mask="[^0-9]" value="abc123def">Masked (digits only)</ful-input>
+        <ful-input name="text" type="textarea">Textarea</ful-input>
+        <ful-input name="email" type="email" placeholder="you@example.com">Email</ful-input>
+        <ful-input-local-date name="since" min="-30d" max="now"><span slot="iafter">since</span>Local date with affix</ful-input-local-date>
+        <ful-input-instant name="at"><span slot="ibefore">&#9201;</span>Instant with affix</ful-input-instant>
+        <ful-checkbox name="tos" required>Accept the terms</ful-checkbox>
+        <ful-checkbox name="news" type="switch">Newsletter (switch)</ful-checkbox>
+        <ful-radio-group name="size">
+            <ful-radio value="s">Small</ful-radio>
+            <ful-radio value="m">Medium</ful-radio>
+            <ful-radio value="l">Large</ful-radio>
+        </ful-radio-group>
+        <ful-select name="single">
+            Single select
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+                <option value="gamma">Gamma</option>
+            </select>
+        </ful-select>
+        <ful-select name="tagged">
+            <code slot="ibefore">tag:</code>
+            Single select with affixes
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+            </select>
+            <em slot="iafter">required</em>
+        </ful-select>
+        <ful-select name="multi" multiple itemlist>
+            Multiple select (item list)
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+                <option value="gamma">Gamma</option>
+            </select>
+        </ful-select>
+        <ful-input-file name="docs" multiple itemlist dropzone>Files</ful-input-file>
+        <ful-input-file name="avatar">
+            <span slot="ibefore">&#128100;</span>
+            File with affix
+        </ful-input-file>
+        <button type="submit">Submit</button>
+    </ful-form>
+
+    <h2>errors</h2>
+    <p>Field problems render under their control, anything else lands in the <code>ful-errors</code> summary. Typing clears the field error again.</p>
+    <ful-form id="errors-demo" clear-invalid-on-change>
+        <ful-errors hidden></ful-errors>
+        <ful-input name="username"><span slot="ibefore">&#128100;</span>Username</ful-input>
+        <ful-input name="email" type="email"><code slot="ibefore">@</code><span slot="iafter">required</span>Email</ful-input>
+        <ful-select name="role">
+            <span slot="ibefore">&#128736;</span>
+            Role
+            <select slot="options">
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+            </select>
+            <em slot="iafter">pick one</em>
+        </ful-select>
+        <ful-checkbox name="tos">Accept the terms</ful-checkbox>
+        <button type="submit">Validate</button>
+    </ful-form>
+
+    <h2>filters</h2>
+    <p>The operator menus are native popovers: light dismiss, escape and toggle come from the platform.</p>
+    <ful-form>
+        <ful-filter-text name="q">Text</ful-filter-text>
+        <ful-filter-local-date name="when">Date</ful-filter-local-date>
+        <ful-filter-instant name="at">Instant</ful-filter-instant>
+        <button type="submit">Apply</button>
+    </ful-form>
+
+    <h2>table</h2>
+    <ful-table loader="loaders:mock-data" autoload page-size="5">
+        <template slot="schema">
+            <schema>
+                <column sorter order="asc">
+                    <title>Name</title>
+                    {{ self.name }}
+                </column>
+                <column>
+                    <title>Value</title>
+                    {{ self.value }}
+                </column>
+            </schema>
+        </template>
+    </ful-table>
+
+    <script>
+        class MockDataLoader {
+            #mockdata = Array.from({ length: 21 }, (_, i) => ({ name: `row ${i}`, value: i * 3 }));
+            async load(pageRequest, sortRequest) {
+                const sorted = [...this.#mockdata];
+                if (sortRequest) {
+                    sorted.sort((a, b) => (a[sortRequest.sorter] > b[sortRequest.sorter] ? 1 : -1) * (sortRequest.order === 'asc' ? 1 : -1));
+                }
+                return {
+                    size: this.#mockdata.length,
+                    data: sorted.slice(pageRequest.size * pageRequest.page, pageRequest.size * (pageRequest.page + 1)),
+                };
+            }
+            static create() {
+                return new MockDataLoader();
+            }
+        }
+
+        ftl.registry
+            .plugin(new ful.Plugin())
+            .defineComponent('loaders:mock-data', MockDataLoader)
+            .configure();
+
+        document.getElementById('errors-demo').addEventListener('submit:success', (e) => {
+            e.target.errors = [
+                { type: 'FIELD_ERROR', context: 'username', reason: 'already taken' },
+                { type: 'FIELD_ERROR', context: 'email', reason: 'not a valid address' },
+                { type: 'FIELD_ERROR', context: 'role', reason: 'pick one' },
+                { type: 'FIELD_ERROR', context: 'tos', reason: 'the terms must be accepted' },
+                { type: 'GENERIC', context: null, reason: 'The server rejected the submission (demo).' },
+            ];
+        });
+    </script>
+</body>
+
+</html>

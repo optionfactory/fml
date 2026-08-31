@@ -257,24 +257,25 @@ class Dropdown extends ParsedElement {
 class Select extends ParsedElement {
     static observed = ['value:csvm', 'readonly:presence', 'required:presence', 'itemlist:presence'];
     static slots = true;
+    static l10n = {
+        en: { remove: 'Remove' },
+        it: { remove: 'Rimuovi' },
+        es: { remove: 'Eliminar' },
+        fr: { remove: 'Retirer' },
+    };
     static template = `
-        <div class="form-label">
-            <label>{{{{ slots.default }}}}</label>
-            {{{{ slots.info }}}}
-        </div>
-        <div class="input-group flex-nowrap" tabindex="-1">
-            <span data-tpl-if="slots.ibefore" class="input-group-text">{{{{ slots.ibefore }}}}</span>
+        <label>{{{{ slots.default }}}}</label>
+        {{{{ slots.info }}}}
+        <ful-control-group>
+            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
             {{{{ slots.before }}}}
-            <div class="ful-select-input-container">
-                <div class="ful-select-input">
-                    <badges></badges>
-                    <input type="text" form="" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
-                </div>
-                <ful-dropdown hidden popover="manual">{{{{ slots.dropdown }}}}</ful-dropdown>
-            </div>
+            <ful-control>
+                <input type="text" form="" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
+            </ful-control>
             {{{{ slots.after }}}}
-            <span data-tpl-if="slots.iafter" class="input-group-text">{{{{ slots.iafter }}}}</span>
-        </div>
+            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+            <ful-dropdown hidden popover="manual">{{{{ slots.dropdown }}}}</ful-dropdown>
+        </ful-control-group>
         <ful-item-list></ful-item-list>
         <ful-field-error></ful-field-error>
     `;
@@ -282,14 +283,14 @@ class Select extends ParsedElement {
         items: `
             <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
                 <div>{{ entry[1][0] }}</div>
-                <button type="button" class="btn btn-sm btn-outline-danger bi bi-x-lg"></button>
+                <button type="button" data-tpl-aria-label="#l10n:t('remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </ful-item>
         `,
     };
     static formAssociated = true;
     internals;
     #loader;
-    #badges;
+    #control;
     #ddmenu;
     #input;
     #items;
@@ -318,7 +319,7 @@ class Select extends ParsedElement {
         this.#input = fragment.querySelector('input');
         this.#items = fragment.querySelector('ful-item-list');
         Attributes.forward('input-', this, this.#input);
-        this.#badges = fragment.querySelector('badges');
+        this.#control = fragment.querySelector('ful-control');
 
         this.value = observed.value;
         this.disabled = disabled;
@@ -369,12 +370,15 @@ class Select extends ParsedElement {
             this.#changed();
             this.#syncBadges();
         });
-        this.#badges.addEventListener('click', (e) => {
+        this.#control.addEventListener('click', (e) => {
+            if (!e.target.matches('ful-badge')) {
+                return;
+            }
             e.stopPropagation();
             if (this.matches(':disabled') || this.readonly) {
                 return;
             }
-            const idx = [...this.#badges.children].indexOf(e.target);
+            const idx = [...this.#control.querySelectorAll(':scope > ful-badge')].indexOf(e.target);
             if (idx === -1) {
                 return;
             }
@@ -499,14 +503,16 @@ class Select extends ParsedElement {
     }
     #syncBadges() {
         const badges = Array.from(this.#values.entries()).map(([k, v]) => {
-            const b = document.createElement('badge');
+            const b = document.createElement('ful-badge');
             b.setAttribute('role', 'button');
             b.setAttribute('value', k);
             b.innerText = v[0];
             return b;
         });
-        this.#badges.replaceChildren();
-        this.#badges.append(...badges);
+        for (const b of this.#control.querySelectorAll(':scope > ful-badge')) {
+            b.remove();
+        }
+        this.#input.before(...badges);
         this.#items.replaceChildren();
         this.template('items').withOverlay({ entries: this.#values.entries() }).renderTo(this.#items);
     }

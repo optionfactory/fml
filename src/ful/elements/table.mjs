@@ -66,28 +66,28 @@ class Pagination extends ParsedElement {
         },
     };
     static config = {
-        prevIcon: 'bi bi-chevron-left',
-        nextIcon: 'bi bi-chevron-right',
-        reloadIcon: 'bi bi-arrow-clockwise',
+        prevIcon: 'chevron-left',
+        nextIcon: 'chevron-right',
+        reloadIcon: 'arrow-clockwise',
     };
     static template = `
-        <nav data-tpl-aria-label="#l10n:t('navigation')" class="user-select-none">
-            <ul class="pagination">
-                <li class="page-item ms-auto me-2 pagination-index"> {{ #l10n:t('showing', curr.label, total) }}</li>
-                <li class="page-item me-2 reload"><a role="button"><i data-tpl-class="config.reloadIcon"></i></a></li>
-                <li class="page-item prev">
-                    <a data-tpl-class="prev.enabled?'page-link':'page-link disabled'" data-tpl-aria-label="#l10n:t('previous')" role="button" data-tpl-data-page="prev.index">
-                        <i aria-hidden="true" data-tpl-class="config.prevIcon"></i>
+        <nav data-tpl-aria-label="#l10n:t('navigation')">
+            <ul>
+                <li data-ref="index"> {{ #l10n:t('showing', curr.label, total) }}</li>
+                <li data-ref="reload"><a role="button"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></a></li>
+                <li data-ref="prev">
+                    <a data-tpl-disabled="prev.enabled ? false : true" data-tpl-aria-label="#l10n:t('previous')" role="button" data-tpl-data-page="prev.index">
+                        <ful-icon data-tpl-name="config.prevIcon" aria-hidden="true"></ful-icon>
                     </a>
                 </li>
-                <li class="page-item" data-tpl-each="pages" data-tpl-var="page">
-                    <a data-tpl-class="curr.index != page.index ? 'page-link': 'page-link disabled'" role="button" data-tpl-data-page="page.index" >
+                <li data-ref="page" data-tpl-each="pages" data-tpl-var="page">
+                    <a data-tpl-disabled="curr.index != page.index ? false : true" role="button" data-tpl-data-page="page.index" >
                         {{ page.label }}
                     </a>
                 </li>
-                <li class="page-item next">
-                    <a data-tpl-class="next.enabled?'page-link':'page-link disabled'" data-tpl-aria-label="#l10n:t('next')" role="button" data-tpl-data-page="next.index">
-                        <i aria-hidden="true" data-tpl-class="config.nextIcon"></i>
+                <li data-ref="next">
+                    <a data-tpl-disabled="next.enabled ? false : true" data-tpl-aria-label="#l10n:t('next')" role="button" data-tpl-data-page="next.index">
+                        <ful-icon data-tpl-name="config.nextIcon" aria-hidden="true"></ful-icon>
                     </a>
                 </li>
             </ul>
@@ -100,7 +100,7 @@ class Pagination extends ParsedElement {
         this.current = observed.current ?? 0;
         this.addEventListener('click', (/** @type any */ evt) => {
             const el = evt.target.closest('a');
-            if (!el || el.classList.contains('disabled')) {
+            if (!el || el.hasAttribute('disabled')) {
                 //a disabled link leads nowhere: the page it would ask for does not exist
                 return;
             }
@@ -300,14 +300,14 @@ class Table extends ParsedElement {
         },
     };
     static config = {
-        searchIcon: 'bi bi-search',
+        searchIcon: 'search',
     };
     static template = `
         <ful-form data-tpl-if="slots.filters">
             {{{{ slots.filters }}}}
         </ful-form>
         <div class="table-wrapper">
-            <table class="table">
+            <table>
                 <caption data-tpl-if="slots.caption">{{{{ slots.caption }}}}</caption>
                 <thead></thead>
                 <tbody></tbody>
@@ -315,7 +315,7 @@ class Table extends ParsedElement {
                     <tr>
                         <td data-tpl-colspan="schema.length">
                             <div>
-                                <p data-tpl-if="config.searchIcon"><i data-tpl-class="config.searchIcon"></i></p>
+                                <p data-tpl-if="config.searchIcon"><ful-icon data-tpl-name="config.searchIcon" aria-hidden="true"></ful-icon></p>
                                 {{{ #l10n:t('initial') }}}
                             </div>
                         </td>
@@ -331,7 +331,7 @@ class Table extends ParsedElement {
                 <tbody data-ref="feedback" hidden>
                     <tr>
                         <td data-tpl-colspan="schema.length">
-                            <div class="alert alert-danger">
+                            <div>
                                 <p>{{ #l10n:t('error') }}</p>
                                 <div data-ref="feedback-error"></div>
                             </div>
@@ -348,7 +348,7 @@ class Table extends ParsedElement {
     static templates = {
         row: `
             <tr data-tpl-if="pageResponse.data.length == 0">
-                <td data-tpl-colspan="schema.length" class="text-center align-middle p-4">
+                <td data-tpl-colspan="schema.length">
                     {{ #l10n:t('nodata') }}
                 </td>
             </tr>

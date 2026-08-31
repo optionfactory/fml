@@ -5,7 +5,7 @@ class RadioGroup extends ParsedElement {
     static slots = true;
     static template = `
         <fieldset>
-            <legend class="form-label">
+            <legend>
                 {{{{ slots.default }}}}
             </legend>
             <header data-tpl-if="slots.header">
