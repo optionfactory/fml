@@ -1,5 +1,8 @@
 ### version 8.0.2
 
+- [ENH] `ful-select` declares the type of its keys with `k-type`: `string` (the default, like every other control), `number` or `boolean`. A key that does not decode is kept as it is. Unlike 8.0.0, which leaked whatever the endpoint carried into `value`, `change` and the submitted payload, typed keys are now an explicit opt in
+- [BUG] `ful-select` keeps its selection when the endpoint carries typed keys: a `value="16"` assignment used to be dropped as soon as the loader answered with the numeric `16`, the internal lookup comparing strictly what the loaders match loosely. Keys are coerced to one canonical type at every entry point, an option picked from the dropdown included
+
 - [BUG] a `ful-input`, `ful-checkbox`, `ful-select`, `ful-radio-group` or `ful-filter-*` inside a re-enabled `<fieldset>` follows it back to enabled. The form disabled state no longer puts the attribute on the host, which used to make the element disabled on its own: the platform only delivers `formDisabledCallback(false)` on an actual state change, so the element stayed disabled for good. A field disabled on its own while the fieldset was disabled still stays disabled
 - [BUG] a component that throws while upgrading no longer keeps `ftl:ready` from firing for the whole page. The failure still reaches the console and the global error reporter as before, it just does not hold back everything else
 - [ENH] the package ships IDE metadata for its custom elements: a custom elements manifest, web-types for the JetBrains IDEs and custom data for VS Code, so tags, attributes, slots and events complete in a template

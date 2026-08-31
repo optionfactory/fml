@@ -417,6 +417,111 @@ describe('Select value assignment', () => {
 
 });
 
+describe('Select key types', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+    };
+    const filtering = (data) => ({
+        prefetch: async () => { },
+        load: async () => data,
+        exact: async (...keys) => data.filter(([k]) => keys.some((r) => r == k)),
+    });
+    const numeric = () => filtering([[16, 'Label 16'], [17, 'Label 17']]);
+    const booleany = () => filtering([[true, 'Yes'], [false, 'No']]);
+    const echoing = () => ({
+        prefetch: async () => { },
+        load: async () => [],
+        exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+    });
+    const mount = async (html, loader) => {
+        registry.defineComponent('loaders:select', { create: () => loader });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+
+    it('keeps a string assignment selected when the loader keys are numbers', async () => {
+        const [selectEl, container] = await mount(`<ful-select value="16"></ful-select>`, numeric());
+
+        assert.strictEqual(selectEl.value, '16');
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        container.remove();
+    });
+
+    it('coerces a javascript assignment of a number to a string key', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, numeric());
+
+        selectEl.value = 16;
+        await settle();
+
+        assert.strictEqual(selectEl.value, '16');
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        container.remove();
+    });
+
+    it('exposes number keys when k-type is number', async () => {
+        const [selectEl, container] = await mount(`<ful-select k-type="number" value="16"></ful-select>`, numeric());
+
+        assert.strictEqual(selectEl.value, 16);
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        assert.deepStrictEqual(selectEl.entry, [16, ['Label 16']]);
+        container.remove();
+    });
+
+    it('coerces every key of a multiple assignment', async () => {
+        const [selectEl, container] = await mount(`<ful-select k-type="number" multiple value="16,17"></ful-select>`, numeric());
+
+        assert.deepStrictEqual(selectEl.value, [16, 17]);
+        container.remove();
+    });
+
+    it('exposes boolean keys when k-type is boolean', async () => {
+        const [selectEl, container] = await mount(`<ful-select k-type="boolean" value="true"></ful-select>`, booleany());
+
+        assert.strictEqual(selectEl.value, true);
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Yes');
+        container.remove();
+    });
+
+    it('keeps a key that does not decode as it is', async () => {
+        const [selectEl, container] = await mount(`<ful-select k-type="number" value="abc"></ful-select>`, echoing());
+
+        assert.strictEqual(selectEl.value, 'abc');
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label abc');
+        container.remove();
+    });
+
+    it('reports an option picked from the dropdown as a string by default', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, numeric());
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
+
+        assert.strictEqual(selectEl.value, '16');
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        container.remove();
+    });
+
+    it('coerces an option picked from the dropdown when k-type is number', async () => {
+        const [selectEl, container] = await mount(`<ful-select k-type="number"></ful-select>`, numeric());
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
+
+        assert.strictEqual(selectEl.value, 16);
+        assert.strictEqual(selectEl.querySelector('badge').innerText, 'Label 16');
+        container.remove();
+    });
+});
+
 describe('Select enter key inside a form', () => {
     let submits = [];
     const settle = async () => {

@@ -457,7 +457,7 @@ class Select extends ParsedElement {
             if (!this.#multiple) {
                 this.#values.clear();
             }
-            this.#values.set(e.detail.data[0], e.detail.data.slice(1));
+            this.#values.set(this.#coerceKey(e.detail.data[0]), e.detail.data.slice(1));
             this.#changed();
             this.#syncBadges();
             this.#input.focus();
@@ -508,10 +508,36 @@ class Select extends ParsedElement {
         this.#items.replaceChildren();
         this.template('items').withOverlay({ entries: this.#values.entries() }).renderTo(this.#items);
     }
+    /**
+     * Coerces a key to the type declared by `k-type`. Keys reach the element from
+     * both worlds: the `value` attribute is text, a loader returns whatever its
+     * endpoint carries. One canonical type keeps the internal Map, which compares
+     * keys strictly, consistent. A key that does not decode is left as it is.
+     */
+    #coerceKey(k) {
+        switch (this.getAttribute('k-type')) {
+            case 'number': {
+                const n = k === '' ? Number.NaN : Number(k);
+                return Number.isNaN(n) ? k : n;
+            }
+            case 'boolean': {
+                if (k === true || k === 'true') {
+                    return true;
+                }
+                if (k === false || k === 'false') {
+                    return false;
+                }
+                return k;
+            }
+            default:
+                return String(k);
+        }
+    }
+
     set value(vs) {
         //the csvm mapper yields [] for a missing multiple value, an empty string is
         //left alone: it is a usable key for an <option value="">
-        const keys = vs == null ? [] : Array.isArray(vs) ? vs : [vs];
+        const keys = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
         //the keys are known synchronously and are all `value` reads, so they are applied
         //now: only the labels need the loader, until then a key stands in for its own
         this.#values = new Map(keys.map((k) => [k, [k]]));
@@ -534,7 +560,8 @@ class Select extends ParsedElement {
         }
         //label the keys that are still selected: a removal made while the lookup was in
         //flight must not be undone by it, and a key the loader does not know is dropped
-        const resolved = new Map(entries.map((e) => [e[0], e.slice(1)]));
+        //the loader keys are coerced too, so they line up with the assigned ones
+        const resolved = new Map(entries.map((e) => [this.#coerceKey(e[0]), e.slice(1)]));
         for (const key of keys) {
             if (!this.#values.has(key)) {
                 continue;
