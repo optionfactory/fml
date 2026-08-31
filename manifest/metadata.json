@@ -35,19 +35,19 @@
             }
         },
         "ful-checkbox": {
-            "description": "A checkbox, or a switch with type=\"switch\".",
+            "description": "A checkbox, or a switch with type=\"switch\". Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": { "value": "Checked when the attribute is the string true." },
             "slots": {},
             "events": { "change": "Fired with the new checked state when the box or its label is clicked." }
         },
         "ful-input": {
-            "description": "A labelled text input. Use type to pick any native input type, or textarea.",
+            "description": "A labelled text input. Use type to pick any native input type, or textarea. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {},
             "slots": {},
             "events": { "change": "Fired with the current value when the field is committed." }
         },
         "ful-input-file": {
-            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares.",
+            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
                 "accept": "Comma separated list of accepted extensions. Files that do not match are dropped with a warning.",
@@ -74,7 +74,7 @@
             "events": []
         },
         "ful-input-local-date": {
-            "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y.",
+            "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "min": "Earliest selectable date. Accepts a date, now, or a day, month or year offset.",
                 "max": "Latest selectable date. Accepts a date, now, or a day, month or year offset.",
@@ -84,7 +84,7 @@
             "events": { "change": "Fired with the current date." }
         },
         "ful-input-local-time": {
-            "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid.",
+            "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "min": "Earliest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
                 "max": "Latest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
@@ -94,7 +94,7 @@
             "events": { "change": "Fired with the current time." }
         },
         "ful-input-instant": {
-            "description": "A datetime input whose value is read and written as an ISO instant.",
+            "description": "A datetime input whose value is read and written as an ISO instant. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "min": "Earliest selectable instant, as an ISO instant.",
                 "max": "Latest selectable instant, as an ISO instant.",
@@ -104,7 +104,7 @@
             "events": { "change": "Fired with the current instant." }
         },
         "ful-radio-group": {
-            "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean.",
+            "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": { "value": "The value of the selected radio." },
             "slots": {
                 "default": "The legend of the group, and its ful-radio children.",
@@ -139,25 +139,25 @@
             "events": { "sort-requested": "Fired with the sorter and the next order when clicked." }
         },
         "ful-filter-instant": {
-            "description": "A ful-table filter over an instant, with an operator and one or two bounds.",
+            "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": { "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to]." },
             "slots": {},
             "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
         },
         "ful-filter-local-date": {
-            "description": "A ful-table filter over a date, with an operator and one or two bounds.",
+            "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": { "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to]." },
             "slots": {},
             "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
         },
         "ful-filter-text": {
-            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH.",
+            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": { "value": "JSON tuple of the operator, the sensitivity and the text." },
             "slots": {},
             "events": { "change": "Fired with the whole tuple, or undefined when the filter is empty." }
         },
         "ful-select": {
-            "description": "A combobox backed by a loader, with badges for the current selection.",
+            "description": "A combobox backed by a loader, with badges for the current selection. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "The selected key, or a comma separated list of keys when multiple.",
                 "itemlist": "Shows the selection as a list under the control as well as badges.",

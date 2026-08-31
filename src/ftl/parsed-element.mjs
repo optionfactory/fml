@@ -62,27 +62,30 @@ class ParsedElement extends HTMLElement {
         }
         this[attr] = this.unmarshal(attr, newValue);
     }
-    #disabledBeforeParsed = null;
-    formDisabledCallback(disabled) {
-        if (!this.#parsed) {
-            this.#disabledBeforeParsed = disabled;
-            return;
-        }
-        Reflect.set(this, 'disabled', disabled);
-        if (disabled) {
-            this.#unclaimFormDisabled();
-        }
-    }
-    //a disabled ancestor fieldset already matches the element through :disabled, and
-    //an attribute of its own would keep the element disabled once the fieldset is
-    //re-enabled, as formDisabledCallback(false) is only delivered on an actual state
-    //change. a claim of its own made while already disabled by ancestry is safe: the
-    //platform fires no callback for it, so it survives the fieldset being re-enabled
-    #unclaimFormDisabled() {
-        if (this.closest('fieldset:disabled')) {
-            this.removeAttribute('disabled');
-        }
-    }
+    /**
+     * The disabled protocol follows the semantics of a native form control:
+     *
+     * - the `disabled` attribute on the host is the field's own claim, and nothing
+     *   but its author ever writes or removes it, in markup or through the property.
+     *   The framework never claims on the form's behalf, so there is nothing to
+     *   unclaim and nothing to lose: a field declared disabled inside a disabled
+     *   `<fieldset>` stays disabled when the fieldset comes back, exactly like a
+     *   native input keeps its attribute.
+     * - the effective state is the claim OR a disabled fieldset ancestry, which the
+     *   platform maintains on its own: `:disabled` matches both, a disabled field is
+     *   left out of the submitted values, and the inner native controls are reached
+     *   by the ancestry as descendants of the fieldset.
+     * - the `disabled` property reflects the claim only, like a native input's: a
+     *   field disabled by its ancestry reads `false` while `matches(':disabled')`
+     *   tells the effective state. Un-claiming inside a disabled fieldset cannot
+     *   enable the field.
+     * - the inner controls mirror the claim and nothing else: the ancestry state is
+     *   never written anywhere, so it can never go stale, and the browser composes
+     *   the two on its own when it disables and re-enables a fieldset's descendants.
+     *
+     * Because of this, formDisabledCallback carries nothing the framework needs to
+     * apply, and the protocol does not define it.
+     */
     async upgrade() {
         if (this.#parsed) {
             return;
@@ -95,11 +98,9 @@ class ParsedElement extends HTMLElement {
                 this.unmarshal(attribute, this.getAttribute(attribute)),
             ]),
         );
-        const disabled = this.#disabledBeforeParsed ?? false;
-        await this.render({ slots, observed, disabled });
-        if (disabled) {
-            this.#unclaimFormDisabled();
-        }
+        //the declared claim is what render receives: the ancestry state is not
+        //passed around, it is already where it needs to be
+        await this.render({ slots, observed, disabled: this.hasAttribute('disabled') });
     }
     render(c) {}
     reflect(fn) {

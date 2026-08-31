@@ -340,7 +340,9 @@ class Select extends ParsedElement {
             if (e.target.matches('input')) {
                 return;
             }
-            if (this.disabled || this.readonly) {
+            //badges and other chrome are not form controls, the guard must ask the
+            //effective state
+            if (this.matches(':disabled') || this.readonly) {
                 return;
             }
             if (this.#ddmenu.shown) {
@@ -356,7 +358,7 @@ class Select extends ParsedElement {
             if (!e.target.closest('button')) {
                 return;
             }
-            if (this.disabled || this.readonly) {
+            if (this.matches(':disabled') || this.readonly) {
                 return;
             }
             const idx = [...this.#items.children].indexOf(e.target.closest('ful-item'));
@@ -369,7 +371,7 @@ class Select extends ParsedElement {
         });
         this.#badges.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (this.disabled || this.readonly) {
+            if (this.matches(':disabled') || this.readonly) {
                 return;
             }
             const idx = [...this.#badges.children].indexOf(e.target);
@@ -394,7 +396,7 @@ class Select extends ParsedElement {
             this.#input.value = '';
         });
         this.#input.addEventListener('keydown', (e) => {
-            if (this.disabled || this.readonly) {
+            if (this.matches(':disabled') || this.readonly) {
                 return;
             }
             switch (e.code) {
@@ -447,7 +449,7 @@ class Select extends ParsedElement {
         });
         this.#input.addEventListener('input', (e) => {
             e.stopPropagation();
-            if (this.disabled || this.readonly) {
+            if (this.matches(':disabled') || this.readonly) {
                 return;
             }
             dload();
@@ -587,15 +589,17 @@ class Select extends ParsedElement {
         return [...this.#values.entries()][0] ?? null;
     }
     get disabled() {
-        return this.#input.hasAttribute('disabled');
+        //the claim only, like a native input: the effective state, claim or disabled
+        //ancestry, is what :disabled matches
+        return this.hasAttribute('disabled');
     }
     set disabled(d) {
-        Attributes.toggle(this.#input, 'disabled', d);
-        //also on the host: a form associated element only matches :disabled through its
-        //own attribute, and that is what keeps it out of the submitted values. no reflect
-        //is needed, disabled is deliberately not observed: the platform delivers it
-        //through formDisabledCallback, which also covers a disabled ancestor fieldset
+        //the claim belongs to the author alone, nothing else ever writes it
         Attributes.toggle(this, 'disabled', d);
+        //the inner control carries the claim as a native input would: a disabled
+        //fieldset ancestry is left to the browser, which reaches the inner control
+        //as a descendant of the fieldset and re-enables it on its own
+        Attributes.toggle(this.#input, 'disabled', d);
     }
     get readonly() {
         return this.#input.readOnly;

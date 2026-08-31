@@ -123,15 +123,17 @@ class Input extends ParsedElement {
         });
     }
     get disabled() {
-        return this._input.hasAttribute('disabled');
+        //the claim only, like a native input: the effective state, claim or disabled
+        //ancestry, is what :disabled matches
+        return this.hasAttribute('disabled');
     }
     set disabled(d) {
-        Attributes.toggle(this._input, 'disabled', d);
-        //also on the host: a form associated element only matches :disabled through its
-        //own attribute, and that is what keeps it out of the submitted values. no reflect
-        //is needed, disabled is deliberately not observed: the platform delivers it
-        //through formDisabledCallback, which also covers a disabled ancestor fieldset
+        //the claim belongs to the author alone, nothing else ever writes it
         Attributes.toggle(this, 'disabled', d);
+        //the inner control carries the claim as a native input would: a disabled
+        //fieldset ancestry is left to the browser, which reaches the inner control
+        //as a descendant of the fieldset and re-enables it on its own
+        Attributes.toggle(this._input, 'disabled', d);
     }
     get required() {
         return this._input.getAttribute('aria-required') === 'true';

@@ -86,7 +86,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
         expect(unmarshalFired).to.be.false;
     });
 
-    it('manages form disabled states before and after element upgrade cycles', async () => {
+    it('hands the declared disabled claim to render, the property reflects it', async () => {
         let renderArgs = null;
         class FormDisabledEl extends ParsedElement {
             render(c) { renderArgs = c; }
@@ -96,16 +96,16 @@ describe('ParsedElement Web Component Lifecycle', () => {
         registry.configure();
 
         const el = document.createElement('form-disabled-el');
-
-        el.formDisabledCallback(true);
-
+        el.setAttribute('disabled', '');
         container.appendChild(el);
         await registry.upgrades.next()?.value;
 
         expect(renderArgs.disabled).to.be.true;
+        expect(el.hasAttribute('disabled')).to.be.true;
 
-        el.formDisabledCallback(false);
-        expect(el.disabled).to.be.false;
+        el.removeAttribute('disabled');
+        //the claim was read once at upgrade, as declared
+        expect(renderArgs.disabled).to.be.true;
     });
 
     it('leverages atomic reflection context locks safely', () => {

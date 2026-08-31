@@ -187,7 +187,8 @@ describe('RadioGroup state', () => {
         const container = await mount(`<form><fieldset disabled>${GROUP}</fieldset></form>`);
         const group = container.querySelector('ful-radio-group');
 
-        assert.isTrue(group.disabled, 'the form disabled state reaches the group before its first render');
+        assert.isFalse(group.disabled, 'the property reflects the claim only, like a native input');
+        assert.isTrue(group.matches(':disabled'), 'the ancestry is honored through :disabled');
         assert.isTrue(Array.from(group.querySelectorAll('input[type=radio]')).every((i) => i.matches(':disabled')));
         container.remove();
     });

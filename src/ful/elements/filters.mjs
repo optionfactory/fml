@@ -113,8 +113,10 @@ class InstantFilter extends Input {
         return super.disabled;
     }
     set disabled(d) {
-        Attributes.toggle(this.#value2, 'disabled', d);
+        //the claim and the first operand are the base's, the second operand mirrors
+        //the claim like the first one does
         super.disabled = d;
+        Attributes.toggle(this.#value2, 'disabled', d);
     }
 }
 
@@ -229,8 +231,10 @@ class LocalDateFilter extends Input {
         return super.disabled;
     }
     set disabled(d) {
-        Attributes.toggle(this.#value2, 'disabled', d);
+        //the claim and the first operand are the base's, the second operand mirrors
+        //the claim like the first one does
         super.disabled = d;
+        Attributes.toggle(this.#value2, 'disabled', d);
     }
 }
 
