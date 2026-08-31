@@ -69,6 +69,19 @@ class ParsedElement extends HTMLElement {
             return;
         }
         Reflect.set(this, 'disabled', disabled);
+        if (disabled) {
+            this.#unclaimFormDisabled();
+        }
+    }
+    //a disabled ancestor fieldset already matches the element through :disabled, and
+    //an attribute of its own would keep the element disabled once the fieldset is
+    //re-enabled, as formDisabledCallback(false) is only delivered on an actual state
+    //change. a claim of its own made while already disabled by ancestry is safe: the
+    //platform fires no callback for it, so it survives the fieldset being re-enabled
+    #unclaimFormDisabled() {
+        if (this.closest('fieldset:disabled')) {
+            this.removeAttribute('disabled');
+        }
     }
     async upgrade() {
         if (this.#parsed) {
@@ -84,6 +97,9 @@ class ParsedElement extends HTMLElement {
         );
         const disabled = this.#disabledBeforeParsed ?? false;
         await this.render({ slots, observed, disabled });
+        if (disabled) {
+            this.#unclaimFormDisabled();
+        }
     }
     render(c) {}
     reflect(fn) {
