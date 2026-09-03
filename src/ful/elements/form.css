@@ -194,6 +194,11 @@ ful-badge:hover {
     background-color: var(--ful-disabled-bg);
 }
 
+ful-badge:focus-visible {
+    border-color: var(--ful-focus-border-color);
+    outline: 0;
+}
+
 ful-choice {
     display: flex;
     flex-wrap: wrap;

@@ -40,6 +40,10 @@ ful-filter-local-date {
             outline: 0;
         }
 
+        & > button[data-ref='operator']:focus-visible {
+            background-color: color-mix(in srgb, var(--ful-active-bg) 20%, transparent);
+        }
+
         & > ul[popover] {
             position-anchor: --ful-filter-operator;
             top: anchor(bottom);
