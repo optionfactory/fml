@@ -43,6 +43,7 @@ ful-filter-local-date {
         & > ul[popover] {
             position-anchor: --ful-filter-operator;
             top: anchor(bottom);
+            left: anchor(left);
             margin: 0.3rem 0 0;
             min-width: 6rem;
             padding: 0.5rem 0;

@@ -292,6 +292,20 @@ describe('Filter operator keyboard access', () => {
         container.remove();
     });
 
+    it('anchors the menu under its operator button', async () => {
+        const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+        button.click();
+        await settle();
+
+        const menu = el.querySelector('ul[popover]');
+        const b = button.getBoundingClientRect();
+        const m = menu.getBoundingClientRect();
+        assert.closeTo(m.left, b.left, 1, 'the menu follows its anchor horizontally');
+        assert.isAtLeast(m.top, b.bottom, 'the menu sits below its anchor');
+        container.remove();
+    });
+
     it('wraps the arrow navigation at the ends', async () => {
         const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
         const button = el.querySelector('[data-ref=operator]');
