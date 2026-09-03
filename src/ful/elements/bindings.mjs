@@ -125,12 +125,19 @@ class Bindings {
     }
 
     static errors(form, es, scrollOnError) {
+        //focus management announces the error of the field it lands on through
+        //aria-describedby: a live region on top of that would read everything twice,
+        //so the polite announcement exists only when nothing takes the focus
+        form.querySelectorAll('ful-field-error').forEach((el) => {
+            el.setAttribute('aria-live', scrollOnError ? 'off' : 'polite');
+        });
         const fieldErrors = es.filter((e) => e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT');
         const globalErrors = es.filter((e) => e.type !== 'FIELD_ERROR' && e.type !== 'INVALID_FORMAT');
         form.querySelectorAll(`[name]`).forEach((el) => {
             el.setCustomValidity?.('');
         });
         form.querySelectorAll('ful-errors').forEach((el) => {
+            el.setAttribute('role', 'alert');
             el.replaceChildren();
             el.setAttribute('hidden', '');
         });

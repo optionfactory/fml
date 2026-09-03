@@ -24,7 +24,7 @@
             "events": []
         },
         "ful-form": {
-            "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to a loader on submit.",
+            "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to a loader on submit. Validation errors are announced politely without focus, or exactly once through focus management with scroll-on-error; global errors land in an author-provided ful-errors element, announced as an alert.",
             "attributes": {},
             "slots": {},
             "events": {

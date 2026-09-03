@@ -216,7 +216,7 @@ describe('Bindings', () => {
     });
 
     describe('errors', () => {
-        let form, inputName, inputAge, customEl, fulErrors;
+        let form, inputName, inputAge, customEl, fulErrors, fieldError;
 
         beforeEach(() => {
             form = document.createElement('form');
@@ -233,7 +233,9 @@ describe('Bindings', () => {
 
             fulErrors = document.createElement('ful-errors');
 
-            form.append(inputName, inputAge, customEl, fulErrors);
+            fieldError = document.createElement('ful-field-error');
+
+            form.append(inputName, inputAge, customEl, fulErrors, fieldError);
 
             inputName.getBoundingClientRect = () => ({ y: 50 });
             inputAge.getBoundingClientRect = () => ({ y: 20 });
@@ -268,6 +270,7 @@ describe('Bindings', () => {
             expect(inputAge.validationMessage).to.equal('Must be a number');
 
             expect(document.activeElement).to.equal(inputAge);
+            expect(fieldError.getAttribute('aria-live')).to.equal('off', 'the focus announces the error, a live region would repeat it');
         });
 
         it('maps global errors to ful-errors container and shows it', () => {
@@ -281,6 +284,28 @@ describe('Bindings', () => {
             expect(fulErrors.hasAttribute('hidden')).to.be.false;
             expect(fulErrors.innerText).to.include('Something went terribly wrong');
             expect(fulErrors.innerText).to.include('Server unavailable');
+        });
+
+        it('announces politely when nothing takes the focus, loudly for global errors', () => {
+            const errs = [
+                { type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Invalid name' },
+                { type: 'GLOBAL', context: '', reason: 'Server unavailable' },
+            ];
+
+            Bindings.errors(form, errs, false);
+
+            expect(fieldError.getAttribute('aria-live')).to.equal('polite', 'field errors are announced without focus');
+            expect(fulErrors.getAttribute('role')).to.equal('alert', 'the global banner announces on its own');
+        });
+
+        it('keeps the alert role while clearing', () => {
+            fulErrors.setAttribute('role', 'alert');
+            fulErrors.innerText = 'old';
+
+            Bindings.errors(form, [], false);
+
+            expect(fulErrors.getAttribute('role')).to.equal('alert');
+            expect(fieldError.getAttribute('aria-live')).to.equal('polite');
         });
 
         it('does not focus anything if scrollOnError is false', () => {
