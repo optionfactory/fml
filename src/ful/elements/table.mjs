@@ -63,24 +63,28 @@ class Pagination extends ParsedElement {
             navigation: 'Page navigation',
             previous: 'Previous',
             next: 'Next',
+            reload: 'Reload',
         },
         it: {
             showing: 'Pagina {0} di {1}',
             navigation: 'Navigazione pagine',
             previous: 'Precedente',
             next: 'Successivo',
+            reload: 'Ricarica',
         },
         es: {
             showing: 'Página {0} de {1}',
             navigation: 'Navegación de páginas',
             previous: 'Anterior',
             next: 'Siguiente',
+            reload: 'Recargar',
         },
         fr: {
             showing: 'Page {0} sur {1}',
             navigation: 'Navigation des pages',
             previous: 'Précédent',
             next: 'Suivant',
+            reload: 'Recharger',
         },
     };
     static config = {
@@ -92,7 +96,7 @@ class Pagination extends ParsedElement {
         <nav data-tpl-aria-label="#l10n:t('navigation')">
             <ul>
                 <li data-ref="index"> {{ #l10n:t('showing', curr.label, total) }}</li>
-                <li data-ref="reload"><button type="button"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></button></li>
+                <li data-ref="reload"><button type="button" data-tpl-aria-label="#l10n:t('reload')"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></button></li>
                 <li data-ref="prev">
                     <button type="button" data-tpl-disabled="prev.enabled ? false : true" data-tpl-aria-label="#l10n:t('previous')" data-tpl-data-page="prev.index">
                         <ful-icon data-tpl-name="config.prevIcon" aria-hidden="true"></ful-icon>

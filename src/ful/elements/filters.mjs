@@ -36,12 +36,12 @@ const wireOperatorMenu = (operator) => {
         switch (evt.code) {
             case 'ArrowDown': {
                 evt.preventDefault();
-                items[Math.min(items.length - 1, items.indexOf(item) + 1)]?.focus();
+                items[(items.indexOf(item) + 1) % items.length]?.focus();
                 break;
             }
             case 'ArrowUp': {
                 evt.preventDefault();
-                items[Math.max(0, items.indexOf(item) - 1)]?.focus();
+                items[(items.indexOf(item) - 1 + items.length) % items.length]?.focus();
                 break;
             }
             case 'Home': {

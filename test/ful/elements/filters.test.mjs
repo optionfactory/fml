@@ -292,6 +292,21 @@ describe('Filter operator keyboard access', () => {
         container.remove();
     });
 
+    it('wraps the arrow navigation at the ends', async () => {
+        const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+        button.click();
+        await settle();
+        const first = document.activeElement;
+
+        keydown(first, 'ArrowUp');
+        assert.strictEqual(document.activeElement, el.querySelector('a[value=EQ]'), 'up from the top wraps to the bottom');
+
+        keydown(document.activeElement, 'ArrowDown');
+        assert.strictEqual(document.activeElement, first, 'down from the bottom wraps to the top');
+        container.remove();
+    });
+
     it('gives the button the focus back on Escape', async () => {
         const [el, container] = await mount(`<ful-filter-instant>i</ful-filter-instant>`);
         const button = el.querySelector('[data-ref=operator]');

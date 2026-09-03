@@ -167,7 +167,7 @@
             "events": { "change": "Fired with the selection, an array when multiple." }
         },
         "ful-dropdown": {
-            "description": "The options popup of a ful-select. Rarely used on its own.",
+            "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. Rarely used on its own.",
             "attributes": {},
             "slots": {},
             "events": { "change": "Fired with the option that was picked." }

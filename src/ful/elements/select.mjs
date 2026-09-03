@@ -155,8 +155,15 @@ class SelectLoader {
 
 class Dropdown extends ParsedElement {
     static slots = true;
+    static l10n = {
+        en: { empty: 'No results' },
+        it: { empty: 'Nessun risultato' },
+        es: { empty: 'Sin resultados' },
+        fr: { empty: 'Aucun résultat' },
+    };
     static template = `
         <ful-spinner class="centered" hidden></ful-spinner>
+        <p data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('empty') }}</p>
         <menu tabindex="-1" role="listbox" hidden></menu>
     `;
     static templates = {
@@ -168,6 +175,7 @@ class Dropdown extends ParsedElement {
     };
     #spinner;
     #menu;
+    #empty;
     #optionstemplate;
     #options = new Map();
     combobox;
@@ -177,6 +185,7 @@ class Dropdown extends ParsedElement {
             ? this.template('options')
             : Templates.fromFragment(slots.default);
         this.#spinner = fragment.querySelector('ful-spinner');
+        this.#empty = fragment.querySelector('p[data-ref=empty]');
         this.#menu = fragment.querySelector('menu');
         this.#menu.addEventListener('click', (evt) => {
             evt.stopPropagation();
@@ -222,6 +231,8 @@ class Dropdown extends ParsedElement {
         this.#options = new Map(values.map((v, i) => [String(i), v]));
         const data = values.map(([key, label, metadata], index) => ({ index, key, label, metadata }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
+        this.#empty.toggleAttribute('hidden', values.length !== 0);
+        this.#menu.toggleAttribute('hidden', values.length === 0);
         const current = values.findIndex(([k]) => keys.some((r) => r == k));
         this.#highlight(current > 0 ? this.#menu.children[current] : this.#selected());
     }
@@ -256,7 +267,6 @@ class Dropdown extends ParsedElement {
             throw e;
         } finally {
             this.#spinner.setAttribute('hidden', '');
-            this.#menu.removeAttribute('hidden');
         }
     }
     async moveOrShow(forward, loader, keys = []) {
@@ -411,20 +421,29 @@ class Select extends ParsedElement {
             this.#syncBadges();
         });
         this.#control.addEventListener('click', (e) => {
-            if (!e.target.matches('ful-badge')) {
+            const badge = e.target instanceof Element ? e.target.closest('ful-badge') : null;
+            if (!badge) {
                 return;
             }
             e.stopPropagation();
-            if (this.matches(':disabled') || this.readonly) {
+            this.#removeBadge(badge);
+        });
+        this.addEventListener('keydown', (/** @type any */ e) => {
+            const badge = e.target instanceof Element ? e.target.closest('ful-badge') : null;
+            if (badge) {
+                this.#chipKeydown(e, badge);
                 return;
             }
-            const idx = [...this.#control.querySelectorAll(':scope > ful-badge')].indexOf(e.target);
-            if (idx === -1) {
-                return;
+            //the caret cannot move further left: hand the focus over to the chips,
+            //as the backspace at the same spot already hands over the last entry
+            if (
+                'ArrowLeft' === e.code &&
+                e.target === this.#input &&
+                this.#input.selectionStart === 0 &&
+                this.#input.selectionEnd === 0
+            ) {
+                this.#badges().at(-1)?.focus();
             }
-            this.#values.delete(Array.from(this.#values.keys())[idx]);
-            this.#changed();
-            this.#syncBadges();
         });
         this.#input.addEventListener('change', (e) => {
             e.stopPropagation();
@@ -554,6 +573,48 @@ class Select extends ParsedElement {
     async withLoader(fn) {
         return await fn(this.#loader);
     }
+    #badges() {
+        return Array.from(this.#control.querySelectorAll(':scope > ful-badge'));
+    }
+    #removeBadge(badge) {
+        if (this.matches(':disabled') || this.readonly) {
+            return;
+        }
+        const idx = this.#badges().indexOf(badge);
+        if (idx === -1) {
+            return;
+        }
+        this.#values.delete(Array.from(this.#values.keys())[idx]);
+        this.#changed();
+        this.#syncBadges();
+    }
+    #chipKeydown(e, badge) {
+        switch (e.code) {
+            case 'Enter':
+            case 'Space':
+            case 'Backspace':
+            case 'Delete': {
+                e.preventDefault();
+                this.#removeBadge(badge);
+                this.#input.focus();
+                break;
+            }
+            case 'ArrowLeft': {
+                e.preventDefault();
+                (this.#badges()[this.#badges().indexOf(badge) - 1] ?? this.#input).focus();
+                break;
+            }
+            case 'ArrowRight': {
+                e.preventDefault();
+                (this.#badges()[this.#badges().indexOf(badge) + 1] ?? this.#input).focus();
+                break;
+            }
+            case 'Escape': {
+                this.#input.focus();
+                break;
+            }
+        }
+    }
     #close() {
         this.#input.setAttribute('aria-expanded', 'false');
         this.#ddmenu.hide();
@@ -600,6 +661,7 @@ class Select extends ParsedElement {
             ? Array.from(this.#values.entries()).map(([k, v]) => {
                   const b = document.createElement('ful-badge');
                   b.setAttribute('role', 'button');
+                  b.setAttribute('tabindex', '-1');
                   b.setAttribute('value', k);
                   b.innerText = v[0];
                   return b;

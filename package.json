@@ -65,6 +65,7 @@
         "@rollup/plugin-terser": "^1.0.0",
         "@web/test-runner": "^1.0.0",
         "@web/test-runner-playwright": "^1.0.0",
+        "axe-core": "^4.13.0",
         "chai": "^6.2.2",
         "cssnano": "^9.0.1",
         "peggy": "^5.1.0",

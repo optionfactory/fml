@@ -248,6 +248,13 @@ ful-choice[switch] input[type='checkbox']:checked::before {
     translate: 1em 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    ful-choice[switch] input[type='checkbox'],
+    ful-choice[switch] input[type='checkbox']::before {
+        transition: none;
+    }
+}
+
 ful-checkbox:invalid ful-choice input[type='checkbox'] {
     outline: 1px solid var(--ful-invalid-border-color);
     outline-offset: 2px;
