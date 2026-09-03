@@ -4,6 +4,7 @@ import { Input } from './input.mjs';
 
 const wireOperatorMenu = (operator) => {
     const menu = /** @type HTMLElement */ (operator.nextElementSibling);
+    const itemsOf = () => Array.from(menu.querySelectorAll('li > a'), (a) => /** @type HTMLAnchorElement */ (a));
     const id = Attributes.uid('ful-filter-menu');
     operator.setAttribute('popovertarget', id);
     menu.id = id;
@@ -11,7 +12,62 @@ const wireOperatorMenu = (operator) => {
     operator.style.anchorName = anchor;
     menu.style.positionAnchor = anchor;
     menu.addEventListener('toggle', (evt) => {
-        operator.setAttribute('aria-expanded', String(/** @type any */ (evt).newState === 'open'));
+        const open = /** @type any */ (evt).newState === 'open';
+        operator.setAttribute('aria-expanded', String(open));
+        if (!open) {
+            //give the invoker back the focus the menu had borrowed, without
+            //stealing it from wherever else the close came from
+            if (menu.contains(document.activeElement)) {
+                operator.focus();
+            }
+            return;
+        }
+        const items = itemsOf();
+        const current = items.find((a) => a.getAttribute('value') === operator.getAttribute('value'));
+        (current ?? items[0])?.focus();
+    });
+    menu.addEventListener('keydown', (evt) => {
+        const target = /** @type HTMLElement */ (evt.target);
+        const item = /** @type HTMLAnchorElement | null */ (target.closest('li > a'));
+        if (!item) {
+            return;
+        }
+        const items = itemsOf();
+        switch (evt.code) {
+            case 'ArrowDown': {
+                evt.preventDefault();
+                items[Math.min(items.length - 1, items.indexOf(item) + 1)]?.focus();
+                break;
+            }
+            case 'ArrowUp': {
+                evt.preventDefault();
+                items[Math.max(0, items.indexOf(item) - 1)]?.focus();
+                break;
+            }
+            case 'Home': {
+                evt.preventDefault();
+                items[0]?.focus();
+                break;
+            }
+            case 'End': {
+                evt.preventDefault();
+                items[items.length - 1]?.focus();
+                break;
+            }
+            case 'Enter':
+            case 'Space': {
+                evt.preventDefault();
+                item.click();
+                operator.focus();
+                break;
+            }
+            case 'Escape': {
+                //the platform's close request hides the menu, the focus is placed
+                //on the invoker before the focused item is detached from it
+                operator.focus();
+                break;
+            }
+        }
     });
 };
 
@@ -29,14 +85,14 @@ class InstantFilter extends Input {
             {{{{ slots.before }}}}
             <ful-affix>
                 <button data-ref="operator" type="button" value="LTE" form="" aria-expanded="false" aria-haspopup="true">&PrecedesSlantEqual;</button>
-                <ul popover>
-                    <li><a role="button" value="EQ">=</a></li>
-                    <li><a role="button" value="NEQ">&ne;</a></li>
-                    <li><a role="button" value="LT">&prec;</a></li>
-                    <li><a role="button" value="GT">&succ;</a></li>
-                    <li><a role="button" value="LTE">&PrecedesSlantEqual;</a></li>
-                    <li><a role="button" value="GTE">&SucceedsSlantEqual;</a></li>
-                    <li><a role="button" value="BETWEEN">&LeftRightArrow;</a></li>
+                <ul popover role="menu">
+                    <li role="none"><a role="menuitem" tabindex="-1" value="EQ">=</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="NEQ">&ne;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="LT">&prec;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="GT">&succ;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="LTE">&PrecedesSlantEqual;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="GTE">&SucceedsSlantEqual;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="BETWEEN">&LeftRightArrow;</a></li>
                 </ul>
             </ful-affix>
             <input data-ref="value1" type="datetime-local" form="">
@@ -149,14 +205,14 @@ class LocalDateFilter extends Input {
             {{{{ slots.before }}}}
             <ful-affix>
                 <button data-ref="operator" type="button" value="EQ" form="" aria-expanded="false" aria-haspopup="true">=</button>
-                <ul popover>
-                    <li><a role="button" value="EQ">=</a></li>
-                    <li><a role="button" value="NEQ">&ne;</a></li>
-                    <li><a role="button" value="LT">&prec;</a></li>
-                    <li><a role="button" value="GT">&succ;</a></li>
-                    <li><a role="button" value="LTE">&PrecedesSlantEqual;</a></li>
-                    <li><a role="button" value="GTE">&SucceedsSlantEqual;</a></li>
-                    <li><a role="button" value="BETWEEN">&LeftRightArrow;</a></li>
+                <ul popover role="menu">
+                    <li role="none"><a role="menuitem" tabindex="-1" value="EQ">=</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="NEQ">&ne;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="LT">&prec;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="GT">&succ;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="LTE">&PrecedesSlantEqual;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="GTE">&SucceedsSlantEqual;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="BETWEEN">&LeftRightArrow;</a></li>
                 </ul>
             </ful-affix>
             <input data-ref="value1" type="date" form="">
@@ -270,11 +326,11 @@ class TextFilter extends Input {
             {{{{ slots.before }}}}
             <ful-affix>
                 <button data-ref="operator" type="button" value="CONTAINS" form="" aria-expanded="false" aria-haspopup="true">&mldr;a&mldr;</button>
-                <ul popover>
-                    <li><a role="button" value="CONTAINS">&mldr;a&mldr;</a></li>
-                    <li><a role="button" value="STARTS_WITH">a&mldr;</a></li>
-                    <li><a role="button" value="ENDS_WITH">&mldr;a</a></li>
-                    <li><a role="button" value="EQ">=</a></li>
+                <ul popover role="menu">
+                    <li role="none"><a role="menuitem" tabindex="-1" value="CONTAINS">&mldr;a&mldr;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="STARTS_WITH">a&mldr;</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="ENDS_WITH">&mldr;a</a></li>
+                    <li role="none"><a role="menuitem" tabindex="-1" value="EQ">=</a></li>
                 </ul>
             </ful-affix>
             <input data-ref="value" type="text" form="">

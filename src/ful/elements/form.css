@@ -100,9 +100,8 @@ ful-control-group {
     border-radius: var(--ful-controls-border-radius);
 }
 
-ful-control-group:focus-within {
+ful-control-group:has(:focus-visible):not(:has([popover] :focus-visible)) {
     border-color: var(--ful-focus-border-color);
-    outline: 0;
     box-shadow: var(--ful-focus-box-shadow);
 }
 
@@ -168,7 +167,7 @@ ful-control-group > ful-affix:has(+ ful-dropdown) {
     border-color: var(--ful-invalid-border-color);
 }
 
-:invalid > ful-control-group:focus-within {
+:invalid > ful-control-group:has(:focus-visible) {
     box-shadow: var(--ful-invalid-box-shadow);
 }
 
@@ -209,6 +208,11 @@ ful-choice input[type='checkbox'] {
     margin: 0;
     font-size: inherit;
     accent-color: var(--ful-active-bg);
+}
+
+ful-choice input[type='checkbox']:focus-visible {
+    outline: 0;
+    box-shadow: var(--ful-focus-box-shadow);
 }
 
 ful-choice[switch] input[type='checkbox'] {
@@ -368,6 +372,11 @@ ful-pagination a:hover {
 ful-pagination a[disabled] {
     opacity: 0.5;
     pointer-events: none;
+}
+
+ful-pagination a:focus-visible {
+    outline: 0;
+    box-shadow: var(--ful-focus-box-shadow);
 }
 
 ful-table table {

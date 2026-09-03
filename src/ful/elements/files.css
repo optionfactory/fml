@@ -26,6 +26,10 @@ ful-input-file {
         background-color: var(--ful-active-bg);
     }
 
+    & > ful-control-group > input[type='file']:focus::file-selector-button {
+        outline: 0;
+    }
+
     & > .default-dropzone {
         display: flex;
         flex-direction: column;

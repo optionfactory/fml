@@ -223,6 +223,102 @@ describe('Filter operator selection', () => {
     }
 });
 
+describe('Filter operator keyboard access', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+    };
+    const keydown = (el, code) => {
+        el.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    };
+
+    it('focuses the operator in force when the menu opens', async () => {
+        const [el, container] = await mount(
+            `<ful-filter-local-date value='["GTE","2024-01-01"]'>d</ful-filter-local-date>`,
+        );
+        const button = el.querySelector('[data-ref=operator]');
+
+        button.click();
+        await settle();
+
+        assert.isTrue(el.querySelector('ul').matches(':popover-open'));
+        assert.strictEqual(document.activeElement, el.querySelector('a[value=GTE]'));
+        container.remove();
+    });
+
+    it('starts from the top when no operator is in force', async () => {
+        const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+
+        button.click();
+        await settle();
+
+        assert.strictEqual(document.activeElement, el.querySelector('a[value=CONTAINS]'));
+        container.remove();
+    });
+
+    it('moves with the arrows and the jump keys', async () => {
+        const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+        button.click();
+        await settle();
+        const first = document.activeElement;
+
+        keydown(first, 'ArrowDown');
+        assert.strictEqual(document.activeElement, el.querySelector('a[value=STARTS_WITH]'));
+        keydown(document.activeElement, 'ArrowUp');
+        assert.strictEqual(document.activeElement, first);
+        keydown(first, 'End');
+        assert.strictEqual(document.activeElement, el.querySelector('a[value=EQ]'));
+        keydown(document.activeElement, 'Home');
+        assert.strictEqual(document.activeElement, first);
+        container.remove();
+    });
+
+    it('picks with Enter and gives the button the focus back', async () => {
+        const [el, container] = await mount(`<ful-filter-text value='["EQ","IGNORE_CASE","ab"]'>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+        button.click();
+        await settle();
+        assert.strictEqual(document.activeElement, el.querySelector('a[value=EQ]'), 'the operator in force is focused');
+
+        keydown(document.activeElement, 'ArrowUp');
+        keydown(document.activeElement, 'Enter');
+
+        assert.strictEqual(button.getAttribute('value'), 'ENDS_WITH');
+        assert.deepStrictEqual(el.value, ['ENDS_WITH', 'IGNORE_CASE', 'ab']);
+        assert.strictEqual(document.activeElement, button, 'the invoker takes the focus back');
+        container.remove();
+    });
+
+    it('gives the button the focus back on Escape', async () => {
+        const [el, container] = await mount(`<ful-filter-instant>i</ful-filter-instant>`);
+        const button = el.querySelector('[data-ref=operator]');
+        button.click();
+        await settle();
+        const item = document.activeElement;
+        assert.notStrictEqual(item, button);
+
+        keydown(item, 'Escape');
+
+        assert.strictEqual(document.activeElement, button);
+        container.remove();
+    });
+
+    it('carries menu semantics', async () => {
+        const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const menu = el.querySelector('ul');
+
+        assert.strictEqual(menu.getAttribute('role'), 'menu');
+        for (const item of menu.querySelectorAll('a')) {
+            assert.strictEqual(item.getAttribute('role'), 'menuitem');
+            assert.strictEqual(item.getAttribute('tabindex'), '-1', 'the button is the tab stop, not every item');
+        }
+        container.remove();
+    });
+});
+
 describe('Filter readonly and disabled', () => {
     for (const tag of ['ful-filter-instant', 'ful-filter-local-date']) {
         it(`${tag} makes both operands readonly, not just the first`, async () => {

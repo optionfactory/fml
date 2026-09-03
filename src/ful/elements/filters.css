@@ -36,6 +36,10 @@ ful-filter-local-date {
             background-color: var(--ful-active-bg);
         }
 
+        & > button[data-ref='operator']:focus {
+            outline: 0;
+        }
+
         & > ul[popover] {
             position-anchor: --ful-filter-operator;
             top: anchor(bottom);
@@ -66,6 +70,11 @@ ful-filter-local-date {
 
             & > li > a:hover {
                 background-color: var(--ful-selected-bg);
+            }
+
+            & > li > a:focus-visible {
+                background-color: var(--ful-selected-bg);
+                outline: 0;
             }
 
             & > li > a:active {
