@@ -200,6 +200,8 @@ ful-choice {
 ful-choice > label {
     margin: 0;
     cursor: pointer;
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 ful-choice input[type='checkbox'] {
