@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="../../dist/ftl.iife.js"></script>
+    <link href="../../dist/ful.css" rel="stylesheet">
+    <script src="../../dist/httpc.iife.min.js"></script>
+    <script src="../../dist/ful.iife.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 0 auto;
+            padding: 2rem;
+            max-width: 60rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin-top: 2.5rem;
+        }
+
+        h3 {
+            font-size: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+            gap: 1rem;
+        }
+
+        button[type='submit'] {
+            align-self: start;
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #007376;
+            border-radius: 0.375rem;
+            color: white;
+            background: #007376;
+            cursor: pointer;
+        }
+
+        [data-state='focus'] > ful-control-group {
+            border-color: var(--ful-focus-border-color);
+            box-shadow: var(--ful-focus-box-shadow);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ful kitchen sink</h1>
+    <p>Every control on this page is styled by dist/ful.css alone: no bootstrap css, no bootstrap js, no icon font. Invalid fields are forced through the public setCustomValidity, exactly like a server answer would. The focused field is a presentational replica painted with the library's own custom properties: nothing is focused there, tab through the page for the real rings.</p>
+
+    <h2>inputs</h2>
+    <h3>configurations</h3>
+    <ful-form>
+        <ful-input name="plain" required>Plain required</ful-input>
+        <ful-input name="affixed" value="42"><b slot="ibefore">&euro;</b><span slot="iafter">kg</span>With affixes</ful-input>
+        <ful-input name="masked" mask="[^0-9]" value="abc123def">Masked (digits only)</ful-input>
+        <ful-input name="shouting" uppercase value="shout this">Uppercased</ful-input>
+        <ful-input name="trimmed" trim value="  padded  ">Trimmed</ful-input>
+        <ful-input name="pin" type="password" value="hunter2">Password</ful-input>
+        <ful-input name="text" type="textarea">Textarea</ful-input>
+        <ful-input name="email" type="email" placeholder="you@example.com">Email</ful-input>
+    </ful-form>
+    <h3>states</h3>
+    <ful-form>
+        <ful-input name="focus" value="tab through the page" data-state="focus">Focused (presentational)</ful-input>
+        <ful-input name="locked" value="read only" readonly>Readonly</ful-input>
+        <ful-input name="frozen" value="disabled" disabled>Disabled</ful-input>
+        <ful-input name="wrong" value="nope" data-state="invalid">Invalid</ful-input>
+        <fieldset disabled style="border: 0; padding: 0; display: grid; gap: 1rem;">
+            <ful-input name="sweepInput" value="in a fieldset">Input in a disabled fieldset</ful-input>
+            <ful-checkbox name="sweepBox" value="true">Checkbox in a disabled fieldset</ful-checkbox>
+            <ful-radio-group name="sweepSize">
+                Size in a disabled fieldset
+                <ful-radio value="s">Small</ful-radio>
+                <ful-radio value="l">Large</ful-radio>
+            </ful-radio-group>
+            <ful-select name="sweepPick">
+                Select in a disabled fieldset
+                <select slot="options">
+                    <option value="alpha">Alpha</option>
+                    <option value="beta">Beta</option>
+                </select>
+            </ful-select>
+            <ful-filter-text name="sweepFilter">Filter in a disabled fieldset</ful-filter-text>
+        </fieldset>
+    </ful-form>
+
+    <h2>temporals</h2>
+    <h3>configurations</h3>
+    <ful-form>
+        <ful-input-local-date name="since" min="-30d" max="now"><span slot="iafter">since</span>Local date with affix</ful-input-local-date>
+        <ful-input-instant name="at"><span slot="ibefore">&#9201;</span>Instant with affix</ful-input-instant>
+        <ful-input-local-time name="hour">Local time</ful-input-local-time>
+    </ful-form>
+    <h3>states</h3>
+    <ful-form>
+        <ful-input-local-date name="sinceLocked" value="2026-01-31" readonly>Local date readonly</ful-input-local-date>
+        <ful-input-local-date name="sinceFrozen" disabled>Local date disabled</ful-input-local-date>
+        <ful-input-instant name="atWrong" data-state="invalid">Instant invalid</ful-input-instant>
+    </ful-form>
+
+    <h2>checkboxes and switches</h2>
+    <h3>configurations</h3>
+    <ful-form>
+        <ful-checkbox name="unchecked">Unchecked</ful-checkbox>
+        <ful-checkbox name="checked" value="true">Checked</ful-checkbox>
+        <ful-checkbox name="news" type="switch">Switch off</ful-checkbox>
+        <ful-checkbox name="newsOn" type="switch" value="true">Switch on</ful-checkbox>
+        <ful-checkbox name="tos" required>Accept the terms</ful-checkbox>
+    </ful-form>
+    <h3>states</h3>
+    <ful-form>
+        <ful-checkbox name="boxLocked" readonly>Checkbox readonly</ful-checkbox>
+        <ful-checkbox name="boxFrozen" disabled value="true">Checkbox disabled</ful-checkbox>
+        <ful-checkbox name="switchFrozen" type="switch" disabled>Switch disabled</ful-checkbox>
+        <ful-checkbox name="boxWrong" data-state="invalid">Checkbox invalid</ful-checkbox>
+    </ful-form>
+
+    <h2>radios</h2>
+    <h3>configurations</h3>
+    <ful-form>
+        <ful-radio-group name="size">
+            Size
+            <ful-radio value="s">Small</ful-radio>
+            <ful-radio value="m">Medium</ful-radio>
+            <ful-radio value="l">Large</ful-radio>
+        </ful-radio-group>
+        <ful-radio-group name="tone" class="horizontal">
+            Tone
+            <ful-radio value="warm">Warm</ful-radio>
+            <ful-radio value="cold">Cold</ful-radio>
+        </ful-radio-group>
+    </ful-form>
+    <h3>states</h3>
+    <ful-form>
+        <ful-radio-group name="sizeLocked" readonly>
+            Size (readonly)
+            <ful-radio value="s">Small</ful-radio>
+            <ful-radio value="m">Medium</ful-radio>
+        </ful-radio-group>
+        <ful-radio-group name="sizeFrozen" disabled>
+            Size (disabled)
+            <ful-radio value="s">Small</ful-radio>
+            <ful-radio value="l">Large</ful-radio>
+        </ful-radio-group>
+        <ful-radio-group name="sizeWrong" data-state="invalid">
+            Size (invalid)
+            <ful-radio value="s">Small</ful-radio>
+            <ful-radio value="l">Large</ful-radio>
+        </ful-radio-group>
+    </ful-form>
+
+    <h2>selects</h2>
+    <h3>configurations</h3>
+    <ful-form>
+        <ful-select name="single">
+            Single select
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+                <option value="gamma">Gamma</option>
+            </select>
+        </ful-select>
+        <ful-select name="picked" value="beta">
+            Single select with a value
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+            </select>
+        </ful-select>
+        <ful-select name="tagged">
+            <code slot="ibefore">tag:</code>
+            Single select with affixes
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+            </select>
+            <em slot="iafter">required</em>
+        </ful-select>
+        <ful-select name="chips" multiple value="alpha,gamma">
+            Multiple select, chips only, preselected
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+                <option value="gamma">Gamma</option>
+            </select>
+        </ful-select>
+        <ful-select name="multi" multiple itemlist>
+            Multiple select (item list)
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+                <option value="gamma">Gamma</option>
+            </select>
+        </ful-select>
+        <ful-select name="ids" k-type="number">
+            Number keyed
+            <select slot="options">
+                <option value="1">One</option>
+                <option value="2">Two</option>
+                <option value="3">Three</option>
+            </select>
+        </ful-select>
+        <ful-select name="listed" value="beta" itemlist readonly>
+            Item list, readonly
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+            </select>
+        </ful-select>
+    </ful-form>
+    <h3>states</h3>
+    <ful-form>
+        <ful-select name="locked" readonly value="beta">
+            Readonly
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+                <option value="beta">Beta</option>
+            </select>
+        </ful-select>
+        <ful-select name="frozen" disabled>
+            Disabled
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+            </select>
+        </ful-select>
+        <ful-select name="wrong" data-state="invalid">
+            Invalid
+            <select slot="options">
+                <option value="alpha">Alpha</option>
+            </select>
+        </ful-select>
+    </ful-form>
+
+    <h2>filters</h2>
+    <p>The operator menus are native popovers: light dismiss, escape and toggle come from the platform.</p>
+    <h3>text</h3>
+    <ful-form>
+        <ful-filter-text name="q">Text</ful-filter-text>
+        <ful-filter-text name="qOps" operators="CONTAINS,EQ,STARTS_WITH">Operators whitelisted</ful-filter-text>
+        <ful-filter-text name="qPinned" operators="EQ">Operator pinned</ful-filter-text>
+        <ful-filter-text name="qCase" sensitivities="CASE_SENSITIVE">Case sensitivity pinned</ful-filter-text>
+        <ful-filter-text name="qFilled" value='["STARTS_WITH","IGNORE_CASE","ab"]'>Filled</ful-filter-text>
+    </ful-form>
+    <h3>dates and instants</h3>
+    <ful-form>
+        <ful-filter-local-date name="when">Date</ful-filter-local-date>
+        <ful-filter-instant name="at">Instant</ful-filter-instant>
+    </ful-form>
+    <h3>numbers</h3>
+    <ful-form>
+        <ful-filter-number name="howMany">Number</ful-filter-number>
+        <ful-filter-number name="howManyPinned" operators="BETWEEN">Operator pinned to a range</ful-filter-number>
+        <ful-filter-number name="howManyRange" value='["BETWEEN","10","20"]'>Range, filled</ful-filter-number>
+    </ful-form>
+    <h3>booleans</h3>
+    <ful-form>
+        <ful-filter-boolean name="flag">Boolean</ful-filter-boolean>
+        <ful-filter-boolean name="flagSet" value='["NEQ","false"]'>Set</ful-filter-boolean>
+    </ful-form>
+    <h3>states</h3>
+    <ful-form>
+        <ful-filter-text name="qFrozen" disabled>Text disabled</ful-filter-text>
+        <ful-filter-number name="howManyLocked" readonly>Number readonly</ful-filter-number>
+        <ful-filter-boolean name="flagWrong" data-state="invalid">Boolean invalid</ful-filter-boolean>
+    </ful-form>
+    <h3>in-list</h3>
+    <ful-form>
+        <ful-select multiple name="tag">
+            Tags (in-list)
+            <select slot="options">
+                <option value="red">Red</option>
+                <option value="green">Green</option>
+                <option value="blue">Blue</option>
+            </select>
+        </ful-select>
+    </ful-form>
+
+    <h2>errors</h2>
+    <p>Field problems render under their control, anything else lands in the <code>ful-errors</code> summary. Typing clears the field error again, and the focus jumps to the first offender.</p>
+    <ful-form id="errors-demo" clear-invalid-on-change scroll-on-error>
+        <ful-errors hidden></ful-errors>
+        <ful-input name="username"><span slot="ibefore">&#128100;</span>Username</ful-input>
+        <ful-input name="email" type="email"><code slot="ibefore">@</code><span slot="iafter">required</span>Email</ful-input>
+        <ful-select name="role">
+            <span slot="ibefore">&#128736;</span>
+            Role
+            <select slot="options">
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+            </select>
+            <em slot="iafter">pick one</em>
+        </ful-select>
+        <ful-checkbox name="tos">Accept the terms</ful-checkbox>
+        <button type="submit">Validate</button>
+    </ful-form>
+
+    <h2>files</h2>
+    <ful-form>
+        <ful-input-file name="docs" multiple itemlist dropzone>Files</ful-input-file>
+        <ful-input-file name="avatar">
+            <span slot="ibefore">&#128100;</span>
+            File with affix
+        </ful-input-file>
+        <ful-input-file name="papers" disabled>Files disabled</ful-input-file>
+        <ful-input-file name="zone" dropzone noinput>Dropzone only</ful-input-file>
+    </ful-form>
+
+    <h2>tables</h2>
+    <h3>loaded</h3>
+    <ful-table loader="loaders:mock-data" autoload page-size="5">
+        <template slot="schema">
+            <schema>
+                <column sorter order="asc">
+                    <title>Name</title>
+                    {{ self.name }}
+                </column>
+                <column>
+                    <title>Value</title>
+                    {{ self.value }}
+                </column>
+            </schema>
+        </template>
+    </ful-table>
+    <h3>loading forever</h3>
+    <ful-table loader="loaders:frozen" autoload page-size="5">
+        <template slot="schema">
+            <schema>
+                <column title="Name">{{ self.name }}</column>
+            </schema>
+        </template>
+    </ful-table>
+    <h3>failed</h3>
+    <ful-table loader="loaders:failing" autoload page-size="5">
+        <template slot="schema">
+            <schema>
+                <column title="Name">{{ self.name }}</column>
+            </schema>
+        </template>
+    </ful-table>
+    <h3>pagination</h3>
+    <ful-pagination current="2" total="9"></ful-pagination>
+    <ful-pagination current="5" total="30" pages="3"></ful-pagination>
+
+    <script>
+        class MockDataLoader {
+            #mockdata = Array.from({ length: 21 }, (_, i) => ({ name: `row ${i}`, value: i * 3 }));
+            async load(pageRequest, sortRequest) {
+                const sorted = [...this.#mockdata];
+                if (sortRequest) {
+                    sorted.sort((a, b) => (a[sortRequest.sorter] > b[sortRequest.sorter] ? 1 : -1) * (sortRequest.order === 'asc' ? 1 : -1));
+                }
+                return {
+                    size: this.#mockdata.length,
+                    data: sorted.slice(pageRequest.size * pageRequest.page, pageRequest.size * (pageRequest.page + 1)),
+                };
+            }
+            static create() {
+                return new MockDataLoader();
+            }
+        }
+
+        class FrozenLoader {
+            async load() {
+                return new Promise(() => {});
+            }
+            static create() {
+                return new FrozenLoader();
+            }
+        }
+
+        class FailingLoader {
+            async load() {
+                throw new Error('The endpoint is unreachable (demo).');
+            }
+            static create() {
+                return new FailingLoader();
+            }
+        }
+
+        ftl.registry
+            .plugin(new ful.Plugin())
+            .defineComponent('loaders:mock-data', MockDataLoader)
+            .defineComponent('loaders:frozen', FrozenLoader)
+            .defineComponent('loaders:failing', FailingLoader)
+            .configure();
+
+        document.addEventListener('ftl:ready', () => {
+            document.querySelectorAll('[data-state=invalid]').forEach((el) => {
+                el.setCustomValidity('Not valid (demo).');
+            });
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            if (String(e.reason?.message ?? '').includes('(demo)')) {
+                e.preventDefault();
+            }
+        });
+
+        document.getElementById('errors-demo').addEventListener('submit:success', (e) => {
+            e.target.errors = [
+                { type: 'FIELD_ERROR', context: 'username', reason: 'already taken' },
+                { type: 'FIELD_ERROR', context: 'email', reason: 'not a valid address' },
+                { type: 'FIELD_ERROR', context: 'role', reason: 'pick one' },
+                { type: 'FIELD_ERROR', context: 'tos', reason: 'the terms must be accepted' },
+                { type: 'GENERIC', context: null, reason: 'The server rejected the submission (demo).' },
+            ];
+        });
+    </script>
+</body>
+
+</html>

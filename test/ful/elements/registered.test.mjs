@@ -153,6 +153,7 @@ const ELEMENTS = [
         html: `<ful-filter-instant name="a">label</ful-filter-instant>`,
         observed: {
             value: ['["EQ","2026-01-02T10:30:00.000Z"]', ['EQ', '2026-01-02T10:30:00.000Z']],
+            operators: ['EQ,NEQ', ['EQ', 'NEQ']],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -163,9 +164,31 @@ const ELEMENTS = [
         html: `<ful-filter-local-date name="a">label</ful-filter-local-date>`,
         observed: {
             value: ['["EQ","2026-01-02"]', ['EQ', '2026-01-02']],
+            operators: ['GTE,BETWEEN', ['GTE', 'BETWEEN']],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
+        },
+    },
+    {
+        tag: 'ful-filter-number',
+        html: `<ful-filter-number name="a">label</ful-filter-number>`,
+        observed: {
+            value: ['["EQ","7"]', ['EQ', '7']],
+            operators: ['EQ,NEQ', ['EQ', 'NEQ']],
+            readonly: ['', true],
+            required: ['', true],
+            placeholder: ['p', 'p'],
+        },
+    },
+    {
+        tag: 'ful-filter-boolean',
+        html: `<ful-filter-boolean name="a">label</ful-filter-boolean>`,
+        observed: {
+            value: ['["EQ","true"]', ['EQ', 'true']],
+            operators: ['NEQ', ['NEQ']],
+            readonly: ['', true],
+            required: ['', true],
         },
     },
     {
@@ -173,6 +196,8 @@ const ELEMENTS = [
         html: `<ful-filter-text name="a">label</ful-filter-text>`,
         observed: {
             value: ['["CONTAINS","IGNORE_CASE","x"]', ['CONTAINS', 'IGNORE_CASE', 'x']],
+            operators: ['CONTAINS,EQ', ['CONTAINS', 'EQ']],
+            sensitivities: ['CASE_SENSITIVE', ['CASE_SENSITIVE']],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],

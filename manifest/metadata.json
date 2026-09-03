@@ -140,21 +140,49 @@
         },
         "ful-filter-instant": {
             "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": { "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to]." },
+            "attributes": {
+                "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+            },
             "slots": {},
             "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
         },
         "ful-filter-local-date": {
             "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": { "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to]." },
+            "attributes": {
+                "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+            },
             "slots": {},
             "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
         },
         "ful-filter-text": {
-            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": { "value": "JSON tuple of the operator, the sensitivity and the text." },
+            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH and a case sensitivity. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only. A multiple ful-select used as a filter emits the bare value array the in-list annotations expect.",
+            "attributes": {
+                "value": "JSON tuple of the operator, the sensitivity and the text.",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN, CONTAINS, STARTS_WITH, ENDS_WITH. Defaults to all of them.",
+                "sensitivities": "Comma separated list of the case sensitivity modes, IGNORE_CASE, CASE_SENSITIVE. A single entry pins every emitted tuple to it."
+            },
             "slots": {},
             "events": { "change": "Fired with the whole tuple, or undefined when the filter is empty." }
+        },
+        "ful-filter-number": {
+            "description": "A ful-table filter over numbers, with an operator such as GTE or BETWEEN. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "JSON tuple of the operator and its bound(s).",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+            },
+            "slots": {},
+            "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
+        },
+        "ful-filter-boolean": {
+            "description": "A ful-table filter over booleans, with the EQ or NEQ operator and a yes/no menu carrying the true and false tokens, plus an any entry that contributes nothing. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "JSON tuple of the operator and the token.",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ. Defaults to both."
+            },
+            "slots": {},
+            "events": { "change": "Fired with the whole tuple, or undefined when nothing is picked." }
         },
         "ful-select": {
             "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",

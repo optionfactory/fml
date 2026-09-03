@@ -61,6 +61,7 @@ ful-item-list {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            line-height: calc(var(--ful-controls-height) - 10px);
             padding: 5px 0.5rem;
             color: var(--ful-item-list-item-color);
             border-radius: var(--ful-item-list-item-border-radius);

@@ -12,13 +12,37 @@
     <script src="../../dist/ful.iife.min.js"></script>
     <script>
         class MockDataLoader {
-            #mockdata = Array.from({ length: 100 }, (x, i) => ({ id: i + 1, types: ['type1', 'type2'], username: `test${i}@exaqmple.com`, date: '2025-01-01' }));
+            #mockdata = Array.from({ length: 100 }, (x, i) => ({ id: i + 1, types: ['type1', 'type2'], username: `test${i}@exaqmple.com`, date: '2025-01-01', active: i % 2 === 0 }));
             async load(pageRequest, sortRequest, filterRequest) {
                 await ful.Timing.sleep(500);
-                console.log(pageRequest);
+                const compare = {
+                    EQ: (a, b) => a === b,
+                    NEQ: (a, b) => a !== b,
+                    LT: (a, b) => a < b,
+                    GT: (a, b) => a > b,
+                    LTE: (a, b) => a <= b,
+                    GTE: (a, b) => a >= b,
+                    BETWEEN: (a, l, h) => l <= a && a <= h
+                };
+                const keep = (row) => {
+                    const name = filterRequest?.byName;
+                    if (name && !row.username.toLowerCase().includes(name[2].toLowerCase())) {
+                        return false;
+                    }
+                    const count = filterRequest?.byCount;
+                    if (count && !compare[count[0]](row.id, ...count.slice(1).map(Number))) {
+                        return false;
+                    }
+                    const active = filterRequest?.byActive;
+                    if (active && !compare[active[0]](row.active, active[1] === 'true')) {
+                        return false;
+                    }
+                    return true;
+                };
+                const rows = this.#mockdata.filter(keep);
                 return {
-                    size: this.#mockdata.length,
-                    data: this.#mockdata.filter((e, i) => i >= pageRequest.size * pageRequest.page && i < pageRequest.size * (pageRequest.page + 1))
+                    size: rows.length,
+                    data: rows.slice(pageRequest.size * pageRequest.page, pageRequest.size * (pageRequest.page + 1))
                 };
             }
             static create() {
@@ -43,6 +67,12 @@
                 <ful-filter-instant class="col" name="byAt">
                     Data
                 </ful-filter-instant>
+                <ful-filter-number class="col" name="byCount">
+                    Id
+                </ful-filter-number>
+                <ful-filter-boolean class="col" name="byActive">
+                    Attivo
+                </ful-filter-boolean>
                 <button class="btn btn-primary" type="submit">Search</button>
             </div>
             <template slot="schema">

@@ -73,6 +73,14 @@
     box-sizing: border-box;
 }
 
+*:has(> ful-control-group) {
+    display: block;
+}
+
+*:has(> ful-control-group):not(:defined) {
+    visibility: hidden;
+}
+
 *:has(> ful-control-group) > label,
 ful-radio-group > fieldset > legend {
     display: block;

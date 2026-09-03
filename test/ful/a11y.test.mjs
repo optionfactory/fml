@@ -51,6 +51,8 @@ describe('Accessibility audit', () => {
         ['ful-filter-text', `<ful-filter-text name="ft">ft</ful-filter-text>`],
         ['ful-filter-local-date', `<ful-filter-local-date name="fd">fd</ful-filter-local-date>`],
         ['ful-filter-instant', `<ful-filter-instant name="fi">fi</ful-filter-instant>`],
+        ['ful-filter-number', `<ful-filter-number name="fn">fn</ful-filter-number>`],
+        ['ful-filter-boolean', `<ful-filter-boolean name="fb">fb</ful-filter-boolean>`],
         ['ful-pagination', `<ful-pagination current="0" total="3"></ful-pagination>`],
         [
             'ful-table',

@@ -1,6 +1,144 @@
-import { Attributes } from '../../ftl/index.mjs';
+import { Attributes, ParsedElement, registry } from '../../ftl/index.mjs';
+import { LocalizationModule } from './l10n.mjs';
 import { Instant } from './temporals.mjs';
 import { Input } from './input.mjs';
+
+const GLYPHS = {
+    EQ: '=',
+    NEQ: '≠',
+    LT: '<',
+    GT: '>',
+    LTE: '≤',
+    GTE: '≥',
+    BETWEEN: '↔',
+    CONTAINS: '…a…',
+    STARTS_WITH: 'a…',
+    ENDS_WITH: '…a',
+};
+const LABELS = {
+    en: {
+        EQ: 'Equals',
+        NEQ: 'Not equal',
+        LT: 'Less than',
+        GT: 'Greater than',
+        LTE: 'At most',
+        GTE: 'At least',
+        BETWEEN: 'Between',
+        CONTAINS: 'Contains',
+        STARTS_WITH: 'Starts with',
+        ENDS_WITH: 'Ends with',
+    },
+    it: {
+        EQ: 'Uguale',
+        NEQ: 'Diverso',
+        LT: 'Minore',
+        GT: 'Maggiore',
+        LTE: 'Al massimo',
+        GTE: 'Almeno',
+        BETWEEN: 'Tra',
+        CONTAINS: 'Contiene',
+        STARTS_WITH: 'Inizia con',
+        ENDS_WITH: 'Termina con',
+    },
+    es: {
+        EQ: 'Igual',
+        NEQ: 'Distinto',
+        LT: 'Menor',
+        GT: 'Mayor',
+        LTE: 'Como máximo',
+        GTE: 'Al menos',
+        BETWEEN: 'Entre',
+        CONTAINS: 'Contiene',
+        STARTS_WITH: 'Empieza por',
+        ENDS_WITH: 'Termina por',
+    },
+    fr: {
+        EQ: 'Égal',
+        NEQ: 'Différent',
+        LT: 'Inférieur',
+        GT: 'Supérieur',
+        LTE: 'Au plus',
+        GTE: 'Au moins',
+        BETWEEN: 'Entre',
+        CONTAINS: 'Contient',
+        STARTS_WITH: 'Commence par',
+        ENDS_WITH: 'Finit par',
+    },
+};
+const SENSITIVITY_LABELS = {
+    en: { IGNORE_CASE: 'Ignore case', CASE_SENSITIVE: 'Case sensitive' },
+    it: { IGNORE_CASE: 'Ignora maiuscole', CASE_SENSITIVE: 'Distingui maiuscole' },
+    es: { IGNORE_CASE: 'Ignorar mayúsculas', CASE_SENSITIVE: 'Distinguir mayúsculas' },
+    fr: { IGNORE_CASE: 'Ignorer la casse', CASE_SENSITIVE: 'Respecter la casse' },
+};
+const COMPARE_OPERATORS = ['EQ', 'NEQ', 'LT', 'GT', 'LTE', 'GTE', 'BETWEEN'];
+const TEXT_OPERATORS = [...COMPARE_OPERATORS, 'CONTAINS', 'STARTS_WITH', 'ENDS_WITH'];
+const SENSITIVITIES = ['IGNORE_CASE', 'CASE_SENSITIVE'];
+
+const SENSITIVITY_GLYPHS = {
+    IGNORE_CASE: 'aa',
+    CASE_SENSITIVE: 'Aa',
+};
+
+/**
+ * Resolves a label the way the template's #l10n:t() does: the page's language
+ * out of the registry overlays, the table standing in for the class l10n.
+ */
+const labelFor = (labels, key) => {
+    const language = registry.context().data.find((overlay) => overlay && 'language' in overlay)?.language ?? 'en';
+    return LocalizationModule.t.call({ l10n: labels, language }, key);
+};
+
+const fillMenu = (menu, allowed, labels, glyphs) => {
+    menu.replaceChildren(
+        ...allowed.map((op) => {
+            const li = document.createElement('li');
+            li.setAttribute('role', 'none');
+            const a = document.createElement('a');
+            a.setAttribute('role', 'menuitem');
+            a.setAttribute('tabindex', '-1');
+            a.setAttribute('value', op);
+            const word = labelFor(labels, op);
+            const glyph = glyphs[op] ?? op;
+            if (word === op && glyph === op) {
+                a.innerText = op;
+            } else {
+                const glyphSpan = document.createElement('span');
+                glyphSpan.innerText = glyph;
+                const wordSpan = document.createElement('span');
+                wordSpan.innerText = word;
+                a.append(glyphSpan, wordSpan);
+            }
+            li.append(a);
+            return li;
+        }),
+    );
+};
+
+const fillOperatorMenu = (menu, allowed) => {
+    fillMenu(menu, allowed, LABELS, GLYPHS);
+};
+
+const whitelisted = (declared, vocabulary) => {
+    const allowed = (declared ?? []).filter((op) => vocabulary.includes(op));
+    return allowed.length > 0 ? allowed : [...vocabulary];
+};
+
+/**
+ * A single whitelisted operator pins it: the button stops being a popup
+ * invoker and becomes a static glyph, and every tuple emits the pinned
+ * operator no matter what an assignment carries.
+ */
+const syncOperatorControl = (operator, allowed, claimed = false) => {
+    const pinned = allowed.length < 2;
+    Attributes.toggle(operator, 'disabled', pinned || claimed);
+    Attributes.set(operator, 'aria-haspopup', pinned ? null : 'true');
+    Attributes.set(operator, 'aria-expanded', pinned ? null : 'false');
+    if (pinned) {
+        operator.removeAttribute('popovertarget');
+    }
+    return pinned;
+};
 
 const wireOperatorMenu = (operator) => {
     const menu = /** @type HTMLElement */ (operator.nextElementSibling);
@@ -75,8 +213,15 @@ const hideOperatorMenu = (target) => {
     /** @type any */ (target.closest('ul[popover]'))?.hidePopover?.();
 };
 
-class InstantFilter extends Input {
-    static observed = ['value:json', 'readonly:presence', 'required:presence', 'placeholder'];
+/**
+ * The shared shape of every operator-and-operands filter: an operator menu, one
+ * or two operands of the type the subclass declares, and a tuple that mirrors
+ * the data-jpa compare annotations.
+ */
+class CompareFilter extends Input {
+    static observed = ['value:json', 'operators:csv', 'readonly:presence', 'required:presence', 'placeholder'];
+    static OPERATORS = COMPARE_OPERATORS;
+    static DEFAULT_OPERATOR = 'EQ';
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
@@ -84,89 +229,135 @@ class InstantFilter extends Input {
             <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
             {{{{ slots.before }}}}
             <ful-affix>
-                <button data-ref="operator" type="button" value="LTE" form="" aria-expanded="false" aria-haspopup="true">&PrecedesSlantEqual;</button>
-                <ul popover role="menu">
-                    <li role="none"><a role="menuitem" tabindex="-1" value="EQ">=</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="NEQ">&ne;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="LT">&prec;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="GT">&succ;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="LTE">&PrecedesSlantEqual;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="GTE">&SucceedsSlantEqual;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="BETWEEN">&LeftRightArrow;</a></li>
-                </ul>
+                <button data-ref="operator" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
+                <ul popover role="menu"></ul>
             </ful-affix>
-            <input data-ref="value1" type="datetime-local" form="">
-            <input data-ref="value2" type="datetime-local" form="" hidden>
+            <input data-ref="value1" data-tpl-type="type" form="">
+            <input data-ref="value2" data-tpl-type="type" form="" hidden>
             {{{{ slots.after }}}}
             <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
-    #operator;
-    #value1;
-    #value2;
+    _operator;
+    _menu;
+    _container;
+    _value1;
+    _value2;
+    _allowed;
     render(conf) {
         super.render({ ...conf, skipObservedSetup: true });
-        this.#operator = this.querySelector('[data-ref=operator]');
-        this.#value1 = this.querySelector('[data-ref=value1]');
-        this.#value2 = this.querySelector('[data-ref=value2]');
-        wireOperatorMenu(this.#operator);
+        this._container = this.querySelector('ful-control-group');
+        this._operator = this.querySelector('[data-ref=operator]');
+        this._menu = this._operator.nextElementSibling;
+        this._value1 = this.querySelector('[data-ref=value1]');
+        this._value2 = this.querySelector('[data-ref=value2]');
+        this.operators = conf.observed.operators;
         //Input.render only re-dispatches changes coming from the first operand
-        this.#value2.addEventListener('change', (evt) => {
+        this._value2.addEventListener('change', (evt) => {
             evt.stopPropagation();
-            this.#notifyChange();
+            this._notifyChange();
         });
-
         this.disabled = conf.disabled;
         this.readonly = conf.observed.readonly;
         this.required = conf.observed.required;
         this.placeholder = conf.observed.placeholder;
         this.value = conf.observed.value;
-
+        if (!this._operator.hasAttribute('value')) {
+            const preferred = this._defaultOperator();
+            this._showOperator(this._allowed.includes(preferred) ? preferred : this._allowed[0]);
+        }
         this.addEventListener('click', (evt) => {
             const target = /** @type HTMLElement */ (evt.target);
-            if (!target.matches('ul > li > a')) {
+            const item = /** @type HTMLElement | null */ (target.closest('ul > li > a'));
+            if (!item) {
                 return;
             }
-            const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
-            const value = /** @type String */ (target.getAttribute('value'));
+            //buttons and menus are not form controls, the guard must ask the
+            //effective state
+            if (this.matches(':disabled') || this.readonly) {
+                return;
+            }
+            const btn = /** @type HTMLButtonElement */ (item.closest('ul')?.previousElementSibling);
+            if (btn !== this._operator) {
+                return;
+            }
+            const value = /** @type String */ (item.getAttribute('value'));
             const previous = btn.getAttribute('value');
-            Attributes.toggle(this.#value2, 'hidden', value !== 'BETWEEN');
             btn.setAttribute('value', value);
-            btn.innerHTML = target.innerHTML;
-            hideOperatorMenu(target);
+            this._showOperator(value);
+            hideOperatorMenu(item);
             if (previous !== value) {
-                this.#notifyChange();
+                this._notifyChange();
             }
         });
     }
-
-    get value() {
-        const operator = this.#operator.getAttribute('value');
-        const values = operator === 'BETWEEN' ? [this.#value1.value, this.#value2.value] : [this.#value1.value];
-        return values.some((v) => v === '') ? undefined : [operator, ...values.map((v) => new Date(v).toISOString())];
+    _type() {
+        return 'text';
     }
-    set value(v) {
-        if (v == null) {
-            this.#value1.value = '';
-            this.#value2.value = '';
+    _serialize(v) {
+        return v;
+    }
+    _deserialize(v) {
+        return v;
+    }
+    _defaultOperator() {
+        return 'EQ';
+    }
+    _vocabulary() {
+        return COMPARE_OPERATORS;
+    }
+    get operators() {
+        return this._allowed;
+    }
+    set operators(declared) {
+        this._allowed = whitelisted(declared, this._vocabulary());
+        if (!this._menu) {
             return;
         }
-        const [operator, ...values] = v;
-        this.#showOperator(operator);
-        this.#value1.value = values[0] ? Instant.isoToLocal(values[0]) : values[0];
-        this.#value2.value = values[1] ? Instant.isoToLocal(values[1]) : values[1];
-    }
-    #showOperator(operator) {
-        this.#operator.setAttribute('value', operator);
-        const items = Array.from(this.#operator.nextElementSibling?.querySelectorAll('li > a[value]') ?? []);
-        const item = items.find((a) => a.getAttribute('value') === operator);
-        if (item) {
-            this.#operator.innerHTML = item.innerHTML;
+        fillOperatorMenu(this._menu, this._allowed);
+        if (!this._operatorMenuWired && this._allowed.length > 1) {
+            wireOperatorMenu(this._operator);
+            this._operatorMenuWired = true;
         }
-        Attributes.toggle(this.#value2, 'hidden', operator !== 'BETWEEN');
+        if (syncOperatorControl(this._operator, this._allowed, this.hasAttribute('disabled'))) {
+            this._showOperator(this._allowed[0]);
+        }
     }
-    #notifyChange() {
+    _operatorMenuWired = false;
+    get value() {
+        return this._tuple();
+    }
+    set value(v) {
+        this._applyTuple(v);
+    }
+    _tuple() {
+        const operator = this._operator.getAttribute('value');
+        const values = operator === 'BETWEEN' ? [this._value1.value, this._value2.value] : [this._value1.value];
+        return values.some((v) => v === '') ? undefined : [operator, ...values.map((v) => this._serialize(v))];
+    }
+    _applyTuple(v) {
+        if (v == null) {
+            this._value1.value = '';
+            this._value2.value = '';
+            return;
+        }
+        const [declared, ...values] = v;
+        //a pinned operator wins over whatever the tuple carries
+        const operator = this._allowed?.length === 1 ? this._allowed[0] : declared;
+        this._showOperator(operator);
+        this._value1.value = values[0] ? this._deserialize(values[0]) : values[0];
+        this._value2.value = values[1] ? this._deserialize(values[1]) : values[1];
+    }
+    _showOperator(operator) {
+        this._operator.setAttribute('value', operator);
+        //the button carries the compact glyph, announced through its label: the
+        //menu is where the localized words live
+        this._operator.textContent = GLYPHS[operator] ?? operator;
+        Attributes.set(this._operator, 'aria-label', labelFor(LABELS, operator));
+        Attributes.toggle(this._value2, 'hidden', operator !== 'BETWEEN');
+    }
+    _notifyChange() {
         this.dispatchEvent(
             new CustomEvent('change', {
                 bubbles: true,
@@ -181,8 +372,11 @@ class InstantFilter extends Input {
         return super.readonly;
     }
     set readonly(v) {
-        this.#value2.readOnly = v;
+        this._value2.readOnly = v;
         super.readonly = v;
+        //inert reaches the operator and sensitivity buttons, whose popovers an
+        //input's readOnly cannot touch
+        this._container.inert = v;
     }
     get disabled() {
         return super.disabled;
@@ -191,12 +385,52 @@ class InstantFilter extends Input {
         //the claim and the first operand are the base's, the second operand mirrors
         //the claim like the first one does
         super.disabled = d;
-        Attributes.toggle(this.#value2, 'disabled', d);
+        Attributes.toggle(this._value2, 'disabled', d);
+        //so do the chrome buttons, frozen by a pin, disabled by the claim, or both
+        if (this._allowed) {
+            syncOperatorControl(this._operator, this._allowed, d);
+        }
+        this._syncSensitivity();
+    }
+    _syncSensitivity() {}
+}
+
+class InstantFilter extends CompareFilter {
+    _defaultOperator() {
+        return 'LTE';
+    }
+    _type() {
+        return 'datetime-local';
+    }
+    _serialize(v) {
+        return new Date(v).toISOString();
+    }
+    _deserialize(v) {
+        return Instant.isoToLocal(v);
     }
 }
 
-class LocalDateFilter extends Input {
-    static observed = ['value:json', 'readonly:presence', 'required:presence', 'placeholder'];
+class LocalDateFilter extends CompareFilter {
+    _type() {
+        return 'date';
+    }
+}
+
+class NumberFilter extends CompareFilter {
+    _type() {
+        return 'number';
+    }
+}
+
+class TextFilter extends CompareFilter {
+    static observed = [
+        'value:json',
+        'operators:csv',
+        'sensitivities:csv',
+        'readonly:presence',
+        'required:presence',
+        'placeholder',
+    ];
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
@@ -204,90 +438,237 @@ class LocalDateFilter extends Input {
             <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
             {{{{ slots.before }}}}
             <ful-affix>
-                <button data-ref="operator" type="button" value="EQ" form="" aria-expanded="false" aria-haspopup="true">=</button>
-                <ul popover role="menu">
-                    <li role="none"><a role="menuitem" tabindex="-1" value="EQ">=</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="NEQ">&ne;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="LT">&prec;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="GT">&succ;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="LTE">&PrecedesSlantEqual;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="GTE">&SucceedsSlantEqual;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="BETWEEN">&LeftRightArrow;</a></li>
-                </ul>
+                <button data-ref="operator" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
+                <ul popover role="menu"></ul>
+                <button data-ref="sensitivity" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
+                <ul popover role="menu"></ul>
             </ful-affix>
-            <input data-ref="value1" type="date" form="">
-            <input data-ref="value2" type="date" form="" hidden>
+            <input data-ref="value1" data-tpl-type="type" form="">
+            <input data-ref="value2" data-tpl-type="type" form="" hidden>
             {{{{ slots.after }}}}
             <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
-    #operator;
-    #value1;
-    #value2;
+    _defaultOperator() {
+        return 'CONTAINS';
+    }
+    _vocabulary() {
+        return TEXT_OPERATORS;
+    }
+    _sensitivities = [...SENSITIVITIES];
+    //the sensitivity is carried through from whoever set the value, switched
+    //through its own menu, or pinned to the single mode the sensitivities
+    //attribute whitelists
+    _sensitivity = 'IGNORE_CASE';
+    _sensitivityButton;
     render(conf) {
-        super.render({ ...conf, skipObservedSetup: true });
-
-        this.#operator = this.querySelector('[data-ref=operator]');
-        this.#value1 = this.querySelector('[data-ref=value1]');
-        this.#value2 = this.querySelector('[data-ref=value2]');
-        wireOperatorMenu(this.#operator);
-        //Input.render only re-dispatches changes coming from the first operand
-        this.#value2.addEventListener('change', (evt) => {
-            evt.stopPropagation();
-            this.#notifyChange();
-        });
-
-        this.disabled = conf.disabled;
-        this.readonly = conf.observed.readonly;
-        this.required = conf.observed.required;
-        this.placeholder = conf.observed.placeholder;
-        this.value = conf.observed.value;
-
+        //before the value assignment, which normalizes against the whitelist
+        this.sensitivities = conf.observed.sensitivities;
+        super.render(conf);
+        this._sensitivityButton = this.querySelector('[data-ref=sensitivity]');
+        this._syncSensitivity();
         this.addEventListener('click', (evt) => {
             const target = /** @type HTMLElement */ (evt.target);
-            if (!target.matches('ul > li > a')) {
+            const item = /** @type HTMLElement | null */ (target.closest('ul > li > a'));
+            if (!item) {
                 return;
             }
-            const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
-            const value = /** @type String */ (target.getAttribute('value'));
-            const previous = btn.getAttribute('value');
-            Attributes.toggle(this.#value2, 'hidden', value !== 'BETWEEN');
-            btn.setAttribute('value', value);
-            btn.innerHTML = target.innerHTML;
-            hideOperatorMenu(target);
+            if (this.matches(':disabled') || this.readonly) {
+                return;
+            }
+            const btn = /** @type HTMLButtonElement */ (item.closest('ul')?.previousElementSibling);
+            if (btn !== this._sensitivityButton) {
+                return;
+            }
+            const value = /** @type String */ (item.getAttribute('value'));
+            const previous = this._sensitivity;
+            this._sensitivity = value;
+            this._syncSensitivity();
+            hideOperatorMenu(item);
             if (previous !== value) {
-                this.#notifyChange();
+                this._notifyChange();
             }
         });
     }
-
+    get sensitivities() {
+        return this._sensitivities;
+    }
+    set sensitivities(declared) {
+        this._sensitivities = whitelisted(declared, SENSITIVITIES);
+        if (!this._sensitivities.includes(this._sensitivity)) {
+            this._sensitivity = this._sensitivities[0];
+        }
+        this._syncSensitivity();
+    }
+    _syncSensitivity() {
+        if (!this._sensitivityButton) {
+            return;
+        }
+        const menu = this._sensitivityButton.nextElementSibling;
+        fillMenu(menu, this._sensitivities, SENSITIVITY_LABELS, SENSITIVITY_GLYPHS);
+        if (!this._sensitivityMenuWired && this._sensitivities.length > 1) {
+            wireOperatorMenu(this._sensitivityButton);
+            this._sensitivityMenuWired = true;
+        }
+        //a pin freezes the control in place, like a pinned operator: same glyph,
+        //documenting the mode, without the popup
+        syncOperatorControl(this._sensitivityButton, this._sensitivities, this.hasAttribute('disabled'));
+        this._sensitivityButton.setAttribute('value', this._sensitivity);
+        this._sensitivityButton.textContent = SENSITIVITY_GLYPHS[this._sensitivity] ?? this._sensitivity;
+        Attributes.set(this._sensitivityButton, 'aria-label', labelFor(SENSITIVITY_LABELS, this._sensitivity));
+    }
+    _sensitivityMenuWired = false;
     get value() {
-        const operator = this.#operator.getAttribute('value');
-        const values = operator === 'BETWEEN' ? [this.#value1.value, this.#value2.value] : [this.#value1.value];
-        return values.some((v) => v === '') ? undefined : [operator, ...values];
+        const tuple = this._tuple();
+        return tuple == null ? undefined : [tuple[0], this._sensitivity, ...tuple.slice(1)];
     }
     set value(v) {
         if (v == null) {
-            this.#value1.value = '';
-            this.#value2.value = '';
+            this._applyTuple(v);
             return;
         }
-        const [operator, ...values] = v;
-        this.#showOperator(operator);
-        this.#value1.value = values[0];
-        this.#value2.value = values[1];
-    }
-    #showOperator(operator) {
-        this.#operator.setAttribute('value', operator);
-        const items = Array.from(this.#operator.nextElementSibling?.querySelectorAll('li > a[value]') ?? []);
-        const item = items.find((a) => a.getAttribute('value') === operator);
-        if (item) {
-            this.#operator.innerHTML = item.innerHTML;
+        if (this._sensitivities.includes(v[1])) {
+            this._sensitivity = v[1];
         }
-        Attributes.toggle(this.#value2, 'hidden', operator !== 'BETWEEN');
+        this._applyTuple([v[0], ...v.slice(2)]);
+        this._syncSensitivity();
     }
-    #notifyChange() {
+}
+
+const BOOLEAN_VALUES = ['', 'true', 'false'];
+const BOOLEAN_VALUE_LABELS = {
+    en: { '': 'Any', true: 'Yes', false: 'No' },
+    it: { '': 'Qualsiasi', true: 'Sì', false: 'No' },
+    es: { '': 'Cualquiera', true: 'Sí', false: 'No' },
+    fr: { '': 'Indifférent', true: 'Oui', false: 'Non' },
+};
+const BOOLEAN_VALUE_GLYPHS = { true: '✓', false: '✗' };
+
+class BooleanFilter extends ParsedElement {
+    static observed = ['value:json', 'operators:csv', 'readonly:presence', 'required:presence'];
+    static slots = true;
+    static OPERATORS = ['EQ', 'NEQ'];
+    static DEFAULT_OPERATOR = 'EQ';
+    static template = `
+        <label>{{{{ slots.default }}}}</label>
+        {{{{ slots.info }}}}
+        <ful-control-group>
+            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
+            {{{{ slots.before }}}}
+            <ful-affix>
+                <button data-ref="operator" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
+                <ul popover role="menu"></ul>
+            </ful-affix>
+            <button data-ref="value" type="button" form=""></button>
+            <ul popover role="menu"></ul>
+            {{{{ slots.after }}}}
+            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+        </ful-control-group>
+        <ful-field-error></ful-field-error>
+    `;
+    static formAssociated = true;
+    internals;
+    _operator;
+    _menu;
+    _value;
+    _container;
+    _allowed;
+    _fieldError;
+    constructor() {
+        super();
+        this.internals = this.attachInternals();
+        this.internals.role = 'presentation';
+    }
+    render({ slots, observed, disabled }) {
+        const fragment = this.template().withOverlay({ slots }).render();
+        this._container = fragment.querySelector('ful-control-group');
+        this._operator = fragment.querySelector('[data-ref=operator]');
+        this._menu = this._operator.nextElementSibling;
+        this._value = fragment.querySelector('[data-ref=value]');
+        this._fieldError = fragment.querySelector('ful-field-error');
+        this.operators = observed.operators;
+        this._showOperator(
+            this._allowed.includes(BooleanFilter.DEFAULT_OPERATOR) ? BooleanFilter.DEFAULT_OPERATOR : this._allowed[0],
+        );
+        fillMenu(this._value.nextElementSibling, BOOLEAN_VALUES, BOOLEAN_VALUE_LABELS, BOOLEAN_VALUE_GLYPHS);
+        wireOperatorMenu(this._value);
+        this._showValue('');
+        const label = fragment.querySelector('label');
+        label.addEventListener('click', () => this.focus());
+        this._value.ariaDescribedByElements = [this._fieldError];
+        this._value.ariaLabelledByElements = [label];
+        this.disabled = disabled;
+        this.readonly = observed.readonly;
+        this.required = observed.required;
+        this.value = observed.value;
+        this.addEventListener('click', (evt) => {
+            const target = /** @type HTMLElement */ (evt.target);
+            const item = /** @type HTMLElement | null */ (target.closest('ul > li > a'));
+            if (!item) {
+                return;
+            }
+            if (this.matches(':disabled') || this.readonly) {
+                return;
+            }
+            const btn = /** @type HTMLButtonElement */ (item.closest('ul')?.previousElementSibling);
+            const value = /** @type String */ (item.getAttribute('value'));
+            const previous = btn.getAttribute('value');
+            btn.setAttribute('value', value);
+            if (btn === this._operator) {
+                this._showOperator(value);
+            } else {
+                this._showValue(value);
+            }
+            hideOperatorMenu(item);
+            if (previous !== value) {
+                this._notifyChange();
+            }
+        });
+        this.replaceChildren(fragment);
+    }
+    get operators() {
+        return this._allowed;
+    }
+    set operators(declared) {
+        this._allowed = whitelisted(declared, BooleanFilter.OPERATORS);
+        if (!this._menu) {
+            return;
+        }
+        fillOperatorMenu(this._menu, this._allowed);
+        if (!this._operatorMenuWired && this._allowed.length > 1) {
+            wireOperatorMenu(this._operator);
+            this._operatorMenuWired = true;
+        }
+        if (syncOperatorControl(this._operator, this._allowed, this.hasAttribute('disabled'))) {
+            this._showOperator(this._allowed[0]);
+        }
+    }
+    _operatorMenuWired = false;
+    get value() {
+        const operator = this._operator.getAttribute('value');
+        return this._value.value === '' ? undefined : [operator, this._value.value];
+    }
+    set value(v) {
+        if (v == null) {
+            this._showValue('');
+            return;
+        }
+        //a pinned operator wins over whatever the tuple carries
+        const operator = this._allowed?.length === 1 ? this._allowed[0] : v[0];
+        this._showOperator(operator);
+        this._showValue(v[1] ?? '');
+    }
+    _showOperator(operator) {
+        this._operator.setAttribute('value', operator);
+        this._operator.textContent = GLYPHS[operator] ?? operator;
+        Attributes.set(this._operator, 'aria-label', labelFor(LABELS, operator));
+    }
+    _showValue(token) {
+        this._value.value = token;
+        this._value.innerText = labelFor(BOOLEAN_VALUE_LABELS, token);
+    }
+    _notifyChange() {
         this.dispatchEvent(
             new CustomEvent('change', {
                 bubbles: true,
@@ -299,113 +680,46 @@ class LocalDateFilter extends Input {
         );
     }
     get readonly() {
-        return super.readonly;
+        return this._container.inert;
     }
     set readonly(v) {
-        this.#value2.readOnly = v;
-        super.readonly = v;
-    }
-    get disabled() {
-        return super.disabled;
-    }
-    set disabled(d) {
-        //the claim and the first operand are the base's, the second operand mirrors
-        //the claim like the first one does
-        super.disabled = d;
-        Attributes.toggle(this.#value2, 'disabled', d);
-    }
-}
-
-class TextFilter extends Input {
-    static observed = ['value:json', 'readonly:presence', 'required:presence', 'placeholder'];
-    static template = `
-        <label>{{{{ slots.default }}}}</label>
-        {{{{ slots.info }}}}
-        <ful-control-group>
-            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
-            {{{{ slots.before }}}}
-            <ful-affix>
-                <button data-ref="operator" type="button" value="CONTAINS" form="" aria-expanded="false" aria-haspopup="true">&mldr;a&mldr;</button>
-                <ul popover role="menu">
-                    <li role="none"><a role="menuitem" tabindex="-1" value="CONTAINS">&mldr;a&mldr;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="STARTS_WITH">a&mldr;</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="ENDS_WITH">&mldr;a</a></li>
-                    <li role="none"><a role="menuitem" tabindex="-1" value="EQ">=</a></li>
-                </ul>
-            </ful-affix>
-            <input data-ref="value" type="text" form="">
-            {{{{ slots.after }}}}
-            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
-        </ful-control-group>
-        <ful-field-error></ful-field-error>
-    `;
-    #operator;
-    #value;
-    //the sensitivity has no control of its own: it is carried through from whoever set the value
-    #sensitivity = 'IGNORE_CASE';
-    render(conf) {
-        super.render({ ...conf, skipObservedSetup: true });
-
-        this.#operator = this.querySelector('[data-ref=operator]');
-        this.#value = this.querySelector('[data-ref=value]');
-        wireOperatorMenu(this.#operator);
-
-        this.disabled = conf.disabled;
-        this.readonly = conf.observed.readonly;
-        this.required = conf.observed.required;
-        this.placeholder = conf.observed.placeholder;
-        this.value = conf.observed.value;
-
-        this.addEventListener('click', (evt) => {
-            const target = /** @type HTMLElement */ (evt.target);
-            if (!target.matches('ul > li > a')) {
-                return;
-            }
-            const btn = /** @type HTMLButtonElement */ (target.closest('ul')?.previousElementSibling);
-            const value = /** @type String */ (target.getAttribute('value'));
-            const previous = btn.getAttribute('value');
-            btn.setAttribute('value', value);
-            btn.innerHTML = target.innerHTML;
-            hideOperatorMenu(target);
-            if (previous !== value) {
-                this.#notifyChange();
-            }
+        this._container.inert = v;
+        this.reflect(() => {
+            Attributes.toggle(this, 'readonly', v);
         });
     }
-
-    get value() {
-        const operator = this.#operator.getAttribute('value');
-        return this.#value.value === '' ? undefined : [operator, this.#sensitivity, this.#value.value];
+    get disabled() {
+        return this.hasAttribute('disabled');
     }
-    set value(v) {
-        if (v == null) {
-            this.#value.value = '';
+    set disabled(d) {
+        Attributes.toggle(this, 'disabled', d);
+        Attributes.toggle(this._value, 'disabled', d);
+        //the operator button is frozen by a pin, disabled by the claim, or both
+        if (this._allowed) {
+            syncOperatorControl(this._operator, this._allowed, d);
+        }
+    }
+    get required() {
+        return this._value.getAttribute('aria-required') === 'true';
+    }
+    set required(d) {
+        Attributes.set(this._value, 'aria-required', d ? 'true' : null);
+        this.reflect(() => {
+            Attributes.toggle(this, 'required', d);
+        });
+    }
+    focus(options) {
+        this._value.focus(options);
+    }
+    setCustomValidity(error) {
+        if (!error) {
+            this.internals.setValidity({});
+            this._fieldError.innerText = '';
             return;
         }
-        const [operator, sensitivity, value] = v;
-        this.#showOperator(operator);
-        this.#sensitivity = sensitivity ?? 'IGNORE_CASE';
-        this.#value.value = value;
-    }
-    #showOperator(operator) {
-        this.#operator.setAttribute('value', operator);
-        const items = Array.from(this.#operator.nextElementSibling?.querySelectorAll('li > a[value]') ?? []);
-        const item = items.find((a) => a.getAttribute('value') === operator);
-        if (item) {
-            this.#operator.innerHTML = item.innerHTML;
-        }
-    }
-    #notifyChange() {
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                    value: this.value,
-                },
-            }),
-        );
+        this.internals.setValidity({ customError: true }, ' ');
+        this._fieldError.innerText = error;
     }
 }
 
-export { InstantFilter, LocalDateFilter, TextFilter };
+export { BooleanFilter, CompareFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter };

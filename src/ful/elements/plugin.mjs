@@ -1,7 +1,7 @@
 import { HttpClient } from '../../httpc/index.mjs';
 import { Checkbox } from './checkbox.mjs';
 import { LocalDate, Instant, InputLocalDate, InputLocalTime, InputInstant } from './temporals.mjs';
-import { InstantFilter, LocalDateFilter, TextFilter } from './filters.mjs';
+import { BooleanFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter } from './filters.mjs';
 import { FormLoader, Form } from './form.mjs';
 import { Input } from './input.mjs';
 import { InputFile } from './files.mjs';
@@ -33,6 +33,8 @@ class Plugin {
             .defineElement('ful-sorter', SortButton)
             .defineElement('ful-filter-instant', InstantFilter)
             .defineElement('ful-filter-local-date', LocalDateFilter)
+            .defineElement('ful-filter-number', NumberFilter)
+            .defineElement('ful-filter-boolean', BooleanFilter)
             .defineElement('ful-filter-text', TextFilter)
             .defineElement('ful-select', Select)
             .defineElement('ful-dropdown', Dropdown)
