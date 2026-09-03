@@ -191,6 +191,13 @@ class Dropdown extends ParsedElement {
     #selected() {
         return this.#menu?.querySelector('[selected]') ?? this.#menu?.firstElementChild ?? null;
     }
+    #highlight(li) {
+        for (const el of this.#menu.querySelectorAll('li')) {
+            el.toggleAttribute('selected', el === li);
+            el.setAttribute('aria-selected', el === li ? 'true' : 'false');
+        }
+        li?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
     acceptSelection() {
         const selected = this.#selected();
         if (!selected) {
@@ -198,13 +205,17 @@ class Dropdown extends ParsedElement {
         }
         this.#change(selected);
     }
-    update(values) {
+    update(values, keys = []) {
         if (values === undefined) {
             throw new Error('null data');
         }
         this.#options = new Map(values.map((v, i) => [String(i), v]));
         const data = values.map(([key, label, metadata], index) => ({ index, key, label, metadata }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
+        const current = values.findIndex(([k]) => keys.some((r) => r == k));
+        if (current > 0) {
+            this.#highlight(this.#menu.children[current]);
+        }
     }
     #change(target) {
         const index = target.getAttribute('value');
@@ -224,13 +235,13 @@ class Dropdown extends ParsedElement {
     get shown() {
         return !this.hasAttribute('hidden');
     }
-    async show(loader) {
+    async show(loader, keys = []) {
         this.removeAttribute('hidden');
         this.#menu.setAttribute('hidden', '');
         this.#spinner.removeAttribute('hidden');
         try {
             const data = await loader();
-            this.update(data);
+            this.update(data, keys);
         } catch (e) {
             this.hide();
             throw e;
@@ -239,18 +250,39 @@ class Dropdown extends ParsedElement {
             this.#menu.removeAttribute('hidden');
         }
     }
-    async moveOrShow(forward, loader) {
+    async moveOrShow(forward, loader, keys = []) {
         if (this.shown) {
             const selected = this.#selected();
             const candidate = selected?.[`${forward ? 'next' : 'previous'}ElementSibling`];
             if (selected && candidate) {
-                selected.removeAttribute('selected');
-                candidate.setAttribute('selected', '');
-                candidate.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                this.#highlight(candidate);
             }
             return;
         }
-        await this.show(loader);
+        await this.show(loader, keys);
+    }
+    jump(first) {
+        const target = first ? this.#menu.firstElementChild : this.#menu.lastElementChild;
+        if (target) {
+            this.#highlight(target);
+        }
+    }
+    page(forward) {
+        const selected = this.#selected();
+        if (!selected) {
+            return;
+        }
+        const lis = Array.from(this.#menu.children);
+        const step = this.#page();
+        const target = lis[Math.max(0, Math.min(lis.length - 1, lis.indexOf(selected) + (forward ? step : -step)))];
+        this.#highlight(target);
+    }
+    #page() {
+        const first = this.#menu.firstElementChild;
+        if (!first || first.offsetHeight === 0) {
+            return 1;
+        }
+        return Math.max(1, Math.trunc(this.#menu.clientHeight / first.offsetHeight));
     }
 }
 
@@ -270,7 +302,7 @@ class Select extends ParsedElement {
             <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
             {{{{ slots.before }}}}
             <ful-control>
-                <input type="text" form="" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
+                <input type="text" form="" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
             </ful-control>
             {{{{ slots.after }}}}
             <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
@@ -298,6 +330,7 @@ class Select extends ParsedElement {
     #fieldError;
     #values = new Map();
     #token = 0;
+    #editing = false;
     constructor() {
         super();
         this.internals = this.attachInternals();
@@ -335,22 +368,19 @@ class Select extends ParsedElement {
         this.#input.ariaLabelledByElements = [label];
         const [dload, abortdload] = Timing.throttle(400, () => {
             this.#input.setAttribute('aria-expanded', 'true');
-            this.#ddmenu.show(() => this.#loader.load(this.#input.value));
+            this.#ddmenu.show(() => this.#loader.load(this.#input.value), [...this.#values.keys()]);
         });
         this.addEventListener('click', (/** @type any */ e) => {
-            if (e.target.matches('input')) {
-                return;
-            }
             //badges and other chrome are not form controls, the guard must ask the
             //effective state
             if (this.matches(':disabled') || this.readonly) {
                 return;
             }
             if (this.#ddmenu.shown) {
-                this.#input.setAttribute('aria-expanded', 'false');
-                this.#ddmenu.hide();
+                this.#close();
                 return;
             }
+            this.#browse();
             this.#input.focus();
             dload();
         });
@@ -389,36 +419,71 @@ class Select extends ParsedElement {
         this.#input.addEventListener('change', (e) => {
             e.stopPropagation();
         });
+        this.#input.addEventListener('focus', () => {
+            if (this.#editing) {
+                return;
+            }
+            this.#input.select();
+        });
         this.#input.addEventListener('blur', (e) => {
             e.stopPropagation();
             if (e.relatedTarget && this.contains(e.relatedTarget)) {
                 return;
             }
             abortdload();
-            this.#input.setAttribute('aria-expanded', 'false');
-            this.#ddmenu.hide();
-            this.#input.value = '';
+            this.#close();
         });
         this.#input.addEventListener('keydown', (e) => {
             if (this.matches(':disabled') || this.readonly) {
                 return;
             }
             switch (e.code) {
-                case 'ArrowUp': {
-                    e.preventDefault();
-                    this.#input.setAttribute('aria-expanded', 'true');
-                    this.#ddmenu.moveOrShow(false, () => this.#loader.load(this.#input.value));
-                    break;
-                }
+                case 'ArrowUp':
                 case 'ArrowDown': {
                     e.preventDefault();
+                    const forward = 'ArrowDown' === e.code;
+                    if (e.altKey) {
+                        if (forward && !this.#ddmenu.shown) {
+                            this.#browse();
+                            this.#input.setAttribute('aria-expanded', 'true');
+                            this.#ddmenu.show(() => this.#loader.load(this.#input.value), [...this.#values.keys()]);
+                        } else if (!forward && this.#ddmenu.shown) {
+                            this.#close();
+                        }
+                        break;
+                    }
+                    this.#browse();
                     this.#input.setAttribute('aria-expanded', 'true');
-                    this.#ddmenu.moveOrShow(true, () => this.#loader.load(this.#input.value));
+                    this.#ddmenu.moveOrShow(forward, () => this.#loader.load(this.#input.value), [
+                        ...this.#values.keys(),
+                    ]);
+                    break;
+                }
+                case 'Home': {
+                    if (this.#ddmenu.shown) {
+                        e.preventDefault();
+                        this.#ddmenu.jump(true);
+                    }
+                    break;
+                }
+                case 'End': {
+                    if (this.#ddmenu.shown) {
+                        e.preventDefault();
+                        this.#ddmenu.jump(false);
+                    }
+                    break;
+                }
+                case 'PageDown':
+                case 'PageUp': {
+                    if (this.#ddmenu.shown) {
+                        e.preventDefault();
+                        this.#ddmenu.page('PageDown' === e.code);
+                    }
                     break;
                 }
                 case 'Escape': {
-                    this.#input.setAttribute('aria-expanded', 'false');                    
-                    this.#ddmenu.hide();
+                    abortdload();
+                    this.#close();
                     break;
                 }
                 case 'Enter': {
@@ -429,9 +494,9 @@ class Select extends ParsedElement {
                         return;
                     }
                     e.preventDefault();
-                    this.#input.setAttribute('aria-expanded', 'false');
+                    this.#editing = false;
+                    this.#display();
                     this.#ddmenu.acceptSelection();
-                    this.#input.value = '';
                     break;
                 }
                 case 'Backspace': {
@@ -444,9 +509,8 @@ class Select extends ParsedElement {
                     break;
                 }
                 case 'Tab': {
-                    this.#input.setAttribute('aria-expanded', 'false');
-                    this.#ddmenu.hide();
                     abortdload();
+                    this.#close();
                     break;
                 }
             }
@@ -456,6 +520,7 @@ class Select extends ParsedElement {
             if (this.matches(':disabled') || this.readonly) {
                 return;
             }
+            this.#editing = true;
             dload();
         });
         this.#ddmenu.addEventListener('change', (e) => {
@@ -463,18 +528,37 @@ class Select extends ParsedElement {
             if (!this.#multiple) {
                 this.#values.clear();
             }
+            this.#editing = false;
             this.#values.set(this.#coerceKey(e.detail.data[0]), e.detail.data.slice(1));
             this.#changed();
             this.#syncBadges();
             this.#input.focus();
             this.#input.setAttribute('aria-expanded', 'false');
             this.#ddmenu.hide();
-            this.#input.value = '';
+            if (!this.#multiple) {
+                this.#input.select();
+            }
         });
         this.replaceChildren(fragment);
     }
     async withLoader(fn) {
         return await fn(this.#loader);
+    }
+    #close() {
+        this.#input.setAttribute('aria-expanded', 'false');
+        this.#ddmenu.hide();
+        this.#editing = false;
+        this.#display();
+    }
+    #browse() {
+        if (this.#editing) {
+            return;
+        }
+        this.#input.value = '';
+    }
+    #display() {
+        const entry = this.#values.values().next().value;
+        this.#input.value = this.#multiple ? '' : (entry?.[0] ?? '');
     }
     #requestSubmit() {
         const form = this.internals.form;
@@ -502,17 +586,22 @@ class Select extends ParsedElement {
         );
     }
     #syncBadges() {
-        const badges = Array.from(this.#values.entries()).map(([k, v]) => {
-            const b = document.createElement('ful-badge');
-            b.setAttribute('role', 'button');
-            b.setAttribute('value', k);
-            b.innerText = v[0];
-            return b;
-        });
+        const badges = this.#multiple
+            ? Array.from(this.#values.entries()).map(([k, v]) => {
+                  const b = document.createElement('ful-badge');
+                  b.setAttribute('role', 'button');
+                  b.setAttribute('value', k);
+                  b.innerText = v[0];
+                  return b;
+              })
+            : [];
         for (const b of this.#control.querySelectorAll(':scope > ful-badge')) {
             b.remove();
         }
         this.#input.before(...badges);
+        if (!this.#editing) {
+            this.#display();
+        }
         this.#items.replaceChildren();
         this.template('items').withOverlay({ entries: this.#values.entries() }).renderTo(this.#items);
     }

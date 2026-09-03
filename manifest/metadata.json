@@ -157,10 +157,10 @@
             "events": { "change": "Fired with the whole tuple, or undefined when the filter is empty." }
         },
         "ful-select": {
-            "description": "A combobox backed by a loader, with ful-badge elements for the current selection. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "The selected key, or a comma separated list of keys when multiple.",
-                "itemlist": "Shows the selection as a ful-item-list under the control as well as ful-badge elements.",
+                "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
                 "k-type": "The type every key is coerced to, both the assigned ones and the loader's: string (default), number or boolean. A key that does not decode, such as an empty string with number, is kept as it is."
             },
             "slots": { "dropdown": "Replaces the template used to render the options." },

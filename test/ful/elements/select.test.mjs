@@ -2,7 +2,6 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 
-
 registry.plugin(new Plugin()).configure();
 
 /** the dropdown opens on the throttle's leading edge, this only lets the loader resolve */
@@ -15,7 +14,7 @@ const opened = async () => {
 describe('Select & Dropdown Combobox ARIA Compliance', () => {
     beforeEach(() => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => { }, load: async () => [] })
+            create: () => ({ prefetch: async () => {}, load: async () => [] }),
         });
     });
 
@@ -44,12 +43,12 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
         document.body.appendChild(container);
 
         const selectEl = container.querySelector('ful-select');
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         const input = selectEl.querySelector('input');
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
         assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
 
         input.dispatchEvent(new Event('blur'));
@@ -84,7 +83,12 @@ describe('Select & Dropdown load failure handling', () => {
 
     it('renders the select and warns when prefetch fails', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => { throw new Error('boom'); }, load: async () => [] })
+            create: () => ({
+                prefetch: async () => {
+                    throw new Error('boom');
+                },
+                load: async () => [],
+            }),
         });
         const container = document.createElement('div');
         container.innerHTML = `<ful-select></ful-select>`;
@@ -100,7 +104,11 @@ describe('Select & Dropdown load failure handling', () => {
 
     it('hides the dropdown and reports the rejection when load fails', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ load: async () => { throw new Error('boom'); } })
+            create: () => ({
+                load: async () => {
+                    throw new Error('boom');
+                },
+            }),
         });
         const container = document.createElement('div');
         container.innerHTML = `<ful-select></ful-select>`;
@@ -108,7 +116,7 @@ describe('Select & Dropdown load failure handling', () => {
 
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         const rejectionsBefore = rejections.length;
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
@@ -125,8 +133,10 @@ describe('Select & Dropdown load failure handling', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 load: async () => [],
-                exact: async () => { throw new Error('boom'); }
-            })
+                exact: async () => {
+                    throw new Error('boom');
+                },
+            }),
         });
         const container = document.createElement('div');
         container.innerHTML = `<ful-select value="k1"></ful-select>`;
@@ -135,7 +145,7 @@ describe('Select & Dropdown load failure handling', () => {
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         const rejectionsBefore = rejections.length;
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(rejections.length, rejectionsBefore + 1);
         assert.strictEqual(selectEl.value, 'k1', 'the requested key is kept');
@@ -151,7 +161,7 @@ describe('Select & Dropdown keyboard interaction', () => {
     });
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     const mount = (html) => {
@@ -160,17 +170,20 @@ describe('Select & Dropdown keyboard interaction', () => {
         document.body.appendChild(container);
         return [container.querySelector('ful-select'), container];
     };
-    const keydown = (input, code) => {
-        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    const keydown = (input, code, options = {}) => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
     };
     beforeEach(() => {
         uncaught.length = 0;
         registry.defineComponent('loaders:select', {
             create: () => ({
-                prefetch: async () => { },
+                prefetch: async () => {},
                 exact: async () => [],
-                load: async () => [['k1', 'Label 1'], ['k2', 'Label 2']]
-            })
+                load: async () => [
+                    ['k1', 'Label 1'],
+                    ['k2', 'Label 2'],
+                ],
+            }),
         });
     });
 
@@ -201,7 +214,7 @@ describe('Select & Dropdown keyboard interaction', () => {
 
     it('ignores arrow keys when the shown dropdown has no options', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => { }, exact: async () => [], load: async () => [] })
+            create: () => ({ prefetch: async () => {}, exact: async () => [], load: async () => [] }),
         });
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
@@ -241,12 +254,130 @@ describe('Select & Dropdown keyboard interaction', () => {
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         container.remove();
     });
+
+    it('toggles the dropdown when the input itself is clicked', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitFor(selectEl);
+        await settle();
+        const input = selectEl.querySelector('input');
+
+        input.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
+
+        input.dispatchEvent(new Event('click', { bubbles: true }));
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        container.remove();
+    });
+
+    it('offers the whole list when opened from rest, the label is not a needle', async () => {
+        const needles = [];
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+                load: async (needle) => {
+                    needles.push(needle);
+                    return [['k1', 'Label 1']];
+                },
+            }),
+        });
+        const [selectEl, container] = mount(`<ful-select value="k1"></ful-select>`);
+        await settle();
+        const input = selectEl.querySelector('input');
+        assert.strictEqual(input.value, 'Label k1');
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+
+        assert.deepStrictEqual(needles, [''], 'the label must not filter the list');
+        container.remove();
+    });
+
+    it('opens highlighting the current selection', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+                load: async () => [
+                    ['k1', 'Label 1'],
+                    ['k2', 'Label 2'],
+                ],
+            }),
+        });
+        const [selectEl, container] = mount(`<ful-select value="k2"></ful-select>`);
+        await settle();
+        const input = selectEl.querySelector('input');
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+
+        assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 2');
+
+        keydown(input, 'Enter');
+        assert.strictEqual(selectEl.value, 'k2', 're-accepting the highlighted selection keeps it');
+        container.remove();
+    });
+
+    it('jumps to the last option on End and back on Home', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitFor(selectEl);
+        await settle();
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+
+        keydown(input, 'End');
+        keydown(input, 'Enter');
+        assert.strictEqual(selectEl.value, 'k2');
+
+        keydown(input, 'ArrowDown', { altKey: true });
+        await opened();
+        keydown(input, 'End');
+        keydown(input, 'Home');
+        keydown(input, 'Enter');
+        assert.strictEqual(selectEl.value, 'k1');
+        container.remove();
+    });
+
+    it('pages through the options with PageDown and PageUp', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitFor(selectEl);
+        await settle();
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+
+        keydown(input, 'PageDown');
+        keydown(input, 'Enter');
+        assert.strictEqual(selectEl.value, 'k2', 'a page down lands past the first option');
+        container.remove();
+    });
+
+    it('opens with Alt+ArrowDown and closes with Alt+ArrowUp', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitFor(selectEl);
+        await settle();
+        const input = selectEl.querySelector('input');
+
+        keydown(input, 'ArrowDown', { altKey: true });
+        await opened();
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
+
+        keydown(input, 'ArrowUp', { altKey: true });
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        container.remove();
+    });
 });
 
 describe('Select value resolution', () => {
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     let exactCalls = [];
@@ -263,13 +394,13 @@ describe('Select value resolution', () => {
         exactCalls = [];
         registry.defineComponent('loaders:select', {
             create: () => ({
-                prefetch: async () => { },
+                prefetch: async () => {},
                 load: async () => [],
                 exact: async (...keys) => {
                     exactCalls.push(keys);
                     return keys.map((k) => [k, `Label ${k}`]);
-                }
-            })
+                },
+            }),
         });
     });
 
@@ -325,7 +456,7 @@ describe('Select value resolution', () => {
 describe('Select value assignment', () => {
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     const mount = async (html, loader) => {
@@ -339,12 +470,12 @@ describe('Select value assignment', () => {
         return [selectEl, container];
     };
     const labelling = (delays = {}) => ({
-        prefetch: async () => { },
+        prefetch: async () => {},
         load: async () => [],
         exact: async (...keys) => {
-            await new Promise(resolve => setTimeout(resolve, delays[keys[0]] ?? 0));
+            await new Promise((resolve) => setTimeout(resolve, delays[keys[0]] ?? 0));
             return keys.map((k) => [k, `Label ${k}`]);
-        }
+        },
     });
 
     it('exposes the assigned keys synchronously', async () => {
@@ -358,14 +489,32 @@ describe('Select value assignment', () => {
         container.remove();
     });
 
-    it('labels the badges once the loader resolves them', async () => {
+    it('labels the field once the loader resolves them', async () => {
         const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling({ k1: 20 }));
+        const input = selectEl.querySelector('input');
 
         selectEl.value = 'k1';
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'k1', 'the key stands in for its label');
+        assert.strictEqual(input.value, 'k1', 'the key stands in for its label');
+        assert.isNull(selectEl.querySelector('ful-control > ful-badge'), 'a single select carries no badge');
 
         await settle();
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1');
+        assert.strictEqual(input.value, 'Label k1');
+        container.remove();
+    });
+
+    it('restores the label in the field when the dropdown leaves', async () => {
+        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling());
+        const input = selectEl.querySelector('input');
+        selectEl.value = 'k1';
+        await settle();
+
+        input.value = 'ty';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        assert.strictEqual(input.value, 'ty', 'the typed needle owns the field while editing');
+
+        input.dispatchEvent(new FocusEvent('blur'));
+
+        assert.strictEqual(input.value, 'Label k1', 'blur brings the label back');
         container.remove();
     });
 
@@ -377,7 +526,7 @@ describe('Select value assignment', () => {
         await settle();
 
         assert.strictEqual(selectEl.value, 'fast');
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label fast');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label fast');
         container.remove();
     });
 
@@ -392,13 +541,13 @@ describe('Select value assignment', () => {
 
         assert.strictEqual(selectEl.value, 'k1', 'the value does not wait for the loader');
         await settle();
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label k1');
         container.remove();
     });
 
     it('does not hold up the upgrade when the loader never answers', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => { }, load: async () => [], exact: () => new Promise(() => { }) })
+            create: () => ({ prefetch: async () => {}, load: async () => [], exact: () => new Promise(() => {}) }),
         });
         const container = document.createElement('div');
         container.innerHTML = `<ful-select value="k1"></ful-select>`;
@@ -414,7 +563,6 @@ describe('Select value assignment', () => {
         assert.strictEqual(selectEl.value, 'k1');
         container.remove();
     });
-
 });
 
 describe('Select key types', () => {
@@ -424,14 +572,22 @@ describe('Select key types', () => {
         }
     };
     const filtering = (data) => ({
-        prefetch: async () => { },
+        prefetch: async () => {},
         load: async () => data,
         exact: async (...keys) => data.filter(([k]) => keys.some((r) => r == k)),
     });
-    const numeric = () => filtering([[16, 'Label 16'], [17, 'Label 17']]);
-    const booleany = () => filtering([[true, 'Yes'], [false, 'No']]);
+    const numeric = () =>
+        filtering([
+            [16, 'Label 16'],
+            [17, 'Label 17'],
+        ]);
+    const booleany = () =>
+        filtering([
+            [true, 'Yes'],
+            [false, 'No'],
+        ]);
     const echoing = () => ({
-        prefetch: async () => { },
+        prefetch: async () => {},
         load: async () => [],
         exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
     });
@@ -450,7 +606,7 @@ describe('Select key types', () => {
         const [selectEl, container] = await mount(`<ful-select value="16"></ful-select>`, numeric());
 
         assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
         container.remove();
     });
 
@@ -461,7 +617,7 @@ describe('Select key types', () => {
         await settle();
 
         assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
         container.remove();
     });
 
@@ -469,23 +625,29 @@ describe('Select key types', () => {
         const [selectEl, container] = await mount(`<ful-select k-type="number" value="16"></ful-select>`, numeric());
 
         assert.strictEqual(selectEl.value, 16);
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
         assert.deepStrictEqual(selectEl.entry, [16, ['Label 16']]);
         container.remove();
     });
 
     it('coerces every key of a multiple assignment', async () => {
-        const [selectEl, container] = await mount(`<ful-select k-type="number" multiple value="16,17"></ful-select>`, numeric());
+        const [selectEl, container] = await mount(
+            `<ful-select k-type="number" multiple value="16,17"></ful-select>`,
+            numeric(),
+        );
 
         assert.deepStrictEqual(selectEl.value, [16, 17]);
         container.remove();
     });
 
     it('exposes boolean keys when k-type is boolean', async () => {
-        const [selectEl, container] = await mount(`<ful-select k-type="boolean" value="true"></ful-select>`, booleany());
+        const [selectEl, container] = await mount(
+            `<ful-select k-type="boolean" value="true"></ful-select>`,
+            booleany(),
+        );
 
         assert.strictEqual(selectEl.value, true);
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Yes');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Yes');
         container.remove();
     });
 
@@ -493,7 +655,7 @@ describe('Select key types', () => {
         const [selectEl, container] = await mount(`<ful-select k-type="number" value="abc"></ful-select>`, echoing());
 
         assert.strictEqual(selectEl.value, 'abc');
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label abc');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label abc');
         container.remove();
     });
 
@@ -505,7 +667,7 @@ describe('Select key types', () => {
         selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
 
         assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
         container.remove();
     });
 
@@ -517,7 +679,7 @@ describe('Select key types', () => {
         selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
 
         assert.strictEqual(selectEl.value, 16);
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label 16');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
         container.remove();
     });
 });
@@ -526,7 +688,7 @@ describe('Select enter key inside a form', () => {
     let submits = [];
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     const mount = async (html) => {
@@ -539,25 +701,26 @@ describe('Select enter key inside a form', () => {
         return [selectEl, container];
     };
     const enter = (selectEl) => {
-        selectEl.querySelector('input').dispatchEvent(
-            new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }),
-        );
+        selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
     };
     beforeEach(() => {
         submits = [];
         registry.defineComponent('loaders:form', {
             create: () => ({
                 prepare: async (v) => v,
-                submit: async (values) => { submits.push(values); return {}; },
+                submit: async (values) => {
+                    submits.push(values);
+                    return {};
+                },
                 transform: async (r) => r,
-            })
+            }),
         });
         registry.defineComponent('loaders:select', {
             create: () => ({
-                prefetch: async () => { },
+                prefetch: async () => {},
                 exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
                 load: async () => [['k1', 'Label 1']],
-            })
+            }),
         });
     });
 
@@ -606,11 +769,11 @@ describe('Select enter key inside a form', () => {
 describe('Select selection removal', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     const labelling = () => ({
-        prefetch: async () => { },
+        prefetch: async () => {},
         load: async () => [['k1', 'Label 1']],
         exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
     });
@@ -637,9 +800,18 @@ describe('Select selection removal', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k3'], 'the clicked badge is the one removed');
         assert.strictEqual(changes.length, 1);
-        assert.deepStrictEqual(changes[0].map((v) => v.key), ['k1', 'k3']);
-        assert.deepStrictEqual(badges(selectEl).map((b) => b.innerText), ['Label k1', 'Label k3']);
-        assert.deepStrictEqual(items(selectEl).map((i) => i.getAttribute('data-key')), ['k1', 'k3']);
+        assert.deepStrictEqual(
+            changes[0].map((v) => v.key),
+            ['k1', 'k3'],
+        );
+        assert.deepStrictEqual(
+            badges(selectEl).map((b) => b.innerText),
+            ['Label k1', 'Label k3'],
+        );
+        assert.deepStrictEqual(
+            items(selectEl).map((i) => i.getAttribute('data-key')),
+            ['k1', 'k3'],
+        );
         container.remove();
     });
 
@@ -652,9 +824,18 @@ describe('Select selection removal', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.strictEqual(changes.length, 1);
-        assert.deepStrictEqual(changes[0].map((v) => v.key), ['k1', 'k2']);
-        assert.deepStrictEqual(items(selectEl).map((i) => i.getAttribute('data-key')), ['k1', 'k2']);
-        assert.deepStrictEqual(badges(selectEl).map((b) => b.innerText), ['Label k1', 'Label k2']);
+        assert.deepStrictEqual(
+            changes[0].map((v) => v.key),
+            ['k1', 'k2'],
+        );
+        assert.deepStrictEqual(
+            items(selectEl).map((i) => i.getAttribute('data-key')),
+            ['k1', 'k2'],
+        );
+        assert.deepStrictEqual(
+            badges(selectEl).map((b) => b.innerText),
+            ['Label k1', 'Label k2'],
+        );
         container.remove();
     });
 
@@ -699,16 +880,19 @@ describe('Select selection removal', () => {
         container.remove();
     });
 
-    it('reports a single select as empty once its only badge is removed', async () => {
+    it('reports a single select as empty once backspace clears its label', async () => {
         const [selectEl, container] = await mount(`<ful-select value="k1"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        const input = selectEl.querySelector('input');
+        input.setSelectionRange(0, 0);
 
-        click(badges(selectEl)[0]);
+        input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', bubbles: true }));
 
         assert.isNull(selectEl.value);
         assert.deepStrictEqual(changes, [null], 'a single select reports no selection as null');
         assert.deepStrictEqual(badges(selectEl), []);
+        assert.strictEqual(input.value, '');
         container.remove();
     });
 });
@@ -716,16 +900,16 @@ describe('Select selection removal', () => {
 describe('Select backspace', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
-                prefetch: async () => { },
+                prefetch: async () => {},
                 load: async () => [['k1', 'Label 1']],
                 exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
-            })
+            }),
         });
         const container = document.createElement('div');
         container.innerHTML = html;
@@ -735,7 +919,8 @@ describe('Select backspace', () => {
         await settle();
         return [selectEl, container];
     };
-    const backspace = (input) => input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', bubbles: true }));
+    const backspace = (input) =>
+        input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', bubbles: true }));
 
     it('removes the last selection when the caret sits at the start', async () => {
         const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
@@ -747,8 +932,14 @@ describe('Select backspace', () => {
         backspace(input);
 
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the last entry goes first');
-        assert.deepStrictEqual(changes[0].map((v) => v.key), ['k1']);
-        assert.deepStrictEqual([...selectEl.querySelectorAll('ful-control > ful-badge')].map((b) => b.innerText), ['Label k1']);
+        assert.deepStrictEqual(
+            changes[0].map((v) => v.key),
+            ['k1'],
+        );
+        assert.deepStrictEqual(
+            [...selectEl.querySelectorAll('ful-control > ful-badge')].map((b) => b.innerText),
+            ['Label k1'],
+        );
         container.remove();
     });
 
@@ -812,16 +1003,16 @@ describe('Select backspace', () => {
 describe('Select blur', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
-                prefetch: async () => { },
+                prefetch: async () => {},
                 load: async () => [['k1', 'Label 1']],
                 exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
-            })
+            }),
         });
         const container = document.createElement('div');
         container.innerHTML = html;
@@ -874,7 +1065,7 @@ describe('Select blur', () => {
 
         input.dispatchEvent(new FocusEvent('blur'));
         //the throttle window is 400ms: outlive it to catch a load that was not aborted
-        await new Promise(resolve => setTimeout(resolve, 450));
+        await new Promise((resolve) => setTimeout(resolve, 450));
 
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
@@ -885,7 +1076,7 @@ describe('Select blur', () => {
 describe('Select loader access and entries', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     };
     const mount = async (html, loader) => {
@@ -901,14 +1092,17 @@ describe('Select loader access and entries', () => {
     const updatable = () => {
         let data = [['k1', 'Label 1']];
         return {
-            prefetch: async () => { },
+            prefetch: async () => {},
             load: async () => data,
             exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
-            update: (d) => { data = d; return 'updated'; },
+            update: (d) => {
+                data = d;
+                return 'updated';
+            },
         };
     };
     const described = () => ({
-        prefetch: async () => { },
+        prefetch: async () => {},
         load: async () => [],
         exact: async (...keys) => keys.map((k) => [k, `Label ${k}`, { id: k }]),
     });
@@ -957,13 +1151,13 @@ describe('Select edits made while a lookup is in flight', () => {
     it('does not bring back a selection removed before the labels arrived', async () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
-                prefetch: async () => { },
+                prefetch: async () => {},
                 load: async () => [],
                 exact: async (...keys) => {
                     await new Promise((resolve) => setTimeout(resolve, 40));
                     return keys.map((k) => [k, `Label ${k}`]);
                 },
-            })
+            }),
         });
         const container = document.createElement('div');
         container.innerHTML = `<ful-select multiple name="s" value="k1,k2">label</ful-select>`;
