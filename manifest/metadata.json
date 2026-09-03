@@ -133,10 +133,10 @@
             "events": { "page-requested": "Fired with the zero based index of the page the user asked for." }
         },
         "ful-sorter": {
-            "description": "The sort control rendered in a ful-table header. Rarely used on its own.",
+            "description": "The sort control rendered in a ful-table header, focusable and activated by Enter and Space, carrying aria-sort on its header cell. Rarely used on its own.",
             "attributes": { "order": "The sort currently applied, asc or desc, or absent when unsorted." },
             "slots": {},
-            "events": { "sort-requested": "Fired with the sorter and the next order when clicked." }
+            "events": { "sort-requested": "Fired with the sorter and the next order when activated." }
         },
         "ful-filter-instant": {
             "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",

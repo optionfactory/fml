@@ -255,6 +255,32 @@ describe('Select & Dropdown keyboard interaction', () => {
         container.remove();
     });
 
+    it('announces the highlighted option through aria-activedescendant', async () => {
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitFor(selectEl);
+        await settle();
+        const input = selectEl.querySelector('input');
+        const active = () => input.getAttribute('aria-activedescendant');
+        const highlighted = () => selectEl.querySelector('menu li[selected]')?.id;
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        assert.strictEqual(active(), highlighted(), 'the highlighted option is the announced one');
+
+        keydown(input, 'ArrowDown');
+        assert.strictEqual(active(), highlighted(), 'moving the highlight moves the announcement');
+
+        keydown(input, 'Enter');
+        assert.isNull(active(), 'the announcement leaves with the dropdown');
+
+        keydown(input, 'ArrowDown', { altKey: true });
+        await opened();
+        assert.strictEqual(active(), highlighted());
+        input.dispatchEvent(new FocusEvent('blur'));
+        assert.isNull(active(), 'blur drops the announcement too');
+        container.remove();
+    });
+
     it('toggles the dropdown when the input itself is clicked', async () => {
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);

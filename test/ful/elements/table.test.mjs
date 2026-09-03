@@ -86,6 +86,37 @@ describe('Table sorting', () => {
         assert.deepStrictEqual(sorts[3], { sorter: 'a', order: 'asc' });
         container.remove();
     });
+
+    it('sorts with the keyboard and announces the order on the header cell', async () => {
+        const [tableEl, container] = await mount(
+            `<column title="A" sorter="a" order="asc">{{ a }}</column>`);
+        const [sorterA] = tableEl.querySelectorAll('ful-sorter');
+        const th = sorterA.closest('th');
+        const keydown = (code) => sorterA.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+
+        assert.strictEqual(sorterA.getAttribute('role'), 'button');
+        assert.strictEqual(sorterA.getAttribute('tabindex'), '0');
+        assert.strictEqual(th.getAttribute('aria-sort'), 'ascending', 'the declared order is announced');
+
+        keydown('Enter');
+        await settle();
+        assert.deepStrictEqual(sorts[1], { sorter: 'a', order: 'desc' });
+        assert.strictEqual(th.getAttribute('aria-sort'), 'descending');
+
+        keydown('Space');
+        await settle();
+        assert.isNull(sorts[2], 'clearing the order must drop the sort request');
+        assert.isFalse(th.hasAttribute('aria-sort'), 'an unsorted column announces nothing');
+
+        keydown('ArrowDown');
+        await settle();
+        assert.deepStrictEqual(
+            sorts,
+            [{ sorter: 'a', order: 'asc' }, { sorter: 'a', order: 'desc' }, null],
+            'other keys do not sort',
+        );
+        container.remove();
+    });
 });
 
 describe('Table load failures', () => {
@@ -185,9 +216,9 @@ const mount = async (html) => {
 
 const click = (el) => el.dispatchEvent(new Event('click', { bubbles: true }));
 
-//the page links are the li[data-ref=page] anchors
+//the page links are the li[data-ref=page] buttons
 const pageLinks = (paginator) => Array.from(
-    paginator.querySelectorAll('li[data-ref=page] a'));
+    paginator.querySelectorAll('li[data-ref=page] button'));
 const pageLabels = (paginator) => pageLinks(paginator).map((a) => a.textContent.trim());
 const pageLink = (paginator, label) => pageLinks(paginator).find((a) => a.textContent.trim() === label);
 const rowTexts = (tableEl) => Array.from(
@@ -278,7 +309,7 @@ describe('Table pagination', () => {
 
         click(pageLink(paginator, '3'));
         await settle();
-        click(paginator.querySelector('li[data-ref=reload] a'));
+        click(paginator.querySelector('li[data-ref=reload] button'));
         await settle();
 
         assert.strictEqual(requests.length, 3);
@@ -338,8 +369,8 @@ describe('Pagination links', () => {
 
     it('disables previous on the first page and next on the last one', async () => {
         const [el, container] = await mountPagination(`current="0" total="3"`);
-        const prev = () => el.querySelector('li[data-ref=prev] a');
-        const next = () => el.querySelector('li[data-ref=next] a');
+        const prev = () => el.querySelector('li[data-ref=prev] button');
+        const next = () => el.querySelector('li[data-ref=next] button');
 
         assert.isTrue(prev().hasAttribute('disabled'), 'there is no page before the first');
         assert.isFalse(next().hasAttribute('disabled'));
@@ -350,14 +381,27 @@ describe('Pagination links', () => {
         container.remove();
     });
 
+    it('renders real buttons, which keyboard focus skips when disabled', async () => {
+        const [el, container] = await mountPagination(`current="0" total="3"`);
+
+        for (const button of el.querySelectorAll('button')) {
+            assert.strictEqual(button.tagName, 'BUTTON');
+            assert.strictEqual(button.type, 'button', 'no button submits the surrounding form');
+        }
+        const current = el.querySelector('li[data-ref=page] button[disabled]');
+        assert.isNotNull(current, 'the page being shown is disabled');
+        assert.isTrue(current.matches(':disabled'), 'a disabled page button is not a tab stop');
+        container.remove();
+    });
+
     it('does not request a page when a disabled link is clicked', async () => {
         const [el, container] = await mountPagination(`current="0" total="5"`);
         const requested = [];
         el.addEventListener('page-requested', (e) => requested.push(e.detail.value));
 
-        click(el.querySelector('li[data-ref=prev] a'));
+        click(el.querySelector('li[data-ref=prev] button'));
         el.current = 4;
-        click(el.querySelector('li[data-ref=next] a'));
+        click(el.querySelector('li[data-ref=next] button'));
 
         assert.deepStrictEqual(requested, [], 'there is no page before the first nor after the last');
         container.remove();
@@ -365,7 +409,7 @@ describe('Pagination links', () => {
 
     it('points next at the following page, and nowhere on the last one', async () => {
         const [el, container] = await mountPagination(`current="3" total="5"`);
-        const next = () => el.querySelector('li[data-ref=next] a');
+        const next = () => el.querySelector('li[data-ref=next] button');
 
         assert.strictEqual(next().dataset.page, '4');
 
@@ -380,7 +424,7 @@ describe('Pagination links', () => {
         el.addEventListener('page-requested', (e) => requested.push(e.detail.value));
 
         click(pageLink(el, '3'));
-        click(el.querySelector('li[data-ref=next] a'));
+        click(el.querySelector('li[data-ref=next] button'));
 
         assert.deepStrictEqual(requested, [2, 1]);
         container.remove();

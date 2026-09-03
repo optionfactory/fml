@@ -6,6 +6,8 @@ class SortButton extends ParsedElement {
     render({ observed }) {
         const sorter = this.getAttribute('sorter');
         const orders = ['asc', 'desc', null];
+        this.setAttribute('role', 'button');
+        this.setAttribute('tabindex', '0');
         this.order = observed.order;
         this.addEventListener('click', () => {
             const nextOrder = orders[(orders.indexOf(this.order) + 1) % 3];
@@ -18,6 +20,13 @@ class SortButton extends ParsedElement {
                     },
                 }),
             );
+        });
+        this.addEventListener('keydown', (/** @type any */ evt) => {
+            if (evt.code !== 'Enter' && evt.code !== 'Space') {
+                return;
+            }
+            evt.preventDefault();
+            this.click();
         });
     }
 
@@ -32,6 +41,15 @@ class SortButton extends ParsedElement {
                 this.setAttribute('order', value);
             } else {
                 this.removeAttribute('order');
+            }
+            const th = this.closest('th');
+            if (!th) {
+                return;
+            }
+            if (!this.#order) {
+                th.removeAttribute('aria-sort');
+            } else {
+                th.setAttribute('aria-sort', 'asc' === this.#order ? 'ascending' : 'descending');
             }
         });
     }
@@ -74,21 +92,21 @@ class Pagination extends ParsedElement {
         <nav data-tpl-aria-label="#l10n:t('navigation')">
             <ul>
                 <li data-ref="index"> {{ #l10n:t('showing', curr.label, total) }}</li>
-                <li data-ref="reload"><a role="button"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></a></li>
+                <li data-ref="reload"><button type="button"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></button></li>
                 <li data-ref="prev">
-                    <a data-tpl-disabled="prev.enabled ? false : true" data-tpl-aria-label="#l10n:t('previous')" role="button" data-tpl-data-page="prev.index">
+                    <button type="button" data-tpl-disabled="prev.enabled ? false : true" data-tpl-aria-label="#l10n:t('previous')" data-tpl-data-page="prev.index">
                         <ful-icon data-tpl-name="config.prevIcon" aria-hidden="true"></ful-icon>
-                    </a>
+                    </button>
                 </li>
                 <li data-ref="page" data-tpl-each="pages" data-tpl-var="page">
-                    <a data-tpl-disabled="curr.index != page.index ? false : true" role="button" data-tpl-data-page="page.index" >
+                    <button type="button" data-tpl-disabled="curr.index != page.index ? false : true" data-tpl-data-page="page.index" >
                         {{ page.label }}
-                    </a>
+                    </button>
                 </li>
                 <li data-ref="next">
-                    <a data-tpl-disabled="next.enabled ? false : true" data-tpl-aria-label="#l10n:t('next')" role="button" data-tpl-data-page="next.index">
+                    <button type="button" data-tpl-disabled="next.enabled ? false : true" data-tpl-aria-label="#l10n:t('next')" data-tpl-data-page="next.index">
                         <ful-icon data-tpl-name="config.nextIcon" aria-hidden="true"></ful-icon>
-                    </a>
+                    </button>
                 </li>
             </ul>
         </nav>
@@ -99,9 +117,9 @@ class Pagination extends ParsedElement {
         this.total = observed.total ?? 0;
         this.current = observed.current ?? 0;
         this.addEventListener('click', (/** @type any */ evt) => {
-            const el = evt.target.closest('a');
+            const el = evt.target.closest('button');
             if (!el || el.hasAttribute('disabled')) {
-                //a disabled link leads nowhere: the page it would ask for does not exist
+                //a disabled button leads nowhere: the page it would ask for does not exist
                 return;
             }
             this.dispatchEvent(

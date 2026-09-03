@@ -170,6 +170,7 @@ class Dropdown extends ParsedElement {
     #menu;
     #optionstemplate;
     #options = new Map();
+    combobox;
     render({ slots }) {
         const fragment = this.template().render();
         this.#optionstemplate = Fragments.isBlank(slots.default)
@@ -192,11 +193,20 @@ class Dropdown extends ParsedElement {
         return this.#menu?.querySelector('[selected]') ?? this.#menu?.firstElementChild ?? null;
     }
     #highlight(li) {
+        if (!li) {
+            this.combobox?.removeAttribute('aria-activedescendant');
+            return;
+        }
         for (const el of this.#menu.querySelectorAll('li')) {
             el.toggleAttribute('selected', el === li);
             el.setAttribute('aria-selected', el === li ? 'true' : 'false');
         }
-        li?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        li.id ||= Attributes.uid('ful-option');
+        this.combobox?.setAttribute('aria-activedescendant', li.id);
+        li.scrollIntoView({
+            block: 'nearest',
+            behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        });
     }
     acceptSelection() {
         const selected = this.#selected();
@@ -213,9 +223,7 @@ class Dropdown extends ParsedElement {
         const data = values.map(([key, label, metadata], index) => ({ index, key, label, metadata }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
         const current = values.findIndex(([k]) => keys.some((r) => r == k));
-        if (current > 0) {
-            this.#highlight(this.#menu.children[current]);
-        }
+        this.#highlight(current > 0 ? this.#menu.children[current] : this.#selected());
     }
     #change(target) {
         const index = target.getAttribute('value');
@@ -231,6 +239,7 @@ class Dropdown extends ParsedElement {
     }
     hide() {
         this.setAttribute('hidden', '');
+        this.combobox?.removeAttribute('aria-activedescendant');
     }
     get shown() {
         return !this.hasAttribute('hidden');
@@ -361,6 +370,7 @@ class Select extends ParsedElement {
         this.itemlist = observed.itemlist;
 
         this.#ddmenu = fragment.querySelector('ful-dropdown');
+        this.#ddmenu.combobox = this.#input;
         const label = fragment.querySelector('label');
         label.addEventListener('click', () => this.focus());
         this.#fieldError = fragment.querySelector('ful-field-error');

@@ -34,4 +34,9 @@ ful-sorter {
     }
 
     cursor: pointer;
+
+    &:focus-visible {
+        outline: 0;
+        box-shadow: var(--ful-focus-box-shadow);
+    }
 }

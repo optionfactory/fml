@@ -345,18 +345,21 @@ ful-pagination li[data-ref='index'] {
     color: var(--ful-color);
 }
 
-ful-pagination li[data-ref='reload'] a {
+ful-pagination li[data-ref='reload'] button {
     border: 0;
     font-size: 1.25rem;
 }
 
-ful-pagination a {
+ful-pagination button {
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 2.25rem;
     height: 2.25rem;
     padding: 0 0.5rem;
+    font-size: inherit;
+    font-family: inherit;
+    line-height: 1.5;
     color: var(--ful-color);
     text-decoration: none;
     background-color: transparent;
@@ -365,16 +368,16 @@ ful-pagination a {
     cursor: pointer;
 }
 
-ful-pagination a:hover {
+ful-pagination button:hover {
     background-color: var(--ful-selected-bg);
 }
 
-ful-pagination a[disabled] {
+ful-pagination button:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
 
-ful-pagination a:focus-visible {
+ful-pagination button:focus-visible {
     outline: 0;
     box-shadow: var(--ful-focus-box-shadow);
 }
