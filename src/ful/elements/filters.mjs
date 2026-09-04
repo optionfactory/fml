@@ -1,5 +1,4 @@
-import { Attributes, ParsedElement, registry } from '../../ftl/index.mjs';
-import { LocalizationModule } from './l10n.mjs';
+import { Attributes, ParsedElement, Localization } from '../../ftl/index.mjs';
 import { Instant } from './temporals.mjs';
 import { Input } from './input.mjs';
 
@@ -15,62 +14,6 @@ const GLYPHS = {
     STARTS_WITH: 'a…',
     ENDS_WITH: '…a',
 };
-const LABELS = {
-    en: {
-        EQ: 'Equals',
-        NEQ: 'Not equal',
-        LT: 'Less than',
-        GT: 'Greater than',
-        LTE: 'At most',
-        GTE: 'At least',
-        BETWEEN: 'Between',
-        CONTAINS: 'Contains',
-        STARTS_WITH: 'Starts with',
-        ENDS_WITH: 'Ends with',
-    },
-    it: {
-        EQ: 'Uguale',
-        NEQ: 'Diverso',
-        LT: 'Minore',
-        GT: 'Maggiore',
-        LTE: 'Al massimo',
-        GTE: 'Almeno',
-        BETWEEN: 'Tra',
-        CONTAINS: 'Contiene',
-        STARTS_WITH: 'Inizia con',
-        ENDS_WITH: 'Termina con',
-    },
-    es: {
-        EQ: 'Igual',
-        NEQ: 'Distinto',
-        LT: 'Menor',
-        GT: 'Mayor',
-        LTE: 'Como máximo',
-        GTE: 'Al menos',
-        BETWEEN: 'Entre',
-        CONTAINS: 'Contiene',
-        STARTS_WITH: 'Empieza por',
-        ENDS_WITH: 'Termina por',
-    },
-    fr: {
-        EQ: 'Égal',
-        NEQ: 'Différent',
-        LT: 'Inférieur',
-        GT: 'Supérieur',
-        LTE: 'Au plus',
-        GTE: 'Au moins',
-        BETWEEN: 'Entre',
-        CONTAINS: 'Contient',
-        STARTS_WITH: 'Commence par',
-        ENDS_WITH: 'Finit par',
-    },
-};
-const SENSITIVITY_LABELS = {
-    en: { IGNORE_CASE: 'Ignore case', CASE_SENSITIVE: 'Case sensitive' },
-    it: { IGNORE_CASE: 'Ignora maiuscole', CASE_SENSITIVE: 'Distingui maiuscole' },
-    es: { IGNORE_CASE: 'Ignorar mayúsculas', CASE_SENSITIVE: 'Distinguir mayúsculas' },
-    fr: { IGNORE_CASE: 'Ignorer la casse', CASE_SENSITIVE: 'Respecter la casse' },
-};
 const COMPARE_OPERATORS = ['EQ', 'NEQ', 'LT', 'GT', 'LTE', 'GTE', 'BETWEEN'];
 const TEXT_OPERATORS = [...COMPARE_OPERATORS, 'CONTAINS', 'STARTS_WITH', 'ENDS_WITH'];
 const SENSITIVITIES = ['IGNORE_CASE', 'CASE_SENSITIVE'];
@@ -80,16 +23,13 @@ const SENSITIVITY_GLYPHS = {
     CASE_SENSITIVE: 'Aa',
 };
 
-/**
- * Resolves a label the way the template's #l10n:t() does: the page's language
- * out of the registry overlays, the table standing in for the class l10n.
- */
-const labelFor = (labels, key) => {
-    const language = registry.context().data.find((overlay) => overlay && 'language' in overlay)?.language ?? 'en';
-    return LocalizationModule.t.call({ l10n: labels, language }, key);
-};
+/** the labels live in the built-in translations, resolved through the same localization every template uses */
+const { t } = Localization.of();
+const operatorLabel = (op) => t(`filters.op.${op}`);
+const sensitivityLabel = (sensitivity) => t(`filters.sensitivity.${sensitivity}`);
+const booleanValueLabel = (token) => t(token === '' ? 'filters.boolean.any' : `filters.boolean.${token}`);
 
-const fillMenu = (menu, allowed, labels, glyphs) => {
+const fillMenu = (menu, allowed, labelFor, glyphs) => {
     menu.replaceChildren(
         ...allowed.map((op) => {
             const li = document.createElement('li');
@@ -98,7 +38,7 @@ const fillMenu = (menu, allowed, labels, glyphs) => {
             a.setAttribute('role', 'menuitem');
             a.setAttribute('tabindex', '-1');
             a.setAttribute('value', op);
-            const word = labelFor(labels, op);
+            const word = labelFor(op);
             const glyph = glyphs[op] ?? op;
             if (word === op && glyph === op) {
                 a.innerText = op;
@@ -116,7 +56,7 @@ const fillMenu = (menu, allowed, labels, glyphs) => {
 };
 
 const fillOperatorMenu = (menu, allowed) => {
-    fillMenu(menu, allowed, LABELS, GLYPHS);
+    fillMenu(menu, allowed, operatorLabel, GLYPHS);
 };
 
 const whitelisted = (declared, vocabulary) => {
@@ -354,7 +294,7 @@ class CompareFilter extends Input {
         //the button carries the compact glyph, announced through its label: the
         //menu is where the localized words live
         this._operator.textContent = GLYPHS[operator] ?? operator;
-        Attributes.set(this._operator, 'aria-label', labelFor(LABELS, operator));
+        Attributes.set(this._operator, 'aria-label', operatorLabel(operator));
         Attributes.toggle(this._value2, 'hidden', operator !== 'BETWEEN');
     }
     _notifyChange() {
@@ -506,7 +446,7 @@ class TextFilter extends CompareFilter {
             return;
         }
         const menu = this._sensitivityButton.nextElementSibling;
-        fillMenu(menu, this._sensitivities, SENSITIVITY_LABELS, SENSITIVITY_GLYPHS);
+        fillMenu(menu, this._sensitivities, sensitivityLabel, SENSITIVITY_GLYPHS);
         if (!this._sensitivityMenuWired && this._sensitivities.length > 1) {
             wireOperatorMenu(this._sensitivityButton);
             this._sensitivityMenuWired = true;
@@ -516,7 +456,7 @@ class TextFilter extends CompareFilter {
         syncOperatorControl(this._sensitivityButton, this._sensitivities, this.hasAttribute('disabled'));
         this._sensitivityButton.setAttribute('value', this._sensitivity);
         this._sensitivityButton.textContent = SENSITIVITY_GLYPHS[this._sensitivity] ?? this._sensitivity;
-        Attributes.set(this._sensitivityButton, 'aria-label', labelFor(SENSITIVITY_LABELS, this._sensitivity));
+        Attributes.set(this._sensitivityButton, 'aria-label', sensitivityLabel(this._sensitivity));
     }
     _sensitivityMenuWired = false;
     get value() {
@@ -537,12 +477,6 @@ class TextFilter extends CompareFilter {
 }
 
 const BOOLEAN_VALUES = ['', 'true', 'false'];
-const BOOLEAN_VALUE_LABELS = {
-    en: { '': 'Any', true: 'Yes', false: 'No' },
-    it: { '': 'Qualsiasi', true: 'Sì', false: 'No' },
-    es: { '': 'Cualquiera', true: 'Sí', false: 'No' },
-    fr: { '': 'Indifférent', true: 'Oui', false: 'Non' },
-};
 const BOOLEAN_VALUE_GLYPHS = { true: '✓', false: '✗' };
 
 class BooleanFilter extends ParsedElement {
@@ -591,7 +525,7 @@ class BooleanFilter extends ParsedElement {
         this._showOperator(
             this._allowed.includes(BooleanFilter.DEFAULT_OPERATOR) ? BooleanFilter.DEFAULT_OPERATOR : this._allowed[0],
         );
-        fillMenu(this._value.nextElementSibling, BOOLEAN_VALUES, BOOLEAN_VALUE_LABELS, BOOLEAN_VALUE_GLYPHS);
+        fillMenu(this._value.nextElementSibling, BOOLEAN_VALUES, booleanValueLabel, BOOLEAN_VALUE_GLYPHS);
         wireOperatorMenu(this._value);
         this._showValue('');
         const label = fragment.querySelector('label');
@@ -662,11 +596,11 @@ class BooleanFilter extends ParsedElement {
     _showOperator(operator) {
         this._operator.setAttribute('value', operator);
         this._operator.textContent = GLYPHS[operator] ?? operator;
-        Attributes.set(this._operator, 'aria-label', labelFor(LABELS, operator));
+        Attributes.set(this._operator, 'aria-label', operatorLabel(operator));
     }
     _showValue(token) {
         this._value.value = token;
-        this._value.innerText = labelFor(BOOLEAN_VALUE_LABELS, token);
+        this._value.innerText = booleanValueLabel(token);
     }
     _notifyChange() {
         this.dispatchEvent(

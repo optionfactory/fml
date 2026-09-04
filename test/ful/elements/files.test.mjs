@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 
-registry.plugin(new Plugin()).configure();
+registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const mount = async (html) => {
     const container = document.createElement('div');
@@ -264,7 +264,7 @@ describe('InputFile constraints', () => {
         pick(el, file('a.txt'), file('b.txt'), file('c.txt'));
 
         assert.deepStrictEqual(selected(el), []);
-        assert.strictEqual(warning(el), 'Maximum files count exceeded');
+        assert.strictEqual(warning(el), 'Maximum of 2 files exceeded');
 
         container.remove();
     });
@@ -332,21 +332,6 @@ describe('InputFile warnings', () => {
         assert.deepStrictEqual(warnings(el), [], 'a fixed selection must not keep the stale complaint on screen');
 
         container.remove();
-    });
-
-    it('localizes the unaccepted type warning under a key the consumer can translate', async () => {
-        const [el, container] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
-        const messages = el.constructor.l10n.en;
-        const original = messages.unacceptablefiletype;
-        messages.unacceptablefiletype = 'we only take {0} around here';
-        try {
-            pick(el, file('a.txt'));
-
-            assert.strictEqual(warning(el), 'we only take .pdf around here');
-        } finally {
-            messages.unacceptablefiletype = original;
-            container.remove();
-        }
     });
 });
 

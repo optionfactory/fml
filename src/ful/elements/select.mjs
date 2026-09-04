@@ -155,15 +155,9 @@ class SelectLoader {
 
 class Dropdown extends ParsedElement {
     static slots = true;
-    static l10n = {
-        en: { empty: 'No results' },
-        it: { empty: 'Nessun risultato' },
-        es: { empty: 'Sin resultados' },
-        fr: { empty: 'Aucun résultat' },
-    };
     static template = `
         <ful-spinner class="centered" hidden></ful-spinner>
-        <p data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('empty') }}</p>
+        <p data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('dropdown.empty') }}</p>
         <menu tabindex="-1" role="listbox" hidden></menu>
     `;
     static templates = {
@@ -308,12 +302,6 @@ class Dropdown extends ParsedElement {
 class Select extends ParsedElement {
     static observed = ['value:csvm', 'readonly:presence', 'required:presence', 'itemlist:presence'];
     static slots = true;
-    static l10n = {
-        en: { remove: 'Remove' },
-        it: { remove: 'Rimuovi' },
-        es: { remove: 'Eliminar' },
-        fr: { remove: 'Retirer' },
-    };
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
@@ -334,7 +322,7 @@ class Select extends ParsedElement {
         items: `
             <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
                 <div>{{ entry[1][0] }}</div>
-                <button type="button" data-tpl-aria-label="#l10n:t('remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+                <button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </ful-item>
         `,
     };

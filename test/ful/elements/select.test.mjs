@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 
-registry.plugin(new Plugin()).configure();
+registry.plugin(new Plugin({ language: 'en' })).configure();
 
 /** the dropdown opens on the throttle's leading edge, this only lets the loader resolve */
 const opened = async () => {

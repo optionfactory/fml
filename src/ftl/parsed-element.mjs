@@ -39,7 +39,7 @@ class ParsedElement extends HTMLElement {
     template(name) {
         const { modules, data } = registry.context();
         let t = this.#bits().TEMPLATES[name ?? 'default'].withData(data).withModules(modules);
-        for (const k of ['l10n', 'config']) {
+        for (const k of ['config']) {
             const v = this.constructor[k];
             if (v) {
                 t = t.withOverlay({ [k]: v });

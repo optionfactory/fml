@@ -57,48 +57,18 @@ class SortButton extends ParsedElement {
 
 class Pagination extends ParsedElement {
     static observed = ['total:number', 'current:number'];
-    static l10n = {
-        en: {
-            showing: 'Page {0} of {1}',
-            navigation: 'Page navigation',
-            previous: 'Previous',
-            next: 'Next',
-            reload: 'Reload',
-        },
-        it: {
-            showing: 'Pagina {0} di {1}',
-            navigation: 'Navigazione pagine',
-            previous: 'Precedente',
-            next: 'Successivo',
-            reload: 'Ricarica',
-        },
-        es: {
-            showing: 'Página {0} de {1}',
-            navigation: 'Navegación de páginas',
-            previous: 'Anterior',
-            next: 'Siguiente',
-            reload: 'Recargar',
-        },
-        fr: {
-            showing: 'Page {0} sur {1}',
-            navigation: 'Navigation des pages',
-            previous: 'Précédent',
-            next: 'Suivant',
-            reload: 'Recharger',
-        },
-    };
     static config = {
         prevIcon: 'chevron-left',
         nextIcon: 'chevron-right',
         reloadIcon: 'arrow-clockwise',
     };
     static template = `
-        <nav data-tpl-aria-label="#l10n:t('navigation')">
+        <nav data-tpl-aria-label="#l10n:t('pagination.navigation')">
             <ul>
-                <li data-ref="index"> {{ #l10n:t('showing', curr.label, total) }}</li>
-                <li data-ref="reload"><button type="button" data-tpl-aria-label="#l10n:t('reload')"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></button></li>
+                <li data-ref="index"> {{ #l10n:t('pagination.showing', { 'current': curr.label, 'total': total }) }}</li>
+                <li data-ref="reload"><button type="button" data-tpl-aria-label="#l10n:t('pagination.reload')"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></button></li>
                 <li data-ref="prev">
-                    <button type="button" data-tpl-disabled="prev.enabled ? false : true" data-tpl-aria-label="#l10n:t('previous')" data-tpl-data-page="prev.index">
+                    <button type="button" data-tpl-disabled="prev.enabled ? false : true" data-tpl-aria-label="#l10n:t('pagination.previous')" data-tpl-data-page="prev.index">
                         <ful-icon data-tpl-name="config.prevIcon" aria-hidden="true"></ful-icon>
                     </button>
                 </li>
@@ -108,7 +78,7 @@ class Pagination extends ParsedElement {
                     </button>
                 </li>
                 <li data-ref="next">
-                    <button type="button" data-tpl-disabled="next.enabled ? false : true" data-tpl-aria-label="#l10n:t('next')" data-tpl-data-page="next.index">
+                    <button type="button" data-tpl-disabled="next.enabled ? false : true" data-tpl-aria-label="#l10n:t('pagination.next')" data-tpl-data-page="next.index">
                         <ful-icon data-tpl-name="config.nextIcon" aria-hidden="true"></ful-icon>
                     </button>
                 </li>
@@ -256,7 +226,7 @@ class InMemoryTableLoader {
         const totalElements = this.#data.length;
         return {
             data: page,
-            size: totalElements
+            size: totalElements,
         };
     }
     update(data) {
@@ -299,28 +269,6 @@ class TableLoader {
 
 class Table extends ParsedElement {
     static slots = true;
-    static l10n = {
-        en: {
-            initial: 'Start searching to see results.',
-            error: 'Error while loading data:',
-            nodata: 'No elements found.',
-        },
-        it: {
-            initial: 'Avvia la ricerca per visualizzare i risultati.',
-            error: 'Errore nel caricamento dei dati:',
-            nodata: 'Nessun elemento trovato.',
-        },
-        es: {
-            initial: 'Inicia la búsqueda para ver los resultados.',
-            error: 'Error al cargar los datos:',
-            nodata: 'No se encontraron elementos.',
-        },
-        fr: {
-            initial: 'Lancez la recherche pour voir les résultats.',
-            error: 'Erreur lors du chargement des données :',
-            nodata: 'Aucun élément trouvé.',
-        },
-    };
     static config = {
         searchIcon: 'search',
     };
@@ -338,7 +286,7 @@ class Table extends ParsedElement {
                         <td data-tpl-colspan="schema.length">
                             <div>
                                 <p data-tpl-if="config.searchIcon"><ful-icon data-tpl-name="config.searchIcon" aria-hidden="true"></ful-icon></p>
-                                {{{ #l10n:t('initial') }}}
+                                {{{ #l10n:t('table.initial') }}}
                             </div>
                         </td>
                     </tr>
@@ -354,7 +302,7 @@ class Table extends ParsedElement {
                     <tr>
                         <td data-tpl-colspan="schema.length">
                             <div>
-                                <p>{{ #l10n:t('error') }}</p>
+                                <p>{{ #l10n:t('table.error') }}</p>
                                 <div data-ref="feedback-error"></div>
                             </div>
                         </td>
@@ -371,7 +319,7 @@ class Table extends ParsedElement {
         row: `
             <tr data-tpl-if="pageResponse.data.length == 0">
                 <td data-tpl-colspan="schema.length">
-                    {{ #l10n:t('nodata') }}
+                    {{ #l10n:t('table.nodata') }}
                 </td>
             </tr>
             {{{{ schema.rowsTemplate.withOverlay({'rows': pageResponse.data}).render() }}}}

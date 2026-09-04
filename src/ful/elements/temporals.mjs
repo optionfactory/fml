@@ -1,4 +1,4 @@
-import { ParsedElement } from '../../ftl/index.mjs';
+import { ParsedElement, Localization } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
 class LocalDate extends ParsedElement {
@@ -8,10 +8,10 @@ class LocalDate extends ParsedElement {
             this.replaceChildren(this.getAttribute('default') ?? '');
             return;
         }
-        const locale = this.getAttribute('locale') ?? Intl.DateTimeFormat().resolvedOptions().locale;
-        const formatter = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'numeric', day: 'numeric' });
+        //the attribute wins, then the page's locale, then the platform default
+        const { date } = Localization.of({ locale: this.getAttribute('locale') ?? undefined });
         const [y, m, d] = content.split('-').map(Number);
-        this.replaceChildren(formatter.format(new Date(y, m - 1, d)));
+        this.replaceChildren(date(new Date(y, m - 1, d), { year: 'numeric', month: 'numeric', day: 'numeric' }));
     }
 }
 
@@ -22,17 +22,18 @@ class Instant extends ParsedElement {
             this.replaceChildren(this.getAttribute('default') ?? '');
             return;
         }
-        const locale = this.getAttribute('locale') ?? Intl.DateTimeFormat().resolvedOptions().locale;
-        const format = new Intl.DateTimeFormat(locale, {
-            year: 'numeric',
-            month: 'numeric',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric',
-            hour12: false,
-        });
-        this.replaceChildren(format.format(new Date(Instant.isoToLocal(content))));
+        const { date } = Localization.of({ locale: this.getAttribute('locale') ?? undefined });
+        this.replaceChildren(
+            date(new Date(Instant.isoToLocal(content)), {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                hour12: false,
+            }),
+        );
     }
     static isoToLocal(iso) {
         //this is so sad

@@ -3,7 +3,7 @@ import { registry, Rendering } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/index.mjs';
 import 'axe-core/axe.js';
 
-registry.plugin(new Plugin()).configure();
+registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const axe = /** @type any */ (window).axe;
 

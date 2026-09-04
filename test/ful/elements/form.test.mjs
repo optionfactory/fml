@@ -3,7 +3,7 @@ import { Failure } from '../../../src/httpc/index.mjs';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, FormLoader, Plugin } from '../../../src/ful/index.mjs';
 
-registry.plugin(new Plugin()).configure();
+registry.plugin(new Plugin({ language: 'en' })).configure();
 
 describe('Form Spinner Button States', () => {
     it('should preserve intentionally disabled button states after the form spinner unspins', async () => {

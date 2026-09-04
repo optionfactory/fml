@@ -9,7 +9,7 @@ registry.defineElement = (tag, klass) => {
     REGISTERED.push(tag);
     return defineElement(tag, klass);
 };
-registry.plugin(new Plugin()).configure();
+registry.plugin(new Plugin({ language: 'en' })).configure();
 registry.defineElement = defineElement;
 
 /**

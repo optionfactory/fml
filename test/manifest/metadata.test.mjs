@@ -19,7 +19,7 @@ describe('Element metadata', () => {
                 return recorder;
             },
         });
-        new Plugin().configure(recorder);
+        new Plugin({ language: 'en' }).configure(recorder);
         return found;
     };
     const slotsOf = (klass) => {
@@ -50,7 +50,7 @@ describe('Element metadata', () => {
                 }
                 return names;
             });
-        const modules = ['bindings', 'checkbox', 'files', 'filters', 'form', 'input', 'l10n', 'plugin',
+        const modules = ['bindings', 'checkbox', 'files', 'filters', 'form', 'input', 'plugin',
             'radio', 'select', 'spinner', 'table', 'temporals'];
         for (const module of modules) {
             const text = await (await fetch(`/src/ful/elements/${module}.mjs`)).text();

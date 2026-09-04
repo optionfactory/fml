@@ -1,41 +1,7 @@
-import { Attributes } from '../../ftl/index.mjs';
+import { Attributes, Localization } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
 class InputFile extends Input {
-    static l10n = {
-        en: {
-            dropzonelabel: 'Click or drop your files here',
-            remove: 'Remove',
-            unacceptablefiletype: 'Only files of type {0} are supported',
-            maxfilesizeexceeded: 'Maximum supported file size is {0}',
-            maxtotalsizeexceeded: 'Maximum supported total file size is {0}',
-            maxfilesexceeded: 'Maximum files count exceeded',
-        },
-        it: {
-            dropzonelabel: 'Clicca o trascina i file qui',
-            remove: 'Rimuovi',
-            unacceptablefiletype: 'Solo i file di tipo {0} sono supportati',
-            maxfilesizeexceeded: 'La dimensione massima di un file è di {0}',
-            maxtotalsizeexceeded: 'La dimensione massima complessiva dei file è di {0}',
-            maxfilesexceeded: 'Numero massimo di file superato',
-        },
-        es: {
-            dropzonelabel: 'Haz clic o arrastra tus archivos aquí',
-            remove: 'Eliminar',
-            unacceptablefiletype: 'Solo se admiten archivos de tipo {0}',
-            maxfilesizeexceeded: 'El tamaño máximo de archivo admitido es {0}',
-            maxtotalsizeexceeded: 'El tamaño total máximo admitido es {0}',
-            maxfilesexceeded: 'Se ha superado el número máximo de archivos',
-        },
-        fr: {
-            dropzonelabel: 'Cliquez ou déposez vos fichiers ici',
-            remove: 'Retirer',
-            unacceptablefiletype: 'Seuls les fichiers de type {0} sont pris en charge',
-            maxfilesizeexceeded: 'La taille maximale de fichier prise en charge est {0}',
-            maxtotalsizeexceeded: 'La taille totale maximale prise en charge est {0}',
-            maxfilesexceeded: 'Nombre maximal de fichiers dépassé',
-        },
-    };
     static observed = [
         'value',
         'readonly:presence',
@@ -70,7 +36,7 @@ class InputFile extends Input {
             {{{{ slots.dropzone }}}}
         </div>
         <div data-ref="dropzone" class="default-dropzone" data-tpl-if="!slots.dropzone">
-            {{ #l10n:t('dropzonelabel') }}
+            {{ #l10n:t('files.dropzonelabel') }}
         </div>
         <ful-item-list></ful-item-list>
         <ful-field-warnings></ful-field-warnings>
@@ -80,8 +46,8 @@ class InputFile extends Input {
         items: `
             <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
                 <div>{{ file.name }}</div>
-                <div>{{ #bytes:format(file.size) }}</div>
-                <button type="button" data-tpl-aria-label="#l10n:t('remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+                <div>{{ #l10n:bytes(file.size) }}</div>
+                <button type="button" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </ful-item>
         `,
         warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`,
@@ -152,13 +118,6 @@ class InputFile extends Input {
             this.#update();
         });
     }
-    #formatByteSize(v) {
-        return v > 1024 * 1024
-            ? `${Math.round((v / 1024 / 1024) * 100) / 100}MiB`
-            : v > 1024
-              ? `${Math.round((v / 1024) * 100) / 100}KiB`
-              : `${v}B`;
-    }
     #update() {
         this.setCustomValidity();
         this.#warnings.replaceChildren();
@@ -166,10 +125,7 @@ class InputFile extends Input {
         this.#ensureFileSizes();
         this.#ensureTotalSize();
         this.#ensureFilesCount();
-        this.template('items')
-            .withOverlay({ files: this.files })
-            .withModule('bytes', { format: this.#formatByteSize })
-            .renderTo(this.#items);
+        this.template('items').withOverlay({ files: this.files }).renderTo(this.#items);
     }
     warning(key, args) {
         this.template('warning').withOverlay({ key, args }).appendTo(this.#warnings);
@@ -185,7 +141,7 @@ class InputFile extends Input {
         if (unacceptable.length === 0) {
             return;
         }
-        this.warning('unacceptablefiletype', this.#accept.join(', '));
+        this.warning('files.unacceptablefiletype', { types: this.#accept.join(', ') });
         const dt = new DataTransfer();
         [...this.files]
             .filter((f) => !unacceptable.includes(f))
@@ -201,7 +157,7 @@ class InputFile extends Input {
         if (this.files.length <= this.#maxfiles) {
             return;
         }
-        this.warning('maxfilesexceeded');
+        this.warning('files.maxfilesexceeded', { count: this.#maxfiles });
         this._input.files = new DataTransfer().files;
     }
 
@@ -213,7 +169,7 @@ class InputFile extends Input {
         if (oversized.length === 0) {
             return;
         }
-        this.warning('maxfilesizeexceeded', this.#formatByteSize(this.#maxfilesize));
+        this.warning('files.maxfilesizeexceeded', { size: Localization.of().bytes(this.#maxfilesize) });
         const dt = new DataTransfer();
         [...this.files]
             .filter((f) => !oversized.includes(f))
@@ -230,7 +186,7 @@ class InputFile extends Input {
         if (totalSize <= this.#maxtotalsize) {
             return;
         }
-        this.warning('maxtotalsizeexceeded', this.#formatByteSize(this.#maxtotalsize));
+        this.warning('files.maxtotalsizeexceeded', { size: Localization.of().bytes(this.#maxtotalsize) });
         this._input.files = new DataTransfer().files;
     }
     get accept() {

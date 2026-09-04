@@ -1,0 +1,55 @@
+<html lang="en">
+<script src="../../dist/ftl.iife.min.js"></script>
+<style>
+    greeting-card {
+        display: block;
+        padding: 1rem;
+        margin: 1rem;
+        border: 1px solid #0000cc;
+    }
+</style>
+
+<body>
+    <greeting-card></greeting-card>
+    <p>
+        The translations are a flat overlay: any template resolves it through <code>#l10n:t()</code>,
+        the imperative code through <code>Localization.of()</code>. The language is fixed at
+        startup, here Italian.
+    </p>
+
+    <script>
+        class GreetingCard extends ftl.ParsedElement {
+            static template = `
+                <h2>{{ #l10n:t('greet.hello', { 'name': name }) }}</h2>
+                <p>{{ #l10n:t('greet.items', { 'count': count }) }}</p>
+                <p>{{ #l10n:number(amount, { 'style': 'currency', 'currency': 'EUR' }) }}</p>
+                <p>{{ #l10n:date(today, { 'dateStyle': 'long' }) }}</p>
+            `;
+            async render() {
+                this.template()
+                    .withOverlay({ name: 'Ada', count: 1, amount: 1234.5, today: new Date() })
+                    .renderTo(this);
+            }
+        }
+
+        ftl.registry
+            .defineModule('l10n', ftl.Localization)
+            .defineOverlay({
+                //one flat translations map, baked at startup: built-in fallback, active language, your strings
+                l10n: {
+                    'greet.hello': 'Ciao {name}',
+                    'greet.items': { one: '{count} elemento', other: '{count} elementi' },
+                },
+                language: 'it',
+                locale: 'it-CH',
+            })
+            .defineElement('greeting-card', GreetingCard)
+            .configure();
+
+        //outside the templates, the same resolution, read live from the registry
+        const { t, bytes } = ftl.Localization.of();
+        console.log(t('greet.hello', { name: 'Grace' }), bytes(1536));
+    </script>
+</body>
+
+</html>

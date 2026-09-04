@@ -3,7 +3,7 @@ import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 import { TableLoader } from '../../../src/ful/elements/table.mjs';
 
-registry.plugin(new Plugin()).configure();
+registry.plugin(new Plugin({ language: 'en' })).configure();
 
 describe('Table sorting', () => {
     let sorts = [];
@@ -194,9 +194,9 @@ describe('Table schema', () => {
     });
 });
 
-//the assertions on the pagination label read the english strings: pin the language so
-//they do not depend on the locale the browser happens to be launched with
-registry.defineOverlay({ language: 'en' });
+//the assertions on the pagination label read the english strings: the plugin
+//is configured with language 'en' above, so they do not depend on the locale
+//the browser happens to be launched with
 
 const settle = async () => {
     for (let i = 0; i !== 20; ++i) {
