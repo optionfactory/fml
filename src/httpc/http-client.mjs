@@ -83,12 +83,18 @@ class HttpClientError extends Failure {
     static async fromResponse(response) {
         switch (MediaType.parse(response.headers.get('Content-Type')).normalized) {
             case 'application/failures+json': {
-                const data = await response.json();
+                const data = await response.json().catch(() => null);
+                if (data === null) {
+                    return HttpClientError.#undecodable(response);
+                }
                 const message = `${response.status} ${response.statusText}: ${data.length} failures`;
                 return new HttpClientError(message, response.status, data);
             }
             case 'application/problem+json': {
-                const data = await response.json();
+                const data = await response.json().catch(() => null);
+                if (data === null) {
+                    return HttpClientError.#undecodable(response);
+                }
                 const message = `${response.status} ${response.statusText}: ${data.title} ${data.detail}`;
                 return new HttpClientError(
                     message,
@@ -104,18 +110,38 @@ class HttpClientError extends Failure {
                 );
             }
             default: {
-                const text = await response.text();
-                const message = `${response.status} ${response.statusText}: ${text}`;
-                return new HttpClientError(message, response.status, [
-                    {
-                        type: 'GENERIC_PROBLEM',
-                        context: null,
-                        reason: message,
-                        details: null,
-                    },
-                ]);
+                return HttpClientError.#generic(response);
             }
         }
+    }
+    /**
+     * A json body that failed to decode has consumed its stream: there is no
+     * text left to embed, the status and the declared media type are the
+     * report.
+     */
+    static #undecodable(response) {
+        const mediaType = MediaType.parse(response.headers.get('Content-Type')).normalized;
+        const message = `${response.status} ${response.statusText}: the ${mediaType} body does not decode as json`;
+        return new HttpClientError(message, response.status, [
+            {
+                type: 'GENERIC_PROBLEM',
+                context: null,
+                reason: message,
+                details: null,
+            },
+        ]);
+    }
+    static async #generic(response) {
+        const text = await response.text();
+        const message = `${response.status} ${response.statusText}: ${text}`;
+        return new HttpClientError(message, response.status, [
+            {
+                type: 'GENERIC_PROBLEM',
+                context: null,
+                reason: message,
+                details: null,
+            },
+        ]);
     }
 }
 

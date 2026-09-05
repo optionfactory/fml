@@ -65,6 +65,30 @@ describe('httpc client', () => {
             expect(err.status).to.equal(401);
             expect(err.problems).to.deep.equal(payload);
         });
+
+        it('reports a failures+json body that does not decode as a generic problem, keeping the status', async () => {
+            const res = new Response('not json{', {
+                status: 500,
+                statusText: 'Server Error',
+                headers: { 'Content-Type': 'application/failures+json' }
+            });
+            const err = await HttpClientError.fromResponse(res);
+            expect(err.status).to.equal(500);
+            expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
+            expect(err.message).to.equal('500 Server Error: the application/failures+json body does not decode as json');
+        });
+
+        it('reports a problem+json body that does not decode as a generic problem, keeping the status', async () => {
+            const res = new Response('<html>proxy error page</html>', {
+                status: 502,
+                statusText: 'Bad Gateway',
+                headers: { 'Content-Type': 'application/problem+json' }
+            });
+            const err = await HttpClientError.fromResponse(res);
+            expect(err.status).to.equal(502);
+            expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
+            expect(err.message).to.equal('502 Bad Gateway: the application/problem+json body does not decode as json');
+        });
     });
 
     describe('HttpClient & HttpRequestBuilder', () => {
