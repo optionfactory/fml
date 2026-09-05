@@ -1,3 +1,4 @@
+import { tick } from '../tick.mjs';
 import { expect } from 'chai';
 import { Registry } from '../../src/ftl/registry.mjs';
 
@@ -148,7 +149,7 @@ describe('Registry', () => {
             // Artificially trigger the DOMContentLoaded event that the UpgradeQueue constructor listens to
             document.dispatchEvent(new Event('DOMContentLoaded'));
 
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await tick();
 
             expect(readyFired).to.be.true;
         });

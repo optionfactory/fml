@@ -1,3 +1,4 @@
+import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
@@ -279,7 +280,7 @@ describe('Filter operator selection', () => {
 describe('Filter operator keyboard access', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const keydown = (el, code) => {
@@ -408,7 +409,7 @@ describe('Filter operator keyboard access', () => {
 describe('Filter operator whitelisting', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const mount = async (html) => {
@@ -543,7 +544,7 @@ describe('Filter operator whitelisting', () => {
 describe('Filter sensitivity whitelisting', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const mount = async (html) => {
@@ -643,7 +644,7 @@ describe('Filter sensitivity whitelisting', () => {
 describe('NumberFilter tuples', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const mount = async (attrs) => {
@@ -689,7 +690,7 @@ describe('NumberFilter tuples', () => {
 describe('BooleanFilter tuples', () => {
     const settle = async () => {
         for (let i = 0; i !== 10; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const mount = async (attrs) => {
@@ -782,7 +783,7 @@ describe('Filters and selects together', () => {
         const select = container.querySelector('ful-select');
         select.value = ['DOG', 'CAT'];
         for (let i = 0; i !== 10; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
 
         assert.deepStrictEqual(
@@ -942,6 +943,128 @@ describe('Filter change notifications', () => {
         el.querySelector('a[value=BETWEEN]').click();
 
         assert.deepEqual(seen, [{ value: undefined }], 'a listening form must learn the filter stopped applying');
+        container.remove();
+    });
+});
+
+describe('Filter operator menu closing', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await tick();
+        }
+    };
+
+    it('gives the operator button the focus back when the menu is dismissed', async () => {
+        const [el, container] = await mount(`<ful-filter-local-date name="f">d</ful-filter-local-date>`);
+        const button = el.querySelector('[data-ref=operator]');
+        const menu = button.nextElementSibling;
+        button.click();
+        await settle();
+        assert.strictEqual(document.activeElement, el.querySelector('a[value=EQ]'), 'the menu borrowed the focus');
+
+        menu.hidePopover();
+        await settle();
+
+        assert.strictEqual(document.activeElement, button, 'closing gives the focus back to the invoker');
+        container.remove();
+    });
+
+    it('leaves the focus alone when a key lands on the menu itself, not on an item', async () => {
+        const [el, container] = await mount(`<ful-filter-text name="f">t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+        const menu = button.nextElementSibling;
+        button.click();
+        await settle();
+        const focused = document.activeElement;
+
+        menu.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', bubbles: true }));
+
+        assert.strictEqual(document.activeElement, focused, 'nothing moved');
+        assert.strictEqual(button.getAttribute('value'), 'CONTAINS', 'nothing was picked either');
+        container.remove();
+    });
+});
+
+describe('Filter property access before rendering', () => {
+    it('accepts an operators assignment on a filter that has not rendered yet', () => {
+        const text = document.createElement('ful-filter-text');
+        text.operators = ['GTE', 'EQ'];
+
+        assert.deepStrictEqual(text.operators, ['GTE', 'EQ'], 'the whitelist is held until the menu exists');
+
+        const bool = document.createElement('ful-filter-boolean');
+        bool.operators = ['NEQ'];
+
+        assert.deepStrictEqual(bool.operators, ['NEQ']);
+    });
+});
+
+describe('BooleanFilter interactions', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await tick();
+        }
+    };
+    const mount = async (attrs = '') => {
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-filter-boolean ${attrs} name="f">b</ful-filter-boolean>`;
+        document.body.appendChild(container);
+        const el = container.querySelector('ful-filter-boolean');
+        await Rendering.waitFor(el);
+        await settle();
+        return [el, container];
+    };
+
+    it('keeps its tuple when a disabled filter is clicked', async () => {
+        const [el, container] = await mount(`value='["EQ","true"]'`);
+        const seen = [];
+        el.addEventListener('change', (e) => seen.push(e.detail));
+        el.disabled = true;
+        assert.isTrue(el.disabled, 'the claim reads back');
+
+        el.querySelector('a[value=NEQ]').click();
+        el.querySelector('[data-ref=value]').nextElementSibling.querySelector('a[value=false]').click();
+
+        assert.deepStrictEqual(el.value, ['EQ', 'true']);
+        assert.deepStrictEqual(seen, []);
+        container.remove();
+    });
+
+    it('ignores clicks that did not land on a dropdown item', async () => {
+        const [el, container] = await mount(`value='["EQ","true"]'`);
+        const seen = [];
+        el.addEventListener('change', (e) => seen.push(e.detail));
+
+        el.querySelector('label').click();
+        el.querySelector('[data-ref=operator]').click();
+        el.querySelector('[data-ref=value]').click();
+
+        assert.deepStrictEqual(el.value, ['EQ', 'true']);
+        assert.deepStrictEqual(seen, []);
+        container.remove();
+    });
+
+    it('hands its focus to the value button', async () => {
+        const [el, container] = await mount('');
+
+        el.focus();
+
+        assert.strictEqual(document.activeElement, el.querySelector('[data-ref=value]'));
+        container.remove();
+    });
+
+    it('reports and clears a custom validity through the field error', async () => {
+        const [el, container] = await mount('');
+
+        el.setCustomValidity('pick one');
+
+        assert.strictEqual(el.querySelector('ful-field-error').innerText, 'pick one');
+        assert.strictEqual(el.internals.validationMessage, ' ');
+
+        el.setCustomValidity('');
+
+        assert.strictEqual(el.querySelector('ful-field-error').innerText, '');
+        assert.strictEqual(el.internals.validationMessage, '');
         container.remove();
     });
 });

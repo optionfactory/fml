@@ -1,3 +1,4 @@
+import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
@@ -17,7 +18,7 @@ describe('Form Spinner Button States', () => {
         document.body.appendChild(container);
         
         // FIX: Allow custom element parsing and child transitions to settle
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await tick();
 
         const fulForm = container.querySelector('ful-form');
         const btnEnabled = fulForm.querySelector('#btn-enabled');
@@ -56,7 +57,7 @@ describe('Form Spinner Button States across overlapping submits', () => {
             </ful-form>
         `;
         document.body.appendChild(container);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await tick();
 
         const fulForm = container.querySelector('ful-form');
         const spinner = fulForm.querySelector('ful-spinner');
@@ -71,7 +72,7 @@ describe('Form Spinner Button States across overlapping submits', () => {
 
         //both submits have to reach the loader before they can be released
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await tick();
         }
         assert.strictEqual(releases.length, 2, 'both submits are in flight');
 
@@ -443,7 +444,7 @@ describe('Disabled fields and submitted values', () => {
         const form = container.querySelector('ful-form');
         await Rendering.waitFor(form);
         for (let i = 0; i !== 20; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
         return [form, container];
     };

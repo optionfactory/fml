@@ -119,3 +119,34 @@ describe('Localization.of', () => {
     });
 });
 
+
+describe('Localization edge contracts', () => {
+    it('returns the key and warns when a plural leaf has no other form', () => {
+        assert.strictEqual(
+            Localization.t.call({ l10n: { k: { one: 'only one' } }, locale: 'en' }, 'k', { count: 2 }),
+            'k',
+        );
+    });
+
+    it('leaves the literal and warns when a positional placeholder has no argument', () => {
+        assert.strictEqual(Localization.t.call({ l10n: { k: '{0} and {1}' } }, 'k', 'a'), 'a and {1}');
+    });
+
+    it('keeps formatting correctly across formatter cache evictions', () => {
+        //each iteration must build its own cache key: a repeated shape would stay
+        //under the cap and never evict anything. Distinct private-use locale
+        //subtags all resolve to english, keeping the expected outputs stable
+        const at = (i) => Localization.number.call({ locale: `en-x-${i}` }, 2 / 7, { minimumFractionDigits: 3 });
+        for (let i = 0; i !== 150; ++i) {
+            at(i);
+        }
+        assert.strictEqual(Localization.number.call({ locale: 'en' }, 2 / 7, { minimumFractionDigits: 3 }), '0.286');
+        assert.strictEqual(Localization.bytes.call({ locale: 'en' }, 2048), '2KiB');
+    });
+
+    it('of() degrades to missing messages when nothing was ever configured', () => {
+        registry.defineData({ unrelated: true });
+        const { t } = Localization.of();
+        assert.strictEqual(t('never.configured'), 'never.configured');
+    });
+});

@@ -93,3 +93,18 @@ describe('corrupt entries', () => {
         expect(VersionedLocalStorage.load('app-config', 'v1')).to.deep.equal({ theme: 'dark' });
     });
 });
+
+describe('absent entries', () => {
+    it('LocalStorage.load of a missing key is undefined', () => {
+        expect(LocalStorage.load('never.saved.key')).to.be.undefined;
+    });
+
+    it('SessionStorage.load of a missing key is undefined', () => {
+        expect(SessionStorage.load('never.saved.key')).to.be.undefined;
+    });
+
+    it('VersionedSessionStorage.load of a missing key is undefined without side effects', () => {
+        expect(VersionedSessionStorage.load('never.saved.key', 'r1')).to.be.undefined;
+        expect(sessionStorage.getItem('never.saved.key')).to.be.null;
+    });
+});

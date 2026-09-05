@@ -470,4 +470,16 @@ describe('Template', () => {
             assert.match(ex.cause.message, /Error evaluating command tplCustom/);
         }
     });
+
+    it('keeps converting dataset keys after the attribute cache has evicted the oldest ones', () => {
+        //the cache holds 1000 entries: render well past it so the oldest
+        //conversions are evicted, then ask for one of them again
+        const html = Array.from({ length: 1200 }, (_, i) => `<i data-tpl-prop${i}="'v${i}'"></i>`).join('');
+        const rendered = Template.fromHtml(html, modules).render();
+
+        const spans = rendered.querySelectorAll('i');
+        assert.lengthOf(spans, 1200);
+        assert.strictEqual(spans[0].getAttribute('prop0'), 'v0', 'the oldest entry survived the churn');
+        assert.strictEqual(spans[1199].getAttribute('prop1199'), 'v1199');
+    });
 });

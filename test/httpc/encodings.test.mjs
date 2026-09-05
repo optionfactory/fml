@@ -33,6 +33,25 @@ describe('Encodings', () => {
             const decodedBuffer = Base64.decode(encoded, Base64.URL_SAFE);
             expect(new TextDecoder().decode(decodedBuffer)).to.equal('foob');
         });
+
+        it('decodes payloads that carry the standard padding, which this encoder never emits', () => {
+            //the three padding shapes, against bytes the whole world can agree on
+            expect(Array.from(new Uint8Array(Base64.decode('QQ==', Base64.STANDARD)))).to.deep.equal([65]);
+            expect(Array.from(new Uint8Array(Base64.decode('QUI=', Base64.STANDARD)))).to.deep.equal([65, 66]);
+            expect(Array.from(new Uint8Array(Base64.decode('QUJD', Base64.STANDARD)))).to.deep.equal([65, 66, 67]);
+        });
+
+        it('decodes every padded atob output back to its source bytes', () => {
+            for (let length = 0; length !== 16; ++length) {
+                const bytes = new Uint8Array(Array.from({ length }, (_, i) => (i * 61 + 7) % 256));
+                const padded = btoa(String.fromCharCode(...bytes));
+
+                const decoded = new Uint8Array(Base64.decode(padded, Base64.STANDARD));
+
+                expect(decoded.length, `length ${length}`).to.equal(length);
+                expect(Array.from(decoded), `length ${length}`).to.deep.equal(Array.from(bytes));
+            }
+        });
     });
 
     describe('Hex', () => {

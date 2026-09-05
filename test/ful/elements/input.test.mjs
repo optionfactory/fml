@@ -1,3 +1,4 @@
+import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
@@ -89,7 +90,7 @@ describe('Input enter key inside a form', () => {
     let submits;
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const mount = async (html) => {
@@ -323,6 +324,35 @@ describe('Input mask on values it cannot place a caret in', () => {
 
         assert.strictEqual(input.value, '123');
         assert.strictEqual(input.selectionStart, 2, 'the caret stays after the 2 it was after');
+        container.remove();
+    });
+});
+
+describe('Input focus and reset', () => {
+    it('hands its focus to the inner control', async () => {
+        const [el, container] = await mount(`<ful-input>l</ful-input>`);
+
+        el.focus();
+
+        assert.strictEqual(document.activeElement, el.querySelector('input'));
+        container.remove();
+    });
+
+    it('restores the value it was rendered with when the form resets', async () => {
+        const [el, container] = await mount(`
+            <ful-form>
+                <ful-input name="who" value="ann">who</ful-input>
+            </ful-form>`);
+        const input = el.querySelector('ful-input');
+        await Rendering.waitFor(input);
+        assert.strictEqual(input.value, 'ann');
+
+        input.value = 'bob';
+        assert.strictEqual(input.value, 'bob');
+
+        el.reset();
+
+        assert.strictEqual(input.value, 'ann', 'the reset brings back the rendered value');
         container.remove();
     });
 });

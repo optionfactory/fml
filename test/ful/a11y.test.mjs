@@ -1,3 +1,4 @@
+import { tick } from '../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/index.mjs';
@@ -9,7 +10,7 @@ const axe = /** @type any */ (window).axe;
 
 const settle = async () => {
     for (let i = 0; i !== 20; ++i) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await tick();
     }
 };
 

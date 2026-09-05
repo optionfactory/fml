@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { HttpClient, HttpClientError, MediaType } from '../../src/httpc/http-client.mjs';
+import { Failure } from '../../src/httpc/failure.mjs';
 
 describe('httpc client', () => {
     let originalFetch;
@@ -245,5 +246,218 @@ describe('httpc client', () => {
             metaHeader.remove();
             metaToken.remove();
         });
+    });
+});
+describe('HttpClientError problem+json', () => {
+    it('synthesizes a generic problem when the payload carries none', async () => {
+        const res = new Response(JSON.stringify({ title: 'Bad input', detail: 'name is blank' }), {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: { 'Content-Type': 'application/problem+json' },
+        });
+        const err = await HttpClientError.fromResponse(res);
+        expect(err.message).to.equal('400 Bad Request: Bad input name is blank');
+        expect(err.problems).to.have.lengthOf(1);
+        expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
+    });
+
+    it('carries the embedded problems when the payload has them', async () => {
+        const problems = [{ type: 'VALIDATION', context: 'name', reason: 'blank' }];
+        const res = new Response(JSON.stringify({ title: 'T', detail: 'D', problems }), {
+            status: 422,
+            headers: { 'Content-Type': 'application/problem+json' },
+        });
+        const err = await HttpClientError.fromResponse(res);
+        expect(err.status).to.equal(422);
+        expect(err.problems).to.deep.equal(problems);
+    });
+});
+
+describe('HttpRequestBuilder request-level configuration', () => {
+    let client;
+    let originalFetch;
+    let fetchArgs;
+    beforeEach(() => {
+        client = HttpClient.builder().build();
+        originalFetch = globalThis.fetch;
+        globalThis.fetch = async (url, init) => {
+            fetchArgs = { url, init };
+            return new Response(JSON.stringify({ ok: true }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        };
+    });
+    afterEach(() => {
+        globalThis.fetch = originalFetch;
+        fetchArgs = null;
+    });
+
+    it('merges options, options(kvs) and option(k, v) into the fetch init', async () => {
+        await client
+            .request('GET', '/opts')
+            .options({ cache: 'no-store' })
+            .option('credentials', 'include')
+            .option('redirect', 'follow')
+            .fetchJson();
+
+        expect(fetchArgs.init.cache).to.equal('no-store');
+        expect(fetchArgs.init.credentials).to.equal('include');
+        expect(fetchArgs.init.redirect).to.equal('follow');
+    });
+
+    it('runs request-level interceptors in registration order', async () => {
+        const order = [];
+        await client
+            .request('GET', '/i')
+            .interceptor({
+                intercept: async (url, request, chain) => {
+                    order.push('one');
+                    return await chain.proceed(url, request);
+                },
+            })
+            .interceptors([
+                {
+                    intercept: async (url, request, chain) => {
+                        order.push('two');
+                        return await chain.proceed(url, request);
+                    },
+                },
+            ])
+            .fetchJson();
+
+        expect(order).to.deep.equal(['one', 'two']);
+    });
+
+    it('exchange resolves the raw response without throwing on error statuses', async () => {
+        globalThis.fetch = async () =>
+            new Response('nope', { status: 500, headers: { 'Content-Type': 'text/plain' } });
+
+        const response = await client.request('GET', '/raw').exchange();
+        expect(response.status).to.equal(500);
+    });
+
+    it('accepts a query string as the params initializer', async () => {
+        await client.request('GET', '/q').params('a=1&b=2').fetchJson();
+        expect(String(fetchArgs.url)).to.include('a=1');
+        expect(String(fetchArgs.url)).to.include('b=2');
+    });
+
+    it('tolerates a null params initializer, contributing no query string', async () => {
+        await client.request('GET', '/no-params').params(null).fetchJson();
+
+        expect(String(fetchArgs.url)).to.not.include('?');
+    });
+
+    it('sets a single header, overriding a previous value for the same key', async () => {
+        await client.request('GET', '/h').header('X-One', 'first').header('X-One', 'second').fetchJson();
+
+        const reqHeaders = new Headers(fetchArgs.init.headers);
+        expect(reqHeaders.get('X-One')).to.equal('second');
+    });
+
+    it('carries a raw body without inventing a content type', async () => {
+        await client.post('/b').body('raw payload').fetchJson();
+
+        expect(fetchArgs.init.body).to.equal('raw payload');
+        expect(new Headers(fetchArgs.init.headers).has('Content-Type')).to.be.false;
+    });
+
+    it('throws the response as an HttpClientError when the status is not ok', async () => {
+        const problems = [{ type: 'VALIDATION', context: 'name', reason: 'blank', details: null }];
+        globalThis.fetch = async () =>
+            new Response(JSON.stringify(problems), {
+                status: 422,
+                statusText: 'Unprocessable Entity',
+                headers: { 'Content-Type': 'application/failures+json' },
+            });
+
+        try {
+            await client.post('/v').json({ name: '' }).fetch();
+            expect.fail('Should have thrown the response failures');
+        } catch (err) {
+            expect(err).to.be.instanceOf(HttpClientError);
+            expect(err.status).to.equal(422);
+            expect(err.problems).to.deep.equal(problems);
+        }
+    });
+
+    it('rethrows a Failure raised by an interceptor untouched, instead of wrapping it', async () => {
+        const failure = new Failure('interceptor says no', [
+            { type: 'SHORT_CIRCUIT', context: null, reason: 'no', details: null },
+        ]);
+        const client = HttpClient.builder()
+            .withInterceptors({
+                intercept: async () => {
+                    throw failure;
+                },
+            })
+            .build();
+
+        try {
+            await client.get('/blocked').fetch();
+            expect.fail('Should have thrown the interceptor Failure');
+        } catch (err) {
+            expect(err).to.equal(failure, 'the very same instance travels to the caller');
+        }
+    });
+
+    it('runs builder level interceptors on every request of the built client', async () => {
+        const seen = [];
+        const traced = HttpClient.builder()
+            .withInterceptors({
+                intercept: async (url, request, chain) => {
+                    seen.push(url.pathname);
+                    return await chain.proceed(url, request);
+                },
+            })
+            .build();
+
+        await traced.get('/one').fetchJson();
+        await traced.get('/two').fetchJson();
+
+        expect(seen).to.deep.equal(['/one', '/two']);
+    });
+});
+
+describe('RedirectOnUnauthorizedInterceptor', () => {
+    let originalFetch;
+
+    beforeEach(() => {
+        originalFetch = globalThis.fetch;
+    });
+
+    afterEach(() => {
+        globalThis.fetch = originalFetch;
+        //the redirect lands on a fragment: drop it without touching the history
+        if (window.location.hash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+    });
+
+    it('redirects and leaves the request pending forever on a 401', async () => {
+        globalThis.fetch = async () => new Response('unauthenticated', { status: 401 });
+        const client = HttpClient.builder().withRedirectOnUnauthorized('#/relogin').build();
+
+        const outcome = await Promise.race([
+            client.get('/protected').exchange().then(
+                () => 'settled',
+                () => 'settled',
+            ),
+            new Promise((resolve) => setTimeout(() => resolve('still pending'), 80)),
+        ]);
+
+        expect(outcome).to.equal('still pending', 'a redirect must never resolve nor reject');
+        expect(window.location.hash).to.equal('#/relogin');
+    });
+
+    it('passes any other status through untouched', async () => {
+        globalThis.fetch = async () => new Response('fine', { status: 202 });
+        const client = HttpClient.builder().withRedirectOnUnauthorized('#/relogin').build();
+
+        const response = await client.get('/protected').exchange();
+
+        expect(response.status).to.equal(202);
+        expect(window.location.hash).to.equal('');
     });
 });

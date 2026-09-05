@@ -29,6 +29,31 @@ const warnOnce = (problem) => {
     }
 };
 
+const MAX_FORMATTERS = 100;
+const formatters = new Map();
+/**
+ * Intl construction is the expensive part of formatting (locale parsing, CLDR
+ * lookups), while formatting on a built instance is near free: a list rendering
+ * a size per row must not rebuild a NumberFormat per cell, so instances are
+ * memoized by constructor, locale and options.
+ *
+ * @param {{ new (locale: string | undefined, options: any): any }} ctor
+ * @param {string | undefined} locale
+ * @param {any} [options]
+ */
+const formatter = (ctor, locale, options) => {
+    const key = `${ctor.name}|${locale ?? ''}|${options === undefined ? '' : JSON.stringify(options)}`;
+    let instance = formatters.get(key);
+    if (instance === undefined) {
+        if (formatters.size >= MAX_FORMATTERS) {
+            formatters.delete(formatters.keys().next().value);
+        }
+        instance = new ctor(locale, options);
+        formatters.set(key, instance);
+    }
+    return instance;
+};
+
 class Localization {
     /**
      * Resolves a message from the translations and interpolates its arguments.
@@ -56,7 +81,7 @@ class Localization {
                 message = message.other;
             } else {
                 const locale = this.locale ?? navigator?.language ?? 'en';
-                const category = new Intl.PluralRules(locale).select(named.count);
+                const category = formatter(Intl.PluralRules, locale).select(named.count);
                 message = message[category] ?? message.other;
             }
         }
@@ -95,7 +120,7 @@ class Localization {
      * @this {Receiver}
      */
     static date(value, options) {
-        return new Intl.DateTimeFormat(this.locale ?? undefined, options).format(value);
+        return formatter(Intl.DateTimeFormat, this.locale, options).format(value);
     }
 
     /**
@@ -106,7 +131,7 @@ class Localization {
      * @this {Receiver}
      */
     static number(value, options) {
-        return new Intl.NumberFormat(this.locale ?? undefined, options).format(value);
+        return formatter(Intl.NumberFormat, this.locale, options).format(value);
     }
 
     /**
@@ -117,14 +142,14 @@ class Localization {
      * @this {Receiver}
      */
     static bytes(value) {
-        const format = new Intl.NumberFormat(this.locale ?? undefined, { maximumFractionDigits: 2 });
+        const format = formatter(Intl.NumberFormat, this.locale, { maximumFractionDigits: 2 }).format;
         if (value > 1024 * 1024) {
-            return `${format.format(value / 1024 / 1024)}MiB`;
+            return `${format(value / 1024 / 1024)}MiB`;
         }
         if (value > 1024) {
-            return `${format.format(value / 1024)}KiB`;
+            return `${format(value / 1024)}KiB`;
         }
-        return `${format.format(value)}B`;
+        return `${format(value)}B`;
     }
 
     /**

@@ -321,3 +321,34 @@ describe('Bindings', () => {
         });
     });
 });
+describe('Bindings.providePath array segments', () => {
+    it('builds arrays out of numeric segments', () => {
+        const result = Bindings.providePath({}, 'rows.0.name', 'first');
+        assert.deepEqual(result, { rows: [{ name: 'first' }] });
+    });
+
+    it('builds an array at the root of a null result', () => {
+        const result = Bindings.providePath(null, '0.name', 'root');
+        assert.deepEqual(result, [{ name: 'root' }]);
+    });
+
+    it('appends to an array path without touching earlier entries', () => {
+        const result = Bindings.providePath({}, 'rows.0.name', 'first');
+        Bindings.providePath(result, 'rows.1.name', 'second');
+        assert.deepEqual(result.rows, [{ name: 'first' }, { name: 'second' }]);
+    });
+});
+
+describe('Bindings.extract boolean type', () => {
+    it('decodes a boolean bind type on a plain input', () => {
+        const fragment = Fragments.fromHtml(`<form><input type="text" value="true" data-ful-bind-type="boolean"></form>`);
+        const el = fragment.querySelector('input');
+        assert.strictEqual(Bindings.extract(el), true);
+
+        el.value = 'false';
+        assert.strictEqual(Bindings.extract(el), false);
+
+        el.value = '';
+        assert.isNull(Bindings.extract(el), 'an empty value carries no boolean');
+    });
+});

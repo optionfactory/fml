@@ -1,3 +1,4 @@
+import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
@@ -13,7 +14,7 @@ const mount = async (fieldsetAttr, inner) => {
     document.body.appendChild(container);
     await Rendering.waitFor(container);
     for (let i = 0; i !== 20; ++i) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await tick();
     }
     const fieldset = container.querySelector('fieldset');
     return [fieldset, fieldset.firstElementChild, container];

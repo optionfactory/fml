@@ -1,3 +1,4 @@
+import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
@@ -9,7 +10,7 @@ describe('Table sorting', () => {
     let sorts = [];
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const mount = async (schema) => {
@@ -122,7 +123,7 @@ describe('Table sorting', () => {
 describe('Table load failures', () => {
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await tick();
         }
     };
     const mount = (loader, autoload) => {
@@ -154,6 +155,24 @@ describe('Table load failures', () => {
         const feedback = tableEl.querySelector('tbody[data-ref=feedback]');
         assert.isFalse(feedback.hasAttribute('hidden'), 'the error row is shown');
         assert.include(feedback.textContent, 'boom');
+        container.remove();
+    });
+
+    it('lists the reasons of a structured failure, one per line', async () => {
+        const failure = Object.assign(new Error('invalid'), {
+            problems: [
+                { reason: 'start is after end' },
+                { reason: 'page is negative' },
+            ],
+        });
+        const [tableEl, container] = mount({ load: async () => { throw failure; } }, false);
+        await Rendering.waitFor(tableEl);
+
+        await tableEl.reload().catch(() => {});
+
+        const feedback = tableEl.querySelector('tbody[data-ref=feedback]');
+        assert.isFalse(feedback.hasAttribute('hidden'));
+        assert.include(feedback.querySelector('[data-ref=feedback-error]').textContent, 'start is after end,page is negative');
         container.remove();
     });
 
@@ -200,7 +219,7 @@ describe('Table schema', () => {
 
 const settle = async () => {
     for (let i = 0; i !== 20; ++i) {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await tick();
     }
 };
 

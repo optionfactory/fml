@@ -358,3 +358,108 @@ describe('InputFile programmatic selection', () => {
         container.remove();
     });
 });
+
+describe('InputFile list and dropzone interactions', () => {
+    const mount = async (html) => {
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const el = container.firstElementChild;
+        await Rendering.waitFor(el);
+        return [el, container];
+    };
+    const pick = (el, ...files) => {
+        const dt = new DataTransfer();
+        for (const f of files) {
+            dt.items.add(f);
+        }
+        const input = el.querySelector('input[type=file]');
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    const file = (name, size = 10) => new File(['x'.repeat(size)], name, { type: 'application/octet-stream' });
+
+    it('removes the file whose list item button was clicked', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
+        pick(el, file('keep.txt'), file('drop.txt'));
+
+        const remove = el.querySelectorAll('ful-item button')[1];
+        remove.dispatchEvent(new Event('click', { bubbles: true }));
+
+        assert.deepStrictEqual(
+            Array.from(el.files).map((f) => f.name),
+            ['keep.txt'],
+            'the clicked entry is gone, the survivor stays',
+        );
+        container.remove();
+    });
+
+    it('opens the picker when the default dropzone is clicked', async () => {
+        const [el, container] = await mount(`<ful-input-file>files</ful-input-file>`);
+        const input = el.querySelector('input[type=file]');
+        let opened = false;
+        input.addEventListener('click', (e) => {
+            e.preventDefault();
+            opened = true;
+        });
+
+        el.querySelector('[data-ref=dropzone]').dispatchEvent(new Event('click', { bubbles: true }));
+
+        assert.isTrue(opened, 'the click reached the native picker');
+        container.remove();
+    });
+
+    it('carries the dragover state while a drag hovers the dropzone', async () => {
+        const [el, container] = await mount(`<ful-input-file>files</ful-input-file>`);
+        const dropzone = el.querySelector('[data-ref=dropzone]');
+
+        dropzone.dispatchEvent(new DragEvent('dragover', { cancelable: true }));
+        assert.isTrue(el.hasAttribute('dragover'), 'the hover state is on');
+
+        dropzone.dispatchEvent(new DragEvent('dragleave'));
+        assert.isFalse(el.hasAttribute('dragover'), 'and it leaves with the drag');
+        container.remove();
+    });
+});
+
+describe('InputFile warning dismissal', () => {
+    it('removes a warning once its animation ends, without touching the selection', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
+        pick(el, file('b.txt'));
+
+        const warningEl = el.querySelector('ful-field-warning');
+        assert.isNotNull(warningEl);
+
+        warningEl.dispatchEvent(new AnimationEvent('animationend', { bubbles: true }));
+
+        assert.isNull(el.querySelector('ful-field-warning'), 'the expired warning leaves the DOM');
+        assert.deepStrictEqual(selected(el), [], 'the rejected pick is not resurrected by the dismissal');
+        container.remove();
+    });
+});
+
+describe('InputFile stray clicks', () => {
+    it('removes nothing when the click lands on the item, away from its button', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
+        pick(el, file('a.txt'), file('b.txt'));
+
+        el.querySelector('ful-item div').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt']);
+        container.remove();
+    });
+
+    it('removes nothing when a button outside any item is clicked', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
+        pick(el, file('a.txt'));
+        const stray = document.createElement('button');
+        stray.type = 'button';
+        stray.innerText = 'clear all';
+        el.querySelector('ful-item-list').appendChild(stray);
+
+        stray.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        assert.deepStrictEqual(selected(el), ['a.txt']);
+        container.remove();
+    });
+});
