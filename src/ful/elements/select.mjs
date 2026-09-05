@@ -338,6 +338,8 @@ class Select extends ParsedElement {
     #values = new Map();
     #token = 0;
     #editing = false;
+    #dload;
+    #abortdload;
     constructor() {
         super();
         this.internals = this.attachInternals();
@@ -374,10 +376,18 @@ class Select extends ParsedElement {
         this.#fieldError = fragment.querySelector('ful-field-error');
         this.#input.ariaDescribedByElements = [this.#fieldError];
         this.#input.ariaLabelledByElements = [label];
-        const [dload, abortdload] = Timing.throttle(400, () => {
-            this.#input.setAttribute('aria-expanded', 'true');
-            this.#ddmenu.show(() => this.#loader.load(this.#input.value), [...this.#values.keys()]);
-        });
+        [this.#dload, this.#abortdload] = Timing.throttle(400, () => this.#open());
+        this.#wireChrome();
+        this.#wireChips();
+        this.#wireInput();
+        this.#wireSelection();
+        this.replaceChildren(fragment);
+    }
+    /**
+     * Pointer interaction: the element toggles the dropdown, the item list's
+     * remove buttons and the control's badges drop their entry.
+     */
+    #wireChrome() {
         this.addEventListener('click', (/** @type any */ e) => {
             //badges and other chrome are not form controls, the guard must ask the
             //effective state
@@ -388,9 +398,8 @@ class Select extends ParsedElement {
                 this.#close();
                 return;
             }
-            this.#browse();
             this.#input.focus();
-            dload();
+            this.#dload();
         });
         this.#items.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -400,13 +409,7 @@ class Select extends ParsedElement {
             if (this.matches(':disabled') || this.readonly) {
                 return;
             }
-            const idx = [...this.#items.children].indexOf(e.target.closest('ful-item'));
-            if (idx === -1) {
-                return;
-            }
-            this.#values.delete(Array.from(this.#values.keys())[idx]);
-            this.#changed();
-            this.#syncBadges();
+            this.#removeKeyAt([...this.#items.children].indexOf(e.target.closest('ful-item')));
         });
         this.#control.addEventListener('click', (e) => {
             const badge = e.target instanceof Element ? e.target.closest('ful-badge') : null;
@@ -416,6 +419,12 @@ class Select extends ParsedElement {
             e.stopPropagation();
             this.#removeBadge(badge);
         });
+    }
+    /**
+     * Keyboard interaction over the chips: Enter/Space/Backspace/Delete remove,
+     * arrows move between badges and the input, Escape returns to the input.
+     */
+    #wireChips() {
         this.addEventListener('keydown', (/** @type any */ e) => {
             const badge = e.target instanceof Element ? e.target.closest('ful-badge') : null;
             if (badge) {
@@ -433,6 +442,8 @@ class Select extends ParsedElement {
                 this.#badges().at(-1)?.focus();
             }
         });
+    }
+    #wireInput() {
         this.#input.addEventListener('change', (e) => {
             e.stopPropagation();
         });
@@ -447,90 +458,14 @@ class Select extends ParsedElement {
             if (e.relatedTarget && this.contains(e.relatedTarget)) {
                 return;
             }
-            abortdload();
+            this.#abortdload();
             this.#close();
         });
         this.#input.addEventListener('keydown', (e) => {
             if (this.matches(':disabled') || this.readonly) {
                 return;
             }
-            switch (e.code) {
-                case 'ArrowUp':
-                case 'ArrowDown': {
-                    e.preventDefault();
-                    const forward = 'ArrowDown' === e.code;
-                    if (e.altKey) {
-                        if (forward && !this.#ddmenu.shown) {
-                            this.#browse();
-                            this.#input.setAttribute('aria-expanded', 'true');
-                            this.#ddmenu.show(() => this.#loader.load(this.#input.value), [...this.#values.keys()]);
-                        } else if (!forward && this.#ddmenu.shown) {
-                            this.#close();
-                        }
-                        break;
-                    }
-                    this.#browse();
-                    this.#input.setAttribute('aria-expanded', 'true');
-                    this.#ddmenu.moveOrShow(forward, () => this.#loader.load(this.#input.value), [
-                        ...this.#values.keys(),
-                    ]);
-                    break;
-                }
-                case 'Home': {
-                    if (this.#ddmenu.shown) {
-                        e.preventDefault();
-                        this.#ddmenu.jump(true);
-                    }
-                    break;
-                }
-                case 'End': {
-                    if (this.#ddmenu.shown) {
-                        e.preventDefault();
-                        this.#ddmenu.jump(false);
-                    }
-                    break;
-                }
-                case 'PageDown':
-                case 'PageUp': {
-                    if (this.#ddmenu.shown) {
-                        e.preventDefault();
-                        this.#ddmenu.page('PageDown' === e.code);
-                    }
-                    break;
-                }
-                case 'Escape': {
-                    abortdload();
-                    this.#close();
-                    break;
-                }
-                case 'Enter': {
-                    if (!this.#ddmenu.shown) {
-                        //nothing to accept: submit the form as ful-input does. the inner
-                        //input carries form="" so it never submits one on its own
-                        this.#requestSubmit();
-                        return;
-                    }
-                    e.preventDefault();
-                    this.#editing = false;
-                    this.#display();
-                    this.#ddmenu.acceptSelection();
-                    break;
-                }
-                case 'Backspace': {
-                    //remove last if caret at position 0
-                    if (this.#values.size && this.#input.selectionStart === 0 && this.#input.selectionEnd === 0) {
-                        this.#values.delete(Array.from(this.#values.keys()).pop());
-                        this.#changed();
-                        this.#syncBadges();
-                    }
-                    break;
-                }
-                case 'Tab': {
-                    abortdload();
-                    this.#close();
-                    break;
-                }
-            }
+            this.#comboboxKeydown(e);
         });
         this.#input.addEventListener('input', (e) => {
             e.stopPropagation();
@@ -538,8 +473,10 @@ class Select extends ParsedElement {
                 return;
             }
             this.#editing = true;
-            dload();
+            this.#dload();
         });
+    }
+    #wireSelection() {
         this.#ddmenu.addEventListener('change', (e) => {
             e.stopPropagation();
             if (!this.#multiple) {
@@ -556,7 +493,6 @@ class Select extends ParsedElement {
                 this.#input.select();
             }
         });
-        this.replaceChildren(fragment);
     }
     async withLoader(fn) {
         return await fn(this.#loader);
@@ -568,11 +504,18 @@ class Select extends ParsedElement {
         if (this.matches(':disabled') || this.readonly) {
             return;
         }
-        const idx = this.#badges().indexOf(badge);
-        if (idx === -1) {
+        this.#removeKeyAt(this.#badges().indexOf(badge));
+    }
+    /**
+     * Drops the entry at the given index, if any: badges and item list entries
+     * share the value map's ordering.
+     */
+    #removeKeyAt(index) {
+        const key = Array.from(this.#values.keys())[index];
+        if (key === undefined) {
             return;
         }
-        this.#values.delete(Array.from(this.#values.keys())[idx]);
+        this.#values.delete(key);
         this.#changed();
         this.#syncBadges();
     }
@@ -603,11 +546,104 @@ class Select extends ParsedElement {
             }
         }
     }
+    /**
+     * The combobox keyboard contract: arrows browse and move, Home/End and
+     * PageUp/PageDown navigate the open list, Enter accepts or submits,
+     * Escape/Tab close, Backspace at the caret's leftmost spot drops the last
+     * entry.
+     */
+    #comboboxKeydown(e) {
+        switch (e.code) {
+            case 'ArrowUp':
+            case 'ArrowDown': {
+                e.preventDefault();
+                this.#arrowKeydown(e);
+                break;
+            }
+            case 'Home': {
+                if (this.#ddmenu.shown) {
+                    e.preventDefault();
+                    this.#ddmenu.jump(true);
+                }
+                break;
+            }
+            case 'End': {
+                if (this.#ddmenu.shown) {
+                    e.preventDefault();
+                    this.#ddmenu.jump(false);
+                }
+                break;
+            }
+            case 'PageDown':
+            case 'PageUp': {
+                if (this.#ddmenu.shown) {
+                    e.preventDefault();
+                    this.#ddmenu.page('PageDown' === e.code);
+                }
+                break;
+            }
+            case 'Escape': {
+                this.#abortdload();
+                this.#close();
+                break;
+            }
+            case 'Enter': {
+                if (!this.#ddmenu.shown) {
+                    //nothing to accept: submit the form as ful-input does. the inner
+                    //input carries form="" so it never submits one on its own
+                    this.#requestSubmit();
+                    return;
+                }
+                e.preventDefault();
+                this.#editing = false;
+                this.#display();
+                this.#ddmenu.acceptSelection();
+                break;
+            }
+            case 'Backspace': {
+                //remove last if caret at position 0
+                if (this.#input.selectionStart === 0 && this.#input.selectionEnd === 0) {
+                    this.#removeKeyAt(this.#values.size - 1);
+                }
+                break;
+            }
+            case 'Tab': {
+                this.#abortdload();
+                this.#close();
+                break;
+            }
+        }
+    }
+    #arrowKeydown(e) {
+        const forward = 'ArrowDown' === e.code;
+        //alt-down opens, alt-up closes
+        if (e.altKey) {
+            if (forward && !this.#ddmenu.shown) {
+                this.#open();
+            } else if (!forward && this.#ddmenu.shown) {
+                this.#close();
+            }
+            return;
+        }
+        this.#browse();
+        this.#input.setAttribute('aria-expanded', 'true');
+        this.#ddmenu.moveOrShow(forward, () => this.#loader.load(this.#input.value), [...this.#values.keys()]);
+    }
     #close() {
         this.#input.setAttribute('aria-expanded', 'false');
         this.#ddmenu.hide();
         this.#editing = false;
         this.#display();
+    }
+    /**
+     * Opens the dropdown over the entries matching the input: typing filters,
+     * browsing starts from the whole vocabulary, the selected keys are always
+     * highlighted.
+     */
+    #open() {
+        this.#browse();
+        this.#input.setAttribute('aria-expanded', 'true');
+        return this.#ddmenu.show(() => this.#loader.load(this.#input.value), [...this.#values.keys()]);
     }
     #browse() {
         if (this.#editing) {
