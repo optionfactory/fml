@@ -39,7 +39,11 @@ See `examples/ful/kitchen-sink.html` for a bootstrap-free page showing every com
 
 ## client-errors
 
+A standalone IIFE (`dist/client-errors.iife.js`, no module machinery: one `script src` tag carrying `data-report-client-errors-uri`) listening for `error` and `unhandledrejection` and POSTing a json report (page url, message, stack) to that uri. The report travels same-origin with the page's csrf meta pair (`_csrf_header`/`_csrf`) when present, `keepalive` so it survives navigation away, and the script swallows its own failures: an unreachable endpoint is never re-reported as an error.
 
+## Security and threat model
+
+fml trusts the page author and treats everything arriving afterwards as hostile. Templates, expression modules, translations and the markup are part of the page's source, trusted by design exactly like the javascript that renders them — no sanitizer is bundled, because sanitization is application policy, not library policy. What arrives later (user input, api payloads, urls) is safe wherever the library puts it: `{{ expression }}` interpolates into text nodes, bound attributes go through `setAttribute`, and expressions run on a tree-walking interpreter over a PEG grammar — no `eval`, no `new Function`, function calls resolving only against explicitly registered modules. The raw-markup escape hatches are explicit and few: `{{{ expression }}}` and `data-tpl-html` assign through `innerHTML` and bind only author-controlled or app-sanitized markup, and `Attributes.forward` forwards author attributes to inner controls, inline handlers included. httpc never evaluates a response body and sends credentials same-origin only (fetch's default); its default error branch embeds the response text in the failure's message, so mind endpoints whose error pages carry internals. The line to hold in review: never bind untrusted data to `{{{ }}}` or `data-tpl-html`, and never load templates or translations from an origin you don't trust.
 
 ## Documentation
 
