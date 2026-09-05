@@ -1,4 +1,5 @@
-import { Attributes, ParsedElement, Localization } from '../../ftl/index.mjs';
+import { Attributes, Localization } from '../../ftl/index.mjs';
+import { Field } from './field.mjs';
 import { Instant } from './temporals.mjs';
 import { Input } from './input.mjs';
 
@@ -488,7 +489,7 @@ class TextFilter extends CompareFilter {
 const BOOLEAN_VALUES = ['', 'true', 'false'];
 const BOOLEAN_VALUE_GLYPHS = { true: '✓', false: '✗' };
 
-class BooleanFilter extends ParsedElement {
+class BooleanFilter extends Field {
     static observed = ['value:json', 'operators:csv', 'readonly:presence', 'required:presence'];
     static slots = true;
     static OPERATORS = ['EQ', 'NEQ'];
@@ -510,26 +511,18 @@ class BooleanFilter extends ParsedElement {
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
-    static formAssociated = true;
-    internals;
     _operator;
     _menu;
     _value;
     _container;
     _allowed;
-    _fieldError;
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-        this.internals.role = 'presentation';
-    }
     render({ slots, observed, disabled }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this._container = fragment.querySelector('ful-control-group');
         this._operator = fragment.querySelector('[data-ref=operator]');
         this._menu = this._operator.nextElementSibling;
         this._value = fragment.querySelector('[data-ref=value]');
-        this._fieldError = fragment.querySelector('ful-field-error');
+        this._adopt(this._value, fragment.querySelector('ful-field-error'));
         this.operators = observed.operators;
         this._showOperator(
             this._allowed.includes(BooleanFilter.DEFAULT_OPERATOR) ? BooleanFilter.DEFAULT_OPERATOR : this._allowed[0],
@@ -537,10 +530,7 @@ class BooleanFilter extends ParsedElement {
         fillMenu(this._value.nextElementSibling, BOOLEAN_VALUES, booleanValueLabel, BOOLEAN_VALUE_GLYPHS);
         wireOperatorMenu(this._value);
         this._showValue('');
-        const label = fragment.querySelector('label');
-        label.addEventListener('click', () => this.focus());
-        this._value.ariaDescribedByElements = [this._fieldError];
-        this._value.ariaLabelledByElements = [label];
+        this._wireLabel(fragment.querySelector('label'));
         this.disabled = disabled;
         this.readonly = observed.readonly;
         this.required = observed.required;
@@ -615,6 +605,8 @@ class BooleanFilter extends ParsedElement {
             }),
         );
     }
+    //the base's native readOnly cannot freeze the popover buttons, so the whole
+    //control group inerts
     get readonly() {
         return this._container.inert;
     }
@@ -625,36 +617,15 @@ class BooleanFilter extends ParsedElement {
         });
     }
     get disabled() {
-        return this.hasAttribute('disabled');
+        return super.disabled;
     }
     set disabled(d) {
-        Attributes.toggle(this, 'disabled', d);
+        super.disabled = d;
         Attributes.toggle(this._value, 'disabled', d);
         //the operator button is frozen by a pin, disabled by the claim, or both
         if (this._allowed) {
             syncOperatorControl(this._operator, this._allowed, d);
         }
-    }
-    get required() {
-        return this._value.getAttribute('aria-required') === 'true';
-    }
-    set required(d) {
-        Attributes.set(this._value, 'aria-required', d ? 'true' : null);
-        this.reflect(() => {
-            Attributes.toggle(this, 'required', d);
-        });
-    }
-    focus(options) {
-        this._value.focus(options);
-    }
-    setCustomValidity(error) {
-        if (!error) {
-            this.internals.setValidity({});
-            this._fieldError.innerText = '';
-            return;
-        }
-        this.internals.setValidity({ customError: true }, ' ');
-        this._fieldError.innerText = error;
     }
 }
 

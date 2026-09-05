@@ -1,4 +1,5 @@
 import { Attributes, Fragments, ParsedElement, registry, Templates } from '../../ftl/index.mjs';
+import { Field } from './field.mjs';
 import { VersionedLocalStorage } from '../storage.mjs';
 import { Timing } from '../timing.mjs';
 
@@ -299,7 +300,7 @@ class Dropdown extends ParsedElement {
     }
 }
 
-class Select extends ParsedElement {
+class Select extends Field {
     static observed = ['value:csvm', 'readonly:presence', 'required:presence', 'itemlist:presence'];
     static slots = true;
     static template = `
@@ -326,25 +327,17 @@ class Select extends ParsedElement {
             </ful-item>
         `,
     };
-    static formAssociated = true;
-    internals;
     #loader;
     #control;
     #ddmenu;
     #input;
     #items;
     #multiple;
-    #fieldError;
     #values = new Map();
     #token = 0;
     #editing = false;
     #dload;
     #abortdload;
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-        this.internals.role = 'presentation';
-    }
     async render({ slots, observed, disabled }) {
         const name = this.getAttribute('name');
         this.#loader = registry
@@ -361,6 +354,7 @@ class Select extends ParsedElement {
         this.#input = fragment.querySelector('input');
         this.#items = fragment.querySelector('ful-item-list');
         Attributes.forward('input-', this, this.#input);
+        this._adopt(this.#input, fragment.querySelector('ful-field-error'));
         this.#control = fragment.querySelector('ful-control');
 
         this.value = observed.value;
@@ -371,11 +365,7 @@ class Select extends ParsedElement {
 
         this.#ddmenu = fragment.querySelector('ful-dropdown');
         this.#ddmenu.combobox = this.#input;
-        const label = fragment.querySelector('label');
-        label.addEventListener('click', () => this.focus());
-        this.#fieldError = fragment.querySelector('ful-field-error');
-        this.#input.ariaDescribedByElements = [this.#fieldError];
-        this.#input.ariaLabelledByElements = [label];
+        this._wireLabel(fragment.querySelector('label'));
         [this.#dload, this.#abortdload] = Timing.throttle(400, () => this.#open());
         this.#wireChrome();
         this.#wireChips();
@@ -591,7 +581,7 @@ class Select extends ParsedElement {
                 if (!this.#ddmenu.shown) {
                     //nothing to accept: submit the form as ful-input does. the inner
                     //input carries form="" so it never submits one on its own
-                    this.#requestSubmit();
+                    this._requestSubmit();
                     return;
                 }
                 e.preventDefault();
@@ -654,16 +644,6 @@ class Select extends ParsedElement {
     #display() {
         const entry = this.#values.values().next().value;
         this.#input.value = this.#multiple ? '' : (entry?.[0] ?? '');
-    }
-    #requestSubmit() {
-        const form = this.internals.form;
-        if (!form) {
-            return;
-        }
-        const candidates = /** @type [HTMLButtonElement|HTMLInputElement] */ (
-            Array.from(form.querySelectorAll('button:not(:disabled), input:not(:disabled)'))
-        );
-        form.requestSubmit(candidates.find((el) => el.type === 'submit'));
     }
     #changed() {
         const selection = [...this.#values.entries()].map((e) => ({
@@ -780,35 +760,14 @@ class Select extends ParsedElement {
         return [...this.#values.entries()][0] ?? null;
     }
     get disabled() {
-        //the claim only, like a native input: the effective state, claim or disabled
-        //ancestry, is what :disabled matches
-        return this.hasAttribute('disabled');
+        return super.disabled;
     }
     set disabled(d) {
-        //the claim belongs to the author alone, nothing else ever writes it
-        Attributes.toggle(this, 'disabled', d);
+        super.disabled = d;
         //the inner control carries the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches the inner control
         //as a descendant of the fieldset and re-enables it on its own
         Attributes.toggle(this.#input, 'disabled', d);
-    }
-    get readonly() {
-        return this.#input.readOnly;
-    }
-    set readonly(v) {
-        this.#input.readOnly = v;
-        this.reflect(() => {
-            Attributes.toggle(this, 'readonly', v);
-        });
-    }
-    get required() {
-        return this.#input.getAttribute('aria-required') === 'true';
-    }
-    set required(d) {
-        Attributes.set(this.#input, 'aria-required', d ? 'true' : null);
-        this.reflect(() => {
-            Attributes.toggle(this, 'required', d);
-        });
     }
     #useItemlist;
     get itemlist() {
@@ -819,18 +778,6 @@ class Select extends ParsedElement {
         this.reflect(() => {
             Attributes.toggle(this, 'itemlist', v);
         });
-    }
-    focus(options) {
-        this.#input.focus(options);
-    }
-    setCustomValidity(error) {
-        if (!error) {
-            this.internals.setValidity({});
-            this.#fieldError.innerText = '';
-            return;
-        }
-        this.internals.setValidity({ customError: true }, ' ');
-        this.#fieldError.innerText = error;
     }
 }
 

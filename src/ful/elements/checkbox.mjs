@@ -1,6 +1,7 @@
-import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes } from '../../ftl/index.mjs';
+import { Field } from './field.mjs';
 
-class Checkbox extends ParsedElement {
+class Checkbox extends Field {
     static observed = ['value:bool', 'readonly:presence', 'required:presence'];
     static slots = true;
     static template = `
@@ -13,19 +14,13 @@ class Checkbox extends ParsedElement {
     `;
     #container;
     #input;
-    #fieldError;
-    static formAssociated = true;
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-        this.internals.role = 'presentation';
-    }
     render({ slots, observed, disabled }) {
         const isSwitch = this.getAttribute('type') === 'switch';
         const fragment = this.template().withOverlay({ slots, isSwitch }).render();
         this.#container = fragment.firstElementChild;
         this.#input = fragment.querySelector('input');
         Attributes.forward('input-', this, this.#input);
+        this._adopt(this.#input, fragment.querySelector('ful-field-error'));
         this.disabled = disabled;
         this.readonly = observed.readonly;
         this.required = observed.required;
@@ -43,6 +38,7 @@ class Checkbox extends ParsedElement {
             );
         });
         const label = fragment.querySelector('label');
+        this._wireA11y(label);
         label.addEventListener('click', () => {
             this.focus();
             //a label is not a form control, the guard must ask the effective state
@@ -60,9 +56,6 @@ class Checkbox extends ParsedElement {
                 }),
             );
         });
-        this.#fieldError = fragment.querySelector('ful-field-error');
-        this.#input.ariaDescribedByElements = [this.#fieldError];
-        this.#input.ariaLabelledByElements = [label];
         this.replaceChildren(fragment);
     }
     get value() {
@@ -71,6 +64,9 @@ class Checkbox extends ParsedElement {
     set value(value) {
         this.#input.checked = value;
     }
+    //a checkbox has no editable text to preserve: readonly freezes the whole
+    //choice, label click included, so the container inerts instead of the base's
+    //native readOnly
     get readonly() {
         return this.#container.inert;
     }
@@ -81,38 +77,14 @@ class Checkbox extends ParsedElement {
         });
     }
     get disabled() {
-        //the claim only, like a native input: the effective state, claim or disabled
-        //ancestry, is what :disabled matches
-        return this.hasAttribute('disabled');
+        return super.disabled;
     }
     set disabled(d) {
-        //the claim belongs to the author alone, nothing else ever writes it
-        Attributes.toggle(this, 'disabled', d);
+        super.disabled = d;
         //the inner control carries the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches the inner control
         //as a descendant of the fieldset and re-enables it on its own
         Attributes.toggle(this.#input, 'disabled', d);
-    }
-    get required() {
-        return this.#input.getAttribute('aria-required') === 'true';
-    }
-    set required(d) {
-        Attributes.set(this.#input, 'aria-required', d ? 'true' : null);
-        this.reflect(() => {
-            Attributes.toggle(this, 'required', d);
-        });
-    }
-    focus(options) {
-        this.#input.focus(options);
-    }
-    setCustomValidity(error) {
-        if (!error) {
-            this.internals.setValidity({});
-            this.#fieldError.innerText = '';
-            return;
-        }
-        this.internals.setValidity({ customError: true }, ' ');
-        this.#fieldError.innerText = error;
     }
 }
 

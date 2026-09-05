@@ -1,6 +1,7 @@
-import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes } from '../../ftl/index.mjs';
+import { Field } from './field.mjs';
 
-class Input extends ParsedElement {
+class Input extends Field {
     static observed = ['value', 'readonly:presence', 'required:presence', 'placeholder'];
     static slots = true;
     static template = `
@@ -16,14 +17,7 @@ class Input extends ParsedElement {
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
-    static formAssociated = true;
     _input;
-    _fieldError;
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-        this.internals.role = 'presentation';
-    }
     _type() {
         return this.getAttribute('type') ?? 'text';
     }
@@ -36,19 +30,13 @@ class Input extends ParsedElement {
         this._input = fragment.querySelector('input,textarea');
 
         Attributes.forward('input-', this, this._input);
+        this._adopt(this._input, fragment.querySelector('ful-field-error'));
+        this._wireLabel(fragment.querySelector('label'));
         this._input.addEventListener('keydown', (evt) => {
             if (evt.key !== 'Enter' || this._type() === 'textarea') {
                 return;
             }
-            const form = this.internals.form;
-            if (!form) {
-                return;
-            }
-            const candidates = /** @type [HTMLButtonElement|HTMLInputElement] */ (
-                Array.from(form.querySelectorAll('button:not(:disabled), input:not(:disabled)'))
-            );
-            const submitter = candidates.find((el) => el.type === 'submit');
-            form.requestSubmit(submitter);
+            this._requestSubmit();
         });
         this._input.addEventListener('input', (evt) => {
             const mask = this.getAttribute('mask');
@@ -84,11 +72,6 @@ class Input extends ParsedElement {
                 }),
             );
         });
-        const label = fragment.querySelector('label');
-        label.addEventListener('click', () => this.focus());
-        this._fieldError = fragment.querySelector('ful-field-error');
-        this._input.ariaDescribedByElements = [this._fieldError];
-        this._input.ariaLabelledByElements = [label];
         this.replaceChildren(fragment);
         if (!skipObservedSetup) {
             // biome-ignore lint/complexity/noUselessThisAlias: keeps checkJs from seeing these as class fields
@@ -111,36 +94,15 @@ class Input extends ParsedElement {
     set value(value) {
         this._input.value = value === '' ? null : value;
     }
-    get readonly() {
-        return this._input.readOnly;
-    }
-    set readonly(v) {
-        this._input.readOnly = v;
-        this.reflect(() => {
-            Attributes.toggle(this, 'readonly', v);
-        });
-    }
     get disabled() {
-        //the claim only, like a native input: the effective state, claim or disabled
-        //ancestry, is what :disabled matches
-        return this.hasAttribute('disabled');
+        return super.disabled;
     }
     set disabled(d) {
-        //the claim belongs to the author alone, nothing else ever writes it
-        Attributes.toggle(this, 'disabled', d);
+        super.disabled = d;
         //the inner control carries the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches the inner control
         //as a descendant of the fieldset and re-enables it on its own
         Attributes.toggle(this._input, 'disabled', d);
-    }
-    get required() {
-        return this._input.getAttribute('aria-required') === 'true';
-    }
-    set required(d) {
-        Attributes.set(this._input, 'aria-required', d ? 'true' : null);
-        this.reflect(() => {
-            Attributes.toggle(this, 'required', d);
-        });
     }
     get placeholder() {
         const v = this._input.getAttribute('placeholder');
@@ -153,18 +115,6 @@ class Input extends ParsedElement {
         this.reflect(() => {
             Attributes.set(this, 'placeholder', d);
         });
-    }
-    focus(options) {
-        this._input.focus(options);
-    }
-    setCustomValidity(error) {
-        if (!error) {
-            this.internals.setValidity({});
-            this._fieldError.innerText = '';
-            return;
-        }
-        this.internals.setValidity({ customError: true }, ' ');
-        this._fieldError.innerText = error;
     }
     formResetCallback() {
         this.value = this.unmarshal('value', this.getAttribute('value'));

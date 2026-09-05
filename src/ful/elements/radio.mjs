@@ -1,8 +1,10 @@
-import { Attributes, Fragments, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes, Fragments } from '../../ftl/index.mjs';
+import { Field } from './field.mjs';
 
-class RadioGroup extends ParsedElement {
+class RadioGroup extends Field {
     static observed = ['value', 'readonly:presence', 'required:presence'];
     static slots = true;
+    static ROLE = 'radiogroup';
     static template = `
         <fieldset>
             <legend>
@@ -25,16 +27,9 @@ class RadioGroup extends ParsedElement {
             </footer>
         </fieldset>
     `;
-    static formAssociated = true;
     #fieldset;
-    #fieldError;
     #firstRadio;
     #booleanType;
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-        this.internals.role = 'radiogroup';
-    }
     render({ slots, observed, disabled }) {
         const name = this.getAttribute('name') ?? Attributes.uid('ful-radiogroup');
         const radioEls = Array.from(slots.default.querySelectorAll('ful-radio'));
@@ -71,9 +66,12 @@ class RadioGroup extends ParsedElement {
         this.readonly = observed.readonly;
         this.required = observed.required;
         this.value = observed.value;
-        this.#fieldError = this.querySelector('ful-field-error');
-        this.ariaDescribedByElements = [this.#fieldError];
+        //the host itself is described: there is no single control to name, the
+        //legend is a fieldset's own label
+        const fieldError = /** @type HTMLElement */ (this.querySelector('ful-field-error'));
+        this.ariaDescribedByElements = [fieldError];
         this.#firstRadio = this.querySelector('input[type=radio]');
+        this._adopt(this.#firstRadio, fieldError);
         this.#booleanType = this.getAttribute('type') === 'boolean';
     }
     get value() {
@@ -94,6 +92,8 @@ class RadioGroup extends ParsedElement {
             el.checked = true;
         }
     }
+    //radios have no editable text to preserve: readonly freezes the whole group,
+    //so the fieldset inerts instead of the base's native readOnly
     get readonly() {
         return this.#fieldset.inert;
     }
@@ -104,18 +104,17 @@ class RadioGroup extends ParsedElement {
         });
     }
     get disabled() {
-        //the claim only, like a native input: the effective state, claim or disabled
-        //ancestry, is what :disabled matches
-        return this.hasAttribute('disabled');
+        return super.disabled;
     }
     set disabled(d) {
-        //the claim belongs to the author alone, nothing else ever writes it
-        Attributes.toggle(this, 'disabled', d);
+        super.disabled = d;
         //the group disables through its own fieldset, which carries the claim like
         //a native input would: a disabled outer ancestry is left to the browser,
         //which reaches the radios as descendants and re-enables them on its own
         this.#fieldset.disabled = d;
     }
+    //the announcement lives on the group's fieldset, not on the first radio the
+    //base would reach
     get required() {
         return this.#fieldset.getAttribute('aria-required') === 'true';
     }
@@ -124,18 +123,6 @@ class RadioGroup extends ParsedElement {
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
         });
-    }
-    focus(options) {
-        this.#firstRadio.focus(options);
-    }
-    setCustomValidity(error) {
-        if (!error) {
-            this.internals.setValidity({});
-            this.#fieldError.innerText = '';
-            return;
-        }
-        this.internals.setValidity({ customError: true }, ' ');
-        this.#fieldError.innerText = error;
     }
 }
 

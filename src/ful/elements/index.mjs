@@ -1,4 +1,5 @@
 export { Bindings } from './bindings.mjs';
+export { Field } from './field.mjs';
 import './errors.css';
 export { FormLoader, Form } from './form.mjs';
 import './form.css';
