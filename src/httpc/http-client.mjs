@@ -514,7 +514,7 @@ class HttpRequestBuilder {
     }
     /**
      * Adds interceptors to the request.
-     * @param {[HttpInterceptor]} is - the interceptor to be regisered
+     * @param {[HttpInterceptor]} is - the interceptor to be registered
      * @returns {HttpRequestBuilder} this builder
      */
     interceptors(is) {
@@ -525,7 +525,7 @@ class HttpRequestBuilder {
     }
     /**
      * Adds an interceptor to the request.
-     * @param {HttpInterceptor} i - the interceptor to be regisered
+     * @param {HttpInterceptor} i - the interceptor to be registered
      * @returns {HttpRequestBuilder} this builder
      */
     interceptor(i) {

@@ -420,7 +420,7 @@ class Template {
         el.appendChild(this.render());
     }
     /**
-     * Renders this template appending the resulting fragment to the first Element maching the selector, if exists.
+     * Renders this template appending the resulting fragment to the first Element matching the selector, if exists.
      * @param {string} selector
      */
     renderToSelector(selector) {
@@ -430,7 +430,7 @@ class Template {
         }
     }
     /**
-     * Renders this template appending the resulting fragment to the Element maching the selector, if exists.
+     * Renders this template appending the resulting fragment to the Element matching the selector, if exists.
      * @param {string} selector
      */
     appendToSelector(selector) {
