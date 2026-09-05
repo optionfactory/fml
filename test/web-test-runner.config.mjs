@@ -28,7 +28,8 @@ export default {
                     const jsSource = peggy.generate(context.body, {
                         format: 'es',
                         output: 'source',
-                        allowedStartRules: ['*'] 
+                        allowedStartRules: ['TemplatedRoot', 'ExpressionRoot'],
+                        cache: true
                     });
                     return { body: jsSource };
                 }
