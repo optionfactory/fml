@@ -17,7 +17,7 @@ class MediaType {
         return this.#subtype;
     }
     /**
-     *
+     * Parses a Content-Type header value into its type/subtype pair, dropping any parameter.
      * @param {string|null|undefined} v
      * @returns
      */
@@ -55,7 +55,7 @@ class HttpClientError extends Failure {
         return new HttpClientError(this.message, this.status, Failure.dropProblemsContext(this.problems, prefix), this);
     }
     /**
-     *
+     * Creates a client failure carrying no status, wrapping the cause and its message.
      * @param {string} type
      * @param {any} cause
      * @returns
@@ -338,7 +338,7 @@ class HttpClient {
 }
 
 /**
- *
+ * Reads the response body as the given type, wrapping a failed read as an UNMARSHALING_PROBLEM.
  * @param {Response} response
  * @param {'text'|'json'|'blob'|'arrayBuffer'} type
  * @returns
@@ -573,7 +573,7 @@ class HttpRequestBuilder {
         return await this.#client.exchange(uri, opts, this.#interceptors);
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptos throwing a failure when response status is not in the 200-299 range.
+     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
      * @returns {Promise<Response>} the response
      */
     async fetch() {
@@ -598,7 +598,7 @@ class HttpRequestBuilder {
         }
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptos throwing a failure when response status is not in the 200-299 range.
+     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
      * @returns {Promise<string>} the response body, as text
      */
     async fetchText() {
@@ -606,7 +606,7 @@ class HttpRequestBuilder {
         return await unmarshal(response, 'text');
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptos throwing a failure when response status is not in the 200-299 range.
+     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
      * @returns {Promise<any>} the response body, deserialized as JSON
      */
     async fetchJson() {
@@ -614,7 +614,7 @@ class HttpRequestBuilder {
         return await unmarshal(response, 'json');
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptos throwing a failure when response status is not in the 200-299 range.
+     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
      * @returns {Promise<Blob>} the response body, as a Blob
      */
     async fetchBlob() {
@@ -622,7 +622,7 @@ class HttpRequestBuilder {
         return await unmarshal(response, 'blob');
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptos throwing a failure when response status is not in the 200-299 range.
+     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
      * @returns {Promise<ArrayBuffer>} the response body, as an ArrayBuffer
      */
     async fetchArrayBuffer() {

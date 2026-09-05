@@ -270,7 +270,7 @@ class Template {
     }
     /**
      * Creates a new Template replacing the modules and dataStack from a registry.
-     * @param any registry
+     * @param {any} registry
      */
     withContextFrom(registry) {
         return this.withContext(registry.context());

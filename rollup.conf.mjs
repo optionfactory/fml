@@ -10,6 +10,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 
 const isPeggy = createFilter(['*.peggy', '**/*.peggy'], []);
+const terserOptions = { compress: { passes: 2 } };
 
 class RollupPeggyWithSourceMap {
     name = 'rollup-plugin-peggy-with-source-map';
@@ -124,9 +125,9 @@ export default [
         input: 'src/ftl/index.mjs',
         output: [
             { sourcemap: true, file: 'dist/ftl.mjs', format: 'es' },
-            { sourcemap: true, file: 'dist/ftl.min.mjs', format: 'es', plugins: [terser()] },
+            { sourcemap: true, file: 'dist/ftl.min.mjs', format: 'es', plugins: [terser(terserOptions)] },
             { sourcemap: true, file: 'dist/ftl.iife.js', name: 'ftl', format: 'iife' },
-            { sourcemap: true, file: 'dist/ftl.iife.min.js', name: 'ftl', format: 'iife', plugins: [terser()] },
+            { sourcemap: true, file: 'dist/ftl.iife.min.js', name: 'ftl', format: 'iife', plugins: [terser(terserOptions)] },
         ],
         treeshake: true,
         plugins: [new RollupPeggyWithSourceMap(), resolve(), new RollupTypeGenerator('ftl')],
@@ -135,9 +136,9 @@ export default [
         input: 'src/httpc/index.mjs',
         output: [
             { sourcemap: true, file: 'dist/httpc.mjs', format: 'es' },
-            { sourcemap: true, file: 'dist/httpc.min.mjs', format: 'es', plugins: [terser()] },
+            { sourcemap: true, file: 'dist/httpc.min.mjs', format: 'es', plugins: [terser(terserOptions)] },
             { sourcemap: true, file: 'dist/httpc.iife.js', name: 'httpc', format: 'iife' },
-            { sourcemap: true, file: 'dist/httpc.iife.min.js', name: 'httpc', format: 'iife', plugins: [terser()] },
+            { sourcemap: true, file: 'dist/httpc.iife.min.js', name: 'httpc', format: 'iife', plugins: [terser(terserOptions)] },
         ],
         treeshake: true,
         plugins: [resolve(), new RollupTypeGenerator('httpc')],
@@ -146,7 +147,7 @@ export default [
         input: 'src/client-errors/client-errors.mjs',
         output: [
             { sourcemap: true, file: 'dist/client-errors.iife.js', format: 'iife' },
-            { sourcemap: true, file: 'dist/client-errors.iife.min.js', format: 'iife', plugins: [terser()] },
+            { sourcemap: true, file: 'dist/client-errors.iife.min.js', format: 'iife', plugins: [terser(terserOptions)] },
         ],
         treeshake: true,
         plugins: [resolve()],
@@ -168,7 +169,7 @@ export default [
                 sourcemap: true,
                 file: 'dist/ful.min.mjs',
                 format: 'es',
-                plugins: [terser()],
+                plugins: [terser(terserOptions)],
                 paths: (id) => {
                     if (id.includes('/ftl/')) return './ftl.min.mjs';
                     if (id.includes('/httpc/')) return './httpc.min.mjs';
@@ -193,7 +194,7 @@ export default [
                     if (id.includes('/ftl/')) return 'ftl';
                     if (id.includes('/httpc/')) return 'httpc';
                 },
-                plugins: [terser()],
+                plugins: [terser(terserOptions)],
             },
         ],
         treeshake: true,
@@ -207,9 +208,9 @@ export default [
         input: 'src/index.mjs',
         output: [
             { sourcemap: true, file: 'dist/fml.mjs', format: 'es' },
-            { sourcemap: true, file: 'dist/fml.min.mjs', format: 'es', plugins: [terser()] },
+            { sourcemap: true, file: 'dist/fml.min.mjs', format: 'es', plugins: [terser(terserOptions)] },
             { sourcemap: true, file: 'dist/fml.iife.js', name: 'fml', format: 'iife' },
-            { sourcemap: true, file: 'dist/fml.iife.min.js', name: 'fml', format: 'iife', plugins: [terser()] },
+            { sourcemap: true, file: 'dist/fml.iife.min.js', name: 'fml', format: 'iife', plugins: [terser(terserOptions)] },
         ],
         treeshake: true,
         plugins: [
