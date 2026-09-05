@@ -10,10 +10,8 @@
         "slots": {
             "default": "The label of the field.",
             "info": "Extra content rendered next to the label, for a hint or a help icon.",
-            "ibefore": "An addon rendered inside the input group, before the control.",
-            "iafter": "An addon rendered inside the input group, after the control.",
-            "before": "Content rendered before the control, outside the addon styling.",
-            "after": "Content rendered after the control, outside the addon styling."
+            "before": "An addon rendered inside the input group, before the control.",
+            "after": "An addon rendered inside the input group, after the control."
         }
     },
     "elements": {

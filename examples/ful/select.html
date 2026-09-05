@@ -38,7 +38,7 @@
                 <h1>ful-select</h1>
 
                 <ful-select name="test.multi.select" value="test-key-4">
-                    <span slot="ibefore">@</span>
+                    <span slot="before">@</span>
                     A ful-select
                     <select slot="options">
                         <option value="test-key-1">test-label-1</option>
@@ -63,12 +63,12 @@
                     </select>
                 </ful-select>
                 <ful-select>
-                    <span slot="ibefore">@</span>
+                    <span slot="before">@</span>
                     An empty select
                 </ful-select>
 
                 <ful-select name="test.multi.select" value="test-key-4">
-                    <span slot="ibefore">@</span>
+                    <span slot="before">@</span>
                     A ful select with a templated menu
                     <select slot="options">
                         <option value="test-key-1">test-label-1</option>
@@ -90,7 +90,7 @@
 
 
                 <ful-select multiple name="test.multi.select2">
-                    <span slot="ibefore">@</span>
+                    <span slot="before">@</span>
                     <select slot="options">
                         <option value="test-key-1">test-label-1</option>
                         <option value="test-key-2">test-label-2</option>
@@ -115,7 +115,7 @@
                     A ful-select with multiple
                 </ful-select>
                 <ful-select multiple itemlist name="test.multi.select2">
-                    <span slot="ibefore">@</span>
+                    <span slot="before">@</span>
                     <select slot="options">
                         <option value="test-key-1">test-label-1</option>
                         <option value="test-key-2">test-label-2</option>
@@ -141,13 +141,13 @@
                 </ful-select>
 
                 <ful-select method="GET" src="https://jsonplaceholder.typicode.com/posts" revision="12" k-expr="id" l-expr="title">
-                    <span slot="ibefore">@</span>
+                    <span slot="before">@</span>
                     A ful select with revision
                 </ful-select>
 
 
                 <ful-select multiple itemlist method="GET" src="https://jsonplaceholder.typicode.com/posts" revision="12" k-expr="id" l-expr="title">
-                    <span slot="ibefore">@</span>
+                    <span slot="before">@</span>
                     A ful select with revision
                 </ful-select>
 

@@ -307,13 +307,11 @@ class Select extends Field {
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
         <ful-control-group>
-            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
-            {{{{ slots.before }}}}
+            <ful-affix data-tpl-if="slots.before">{{{{ slots.before }}}}</ful-affix>
             <ful-control>
                 <input type="text" form="" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
             </ful-control>
-            {{{{ slots.after }}}}
-            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+            <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
             <ful-dropdown hidden popover="manual">{{{{ slots.dropdown }}}}</ful-dropdown>
         </ful-control-group>
         <ful-item-list></ful-item-list>

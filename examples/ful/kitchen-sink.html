@@ -62,7 +62,7 @@
     <h3>configurations</h3>
     <ful-form>
         <ful-input name="plain" required>Plain required</ful-input>
-        <ful-input name="affixed" value="42"><b slot="ibefore">&euro;</b><span slot="iafter">kg</span>With affixes</ful-input>
+        <ful-input name="affixed" value="42"><b slot="before">&euro;</b><span slot="after">kg</span>With affixes</ful-input>
         <ful-input name="masked" mask="[^0-9]" value="abc123def">Masked (digits only)</ful-input>
         <ful-input name="shouting" uppercase value="shout this">Uppercased</ful-input>
         <ful-input name="trimmed" trim value="  padded  ">Trimmed</ful-input>
@@ -98,8 +98,8 @@
     <h2>temporals</h2>
     <h3>configurations</h3>
     <ful-form>
-        <ful-input-local-date name="since" min="-30d" max="now"><span slot="iafter">since</span>Local date with affix</ful-input-local-date>
-        <ful-input-instant name="at"><span slot="ibefore">&#9201;</span>Instant with affix</ful-input-instant>
+        <ful-input-local-date name="since" min="-30d" max="now"><span slot="after">since</span>Local date with affix</ful-input-local-date>
+        <ful-input-instant name="at"><span slot="before">&#9201;</span>Instant with affix</ful-input-instant>
         <ful-input-local-time name="hour">Local time</ful-input-local-time>
     </ful-form>
     <h3>states</h3>
@@ -179,13 +179,13 @@
             </select>
         </ful-select>
         <ful-select name="tagged">
-            <code slot="ibefore">tag:</code>
+            <code slot="before">tag:</code>
             Single select with affixes
             <select slot="options">
                 <option value="alpha">Alpha</option>
                 <option value="beta">Beta</option>
             </select>
-            <em slot="iafter">required</em>
+            <em slot="after">required</em>
         </ful-select>
         <ful-select name="chips" multiple value="alpha,gamma">
             Multiple select, chips only, preselected
@@ -290,16 +290,16 @@
     <p>Field problems render under their control, anything else lands in the <code>ful-errors</code> summary. Typing clears the field error again, and the focus jumps to the first offender.</p>
     <ful-form id="errors-demo" clear-invalid-on-change scroll-on-error>
         <ful-errors hidden></ful-errors>
-        <ful-input name="username"><span slot="ibefore">&#128100;</span>Username</ful-input>
-        <ful-input name="email" type="email"><code slot="ibefore">@</code><span slot="iafter">required</span>Email</ful-input>
+        <ful-input name="username"><span slot="before">&#128100;</span>Username</ful-input>
+        <ful-input name="email" type="email"><code slot="before">@</code><span slot="after">required</span>Email</ful-input>
         <ful-select name="role">
-            <span slot="ibefore">&#128736;</span>
+            <span slot="before">&#128736;</span>
             Role
             <select slot="options">
                 <option value="admin">Admin</option>
                 <option value="user">User</option>
             </select>
-            <em slot="iafter">pick one</em>
+            <em slot="after">pick one</em>
         </ful-select>
         <ful-checkbox name="tos">Accept the terms</ful-checkbox>
         <button type="submit">Validate</button>
@@ -309,7 +309,7 @@
     <ful-form>
         <ful-input-file name="docs" multiple itemlist dropzone>Files</ful-input-file>
         <ful-input-file name="avatar">
-            <span slot="ibefore">&#128100;</span>
+            <span slot="before">&#128100;</span>
             File with affix
         </ful-input-file>
         <ful-input-file name="papers" disabled>Files disabled</ful-input-file>

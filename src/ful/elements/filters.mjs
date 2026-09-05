@@ -186,16 +186,14 @@ class CompareFilter extends Input {
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
         <ful-control-group>
-            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
-            {{{{ slots.before }}}}
+            <ful-affix data-tpl-if="slots.before">{{{{ slots.before }}}}</ful-affix>
             <ful-affix>
                 <button data-ref="operator" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
                 <ul popover role="menu"></ul>
             </ful-affix>
             <input data-ref="value1" data-tpl-type="type" form="">
             <input data-ref="value2" data-tpl-type="type" form="" hidden>
-            {{{{ slots.after }}}}
-            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+            <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
@@ -385,8 +383,7 @@ class TextFilter extends CompareFilter {
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
         <ful-control-group>
-            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
-            {{{{ slots.before }}}}
+            <ful-affix data-tpl-if="slots.before">{{{{ slots.before }}}}</ful-affix>
             <ful-affix>
                 <button data-ref="operator" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
                 <ul popover role="menu"></ul>
@@ -395,8 +392,7 @@ class TextFilter extends CompareFilter {
             </ful-affix>
             <input data-ref="value1" data-tpl-type="type" form="">
             <input data-ref="value2" data-tpl-type="type" form="" hidden>
-            {{{{ slots.after }}}}
-            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+            <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
@@ -498,16 +494,14 @@ class BooleanFilter extends Field {
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
         <ful-control-group>
-            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
-            {{{{ slots.before }}}}
+            <ful-affix data-tpl-if="slots.before">{{{{ slots.before }}}}</ful-affix>
             <ful-affix>
                 <button data-ref="operator" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
                 <ul popover role="menu"></ul>
             </ful-affix>
             <button data-ref="value" type="button" form=""></button>
             <ul popover role="menu"></ul>
-            {{{{ slots.after }}}}
-            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+            <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;

@@ -8,12 +8,10 @@ class Input extends Field {
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
         <ful-control-group>
-            <ful-affix data-tpl-if="slots.ibefore">{{{{ slots.ibefore }}}}</ful-affix>
-            {{{{ slots.before }}}}
+            <ful-affix data-tpl-if="slots.before">{{{{ slots.before }}}}</ful-affix>
             <input data-tpl-if="type != 'textarea'" data-tpl-type="type" placeholder=" " form="">
             <textarea data-tpl-if="type == 'textarea'" placeholder=" " form=""></textarea>
-            {{{{ slots.after }}}}
-            <ful-affix data-tpl-if="slots.iafter">{{{{ slots.iafter }}}}</ful-affix>
+            <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
