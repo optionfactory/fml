@@ -154,6 +154,25 @@ const hideOperatorMenu = (target) => {
 };
 
 /**
+ * The operator menu protocol: refill the menu, wire it the first time more
+ * than one operator is allowed, then sync the invoker, pinning it to the
+ * first allowed operator when a single one survives the whitelist.
+ */
+const refreshOperators = (filter) => {
+    if (!filter._menu) {
+        return;
+    }
+    fillOperatorMenu(filter._menu, filter._allowed);
+    if (!filter._operatorMenuWired && filter._allowed.length > 1) {
+        wireOperatorMenu(filter._operator);
+        filter._operatorMenuWired = true;
+    }
+    if (syncOperatorControl(filter._operator, filter._allowed, filter.hasAttribute('disabled'))) {
+        filter._showOperator(filter._allowed[0]);
+    }
+};
+
+/**
  * The shared shape of every operator-and-operands filter: an operator menu, one
  * or two operands of the type the subclass declares, and a tuple that mirrors
  * the data-jpa compare annotations.
@@ -252,17 +271,7 @@ class CompareFilter extends Input {
     }
     set operators(declared) {
         this._allowed = whitelisted(declared, this._vocabulary());
-        if (!this._menu) {
-            return;
-        }
-        fillOperatorMenu(this._menu, this._allowed);
-        if (!this._operatorMenuWired && this._allowed.length > 1) {
-            wireOperatorMenu(this._operator);
-            this._operatorMenuWired = true;
-        }
-        if (syncOperatorControl(this._operator, this._allowed, this.hasAttribute('disabled'))) {
-            this._showOperator(this._allowed[0]);
-        }
+        refreshOperators(this);
     }
     _operatorMenuWired = false;
     get value() {
@@ -565,20 +574,13 @@ class BooleanFilter extends ParsedElement {
         return this._allowed;
     }
     set operators(declared) {
-        this._allowed = whitelisted(declared, BooleanFilter.OPERATORS);
-        if (!this._menu) {
-            return;
-        }
-        fillOperatorMenu(this._menu, this._allowed);
-        if (!this._operatorMenuWired && this._allowed.length > 1) {
-            wireOperatorMenu(this._operator);
-            this._operatorMenuWired = true;
-        }
-        if (syncOperatorControl(this._operator, this._allowed, this.hasAttribute('disabled'))) {
-            this._showOperator(this._allowed[0]);
-        }
+        this._allowed = whitelisted(declared, this._vocabulary());
+        refreshOperators(this);
     }
     _operatorMenuWired = false;
+    _vocabulary() {
+        return BooleanFilter.OPERATORS;
+    }
     get value() {
         const operator = this._operator.getAttribute('value');
         return this._value.value === '' ? undefined : [operator, this._value.value];
