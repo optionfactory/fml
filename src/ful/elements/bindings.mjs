@@ -131,8 +131,9 @@ class Bindings {
         form.querySelectorAll('ful-field-error').forEach((el) => {
             el.setAttribute('aria-live', scrollOnError ? 'off' : 'polite');
         });
-        const fieldErrors = es.filter((e) => e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT');
-        const globalErrors = es.filter((e) => e.type !== 'FIELD_ERROR' && e.type !== 'INVALID_FORMAT');
+        const pinned = (e) => (e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT') && e.context != null;
+        const fieldErrors = es.filter(pinned);
+        const globalErrors = es.filter((e) => !pinned(e));
         form.querySelectorAll(`[name]`).forEach((el) => {
             el.setCustomValidity?.('');
         });

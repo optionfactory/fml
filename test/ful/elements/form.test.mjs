@@ -184,6 +184,32 @@ describe('Form submit outcome events', () => {
         container.remove();
     });
 
+    it('shows a field problem carrying no context in the banner instead of crashing', async () => {
+        stubLoader({
+            prepare: async (v) => v,
+            submit: async () => {
+                throw new Failure('invalid', [
+                    { type: 'FIELD_ERROR', context: null, reason: 'an unnamed problem' },
+                    { type: 'FIELD_ERROR', context: 'name', reason: 'must not be blank' },
+                ]);
+            },
+            transform: async (r) => r,
+        });
+        const [form, container] = await mount(`
+            <ful-form>
+                <ful-errors hidden></ful-errors>
+                <input name="name">
+            </ful-form>`);
+
+        await form.submit();
+
+        assert.strictEqual(form.querySelector('input[name=name]').validationMessage, 'must not be blank', 'the named problem still reaches its field');
+        const errors = form.querySelector('ful-errors');
+        assert.strictEqual(errors.textContent, 'an unnamed problem');
+        assert.isFalse(errors.hasAttribute('hidden'));
+        container.remove();
+    });
+
     it('clears the problems of the previous attempt when submitting again', async () => {
         let fail = true;
         stubLoader({
