@@ -26,43 +26,6 @@ describe('Template', () => {
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>1</div>');
     });
-    it('can render html from attribute', () => {
-        const data = { a: '<h1>test</h1>' };
-        const template = Template.fromHtml('<div data-tpl-html="a">nope</div>', modules, data);
-        const rendered = template.render();
-        assert.strictEqual(Fragments.toHtml(rendered), '<div><h1>test</h1></div>');
-    });
-    it('rendering null html from attribute yields empty string', () => {
-        const data = { a: null };
-        const template = Template.fromHtml('<div data-tpl-html="a">nope</div>', modules, data);
-        const rendered = template.render();
-        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
-    });
-    it('rendering undefined html from attribute yields empty string', () => {
-        const data = { a: undefined };
-        const template = Template.fromHtml('<div data-tpl-html="a">nope</div>', modules, data);
-        const rendered = template.render();
-        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
-    });
-
-    it('can render text from attribute', () => {
-        const data = { a: '<h1>test</h1>' };
-        const template = Template.fromHtml('<div data-tpl-text="a">nope</div>', modules, data);
-        const rendered = template.render();
-        assert.strictEqual(Fragments.toHtml(rendered), '<div>&lt;h1&gt;test&lt;/h1&gt;</div>');
-    });
-    it('rendering null text from attribute yields empty string', () => {
-        const data = { a: null };
-        const template = Template.fromHtml('<div data-tpl-text="a">nope</div>', modules, data);
-        const rendered = template.render();
-        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
-    });
-    it('rendering undefined text from attribute yield empty string', () => {
-        const data = { a: undefined };
-        const template = Template.fromHtml('<div data-tpl-text="a">nope</div>', modules, data);
-        const rendered = template.render();
-        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
-    });
     it('can render text from a text node', () => {
         const data = { a: '<>' };
         const template = Template.fromHtml('<div>b{{a}}d</div>', modules, data);
@@ -99,7 +62,7 @@ describe('Template', () => {
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>bd</div>');
     });
-    it('null node is rendered as an empty fragment', () => {
+    it('undefined node is rendered as an empty fragment', () => {
         const data = {};
         const template = Template.fromHtml('<div>b{{{{a}}}}d</div>', modules, data);
         const rendered = template.render();
@@ -116,6 +79,74 @@ describe('Template', () => {
         const template = Template.fromHtml('<div>b{{{a}}}d</div>', modules, data);
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>bd</div>');
+    });
+    it('rendering null text alone yields an empty element', () => {
+        const data = { a: null };
+        const template = Template.fromHtml('<div>{{a}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
+    });
+    it('rendering undefined text alone yields an empty element', () => {
+        const data = { a: undefined };
+        const template = Template.fromHtml('<div>{{a}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
+    });
+    it('rendering null html alone yields an empty element', () => {
+        const data = { a: null };
+        const template = Template.fromHtml('<div>{{{a}}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
+    });
+    it('rendering undefined html alone yields an empty element', () => {
+        const data = { a: undefined };
+        const template = Template.fromHtml('<div>{{{a}}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
+    });
+    it('rendering null node alone yields an empty element', () => {
+        const data = { a: null };
+        const template = Template.fromHtml('<div>{{{{a}}}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
+    });
+    it('rendering undefined node alone yields an empty element', () => {
+        const data = {};
+        const template = Template.fromHtml('<div>{{{{a}}}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
+    });
+    it('a null segment does not drop its siblings in the same text node', () => {
+        const data = { a: null, c: 'x' };
+        const template = Template.fromHtml('<div>b{{a}}{{c}}d</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>bxd</div>');
+    });
+    it('rendering a number from an html node yields its string', () => {
+        const data = { a: 42 };
+        const template = Template.fromHtml('<div>b{{{a}}}d</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>b42d</div>');
+    });
+    it('rendering an object from an html node yields its string', () => {
+        const data = { a: { toString() { return '<span></span>'; } } };
+        const template = Template.fromHtml('<div>b{{{a}}}d</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>b<span></span>d</div>');
+    });
+    it('rendering a non-node from a node interpolation shows a clear error', () => {
+        const data = { a: 42 };
+        const template = Template.fromHtml('<div>b{{{{a}}}}d</div>', modules, data);
+        try {
+            template.render();
+            assert.fail('Should have thrown');
+        } catch (ex) {
+            let cause = ex;
+            while (cause.cause !== undefined) {
+                cause = cause.cause;
+            }
+            assert.include(cause.message, 'Expected a Node');
+        }
     });
 
     it('can evaluate a data-* attribute', () => {
@@ -245,15 +276,9 @@ describe('Template', () => {
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div></div>');
     });
-    it('inner text node is not reevaluated when generated by tpl-text', () => {
+    it('inner text node is not reevaluated when generated by html interpolation', () => {
         const data = { a: 1 };
-        const template = Template.fromHtml(`<div data-tpl-text="'{{a}}'"></div>`, modules, data);
-        const rendered = template.render();
-        assert.strictEqual(Fragments.toHtml(rendered), '<div>{{a}}</div>');
-    });
-    it('inner html node is not reevaluated when generated by tpl-html', () => {
-        const data = { a: 1 };
-        const template = Template.fromHtml(`<div data-tpl-html="'{{a}}'"></div>`, modules, data);
+        const template = Template.fromHtml(`<div>{{{ "{{a}}" }}}</div>`, modules, data);
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>{{a}}</div>');
     });

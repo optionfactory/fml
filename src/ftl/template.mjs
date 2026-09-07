@@ -47,8 +47,6 @@ class CommandsHandler {
         'tplWhen',
         'tplClassAppend',
         'tplAttrAppend',
-        'tplText',
-        'tplHtml',
         'tplRemove',
         'tplVerbatim',
     ];
@@ -113,18 +111,6 @@ class CommandsHandler {
                 break;
         }
     }
-    static tplText(node, expression, ops, modules, dataStack) {
-        const text = Expressions.interpret(modules, dataStack, expression);
-        const newNode = node.cloneNode();
-        newNode.replaceChildren(text == null ? '' : text);
-        ops.replace(node, newNode);
-    }
-    static tplHtml(node, expression, ops, modules, dataStack) {
-        const html = Expressions.interpret(modules, dataStack, expression);
-        const newNode = node.cloneNode();
-        newNode.innerHTML = html == null ? '' : html;
-        ops.replace(node, newNode);
-    }
     static tplClassAppend(node, expression, ops, modules, dataStack) {
         const classes = Expressions.interpret(modules, dataStack, expression);
         if (!classes) {
@@ -159,9 +145,12 @@ class CommandsHandler {
                     ops.prepend(node, document.createTextNode(v.value));
                     break;
                 case nodes.dom.h:
-                    ops.prepend(node, Fragments.fromHtml(v.value));
+                    ops.prepend(node, Fragments.fromHtml(typeof v.value === 'string' ? v.value : String(v.value)));
                     break;
                 case nodes.dom.n:
+                    if (!(v.value instanceof Node)) {
+                        throw new TypeError(`Expected a Node, got '${typeof v.value}'`);
+                    }
                     ops.prepend(node, v.value);
                     break;
             }
