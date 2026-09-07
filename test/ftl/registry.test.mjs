@@ -1,4 +1,3 @@
-import { tick } from '../tick.mjs';
 import { expect } from 'chai';
 import { Registry } from '../../src/ftl/registry.mjs';
 
@@ -159,18 +158,6 @@ describe('Registry', () => {
             expect(Array.from(registry.upgrades).length).to.equal(0);
 
             el.remove();
-        });
-
-        it('dispatches ftl:ready on DOMContentLoaded after processing queue', async () => {
-            let readyFired = false;
-            document.addEventListener('ftl:ready', () => { readyFired = true; }, { once: true });
-
-            // Artificially trigger the DOMContentLoaded event that the UpgradeQueue constructor listens to
-            document.dispatchEvent(new Event('DOMContentLoaded'));
-
-            await tick();
-
-            expect(readyFired).to.be.true;
         });
 
         it('hands out the same readiness promise to every caller', () => {

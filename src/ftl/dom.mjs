@@ -188,26 +188,56 @@ class Nodes {
         return false;
     }
 
+    /**
+     * Waits for the document's DOMContentLoaded, resolving immediately when
+     * that moment already passed. 'interactive' alone cannot tell a document
+     * still waiting for deferred scripts (the event comes, however late) from
+     * a module imported past it (the event is gone): the two events order
+     * themselves, DOMContentLoaded always precedes load, so racing the two
+     * resolves with DCL whenever it is still coming and with load otherwise,
+     * never early.
+     */
+    static waitDomContentLoaded(doc) {
+        if (doc.readyState === 'loading') {
+            return new Promise((resolve) => {
+                doc.addEventListener('DOMContentLoaded', () => resolve(undefined), { once: true });
+            });
+        }
+        if (doc.readyState === 'complete') {
+            return Promise.resolve();
+        }
+        const win = doc.defaultView;
+        if (win === null) {
+            //a viewless document can receive no event at all
+            return Promise.resolve();
+        }
+        return new Promise((resolve) => {
+            let done = () => {
+                done = () => {};
+                resolve(undefined);
+            };
+            win.addEventListener('DOMContentLoaded', done, { once: true });
+            win.addEventListener('load', done, { once: true });
+        });
+    }
+
     static waitParsed(el) {
-        if (el.ownerDocument.readyState === 'complete' || Nodes.isParsed(el)) {
+        if (Nodes.isParsed(el)) {
             return Promise.resolve(el);
         }
         return new Promise((resolve) => {
-            const ac = new AbortController();
-            const clearAndQueue = () => {
-                ac.abort();
-                observer.disconnect();
-                resolve(el);
-            };
-            el.ownerDocument.addEventListener('DOMContentLoaded', clearAndQueue, { signal: ac.signal });
             const observer = new MutationObserver(() => {
                 if (!Nodes.isParsed(el)) {
                     return;
                 }
-                clearAndQueue();
+                observer.disconnect();
+                resolve(el);
             });
-            const parent = /** @type {Node} */ (el.parentNode);
-            observer.observe(parent, { childList: true });
+            observer.observe(el.parentNode, { childList: true });
+            Nodes.waitDomContentLoaded(el.ownerDocument).then(() => {
+                observer.disconnect();
+                resolve(el);
+            });
         });
     }
 

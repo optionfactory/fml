@@ -16,7 +16,14 @@ import { fileURLToPath } from 'node:url';
 //builds an http client that looks for the csrf meta tags: enough of a page to load
 globalThis.HTMLElement = class {};
 globalThis.Storage = class {};
-globalThis.document = { querySelector: () => null, addEventListener: () => {} };
+globalThis.document = {
+    querySelector: () => null,
+    addEventListener: () => {},
+    //the registry's queue settles at import on a complete document, and announces
+    //it: the stub only needs to absorb the announcement
+    dispatchEvent: () => true,
+    readyState: 'complete',
+};
 Object.defineProperty(globalThis, 'navigator', { value: { language: 'en' }, configurable: true });
 globalThis.window = globalThis;
 

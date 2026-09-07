@@ -258,4 +258,78 @@ describe('dom.mjs', () => {
             expect(resolved).to.equal(el);
         });
     });
+
+    describe('Nodes.waitDomContentLoaded', () => {
+        it('resolves immediately on a complete document', async () => {
+            await Nodes.waitDomContentLoaded({ readyState: 'complete', addEventListener() {} });
+        });
+
+        it('waits for the event on a loading document', async () => {
+            let fire = null;
+            const doc = {
+                readyState: 'loading',
+                addEventListener: (_t, cb) => {
+                    fire = cb;
+                },
+            };
+            let settled = false;
+            const promise = Nodes.waitDomContentLoaded(doc).then(() => {
+                settled = true;
+            });
+            await new Promise((resolve) => {
+                setTimeout(resolve);
+            });
+            expect(settled).to.be.false;
+            fire();
+            await promise;
+            expect(settled).to.be.true;
+        });
+
+        it('resolves in the interactive gap through load, where the event will never come', async () => {
+            const handlers = {};
+            const doc = {
+                readyState: 'interactive',
+                defaultView: {
+                    addEventListener: (type, cb) => {
+                        handlers[type] = cb;
+                    },
+                },
+            };
+            let settled = false;
+            Nodes.waitDomContentLoaded(doc).then(() => {
+                settled = true;
+            });
+            await new Promise((resolve) => {
+                setTimeout(resolve);
+            });
+            expect(settled, 'nothing settles on its own while the page only waits').to.be.false;
+            handlers.load();
+            await new Promise((resolve) => {
+                setTimeout(resolve);
+            });
+            expect(settled).to.be.true;
+        });
+
+        it('prefers DOMContentLoaded while it is still coming, however late', async () => {
+            const handlers = {};
+            const doc = {
+                readyState: 'interactive',
+                defaultView: {
+                    addEventListener: (type, cb) => {
+                        handlers[type] = cb;
+                    },
+                },
+            };
+            let settled = false;
+            Nodes.waitDomContentLoaded(doc).then(() => {
+                settled = true;
+            });
+            handlers.DOMContentLoaded();
+            handlers.load();
+            await new Promise((resolve) => {
+                setTimeout(resolve);
+            });
+            expect(settled, 'whichever of the two comes first settles once').to.be.true;
+        });
+    });
 });

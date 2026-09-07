@@ -9,16 +9,9 @@ class UpgradeQueue {
         this.#readyResolve = resolve;
     });
     constructor() {
-        document.addEventListener('DOMContentLoaded', () => {
+        Nodes.waitDomContentLoaded(document).then(() => {
             this.#start();
         });
-        if (document.readyState === 'complete') {
-            //imported after the document's own DOMContentLoaded: that event will
-            //never come, so the page settles now. 'interactive' is not enough,
-            //deferred and module scripts run there, before DOMContentLoaded, and
-            //elements are still being defined
-            this.#start();
-        }
     }
     /**
      * Waits for the page's readiness: the promise resolves right after the

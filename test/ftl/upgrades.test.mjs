@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ParsedElement } from '../../src/ftl/parsed-element.mjs';
-import { registry } from '../../src/ftl/registry.mjs';
+import { Registry, registry } from '../../src/ftl/registry.mjs';
 import { Rendering } from '../../src/ftl/rendering.mjs';
 
 /**
@@ -50,15 +50,17 @@ describe('Upgrade ordering and readiness', () => {
     });
 
     it('reports ready once components enqueued during another upgrade have rendered', async () => {
-        registry.defineElement('ready-child', slow('child'));
-        registry.defineElement('ready-parent', nesting('parent', 'ready-child'));
-        registry.configure();
+        //a fresh registry is the late-import case: its queue settles at once, and
+        //everything enqueued synchronously here is covered by that settling
+        const fresh = new Registry();
+        fresh.defineElement('ready-child', slow('child'));
+        fresh.defineElement('ready-parent', nesting('parent', 'ready-child'));
+        fresh.configure();
         container.appendChild(document.createElement('ready-parent'));
 
         let atReady = null;
         document.addEventListener('ftl:ready', () => { atReady = [...order]; }, { once: true });
-        document.dispatchEvent(new Event('DOMContentLoaded'));
-        await settle();
+        await fresh.ready();
 
         expect(atReady).to.deep.equal(['parent', 'child'], 'the nested child is covered too');
         expect(order).to.deep.equal(['parent', 'child']);
@@ -191,8 +193,11 @@ describe('Readiness when a component fails', () => {
                 this.textContent = 'rendered';
             }
         }
-        registry.defineElement('broken-el', Broken).defineElement('healthy-el', Healthy);
-        registry.configure();
+        //a fresh registry is the late-import case: its queue settles at once, over
+        //whatever was enqueued synchronously before that moment
+        const fresh = new Registry();
+        fresh.defineElement('broken-el', Broken).defineElement('healthy-el', Healthy);
+        fresh.configure();
         const container = document.createElement('div');
         container.innerHTML = `<broken-el></broken-el><healthy-el></healthy-el>`;
         document.body.appendChild(container);
@@ -201,15 +206,14 @@ describe('Readiness when a component fails', () => {
         //free to reach the console and the error reporter. taking it here proves that and
         //keeps this test from producing an uncaught rejection of its own
         const broken = container.querySelector('broken-el');
-        const queued = Array.from(registry.upgrades).find(([el]) => el === broken)?.[1];
+        const queued = Array.from(fresh.upgrades).find(([el]) => el === broken)?.[1];
         let caught = null;
         queued?.catch((e) => {
             caught = e;
         });
-
         let fired = false;
         document.addEventListener('ftl:ready', () => { fired = true; }, { once: true });
-        document.dispatchEvent(new Event('DOMContentLoaded'));
+        await fresh.ready();
         await settle();
 
         expect(fired, 'one broken component must not hold the page back').to.be.true;

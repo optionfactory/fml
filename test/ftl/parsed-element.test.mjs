@@ -45,8 +45,8 @@ describe('ParsedElement Web Component Lifecycle', () => {
 
         const el = document.createElement('multi-connected-el');
         container.appendChild(el);
-
-        await registry.upgrades.next()?.value;
+        const [, upgradePromise] = await registry.upgrades.next().value;
+        await upgradePromise;
         expect(renderCount).to.equal(1);
 
         el.connectedCallback();
