@@ -16,4 +16,15 @@ describe('the module entry', () => {
         assert.strictEqual(fml.HttpClient, httpc.HttpClient);
         assert.strictEqual(fml.Plugin, ful.Plugin);
     });
+
+    it('exports every filter and loader class', () => {
+        assert.isFunction(ful.InstantFilter);
+        assert.isFunction(ful.LocalDateFilter);
+        assert.isFunction(ful.NumberFilter);
+        assert.isFunction(ful.TextFilter);
+        assert.isFunction(ful.BooleanFilter);
+        assert.isFunction(ful.FormLoader);
+        assert.isFunction(ful.SelectLoader);
+        assert.isFunction(ful.TableLoader);
+    });
 });
