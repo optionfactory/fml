@@ -485,6 +485,13 @@ class Select extends Field {
     #wireSelection() {
         this.#ddmenu.addEventListener('change', (e) => {
             e.stopPropagation();
+            //a claim landing while the dropdown is open must not accept a pick:
+            //disabled closes the list on its own (the focused input blurs), readonly
+            //leaves it open, so the guard lives here
+            if (this.matches(':disabled') || this.readonly) {
+                this.#close();
+                return;
+            }
             if (!this.#multiple) {
                 this.#values.clear();
             }

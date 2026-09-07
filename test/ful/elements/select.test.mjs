@@ -943,6 +943,23 @@ describe('Select selection removal', () => {
         container.remove();
     });
 
+    it('keeps the selection when a claim lands while the dropdown is open on a pick', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1"></ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+        const dropdown = selectEl.querySelector('ful-dropdown');
+        //a pick arriving from a dropdown that was open before the claim landed
+        selectEl.readonly = true;
+        dropdown.dispatchEvent(
+            new CustomEvent('change', { bubbles: true, cancelable: false, detail: { index: 'k9', data: ['k9', 'k9'] } }),
+        );
+
+        assert.deepStrictEqual(selectEl.value, ['k1'], 'the pick is not applied');
+        assert.deepStrictEqual(changes, []);
+        assert.isFalse(dropdown.shown, 'the leftover dropdown is closed');
+        container.remove();
+    });
+
     it('reports a single select as empty once backspace clears its label', async () => {
         const [selectEl, container] = await mount(`<ful-select value="k1"></ful-select>`);
         const changes = [];

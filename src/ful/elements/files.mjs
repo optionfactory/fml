@@ -19,6 +19,7 @@ class InputFile extends Input {
     #items;
     #dropzone;
     #warnings;
+    #group;
     _type() {
         return 'file';
     }
@@ -56,6 +57,7 @@ class InputFile extends Input {
         this.#items = this.querySelector('ful-item-list');
         this.#dropzone = this.querySelector('[data-ref=dropzone]');
         this.#warnings = this.querySelector('ful-field-warnings');
+        this.#group = this.querySelector('ful-control-group');
         this.accept = observed.accept;
         this.multiple = observed.multiple;
         this.itemlist = observed.itemlist;
@@ -76,6 +78,11 @@ class InputFile extends Input {
             if (!e.target.closest('button')) {
                 return;
             }
+            //items and other chrome are not form controls, the guard must ask the
+            //effective state
+            if (this.matches(':disabled') || this.readonly) {
+                return;
+            }
             const idx = [...this.#items.children].indexOf(e.target.closest('ful-item'));
             if (idx === -1) {
                 return;
@@ -89,6 +96,10 @@ class InputFile extends Input {
             this.files = dt.files;
         });
         this.#dropzone.addEventListener('click', (e) => {
+            //the dropzone is not a form control, the guard must ask the effective state
+            if (this.matches(':disabled') || this.readonly) {
+                return;
+            }
             this.querySelector('input')?.click();
         });
 
@@ -102,6 +113,11 @@ class InputFile extends Input {
         this.#dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             this.toggleAttribute('dragover', false);
+            //the drop's default stays suppressed even when inert: a disabled field
+            //must not turn into a navigation target
+            if (this.matches(':disabled') || this.readonly) {
+                return;
+            }
             const dropped = [...e.dataTransfer.items].filter((i) => i.kind === 'file');
             if (dropped.length === 0) {
                 return;
@@ -114,6 +130,20 @@ class InputFile extends Input {
         });
         this._input.addEventListener('change', (e) => {
             this.#update();
+        });
+    }
+    /**
+     * A file input has no native freeze: readOnly does nothing to it, so the
+     * control group goes inert, the only way to keep the picker shut. The
+     * dropzone and the item removals are guarded on their own handlers.
+     */
+    get readonly() {
+        return this.#group.inert;
+    }
+    set readonly(v) {
+        this.#group.inert = v;
+        this.reflect(() => {
+            Attributes.toggle(this, 'readonly', v);
         });
     }
     #update() {

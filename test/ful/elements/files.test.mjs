@@ -30,7 +30,8 @@ describe('InputFile', () => {
 
         const input = el.querySelector('input[type=file]');
         assert.strictEqual(input.getAttribute('aria-required'), 'true');
-        assert.strictEqual(input.readOnly, true);
+        assert.isTrue(el.readonly);
+        assert.isTrue(el.querySelector('ful-control-group').inert, 'a readonly file input freezes its chrome');
 
         container.remove();
     });
@@ -460,6 +461,64 @@ describe('InputFile stray clicks', () => {
         stray.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
         assert.deepStrictEqual(selected(el), ['a.txt']);
+        container.remove();
+    });
+});
+
+describe('InputFile disabled and readonly claims', () => {
+    const interactions = {
+        'a drop replaces nothing': (el) => drop(el, file('z.txt')),
+        'a removal click dismisses nothing': (el) =>
+            el.querySelector('ful-item[data-name="a.txt"] button').dispatchEvent(
+                new MouseEvent('click', { bubbles: true }),
+            ),
+        'the dropzone opens no picker': (el) => {
+            const input = el.querySelector('input[type=file]');
+            let opened = false;
+            input.click = () => {
+                opened = true;
+            };
+            el.querySelector('[data-ref=dropzone]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            assert.isFalse(opened, 'the picker must not open');
+        },
+    };
+    for (const [claim, attribute] of [
+        ['disabled', 'disabled'],
+        ['readonly', 'readonly'],
+    ]) {
+        for (const [does, act] of Object.entries(interactions)) {
+            it(`${does} while ${claim}`, async () => {
+                const [el, container] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
+                pick(el, file('a.txt'), file('b.txt'));
+                el.setAttribute(attribute, '');
+
+                act(el);
+
+                assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], `the selection is frozen by the ${claim}`);
+                container.remove();
+            });
+        }
+        it(`mirrors the ${claim} from markup`, async () => {
+            const [el, container] = await mount(`<ful-input-file ${attribute}>files</ful-input-file>`);
+            const input = el.querySelector('input[type=file]');
+            if (claim === 'disabled') {
+                assert.isTrue(input.matches(':disabled'), 'the inner control carries the claim');
+            } else {
+                assert.isTrue(el.querySelector('ful-control-group').inert, 'the chrome is frozen');
+            }
+            container.remove();
+        });
+    }
+    it('mirrors the disabled claim through the live door', async () => {
+        const [el, container] = await mount(`<ful-input-file>files</ful-input-file>`);
+        const input = el.querySelector('input[type=file]');
+
+        el.setAttribute('disabled', '');
+        assert.isTrue(el.matches(':disabled'));
+        assert.isTrue(input.matches(':disabled'));
+        el.removeAttribute('disabled');
+        assert.isFalse(input.matches(':disabled'));
+
         container.remove();
     });
 });
