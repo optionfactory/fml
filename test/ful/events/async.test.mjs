@@ -103,6 +103,31 @@ describe('AsyncEvents guarantees', () => {
         assert.include(caught?.message, 'pipeline');
     });
 
+    it('reports only the mode violation when a listener of the broken configuration fails', async () => {
+        const rejections = [];
+        const onRejection = (e) => {
+            rejections.push(e.reason?.message ?? String(e.reason));
+            e.preventDefault();
+        };
+        window.addEventListener('unhandledrejection', onRejection);
+        AsyncEvents.asyncOn(el, 'save', async () => {
+            throw new Error('listener-boom');
+        });
+        AsyncEvents.asyncOn(el, 'save', async () => 'fine');
+
+        let caught = null;
+        try {
+            await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'pipeline' });
+        } catch (e) {
+            caught = e;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        assert.include(caught?.message, 'pipeline', 'the caller sees the configuration error');
+        assert.deepStrictEqual(rejections, [], 'the erroneously-run listener failure is not a page error');
+        window.removeEventListener('unhandledrejection', onRejection);
+    });
+
     it('accepts a pipeline with no listener at all, resolving undefined', async () => {
         const got = await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'pipeline' });
 

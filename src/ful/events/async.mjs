@@ -15,14 +15,14 @@ class AsyncEvents {
         el.dispatchEvent(evt);
         const promises = evt.async?.promises ?? [];
         const mode = options?.mode ?? 'broadcast';
-        if (mode === 'pipeline' && promises.length > 1) {
+        if ((mode === 'pipeline' && promises.length > 1) || (mode === 'delegate' && promises.length !== 1)) {
+            //the listeners ran under a broken configuration: nothing legitimately
+            //awaits their outcome, and their failures are not page errors
+            Promise.all(promises).catch(() => {});
             throw new Error(
-                `[AsyncEvents] Event "${evt.type}" is configured in 'pipeline' mode and expects at most one async listener, but ${promises.length} listeners were triggered on this element.`,
-            );
-        }
-        if (mode === 'delegate' && promises.length !== 1) {
-            throw new Error(
-                `[AsyncEvents] Event "${evt.type}" is configured in 'delegate' mode and requires exactly one async listener, but ${promises.length} were registered.`,
+                mode === 'pipeline'
+                    ? `[AsyncEvents] Event "${evt.type}" is configured in 'pipeline' mode and expects at most one async listener, but ${promises.length} listeners were triggered on this element.`
+                    : `[AsyncEvents] Event "${evt.type}" is configured in 'delegate' mode and requires exactly one async listener, but ${promises.length} were registered.`,
             );
         }
         return mode === 'broadcast' ? Promise.all(promises) : Promise.resolve(promises[0]);
