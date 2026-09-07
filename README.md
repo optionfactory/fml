@@ -13,6 +13,8 @@ An http client
 ## ful
 A no-build web components library based on ftl
 
+ful fields report their values through `ful-form`'s intercepted submit: a plain `<form>` carrying them submits none of their values. Expressions compare strictly (`==` is `===`, and there is no coercing spelling), and message placeholders are `\w+` names — `{amount}` yes, `{user-name}` no.
+
 ### Localization
 
 `ftl.Localization` is a plain template module: a single flat translations overlay (`{ 'pagination.showing': 'Page {current} of {total}', … }`, dotted keys, named placeholders, `{ one, other }` plural leaves selected through `Intl.PluralRules` over a numeric `{count}`) plus `#l10n:date()`, `#l10n:number()` and `#l10n:bytes()` formatters honoring the page locale. Outside the templates, `Localization.of()` exposes the same functions imperatively.

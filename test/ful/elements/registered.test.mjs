@@ -267,6 +267,15 @@ describe('Registered elements', () => {
         );
     });
 
+    it('exports every element class the plugin registers, by name', async () => {
+        const ful = await import('../../../src/ful/index.mjs');
+        const exported = new Set(Object.keys(ful));
+        for (const tag of REGISTERED) {
+            const name = customElements.get(tag).name;
+            assert.isTrue(exported.has(name), `${tag} is registered from ${name}, which the package entry does not export`);
+        }
+    });
+
     for (const spec of ELEMENTS) {
         describe(spec.tag, () => {
             it('mounts and renders without errors', async () => {

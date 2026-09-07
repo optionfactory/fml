@@ -18,6 +18,6 @@ export { Spinner } from './spinner.mjs';
 import './spinner.css';
 export { SortButton, Table, TableSchemaParser, Pagination, TableLoader } from './table.mjs';
 import './table.css';
-export { InstantFilter, LocalDateFilter, NumberFilter, TextFilter, BooleanFilter } from './filters.mjs';
+export { BooleanFilter, CompareFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter } from './filters.mjs';
 import './filters.css';
 export { Plugin } from './plugin.mjs';

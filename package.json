@@ -40,7 +40,6 @@
         "webcomponents",
         "ui",
         "browser",
-        "webcomponents",
         "httpclient"
     ],
     "license": "MIT",

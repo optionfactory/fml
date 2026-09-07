@@ -35,13 +35,21 @@ class Instant extends ParsedElement {
             }),
         );
     }
+    //a date-only value names a calendar day, not a utc midnight: it is read in
+    //the page's timezone, so the day it names is the day it lands on
+    static #parse(v) {
+        return /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00`) : new Date(v);
+    }
     static isoToLocal(iso) {
-        //this is so sad
-        const d = new Date(iso);
+        const d = Instant.#parse(iso);
         const pad = (n, v) => String(v).padStart(n, '0');
         const date = `${d.getFullYear()}-${pad(2, d.getMonth() + 1)}-${pad(2, d.getDate())}`;
         const time = `${pad(2, d.getHours())}:${pad(2, d.getMinutes())}:${pad(2, d.getSeconds())}.${pad(3, d.getMilliseconds())}`;
         return `${date}T${time}`;
+    }
+    static localToIso(local) {
+        const d = Instant.#parse(local);
+        return Number.isNaN(d.getTime()) ? null : d.toISOString();
     }
 }
 
@@ -189,22 +197,19 @@ class InputInstant extends Input {
         this.step = observed.step;
     }
     get value() {
-        const v = this._input.value;
-        return v === '' ? null : new Date(v).toISOString();
+        return Instant.localToIso(this._input.value);
     }
     set value(v) {
         this._input.value = v ? Instant.isoToLocal(v) : '';
     }
     get min() {
-        const v = this._input.min;
-        return v === '' ? null : new Date(v).toISOString();
+        return Instant.localToIso(this._input.min);
     }
     set min(v) {
         this._input.min = v ? Instant.isoToLocal(v) : '';
     }
     get max() {
-        const v = this._input.max;
-        return v === '' ? null : new Date(v).toISOString();
+        return Instant.localToIso(this._input.max);
     }
     set max(v) {
         this._input.max = v ? Instant.isoToLocal(v) : '';

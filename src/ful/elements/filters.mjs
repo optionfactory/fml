@@ -368,7 +368,7 @@ class InstantFilter extends CompareFilter {
         return 'datetime-local';
     }
     _serialize(v) {
-        return new Date(v).toISOString();
+        return Instant.localToIso(v);
     }
     _deserialize(v) {
         return Instant.isoToLocal(v);

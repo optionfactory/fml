@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
-import { Plugin } from '../../../src/ful/index.mjs';
+import { Plugin, Instant } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -172,6 +172,48 @@ describe('ful-instant rendering', () => {
         await Rendering.waitFor(el);
 
         assert.strictEqual(el.textContent, 'never');
+        container.remove();
+    });
+});
+
+describe('Instant conversions', () => {
+    it('reads a date-only iso value as local midnight, in every timezone', () => {
+        assert.strictEqual(Instant.isoToLocal('2024-03-15'), '2024-03-15T00:00:00.000');
+    });
+
+    it('answers null for a value that does not parse, instead of throwing', () => {
+        assert.isNull(Instant.localToIso('garbage'));
+        assert.isNull(Instant.localToIso(''));
+        assert.strictEqual(Instant.localToIso('2024-03-15'), new Date(2024, 2, 15).toISOString());
+    });
+});
+
+describe('InputInstant bounds and value', () => {
+    const mount = async (attrs = '') => {
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-input-instant name="i" ${attrs}>when</ful-input-instant>`;
+        document.body.appendChild(container);
+        const el = container.querySelector('ful-input-instant');
+        await Rendering.waitFor(el);
+        return [el, container];
+    };
+
+    it('lands a date-only bound on the day it names, in every timezone', async () => {
+        const [el, container] = await mount('min="2024-03-15" max="2024-03-16"');
+
+        assert.strictEqual(el.querySelector('input').min, '2024-03-15T00:00:00.000');
+        assert.strictEqual(el.querySelector('input').max, '2024-03-16T00:00:00.000');
+        assert.strictEqual(el.min, new Date(2024, 2, 15).toISOString());
+        container.remove();
+    });
+
+    it('reports no value when the widget degraded to text and carries garbage', async () => {
+        const [el, container] = await mount();
+        const input = el.querySelector('input');
+        input.type = 'text';
+        input.value = 'not a datetime';
+
+        assert.isNull(el.value, 'an unparseable value is no value, not a crash');
         container.remove();
     });
 });

@@ -6,7 +6,7 @@ build:
 
 initialize:
 	npm run initialize
-test: build
+test:
 	npm run test
 check:
 	npm run lint
