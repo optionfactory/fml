@@ -1,5 +1,15 @@
 {{
     import { nodes } from "./ast.mjs";
+    //keyword classification lives here, not in the grammar's ordered choice: the
+    //identifier rule consumes the whole word and the action decides, so no keyword
+    //can grab a longer identifier's prefix. A Map, not a plain object: `in` on the
+    //latter would classify inherited names such as `constructor` as keywords
+    const keywords = new Map([
+        ['true', true],
+        ['false', false],
+        ['null', null],
+        ['undefined', undefined],
+    ]);
 }}
 
 TemplatedRoot = TemplatedExpression*
@@ -93,8 +103,8 @@ AccessExpression
     / AccessMethodCall
     
 AccessMember "member"
-    = op:("?."/".") _ rhs:Symbol { 
-        return {type: nodes.member, ns: op === '?.', rhs: rhs.value}; 
+    = op:("?."/".") _ rhs:Word {
+        return {type: nodes.member, ns: op === '?.', rhs: rhs};
     }
 
 AccessSubscript "subscript" 
@@ -107,11 +117,11 @@ AccessMethodCall "method-call"
         return {type: nodes.method, ns: op !== null, args: h === null ? [] : [h, ...t]}; 
     }
 
-GroupingExpression 
+GroupingExpression
     = "(" _ e:Expression _ ")" { return e }
-    / ModuleFunctionCall 
+    / ModuleFunctionCall
     / AnyLiteral
-    / Symbol
+    / Identifier
 
 
 ModuleFunctionCall "module-function-call" 
@@ -122,30 +132,9 @@ ModuleFunctionCall "module-function-call"
 
 AnyLiteral
     = NumberLiteral
-    / BooleanLiteral
-    / NullLiteral
-    / UndefinedLiteral
     / StringLiteral
     / ArrayLiteral
     / DictLiteral
-
-BooleanLiteral "boolean-literal"
-    = "true" { 
-        return {type: nodes.literal, value: true}; 
-    }
-    / "false" { 
-        return {type: nodes.literal, value: false}; 
-    }
-
-NullLiteral "null-literal"
-    = "null" {
-        return {type: nodes.literal, value: null};
-    }
-
-UndefinedLiteral "undefined-literal"  // <--- Add this
-    = "undefined" {
-        return {type: nodes.literal, value: undefined};
-    }    
 
 NumberLiteral "number-literal" 
     = value:$( '-'? ([0-9]+ ('.' [0-9]*)? / '.' [0-9]+ ) ) {
@@ -192,15 +181,20 @@ DictLiteral "dict-literal"
     }
 
 ModuleFunction "module-function"
-    = '#' module:(@$([a-zA-Z$_][a-zA-Z$_0-9_]*) ':')? v:$([a-zA-Z$_][a-zA-Z$_0-9_]*) {
+    = '#' module:(@Word ':')? v:Word {
         return {type: nodes.function, module, value: v}
     }
 
-Symbol "symbol"
-    = s:$([a-zA-Z$_][a-zA-Z$_0-9_]*) { 
-        return {type: nodes.symbol, value: s}; 
+Word
+    = $([a-zA-Z$_][a-zA-Z$_0-9]*)
+
+Identifier "identifier-or-keyword"
+    = s:Word {
+        return keywords.has(s)
+            ? {type: nodes.literal, value: keywords.get(s)}
+            : {type: nodes.symbol, value: s};
     }
-    
+
 EqualityOp
     = "=="
     / "!="

@@ -73,6 +73,13 @@ const verify = (description, expr, data, expected) => {
 };
 
 describe('Expression', () => {
+    //identifiers sharing a keyword's prefix must parse as identifiers: the
+    //identifier rule consumes the whole word, keywords are classified after
+    for (const name of ['truex', 'truthy', 'falseFlag', 'nullable', 'nullish', 'null2', 'undefinedVar']) {
+        verify(`resolves '${name}' as an identifier, not a keyword prefix`, name, [{ [name]: 'value' }], 'value');
+    }
+    verify('resolves inherited names such as constructor as identifiers', 'constructor', [{ constructor: 'value' }], 'value');
+    verify('keywords still win over same-named data fields', 'true', [{ true: 'shadowed' }], true);
     verify('can use member access', 'a.b.c', [{ a: { b: { c: 1 } } }], 1);
     verify('can use nullsafe member access', 'a?.b.c', [{}], undefined);
     verify('can call a method', 'a.toLowerCase()', [{ a: 'M' }], 'm');
