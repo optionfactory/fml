@@ -125,6 +125,11 @@ describe('Select & Dropdown load failure handling', () => {
 
         const dropdown = selectEl.querySelector('ful-dropdown');
         assert.isFalse(dropdown.shown);
+        assert.strictEqual(
+            selectEl.querySelector('input[role=combobox]').getAttribute('aria-expanded'),
+            'false',
+            'a failed open leaves the combobox collapsed',
+        );
         assert.strictEqual(rejections.length, rejectionsBefore + 1);
         assert.isTrue(errors.some((args) => String(args[0]).includes('boom')));
         container.remove();

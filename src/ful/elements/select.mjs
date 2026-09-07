@@ -250,6 +250,7 @@ class Dropdown extends ParsedElement {
         ++this.#showToken;
         this.setAttribute('hidden', '');
         this.combobox?.removeAttribute('aria-activedescendant');
+        this.combobox?.setAttribute('aria-expanded', 'false');
     }
     get shown() {
         return !this.hasAttribute('hidden');

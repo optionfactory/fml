@@ -365,6 +365,9 @@ class Table extends ParsedElement {
             sortRequest: schema.sort,
             filterRequest: maybeForm?.values ?? {},
         };
+        //the page, sort and filter listeners let load's rejection escape on purpose:
+        //load renders its own error state, and the unhandled rejection is what
+        //reports the failure (the autoload below reports the same way)
         maybeForm?.addEventListener('submit:success', async (evt) => {
             await this.load(
                 {
