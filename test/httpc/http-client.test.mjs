@@ -270,6 +270,37 @@ describe('httpc client', () => {
             metaHeader.remove();
             metaToken.remove();
         });
+
+        it('carries a bare exchange with no options, still injecting the header', async () => {
+            const metaHeader = document.createElement('meta');
+            metaHeader.name = '_csrf_header';
+            metaHeader.content = 'X-CSRF-TOKEN';
+            document.head.appendChild(metaHeader);
+
+            const metaToken = document.createElement('meta');
+            metaToken.name = '_csrf';
+            metaToken.content = 'secret-token';
+            document.head.appendChild(metaToken);
+
+            const client = HttpClient.builder().withCsrfToken().build();
+            const response = await client.exchange('/test');
+
+            expect(response.status).to.equal(200);
+            const reqHeaders = new Headers(fetchArgs.init.headers);
+            expect(reqHeaders.get('X-CSRF-TOKEN')).to.equal('secret-token');
+
+            metaHeader.remove();
+            metaToken.remove();
+        });
+
+        it('normalizes plain object headers of a bare exchange through the same contract', async () => {
+            const client = HttpClient.builder().build();
+            await client.exchange('/test', { headers: { 'X-Custom': 'value' }, method: 'POST' });
+
+            const reqHeaders = new Headers(fetchArgs.init.headers);
+            expect(reqHeaders.get('X-Custom')).to.equal('value');
+            expect(fetchArgs.init.method).to.equal('POST');
+        });
     });
 });
 describe('HttpClientError problem+json', () => {

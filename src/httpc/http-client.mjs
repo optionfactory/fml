@@ -276,7 +276,8 @@ class HttpClient {
         const is = [...this.#interceptors, ...(interceptors || []), new HttpCall()];
         const chain = new HttpInterceptorChain(is, 0);
         const url = new URL(new Request(uri).url);
-        return await chain.proceed(url, options ?? {});
+        const request = { ...options, headers: new Headers(options?.headers) };
+        return await chain.proceed(url, request);
     }
     /**
      * Creates a request builder.
