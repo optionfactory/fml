@@ -32,6 +32,11 @@ describe('httpc client', () => {
             const media2 = MediaType.parse(null);
             expect(media2.normalized).to.equal('unknown/unknown');
         });
+
+        it('reports a value without a type/subtype pair as unknown', () => {
+            expect(MediaType.parse('text').normalized).to.equal('unknown/unknown');
+            expect(MediaType.parse('text/').normalized).to.equal('unknown/unknown');
+        });
     });
 
     describe('HttpClientError', () => {
@@ -40,6 +45,15 @@ describe('httpc client', () => {
             expect(err.name).to.equal('HttpClientError');
             expect(err.problems[0].type).to.equal('CONNECTION_PROBLEM');
             expect(err.problems[0].reason).to.equal('Network offline');
+        });
+
+        it('wraps a non-Error cause without crashing nor losing it', () => {
+            const stringy = HttpClientError.of('CONNECTION_PROBLEM', 'boom');
+            expect(stringy.problems[0].reason).to.equal('boom');
+            expect(stringy.message).to.equal('boom');
+
+            const nothing = HttpClientError.of('CONNECTION_PROBLEM', undefined);
+            expect(nothing.problems[0].reason).to.equal('unknown failure');
         });
 
         it('drops context prefixes correctly', () => {
@@ -76,6 +90,19 @@ describe('httpc client', () => {
             expect(err.status).to.equal(500);
             expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
             expect(err.message).to.equal('500 Server Error: the application/failures+json body does not decode as json');
+        });
+
+        it('reports a failures+json body that is not an array as a generic problem, keeping it droppable', async () => {
+            const res = new Response(JSON.stringify({ oops: true }), {
+                status: 500,
+                statusText: 'Server Error',
+                headers: { 'Content-Type': 'application/failures+json' }
+            });
+            const err = await HttpClientError.fromResponse(res);
+            expect(err.status).to.equal(500);
+            expect(Array.isArray(err.problems)).to.be.true;
+            expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
+            expect(err.dropping('x.').problems).to.have.lengthOf(1);
         });
 
         it('reports a problem+json body that does not decode as a generic problem, keeping the status', async () => {
@@ -208,6 +235,27 @@ describe('httpc client', () => {
             expect(url.searchParams.getAll('leading')).to.deep.equal(['v1'], 'a leading null does not discard the rest');
             expect(url.searchParams.getAll('trailing')).to.deep.equal(['v1'], 'a trailing null is skipped, not stringified');
             expect(url.searchParams.has('only')).to.be.false;
+
+        it('sends no content-type nor body for an undefined json body', async () => {
+            await client.post('/test').json(undefined).fetch();
+
+            expect(new Headers(fetchArgs.init.headers).get('Content-Type')).to.be.null;
+            expect(fetchArgs.init.body).to.be.undefined;
+        });
+
+        it('turns a non-Error interceptor throw into a failure', async () => {
+            const throwing = HttpClient.builder()
+                .withInterceptors({ intercept: async () => { throw undefined; } })
+                .build();
+
+            try {
+                await throwing.get('/test').fetch();
+                expect.fail('the fetch must reject');
+            } catch (e) {
+                expect(e).to.be.instanceOf(Failure);
+                expect(e.problems[0].type).to.equal('CONNECTION_PROBLEM');
+                expect(e.problems[0].reason).to.equal('unknown failure');
+            }
         });
 
         it('removes headers and params set to null through the plural forms', async () => {
@@ -329,6 +377,52 @@ describe('httpc client', () => {
 
             metaHeader.remove();
             metaToken.remove();
+        });
+
+        it('reads the metas at request time, honoring a pair landed after the client was built', async () => {
+            const client = HttpClient.builder().withCsrfToken().build();
+            await client.get('/test').fetch();
+            expect(new Headers(fetchArgs.init.headers).get('X-CSRF-TOKEN')).to.be.null;
+
+            const metaHeader = document.createElement('meta');
+            metaHeader.name = '_csrf_header';
+            metaHeader.content = 'X-CSRF-TOKEN';
+            document.head.appendChild(metaHeader);
+            const metaToken = document.createElement('meta');
+            metaToken.name = '_csrf';
+            metaToken.content = 'late-token';
+            document.head.appendChild(metaToken);
+
+            try {
+                await client.get('/test').fetch();
+                expect(new Headers(fetchArgs.init.headers).get('X-CSRF-TOKEN')).to.equal('late-token');
+            } finally {
+                metaHeader.remove();
+                metaToken.remove();
+            }
+        });
+
+        it('carries the token to the page origin only', async () => {
+            const metaHeader = document.createElement('meta');
+            metaHeader.name = '_csrf_header';
+            metaHeader.content = 'X-CSRF-TOKEN';
+            document.head.appendChild(metaHeader);
+            const metaToken = document.createElement('meta');
+            metaToken.name = '_csrf';
+            metaToken.content = 'secret-token';
+            document.head.appendChild(metaToken);
+
+            const client = HttpClient.builder().withCsrfToken().build();
+            try {
+                await client.get(`${location.origin}/same`).fetch();
+                expect(new Headers(fetchArgs.init.headers).get('X-CSRF-TOKEN')).to.equal('secret-token');
+
+                await client.get('https://third-party.example/api').fetch();
+                expect(new Headers(fetchArgs.init.headers).get('X-CSRF-TOKEN')).to.be.null;
+            } finally {
+                metaHeader.remove();
+                metaToken.remove();
+            }
         });
 
         it('carries a bare exchange with no options, still injecting the header', async () => {

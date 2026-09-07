@@ -26,8 +26,11 @@ class MediaType {
             return new MediaType('unknown', 'unknown');
         }
         const [prefix, _] = v.split(';');
-        const [ptype, psubtype] = prefix.trim().split('/');
-        return new MediaType(ptype.toLowerCase(), psubtype?.toLowerCase());
+        const [ptype, psubtype] = prefix.trim().toLowerCase().split('/');
+        if (!ptype || !psubtype) {
+            return new MediaType('unknown', 'unknown');
+        }
+        return new MediaType(ptype, psubtype);
     }
 }
 
@@ -61,14 +64,15 @@ class HttpClientError extends Failure {
      * @returns
      */
     static of(type, cause) {
+        const reason = String(cause?.message ?? cause ?? 'unknown failure');
         return new HttpClientError(
-            cause.message,
+            reason,
             0,
             [
                 {
                     type,
                     context: null,
-                    reason: cause.message,
+                    reason,
                     details: null,
                 },
             ],
@@ -528,8 +532,12 @@ class HttpRequestBuilder {
      * @returns {HttpRequestBuilder} this builder
      */
     json(body) {
+        if (body === undefined) {
+            return this;
+        }
+        const serialized = JSON.stringify(body);
         this.#headers.set('Content-Type', 'application/json');
-        this.#body = JSON.stringify(body);
+        this.#body = serialized;
         return this;
     }
     /**
