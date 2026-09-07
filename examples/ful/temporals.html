@@ -6,8 +6,6 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" integrity="sha256-oxqX0LQclbvrsJt8IymkxnISn4Np2Wy2rY9jjoQlDEg=" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" crossorigin="anonymous">
     
     <script src="../../dist/ftl.iife.js"></script>
     <link href="../../dist/ful.css" rel="stylesheet">
@@ -23,6 +21,20 @@
 
         h2 {
             margin-top: 2rem;
+        }
+
+        body {
+            margin: 1rem;
+        }
+
+        .fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .fields > * {
+            min-width: 20rem;
         }
 
 
@@ -41,7 +53,7 @@
     </script>
 </head>
 
-<body class="container-fluid">
+<body>
     <h1>Temporals</h1>
     <h2>Local Date</h2>
     <div>
@@ -95,56 +107,56 @@
         The ISO Instant: <span>2020-01-02T10:11:12.123Z</span> with <span>zh-cn</span> locale is rendered as: <ful-instant locale="zh-cn">2020-01-02T10:11:12.123Z</ful-instant>
     </div>
     <h2>ful-input-local-date</h2>
-    <div class="row">
-        <ful-input-local-date class="col-3">
+    <div class="fields">
+        <ful-input-local-date>
             A local date input
         </ful-input-local-date>
     </div>
-    <div class="row">
-        <ful-input-local-date class="col" min="now">
+    <div class="fields">
+        <ful-input-local-date min="now">
             A local date input with min = now
         </ful-input-local-date>
-        <ful-input-local-date class="col" min="+0d">
+        <ful-input-local-date min="+0d">
             A local date input with min = +0d
         </ful-input-local-date>
-        <ful-input-local-date class="col" min="+10d">
+        <ful-input-local-date min="+10d">
             A local date input with min = +10d
         </ful-input-local-date>
-        <ful-input-local-date class="col" min="-10d">
+        <ful-input-local-date min="-10d">
             A local date input with min = -10d
         </ful-input-local-date>
     </div>
-    <div class="row">
-        <ful-input-local-date class="col" max="now">
+    <div class="fields">
+        <ful-input-local-date max="now">
             A local date input with max = now
         </ful-input-local-date>
-        <ful-input-local-date class="col" max="+0d">
+        <ful-input-local-date max="+0d">
             A local date input with max = +0d
         </ful-input-local-date>
-        <ful-input-local-date class="col" max="+10d">
+        <ful-input-local-date max="+10d">
             A local date input with max = +10d
         </ful-input-local-date>
-        <ful-input-local-date class="col" max="-10d">
+        <ful-input-local-date max="-10d">
             A local date input with max = -10d
         </ful-input-local-date>
     </div>
-    <div class="row">
-        <ful-input-local-date class="col" min="now" max="now">
+    <div class="fields">
+        <ful-input-local-date min="now" max="now">
             A local date input with min = now, max = now
         </ful-input-local-date>
-        <ful-input-local-date class="col" min="+0d" max="+0d">
+        <ful-input-local-date min="+0d" max="+0d">
             A local date input with min = +0d, max = +0d
         </ful-input-local-date>
-        <ful-input-local-date class="col" min="-10d" max="+10d">
+        <ful-input-local-date min="-10d" max="+10d">
             A local date input with min = -10d, max = +10d
         </ful-input-local-date>
-        <ful-input-local-date class="col" min="-20d" max="-10d">
+        <ful-input-local-date min="-20d" max="-10d">
             A local date input with min = -20d, max = -10d
         </ful-input-local-date>
     </div>
     <h2>ful-input-instant</h2>
-    <div class="row">
-        <ful-input-instant class="col-3">
+    <div class="fields">
+        <ful-input-instant>
             An instant input
         </ful-input-instant>
     </div>

@@ -135,26 +135,35 @@ describe('Expression', () => {
     });
 
     it('can report error on method calls', () => {
+        let caught = null;
         try {
             Expressions.interpret({}, [{ a: false }], 'a.boom()');
         } catch (ex) {
-            assert.strictEqual(ex.message, 'Method missing "boom"');
+            caught = ex;
         }
+        assert.isDefined(caught, 'Should have thrown');
+        assert.strictEqual(caught.message, 'Method missing "boom"');
     });
 
     it('can report error on missing module', () => {
+        let caught = null;
         try {
             Expressions.interpret({}, [], '#waldo:boom()');
         } catch (ex) {
-            assert.strictEqual(ex.message, 'Module "waldo" not found');
+            caught = ex;
         }
+        assert.isDefined(caught, 'Should have thrown');
+        assert.strictEqual(caught.message, 'Module "waldo" not found');
     });
     it('can report error on missing module', () => {
+        let caught = null;
         try {
             Expressions.interpret({ waldo: {} }, [], '#waldo:isHidden()');
         } catch (ex) {
-            assert.strictEqual(ex.message, 'Function "#waldo:isHidden" not found');
+            caught = ex;
         }
+        assert.isDefined(caught, 'Should have thrown');
+        assert.strictEqual(caught.message, 'Function "#waldo:isHidden" not found');
     });
 });
 

@@ -54,6 +54,15 @@ describe('Accessibility audit', () => {
         ['ful-filter-instant', `<ful-filter-instant name="fi">fi</ful-filter-instant>`],
         ['ful-filter-number', `<ful-filter-number name="fn">fn</ful-filter-number>`],
         ['ful-filter-boolean', `<ful-filter-boolean name="fb">fb</ful-filter-boolean>`],
+        ['ful-input-instant', `<ful-input-instant name="ii">instant</ful-input-instant>`],
+        ['ful-input-local-time', `<ful-input-local-time name="lt">time</ful-input-local-time>`],
+        ['ful-local-date', `<ful-local-date name="ld">2026-09-07</ful-local-date>`],
+        ['ful-instant', `<ful-instant name="in">2026-09-07T10:30:00Z</ful-instant>`],
+        ['ful-spinner', `<ful-spinner name="sp">spin</ful-spinner>`],
+        [
+            'ful-form',
+            `<ful-form name="frm"><ful-input name="fi">inside a form</ful-input><button type="submit">submit</button></ful-form>`,
+        ],
         ['ful-pagination', `<ful-pagination current="0" total="3"></ful-pagination>`],
         [
             'ful-table',

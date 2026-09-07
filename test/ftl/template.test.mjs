@@ -296,13 +296,17 @@ describe('Template', () => {
                         {{self.boom()}}
                     </div>
                 </div>`);
+        let caught = null;
         try {
             template.withModules(modules).withData(data).render();
         } catch (ex) {
-            const expected =
-                'Error rendering template in `<div id="container"><span>something ignored</span><div data-tpl-each="self">{{self.boom()}}</div></div>`';
-            assert.strictEqual(ex.message, expected);
+            caught = ex;
         }
+        assert.isDefined(caught, 'Should have thrown');
+        assert.strictEqual(
+            caught.message,
+            'Error rendering template in `<div id="container"><span>something ignored</span><div data-tpl-each="self">{{self.boom()}}</div></div>`',
+        );
     });
     it('can show error for text nodes', () => {
         const data = [1, 2];
@@ -311,12 +315,14 @@ describe('Template', () => {
             {{self.boom()}}
 
         `);
+        let caught = null;
         try {
             template.withModules(modules).withData(data).render();
         } catch (ex) {
-            const expected = 'Error rendering template in `{{self.boom()}}`';
-            assert.strictEqual(ex.message, expected);
+            caught = ex;
         }
+        assert.isDefined(caught, 'Should have thrown');
+        assert.strictEqual(caught.message, 'Error rendering template in `{{self.boom()}}`');
     });
     it('can scope variables using *-with and *-var', () => {
         const data = { user: { name: 'Alice' } };

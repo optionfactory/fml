@@ -11,7 +11,7 @@ export default {
     ],
     coverage: true,
     coverageConfig: {
-        include: ['src/*/**/*.mjs'],
+        include: ['src/**/*.mjs'],
         exclude: ['test/**/*', 'node_modules/**/*'],
         reportDir: 'coverage/',
         report: true,
