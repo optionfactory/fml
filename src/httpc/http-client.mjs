@@ -83,17 +83,23 @@ class HttpClientError extends Failure {
     static async fromResponse(response) {
         switch (MediaType.parse(response.headers.get('Content-Type')).normalized) {
             case 'application/failures+json': {
-                const data = await response.json().catch(() => null);
-                if (data === null) {
+                const data = await response.json().catch(() => HttpClientError.#unreadable);
+                if (data === HttpClientError.#unreadable) {
                     return HttpClientError.#undecodable(response);
+                }
+                if (!Array.isArray(data)) {
+                    return HttpClientError.#undecodable(response, 'as a failures array');
                 }
                 const message = `${response.status} ${response.statusText}: ${data.length} failures`;
                 return new HttpClientError(message, response.status, data);
             }
             case 'application/problem+json': {
-                const data = await response.json().catch(() => null);
-                if (data === null) {
+                const data = await response.json().catch(() => HttpClientError.#unreadable);
+                if (data === HttpClientError.#unreadable) {
                     return HttpClientError.#undecodable(response);
+                }
+                if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+                    return HttpClientError.#undecodable(response, 'as a problem object');
                 }
                 const message = `${response.status} ${response.statusText}: ${data.title} ${data.detail}`;
                 return new HttpClientError(
@@ -114,14 +120,18 @@ class HttpClientError extends Failure {
             }
         }
     }
+    /** marks a body whose json() rejected, telling it apart from a body decoding to json null */
+    static #unreadable = Symbol('unreadable body');
     /**
-     * A json body that failed to decode has consumed its stream: there is no
-     * text left to embed, the status and the declared media type are the
-     * report.
+     * A json body that failed to decode, or that decoded to something other than
+     * the declared contract, has consumed its stream: there is no text left to
+     * embed, the status, the declared media type and the shape are the report.
+     * @param {Response} response
+     * @param {string} [as] - what the body does not decode as
      */
-    static #undecodable(response) {
+    static #undecodable(response, as = 'as json') {
         const mediaType = MediaType.parse(response.headers.get('Content-Type')).normalized;
-        const message = `${response.status} ${response.statusText}: the ${mediaType} body does not decode as json`;
+        const message = `${response.status} ${response.statusText}: the ${mediaType} body does not decode ${as}`;
         return new HttpClientError(message, response.status, [
             {
                 type: 'GENERIC_PROBLEM',
@@ -132,8 +142,14 @@ class HttpClientError extends Failure {
         ]);
     }
     static async #generic(response) {
-        const text = await response.text();
-        const message = `${response.status} ${response.statusText}: ${text}`;
+        //a body that cannot be read (the connection cut mid-body) must not
+        //masquerade as a connection problem: the response was served, its
+        //status is the report
+        const text = await response.text().catch(() => null);
+        const message =
+            text === null
+                ? `${response.status} ${response.statusText}: the body could not be read`
+                : `${response.status} ${response.statusText}: ${text}`;
         return new HttpClientError(message, response.status, [
             {
                 type: 'GENERIC_PROBLEM',
@@ -381,6 +397,7 @@ class HttpRequestBuilder {
     #body;
     #options;
     #interceptors;
+    #fragment = '';
     /**
      * Creates an HttpRequestBuilder.
      * @param {HttpClient} client
@@ -389,16 +406,22 @@ class HttpRequestBuilder {
      * @returns {HttpRequestBuilder} the builder
      */
     static create(client, method, uri) {
-        const [baseUri, queryString = ''] = uri.split('?');
+        //'/a#frag?p=1' parses as hash '#frag?p=1' with an empty query, and a '?'
+        //may appear in a query itself: only the first of each splits
+        const hashIndex = uri.indexOf('#');
+        const fragment = hashIndex === -1 ? '' : uri.slice(hashIndex);
+        const withoutFragment = hashIndex === -1 ? uri : uri.slice(0, hashIndex);
+        const queryIndex = withoutFragment.indexOf('?');
         return new HttpRequestBuilder(
             client,
             method,
-            baseUri,
-            new URLSearchParams(queryString),
+            queryIndex === -1 ? withoutFragment : withoutFragment.slice(0, queryIndex),
+            new URLSearchParams(queryIndex === -1 ? '' : withoutFragment.slice(queryIndex + 1)),
             new Headers(),
             undefined,
             {},
             [],
+            fragment,
         );
     }
     /**
@@ -411,8 +434,9 @@ class HttpRequestBuilder {
      * @param {any} body
      * @param {Omit<RequestInit,"headers"|"method"|"body">} options
      * @param {HttpInterceptor[]} interceptors
+     * @param {string} [fragment]
      */
-    constructor(client, method, uri, params, headers, body, options, interceptors) {
+    constructor(client, method, uri, params, headers, body, options, interceptors, fragment = '') {
         this.#client = client;
         this.#method = method;
         this.#uri = uri;
@@ -421,6 +445,7 @@ class HttpRequestBuilder {
         this.#headers = headers;
         this.#options = options;
         this.#interceptors = interceptors;
+        this.#fragment = fragment;
     }
     /**
      * Add all passed headers to the request, overriding existing ones if that key already exists. Null and undefined values cause the key to be removed.
@@ -564,29 +589,22 @@ class HttpRequestBuilder {
      * @returns {Promise<Response>} the response
      */
     async exchange() {
-        const uri = this.#params.size ? `${this.#uri}?${this.#params}` : this.#uri;
+        const query = this.#params.size ? `?${this.#params}` : '';
         const opts = {
             ...this.#options,
             headers: this.#headers,
             method: this.#method,
             body: this.#body,
         };
-        return await this.#client.exchange(uri, opts, this.#interceptors);
+        return await this.#client.exchange(`${this.#uri}${query}${this.#fragment}`, opts, this.#interceptors);
     }
     /**
      * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
      * @returns {Promise<Response>} the response
      */
     async fetch() {
-        const uri = this.#params.size ? `${this.#uri}?${this.#params}` : this.#uri;
-        const opts = {
-            ...this.#options,
-            headers: this.#headers,
-            method: this.#method,
-            body: this.#body,
-        };
         try {
-            const response = await this.#client.exchange(uri, opts, this.#interceptors);
+            const response = await this.exchange();
             if (!response.ok) {
                 throw await HttpClientError.fromResponse(response);
             }

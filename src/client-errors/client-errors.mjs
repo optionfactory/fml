@@ -71,8 +71,11 @@ function ful_report_error(evt) {
     };
 
     var csrfHeader = meta_content('_csrf_header');
-    if (csrfHeader) {
-        headers[csrfHeader] = meta_content('_csrf');
+    var csrfToken = meta_content('_csrf');
+    //a half configured pair would send a literal "undefined" token, failing the
+    //server's check on every report
+    if (csrfHeader && csrfToken) {
+        headers[csrfHeader] = csrfToken;
     }
 
     try {

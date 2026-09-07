@@ -89,6 +89,43 @@ describe('httpc client', () => {
             expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
             expect(err.message).to.equal('502 Bad Gateway: the application/problem+json body does not decode as json');
         });
+
+        it('reports a failures+json body that is not an array', async () => {
+            const res = new Response(JSON.stringify({ oops: true }), {
+                status: 400,
+                statusText: 'Bad Request',
+                headers: { 'Content-Type': 'application/failures+json' }
+            });
+            const err = await HttpClientError.fromResponse(res);
+            expect(err.status).to.equal(400);
+            expect(Array.isArray(err.problems)).to.be.true;
+            expect(err.message).to.equal('400 Bad Request: the application/failures+json body does not decode as a failures array');
+        });
+
+        it('reports a problem+json body that is not an object', async () => {
+            const res = new Response('"oops"', {
+                status: 400,
+                statusText: 'Bad Request',
+                headers: { 'Content-Type': 'application/problem+json' }
+            });
+            const err = await HttpClientError.fromResponse(res);
+            expect(err.status).to.equal(400);
+            expect(Array.isArray(err.problems)).to.be.true;
+            expect(err.message).to.equal('400 Bad Request: the application/problem+json body does not decode as a problem object');
+        });
+
+        it('keeps the served status when the body cannot be read', async () => {
+            const res = {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: new Headers({ 'Content-Type': 'text/html' }),
+                text: () => Promise.reject(new Error('cut')),
+            };
+            const err = await HttpClientError.fromResponse(res);
+            expect(err.status).to.equal(503);
+            expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
+            expect(err.message).to.equal('503 Service Unavailable: the body could not be read');
+        });
     });
 
     describe('HttpClient & HttpRequestBuilder', () => {
@@ -119,6 +156,16 @@ describe('httpc client', () => {
 
             await client.request('OPTIONS', '/test').fetch();
             expect(fetchArgs.init.method).to.equal('OPTIONS');
+        });
+
+        it('splits the query at the first ? only', async () => {
+            await client.get('/search?query=a?b').param('p', '1').fetch();
+            expect(`${fetchArgs.url.pathname}${fetchArgs.url.search}`).to.equal('/search?query=a%3Fb&p=1');
+        });
+
+        it('keeps the parameters out of the fragment', async () => {
+            await client.get('/a#frag').param('p', '1').fetch();
+            expect(`${fetchArgs.url.pathname}${fetchArgs.url.search}${fetchArgs.url.hash}`).to.equal('/a?p=1#frag');
         });
 
         it('handles headers and params additions and removals', async () => {

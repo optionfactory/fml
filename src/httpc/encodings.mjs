@@ -20,13 +20,25 @@ class Base64 {
     }
     static decode(str, dialect) {
         const d = dialect || Base64.URL_SAFE;
-        let nbytes = Math.floor(str.length * 0.75);
-        for (let i = 0; i !== str.length; ++i) {
-            if (str[str.length - i - 1] !== '=') {
-                break;
-            }
-            --nbytes;
+        //padding belongs at the tail only, two at most, and nothing outside the
+        //dialect decodes: reject instead of corrupting silently
+        let end = str.length;
+        while (end > 0 && str.charAt(end - 1) === '=') {
+            --end;
         }
+        const unpadded = str.substring(0, end);
+        if (str.length - end > 2 || unpadded.includes('=')) {
+            throw new Error('invalid padding');
+        }
+        if (unpadded.length % 4 === 1) {
+            throw new Error('invalid length');
+        }
+        for (const c of unpadded) {
+            if (d.indexOf(c) === -1) {
+                throw new Error(`invalid character '${c}'`);
+            }
+        }
+        const nbytes = Math.floor(unpadded.length * 0.75);
         const view = new Uint8Array(nbytes);
 
         let vi = 0;
@@ -35,10 +47,10 @@ class Base64 {
         //one or two: writing them anyway would rely on typed arrays dropping writes
         //past their length
         while (vi < nbytes) {
-            const v1 = d.indexOf(str.charAt(si++));
-            const v2 = d.indexOf(str.charAt(si++));
-            const v3 = d.indexOf(str.charAt(si++));
-            const v4 = d.indexOf(str.charAt(si++));
+            const v1 = d.indexOf(unpadded.charAt(si++));
+            const v2 = d.indexOf(unpadded.charAt(si++));
+            const v3 = d.indexOf(unpadded.charAt(si++));
+            const v4 = d.indexOf(unpadded.charAt(si++));
             view[vi++] = (v1 << 2) | (v2 >> 4);
             if (vi === nbytes) {
                 break;
@@ -61,6 +73,9 @@ class Hex {
     static decode(hex) {
         if (hex.length % 2 !== 0) {
             throw new Error('invalid length');
+        }
+        if (!/^[0-9a-fA-F]*$/.test(hex)) {
+            throw new Error('invalid character');
         }
         const lenInBytes = hex.length / 2;
         return new Uint8Array(lenInBytes).map((e, i) => {

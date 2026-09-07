@@ -154,6 +154,22 @@ describe('client errors reporting shapes', () => {
         }
     });
 
+    it('sends no csrf header when only half the meta pair is present', async () => {
+        const headerMeta = document.createElement('meta');
+        headerMeta.setAttribute('name', '_csrf_header');
+        headerMeta.setAttribute('content', 'X-CSRF-TOKEN');
+        document.head.appendChild(headerMeta);
+        try {
+            reject(new Error('nope'));
+            await settle();
+
+            expect(calls.length).to.equal(1);
+            expect(calls[0].init.headers['X-CSRF-TOKEN']).to.equal(undefined);
+        } finally {
+            headerMeta.remove();
+        }
+    });
+
     it('swallows a fetch that throws synchronously, without re-entering', async () => {
         window.fetch = (url, init) => {
             calls.push({ url, init });
