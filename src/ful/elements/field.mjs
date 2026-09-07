@@ -63,7 +63,7 @@ class Field extends ParsedElement {
         const candidates = /** @type [HTMLButtonElement|HTMLInputElement] */ (
             form.querySelectorAll('button:not(:disabled), input:not(:disabled)')
         );
-        form.requestSubmit([...candidates].find((el) => el.type === 'submit'));
+        form.requestSubmit([...candidates].find((el) => el.type === 'submit' && el.form === form));
     }
     /**
      * The field's value: every concrete field owns its semantics and overrides

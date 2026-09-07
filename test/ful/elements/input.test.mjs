@@ -173,6 +173,39 @@ describe('Input enter key inside a form', () => {
         container.remove();
     });
 
+    it('submits without a submitter when the only candidate belongs to another form', async () => {
+        const [inputEl, container] = await mount(`
+            <ful-form>
+                <ful-input name="i">label</ful-input>
+                <button type="submit" form="">foreign</button>
+            </ful-form>`);
+        container.firstElementChild.addEventListener('submit', (e) => submitters.push(e.detail.submitter));
+
+        enter(inputEl);
+        await settle();
+
+        assert.strictEqual(submits.length, 1);
+        assert.deepStrictEqual(submitters, [undefined], 'the foreign button is neither passed to requestSubmit nor recorded');
+        container.remove();
+    });
+
+    it('picks the owned submitter over a foreign one coming first in document order', async () => {
+        const [inputEl, container] = await mount(`
+            <ful-form>
+                <ful-input name="i">label</ful-input>
+                <button type="submit" form="">foreign</button>
+                <button type="submit" id="the-submitter">go</button>
+            </ful-form>`);
+        container.firstElementChild.addEventListener('submit', (e) => submitters.push(e.detail.submitter));
+
+        enter(inputEl);
+        await settle();
+
+        assert.strictEqual(submits.length, 1);
+        assert.strictEqual(submitters[0].id, 'the-submitter');
+        container.remove();
+    });
+
     it('leaves enter alone in a textarea, where it inserts a newline', async () => {
         const [inputEl, container] = await mount(`
             <ful-form>
