@@ -114,9 +114,6 @@ class Input extends Field {
             Attributes.set(this, 'placeholder', d);
         });
     }
-    formResetCallback() {
-        this.value = this.unmarshal('value', this.getAttribute('value'));
-    }
 }
 
 export { Input };

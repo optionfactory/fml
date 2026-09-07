@@ -250,6 +250,15 @@ class CompareFilter extends Input {
             }
         });
     }
+    formResetCallback() {
+        //a declared tuple restores its operator through the base's assignment; a
+        //valueless reset also brings the operator back to the default it rendered with
+        super.formResetCallback();
+        if (!this.hasAttribute('value')) {
+            const preferred = this._defaultOperator();
+            this._showOperator(this._allowed.includes(preferred) ? preferred : this._allowed[0]);
+        }
+    }
     _type() {
         return 'text';
     }
@@ -479,6 +488,16 @@ class TextFilter extends CompareFilter {
         }
         this._applyTuple([v[0], ...v.slice(2)]);
         this._syncSensitivity();
+    }
+    formResetCallback() {
+        //a declared tuple restores its sensitivity through the value assignment;
+        //a valueless reset brings it back to the default it rendered with, the
+        //class default normalized against the whitelist
+        super.formResetCallback();
+        if (!this.hasAttribute('value')) {
+            this._sensitivity = this._sensitivities.includes('IGNORE_CASE') ? 'IGNORE_CASE' : this._sensitivities[0];
+            this._syncSensitivity();
+        }
     }
 }
 

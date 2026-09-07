@@ -66,6 +66,26 @@ class Field extends ParsedElement {
         form.requestSubmit([...candidates].find((el) => el.type === 'submit'));
     }
     /**
+     * The field's value: every concrete field owns its semantics and overrides
+     * this pair. The base pair exists so the form integration (the reset
+     * protocol among others) has a member to write through; a custom field
+     * forgetting its own keeps the base's inert one.
+     * @type {any}
+     */
+    get value() {
+        return undefined;
+    }
+    set value(v) {}
+    /**
+     * A reset restores the field's declared value, as a native control's reset
+     * restores its markup default: the `value` attribute goes back through the
+     * element's own mapper and value setter, so every field resets through its
+     * own semantics. A field whose value is not attribute backed overrides this.
+     */
+    formResetCallback() {
+        this.value = this.unmarshal('value', this.getAttribute('value'));
+    }
+    /**
      * The disabled protocol follows native semantics: the attribute is the field's own
      * claim, and nothing but its author ever writes it, in markup or through the
      * property. The effective state is the claim OR a disabled fieldset ancestry,

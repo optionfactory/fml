@@ -233,6 +233,11 @@ class InputFile extends Input {
         }
         this.files = new DataTransfer().files;
     }
+    formResetCallback() {
+        //a file selection's default is empty, as the platform's own reset: a
+        //declared filename cannot be restored programmatically
+        this.value = null;
+    }
     get totalsize() {
         return Array.from(this.files).reduce((a, f) => a + f.size, 0);
     }

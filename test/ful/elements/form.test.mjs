@@ -350,6 +350,74 @@ describe('Form reset and validity', () => {
         container.remove();
     });
 
+    describe('restores every field kind through its own value semantics', () => {
+        beforeEach(() => {
+            registry.defineComponent('loaders:select', {
+                create: () => ({ prefetch: async () => { }, load: async () => [], exact: async (...k) => k.map((v) => [v, v]) })
+            });
+        });
+        const mountFields = async (inner) => {
+            const [form, container] = await mount(`<ful-form>${inner}</ful-form>`);
+            for (let i = 0; i !== 20; ++i) {
+                await tick();
+            }
+            return [form, container];
+        };
+        const cases = [
+            ['ful-input', `<ful-input name="a" value="x">l</ful-input>`, 'y', 'x'],
+            ['ful-input-local-date', `<ful-input-local-date name="a" value="2024-05-06">l</ful-input-local-date>`, '2030-01-02', '2024-05-06'],
+            ['ful-checkbox', `<ful-checkbox name="a" value="true">l</ful-checkbox>`, false, true],
+            ['ful-checkbox without a declared value', `<ful-checkbox name="a">l</ful-checkbox>`, true, false],
+            ['ful-radio-group', `
+                <ful-radio-group name="a" value="x">l
+                    <ful-radio value="x">x</ful-radio>
+                    <ful-radio value="y">y</ful-radio>
+                </ful-radio-group>`, 'y', 'x'],
+            ['ful-select', `<ful-select name="a" value="x">l</ful-select>`, 'y', 'x'],
+            ['ful-select multiple', `<ful-select name="a" multiple value="a,b">l</ful-select>`, ['c'], ['a', 'b']],
+            ['ful-filter-text', `<ful-filter-text name="a" value='["CONTAINS","IGNORE_CASE","foo"]'>l</ful-filter-text>`, ['EQ', 'CASE_SENSITIVE', 'bar'], ['CONTAINS', 'IGNORE_CASE', 'foo']],
+            ['ful-filter-number', `<ful-filter-number name="a" value='["GTE",5]'>l</ful-filter-number>`, ['EQ', '7'], ['GTE', '5']],        ];
+        for (const [name, markup, changed, initial] of cases) {
+            it(`restores a ${name}`, async () => {
+                const [form, container] = await mountFields(markup);
+                const field = form.querySelector('[name=a]');
+                field.value = changed;
+                assert.deepStrictEqual(field.value, changed, 'the change took');
+
+                form.reset();
+
+                assert.deepStrictEqual(field.value, initial);
+                container.remove();
+            });
+        }
+        it('restores a ful-filter-text without a declared value to empty operands and the default operator', async () => {
+            const [form, container] = await mountFields(`<ful-filter-text name="a">l</ful-filter-text>`);
+            const field = form.querySelector('[name=a]');
+            field.value = ['GTE', 'CASE_SENSITIVE', '5'];
+            assert.deepStrictEqual(field.value, ['GTE', 'CASE_SENSITIVE', '5']);
+
+            form.reset();
+
+            assert.strictEqual(field.value, undefined, 'the operands are empty again');
+            assert.strictEqual(field.querySelector('[data-ref=operator]').getAttribute('value'), 'CONTAINS', 'the operator is the rendered default');
+            assert.strictEqual(field.querySelector('[data-ref=sensitivity]').getAttribute('value'), 'IGNORE_CASE', 'the sensitivity is the rendered default');
+            container.remove();
+        });
+        it('clears a ful-input-file selection', async () => {
+            const [form, container] = await mountFields(`<ful-input-file name="a">l</ful-input-file>`);
+            const field = form.querySelector('[name=a]');
+            const dt = new DataTransfer();
+            dt.items.add(new File(['x'], 'picked.txt'));
+            field.files = dt.files;
+            assert.strictEqual(field.value, 'picked.txt');
+
+            form.reset();
+
+            assert.strictEqual(field.value, null);
+            container.remove();
+        });
+    });
+
     it('clears a field custom validity when it changes, with clear-invalid-on-change', async () => {
         const [form, container] = await mount(`
             <ful-form clear-invalid-on-change><input name="name"></ful-form>`);
