@@ -767,8 +767,11 @@ class Select extends Field {
         //the keys are known synchronously and are all `value` reads, so they are applied
         //now: only the labels need the loader, until then a key stands in for its own
         this.#values = new Map(keys.map((k) => [k, [k]]));
-        this.#syncBadges();
         const token = ++this.#token;
+        if (!this.#control) {
+            return;
+        }
+        this.#syncBadges();
         if (keys.length === 0) {
             return;
         }

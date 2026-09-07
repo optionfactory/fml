@@ -1948,3 +1948,89 @@ describe('Select stale searches', () => {
         container.remove();
     });
 });
+
+describe('Select attributes during the async render window', () => {
+    const uncaught = [];
+    const onError = (e) => {
+        uncaught.push(e.error?.message ?? e.message);
+        e.preventDefault();
+    };
+    window.addEventListener('error', onError);
+    after(() => {
+        window.removeEventListener('error', onError);
+    });
+    let release = /** @type any */ (null);
+    beforeEach(() => {
+        uncaught.length = 0;
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: () =>
+                    new Promise((resolve) => {
+                        release = resolve;
+                    }),
+                load: async () => [],
+                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+            }),
+        });
+    });
+    const mount = (html = '<form><ful-select name="a">l</ful-select></form>') => {
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        return [container.querySelector('ful-select'), container];
+    };
+    const inWindow = async (selectEl) => {
+        for (let i = 0; i !== 5; ++i) {
+            await tick();
+        }
+        return selectEl;
+    };
+
+    it('applies every attribute that landed while the prefetch was in flight', async () => {
+        const [selectEl, container] = await mount();
+        await inWindow(selectEl);
+        selectEl.setAttribute('value', 'k1');
+        selectEl.setAttribute('itemlist', '');
+        selectEl.setAttribute('readonly', '');
+        selectEl.setAttribute('required', '');
+        release();
+        await Rendering.waitFor(selectEl);
+        await settle();
+
+        const input = selectEl.querySelector('input');
+        assert.deepStrictEqual(uncaught, [], 'no attribute crashes on the unrendered field');
+        assert.strictEqual(selectEl.value, 'k1', 'the value is applied');
+        assert.strictEqual(input.value, 'Label k1', 'the label is resolved');
+        assert.isTrue(selectEl.itemlist, 'the item list is on');
+        assert.isTrue(input.readOnly, 'the readonly claim reaches the control');
+        assert.strictEqual(input.getAttribute('aria-required'), 'true', 'the required claim reaches the control');
+        assert.isTrue(selectEl.hasAttribute('readonly'), 'the claim is not un-claimed by the stale snapshot');
+        container.remove();
+    });
+
+    it('keeps a value that changed mid-flight over the markup one', async () => {
+        const [selectEl, container] = await mount('<form><ful-select name="a" value="k0">l</ful-select></form>');
+        await inWindow(selectEl);
+        selectEl.setAttribute('value', 'k1');
+        release();
+        await Rendering.waitFor(selectEl);
+        await settle();
+
+        assert.strictEqual(selectEl.value, 'k1', 'the live attribute wins over the pre-prefetch snapshot');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label k1');
+        container.remove();
+    });
+
+    it('survives a form reset while the prefetch is in flight', async () => {
+        const [selectEl, container] = await mount();
+        await inWindow(selectEl);
+        container.querySelector('form').reset();
+        release();
+        await Rendering.waitFor(selectEl);
+        await settle();
+
+        assert.deepStrictEqual(uncaught, [], 'the reset does not crash the unrendered field');
+        assert.isNull(selectEl.value);
+        container.remove();
+    });
+});
