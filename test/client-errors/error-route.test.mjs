@@ -58,4 +58,21 @@ describe('client errors reporting: the error event route', () => {
         expect(body.message).to.equal('only on the error');
         expect(body.stack).to.be.an('array');
     });
+
+    it('complains about the missing uri once, not once per failure', async () => {
+        const errors = [];
+        const originalError = console.error;
+        console.error = (...args) => errors.push(args);
+        scriptEl.remove();
+        try {
+            onError({ error: new Error('one') });
+            onError({ error: new Error('two') });
+            await settle();
+        } finally {
+            console.error = originalError;
+        }
+
+        expect(calls).to.deep.equal([], 'nothing is reported without a uri');
+        expect(errors.length).to.equal(1, 'the configuration complaint is logged once');
+    });
 });

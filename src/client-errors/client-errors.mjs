@@ -2,6 +2,7 @@
  * Global error and unhandled promise rejection report handler.
  * @param {any} evt - The triggered event instance (ErrorEvent or PromiseRejectionEvent).
  */
+var complained_missing_uri = false;
 function ful_report_error(evt) {
     /**
      * Extracts the content value of a specified meta tag.
@@ -23,7 +24,10 @@ function ful_report_error(evt) {
         /** @type {HTMLScriptElement | null} */
         var scriptEl = document.querySelector('script[data-report-client-errors-uri]');
         if (!scriptEl) {
-            console?.error?.('missing attribute data-report-client-errors-uri');
+            if (!complained_missing_uri) {
+                complained_missing_uri = true;
+                console?.error?.('missing attribute data-report-client-errors-uri');
+            }
             return null;
         }
         return scriptEl.getAttribute('data-report-client-errors-uri');
