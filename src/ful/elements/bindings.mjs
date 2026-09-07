@@ -41,7 +41,10 @@ class Bindings {
                 current[ckey] = value !== undefined ? value : ckey in current ? current[ckey] : null;
                 return result;
             }
-            if (current[ckey] === undefined) {
+            //an overlapping name (a before a.b) leaves a scalar or a null here:
+            //the later, more specific name rebuilds the container, exactly as the
+            //reverse order always replaced the container with the scalar
+            if (typeof current[ckey] !== 'object' || current[ckey] === null) {
                 current[ckey] = {};
             }
             previous = current;

@@ -36,9 +36,37 @@ describe('Bindings', () => {
             const result = Bindings.providePath({ a: { b: 'keep-me' } }, 'a.b', undefined);
             expect(result.a.b).to.equal('keep-me');
         });
+
+        it('rebuilds a scalar left by an overlapping shorter name', () => {
+            const result = Bindings.providePath({ a: 'scalar' }, 'a.b', 'v');
+            assert.deepEqual(result, { a: { b: 'v' } });
+        });
+
+        it('rebuilds a null left by an empty overlapping shorter name', () => {
+            const result = Bindings.providePath({ a: null }, 'a.b', 'v');
+            assert.deepEqual(result, { a: { b: 'v' } });
+        });
+
+        it('keeps an array container, the reverse order replaces the container with the scalar', () => {
+            const array = Bindings.providePath({ a: ['x'] }, 'a.1', 'v');
+            assert.deepEqual(array, { a: ['x', 'v'] });
+            const scalar = Bindings.providePath({ a: { b: 'x' } }, 'a', 'v');
+            assert.deepEqual(scalar, { a: 'v' });
+        });
     });
 
     describe('extractFrom', () => {
+        it('extracts overlapping names without crashing, the later more specific one winning', () => {
+            const el = Fragments.fromHtml(`
+            <form>
+                <input type="text" name="a" value="">
+                <input type="text" name="a.b" value="v">
+            </form>
+        `);
+            const got = Bindings.extractFrom(el.querySelector('form'));
+            assert.deepEqual(got, { a: { b: 'v' } });
+        });
+
         it('can extract value from an input text', () => {
             const el = Fragments.fromHtml(`
             <form>
