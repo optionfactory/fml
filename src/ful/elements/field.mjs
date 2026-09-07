@@ -11,6 +11,12 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
  */
 class Field extends ParsedElement {
     static formAssociated = true;
+    /**
+     * The disabled claim is observed here so every field, including the custom
+     * ones, keeps it live after the upgrade: the attribute is a third authoring
+     * door beside markup and the property, exactly as a native input's.
+     */
+    static observed = ['disabled:presence'];
     /** the role the element internals carry, 'presentation' unless the control is its own */
     static ROLE = 'presentation';
     /** the platform's window into form state: shared with subclasses by necessity */
@@ -101,8 +107,12 @@ class Field extends ParsedElement {
         return this.hasAttribute('disabled');
     }
     set disabled(d) {
-        //the claim belongs to the author alone, nothing else ever writes it
-        Attributes.toggle(this, 'disabled', d);
+        //the claim belongs to the author alone, nothing else ever writes it: the
+        //reflection guard keeps the attribute observer out of the property's own
+        //write, as the readonly and required claims already do
+        this.reflect(() => {
+            Attributes.toggle(this, 'disabled', d);
+        });
     }
     /**
      * A field is readonly through its control's native readOnly when it has one:
@@ -115,7 +125,12 @@ class Field extends ParsedElement {
         return this.#control?.readOnly ?? false;
     }
     set readonly(v) {
-        this.#control.readOnly = v;
+        //the control may not be adopted yet: an attribute set between the upgrade
+        //and the render is reapplied by the render from the attribute, so the
+        //mirror is only skipped, never lost
+        if (this.#control) {
+            this.#control.readOnly = v;
+        }
         this.reflect(() => {
             Attributes.toggle(this, 'readonly', v);
         });
@@ -128,7 +143,9 @@ class Field extends ParsedElement {
         return this.#control?.getAttribute('aria-required') === 'true';
     }
     set required(d) {
-        Attributes.set(this.#control, 'aria-required', d ? 'true' : null);
+        if (this.#control) {
+            Attributes.set(this.#control, 'aria-required', d ? 'true' : null);
+        }
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
         });

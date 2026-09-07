@@ -169,9 +169,24 @@ class Registry {
         return this;
     }
     #augmentAndDefineElement(tag, klass) {
-        const { observed, attributes, template, templates, slots, mappers } = klass;
-        const observedNames = (observed ?? []).map((a) => a.split(':')[0]);
-        const attrToMapper = [...(attributes ?? []), ...(observed ?? [])].reduce((acc, a) => {
+        //observed attributes and attribute mappers compose along the inheritance
+        //chain, a subclass's entry for a name overriding its ancestors': a base
+        //class declares what every subclass keeps observing (a protocol attribute
+        //such as Field's disabled claim), and a leaf refines a mapping without
+        //repeating the whole list. the walk stops where the platform's own class
+        //hierarchy begins: no earlier stop can work, since a registered ancestor
+        //carries an own BITS of its own, and nothing above the elements declares
+        //observed anything
+        const chain = [];
+        for (let c = klass; c !== null && c !== HTMLElement; c = Object.getPrototypeOf(c)) {
+            chain.unshift(c);
+        }
+        const own = (name) => chain.flatMap((c) => Object.getOwnPropertyDescriptor(c, name)?.value ?? []);
+        const observed = own('observed');
+        const attributes = own('attributes');
+        const { template, templates, slots, mappers } = klass;
+        const observedNames = [...new Set(observed.map((a) => a.split(':')[0]))];
+        const attrToMapper = [...attributes, ...observed].reduce((acc, a) => {
             const [attr, maybeType] = a.split(':');
             const type = maybeType?.trim() ?? 'string';
             if (!(type in this.#mappers) && !(type in (mappers ?? {}))) {

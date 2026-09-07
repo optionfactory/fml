@@ -342,6 +342,9 @@ class CompareFilter extends Input {
         //the claim and the first operand are the base's, the second operand mirrors
         //the claim like the first one does
         super.disabled = d;
+        if (!this._value2) {
+            return;
+        }
         Attributes.toggle(this._value2, 'disabled', d);
         //so do the chrome buttons, frozen by a pin, disabled by the claim, or both
         if (this._allowed) {
@@ -634,6 +637,9 @@ class BooleanFilter extends Field {
     }
     set disabled(d) {
         super.disabled = d;
+        if (!this._value) {
+            return;
+        }
         Attributes.toggle(this._value, 'disabled', d);
         //the operator button is frozen by a pin, disabled by the claim, or both
         if (this._allowed) {

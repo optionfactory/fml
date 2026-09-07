@@ -374,7 +374,12 @@ class Select extends Field {
         this.#control = fragment.querySelector('ful-control');
 
         this.value = observed.value;
-        this.disabled = disabled;
+        //the prefetch made this render async: its `disabled` snapshot can be older
+        //than the page, so the claim is reapplied from the attribute, where the
+        //author's mid-flight write survives instead of being un-claimed by a stale
+        //false (the observed attributes below share the window, and are the
+        //async-upgrade gap's to fix)
+        this.disabled = this.hasAttribute('disabled');
         this.readonly = observed.readonly;
         this.required = observed.required;
         this.itemlist = observed.itemlist;
@@ -780,6 +785,9 @@ class Select extends Field {
     }
     set disabled(d) {
         super.disabled = d;
+        if (!this.#input) {
+            return;
+        }
         //the inner control carries the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches the inner control
         //as a descendant of the fieldset and re-enables it on its own

@@ -38,6 +38,7 @@ const ELEMENTS = [
         html: `<ful-checkbox name="a">label</ful-checkbox>`,
         observed: {
             value: ['true', true],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
         },
@@ -47,6 +48,7 @@ const ELEMENTS = [
         html: `<ful-input name="a">label</ful-input>`,
         observed: {
             value: ['v', 'v'],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -58,6 +60,7 @@ const ELEMENTS = [
         observed: {
             //files cannot be assigned from an attribute, the setter only clears
             value: ['x', null],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -85,6 +88,7 @@ const ELEMENTS = [
         html: `<ful-input-local-date name="a">label</ful-input-local-date>`,
         observed: {
             value: ['2026-01-02', '2026-01-02'],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -98,6 +102,7 @@ const ELEMENTS = [
         html: `<ful-input-local-time name="a">label</ful-input-local-time>`,
         observed: {
             value: ['10:30', '10:30'],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -111,6 +116,7 @@ const ELEMENTS = [
         html: `<ful-input-instant name="a">label</ful-input-instant>`,
         observed: {
             value: ['2026-01-02T10:30:00.000Z', '2026-01-02T10:30:00.000Z'],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -124,6 +130,7 @@ const ELEMENTS = [
         html: `<ful-radio-group name="a">label<ful-radio value="k1">one</ful-radio><ful-radio value="k2">two</ful-radio></ful-radio-group>`,
         observed: {
             value: ['k1', 'k1'],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
         },
@@ -154,6 +161,7 @@ const ELEMENTS = [
         observed: {
             value: ['["EQ","2026-01-02T10:30:00.000Z"]', ['EQ', '2026-01-02T10:30:00.000Z']],
             operators: ['EQ,NEQ', ['EQ', 'NEQ']],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -165,6 +173,7 @@ const ELEMENTS = [
         observed: {
             value: ['["EQ","2026-01-02"]', ['EQ', '2026-01-02']],
             operators: ['GTE,BETWEEN', ['GTE', 'BETWEEN']],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -176,6 +185,7 @@ const ELEMENTS = [
         observed: {
             value: ['["EQ","7"]', ['EQ', '7']],
             operators: ['EQ,NEQ', ['EQ', 'NEQ']],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -187,6 +197,7 @@ const ELEMENTS = [
         observed: {
             value: ['["EQ","true"]', ['EQ', 'true']],
             operators: ['NEQ', ['NEQ']],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
         },
@@ -198,6 +209,7 @@ const ELEMENTS = [
             value: ['["CONTAINS","IGNORE_CASE","x"]', ['CONTAINS', 'IGNORE_CASE', 'x']],
             operators: ['CONTAINS,EQ', ['CONTAINS', 'EQ']],
             sensitivities: ['CASE_SENSITIVE', ['CASE_SENSITIVE']],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             placeholder: ['p', 'p'],
@@ -208,6 +220,7 @@ const ELEMENTS = [
         html: `<ful-select name="a"><template slot="options"><option value="k1">Label 1</option></template>label</ful-select>`,
         observed: {
             value: ['k1', 'k1'],
+            disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
             itemlist: ['', true],

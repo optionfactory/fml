@@ -2,6 +2,7 @@
     "$comment": "Prose that cannot be introspected from the source. Tags, attributes, slots and events are derived from the code itself; test/manifest/metadata.test.mjs fails when this file and the code disagree in either direction.",
     "common": {
         "attributes": {
+            "disabled": "The field's own disabled claim: the control is disabled and the field is left out of the submitted values, composed with a disabled fieldset ancestry. The property reflects the claim only, matches(':disabled') tells the effective state.",
             "value": "The current value.",
             "readonly": "Renders the control but does not let it be edited. A readonly field still contributes its value to the form.",
             "required": "Marks the field as required for assistive technologies and shows the required marker on its label.",

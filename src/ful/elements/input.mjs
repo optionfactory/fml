@@ -97,6 +97,9 @@ class Input extends Field {
     }
     set disabled(d) {
         super.disabled = d;
+        if (!this._input) {
+            return;
+        }
         //the inner control carries the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches the inner control
         //as a descendant of the fieldset and re-enables it on its own

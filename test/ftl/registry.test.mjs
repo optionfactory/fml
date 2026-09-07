@@ -80,6 +80,25 @@ describe('Registry', () => {
             registry.defineElement('bad-mappers', BadEl);
             expect(() => registry.configure()).to.throw('unsupported attribute type: unknownType');
         });
+
+        it('composes observed attributes along the inheritance chain, the leaf overriding the same name', () => {
+            class ChainBase extends HTMLElement {
+                static observed = ['value', 'inherited:number'];
+            }
+            class ChainLeaf extends ChainBase {
+                static observed = ['own:csv', 'value:json', 'inherited:presence'];
+            }
+            registry.defineElement('chain-leaf', ChainLeaf);
+            registry.configure();
+
+            const bits = ChainLeaf.BITS;
+            expect([...bits.OBSERVED].sort()).to.deep.equal(['inherited', 'own', 'value']);
+            //the leaf's value:json overrides the base's plain value:string, and its
+            //inherited:presence overrides the base's number, while own:csv stands
+            expect(bits.ATTR_TO_MAPPER.value.unmarshal('{"a":1}')).to.deep.equal({ a: 1 });
+            expect(bits.ATTR_TO_MAPPER.inherited.unmarshal('5')).to.equal(true);
+            expect(bits.ATTR_TO_MAPPER.own.unmarshal('a, b')).to.deep.equal(['a', 'b']);
+        });
     });
 
     describe('Core Configuration & API', () => {

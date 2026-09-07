@@ -51,9 +51,24 @@ const registered = () => {
 const describe = (tag, kind, name) =>
     metadata.elements[tag]?.[kind]?.[name] ?? metadata.common[kind]?.[name] ?? '';
 
+//the registry composes observed attributes along the inheritance chain with the
+//leaf winning for a shared name, so the metadata must read the same list
+const observedOf = (klass) => {
+    const byName = new Map();
+    for (let c = klass; c?.name && c.name !== 'ParsedElement'; c = Object.getPrototypeOf(c)) {
+        for (const declared of Object.getOwnPropertyDescriptor(c, 'observed')?.value ?? []) {
+            const name = declared.split(':')[0].trim();
+            if (!byName.has(name)) {
+                byName.set(name, declared);
+            }
+        }
+    }
+    return [...byName.values()];
+};
+
 const model = registered().map(({ tag, klass }) => {
     const entry = metadata.elements[tag] ?? {};
-    const attributes = (klass.observed ?? []).map((declared) => {
+    const attributes = observedOf(klass).map((declared) => {
         const [name, mapper] = declared.split(':').map((p) => p.trim());
         return { name, type: TYPES[mapper] ?? 'string', description: describe(tag, 'attributes', name) };
     });

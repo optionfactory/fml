@@ -108,6 +108,9 @@ class RadioGroup extends Field {
     }
     set disabled(d) {
         super.disabled = d;
+        if (!this.#fieldset) {
+            return;
+        }
         //the group disables through its own fieldset, which carries the claim like
         //a native input would: a disabled outer ancestry is left to the browser,
         //which reaches the radios as descendants and re-enables them on its own
