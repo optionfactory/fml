@@ -63,7 +63,7 @@ describe('InputFile', () => {
 });
 
 const bytes = (n) => new Uint8Array(n);
-const file = (name, size = 4) => new File([bytes(size)], name, { type: 'application/octet-stream' });
+const file = (name, size = 4, type = 'application/octet-stream') => new File([bytes(size)], name, { type });
 const transfer = (...files) => {
     const dt = new DataTransfer();
     for (const f of files) {
@@ -225,6 +225,50 @@ describe('InputFile constraints', () => {
         pick(el, file('a.pdf'));
 
         assert.deepStrictEqual(selected(el), ['a.pdf']);
+        assert.isNull(warning(el));
+
+        container.remove();
+    });
+
+    it('accepts mime types, not only extensions', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple accept="image/png">files</ful-input-file>`);
+
+        pick(el, file('a.png', 4, 'image/png'), file('b.txt', 4, 'text/plain'));
+
+        assert.deepStrictEqual(selected(el), ['a.png']);
+        assert.deepStrictEqual(listed(el), ['a.png']);
+
+        container.remove();
+    });
+
+    it('mixes extensions and mime types in one list, matching each its own way', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple accept=".pdf,image/png">files</ful-input-file>`);
+
+        pick(el, file('a.pdf'), file('b.png', 4, 'image/png'), file('c.txt', 4, 'text/plain'));
+
+        assert.deepStrictEqual(selected(el), ['a.pdf', 'b.png']);
+        assert.strictEqual(warning(el), 'Only files of type .pdf, image/png are supported');
+
+        container.remove();
+    });
+
+    it('accepts a whole mime family through the wildcard', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple accept="image/*">files</ful-input-file>`);
+
+        pick(el, file('a.png', 4, 'image/png'), file('b.jpg', 4, 'image/jpeg'), file('c.pdf'));
+
+        assert.deepStrictEqual(selected(el), ['a.png', 'b.jpg']);
+        assert.strictEqual(warning(el), 'Only files of type image/* are supported');
+
+        container.remove();
+    });
+
+    it('matches a mime type carrying parameters, ignoring them', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple accept="text/plain; charset=utf-8">files</ful-input-file>`);
+
+        pick(el, file('a.txt', 4, 'text/plain'));
+
+        assert.deepStrictEqual(selected(el), ['a.txt']);
         assert.isNull(warning(el));
 
         container.remove();

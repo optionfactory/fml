@@ -158,13 +158,30 @@ class InputFile extends Input {
     warning(key, args) {
         this.template('warning').withOverlay({ key, args }).appendTo(this.#warnings);
     }
+    /**
+     * The native accept vocabulary: a dot-prefixed extension matches the file
+     * name's suffix, a mime type (parameters stripped) matches the file's type,
+     * and image/*, audio/*, video/* match their whole family. Anything else
+     * matches nothing, as the native attribute ignores it.
+     */
+    #acceptable(file) {
+        const name = file.name.toLowerCase();
+        return this.#accept.some((token) => {
+            const t = token.toLowerCase().split(';')[0].trim();
+            if (t.startsWith('.')) {
+                return name.endsWith(t);
+            }
+            if (t.endsWith('/*')) {
+                return file.type.startsWith(`${t.slice(0, -1)}`);
+            }
+            return t.includes('/') && file.type === t;
+        });
+    }
     #ensureAcceptable() {
         if (!this.#accept.length) {
             return;
         }
-        const unacceptable = [...this.files].filter(
-            (file) => !this.#accept.some((type) => file.name.toLowerCase().endsWith(type.toLowerCase())),
-        );
+        const unacceptable = [...this.files].filter((file) => !this.#acceptable(file));
 
         if (unacceptable.length === 0) {
             return;
