@@ -88,6 +88,19 @@ describe('Bindings', () => {
             const got = Bindings.extractFrom(el.querySelector('form'));
             assert.deepEqual(got, { a: '1' });
         });
+        it('extracts every selected option of a multiple select', () => {
+            const el = Fragments.fromHtml(`
+            <form>
+                <select name="tags" multiple>
+                    <option value="a" selected>A</option>
+                    <option value="b">B</option>
+                    <option value="c" selected>C</option>
+                </select>
+            </form>
+        `);
+            const got = Bindings.extractFrom(el.querySelector('form'));
+            assert.deepEqual(got, { tags: ['a', 'c'] });
+        });
         it('can extract value from an unchecked checkbox', () => {
             const el = Fragments.fromHtml(`
             <form>
@@ -193,6 +206,24 @@ describe('Bindings', () => {
     
     describe('mutateIn', () => {
         const formOf = (html) => Fragments.fromHtml(`<form>${html}</form>`).querySelector('form');
+
+        it('assigns the whole selection of a multiple select, array or not', () => {
+            const form = formOf(`
+                <select name="tags" multiple>
+                    <option value="a">A</option>
+                    <option value="b">B</option>
+                    <option value="c">C</option>
+                </select>
+            `);
+            const selected = () => Array.from(form.querySelector('select').selectedOptions).map((o) => o.value);
+
+            Bindings.mutateIn(form, { tags: ['a', 'c'] });
+            assert.deepEqual(selected(), ['a', 'c']);
+            Bindings.mutateIn(form, { tags: 'b' });
+            assert.deepEqual(selected(), ['b']);
+            Bindings.mutateIn(form, { tags: null });
+            assert.deepEqual(selected(), []);
+        });
 
         it('checks the radio matching the value', () => {
             const form = formOf(`

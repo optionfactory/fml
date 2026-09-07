@@ -41,6 +41,16 @@ describe('Input placeholder and :placeholder-shown', () => {
         return [el, container];
     };
 
+    it('treats an undefined value assignment as empty, not the text "undefined"', async () => {
+        const [el, container] = await mount(`<ful-input name="a" value="x">l</ful-input>`);
+
+        el.value = undefined;
+
+        assert.isNull(el.value);
+        assert.strictEqual(el.querySelector('input').value, '');
+        container.remove();
+    });
+
     //:placeholder-shown only matches on input types that take a placeholder at all,
     //so date, time and file inputs carry the blank one without ever matching
     for (const tag of ['ful-input', 'ful-filter-text']) {

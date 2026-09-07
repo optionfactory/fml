@@ -112,7 +112,7 @@ class Input extends Field {
         return trimmed === '' ? null : trimmed;
     }
     set value(value) {
-        this._input.value = value === '' ? null : value;
+        this._input.value = value === '' || value === undefined ? null : value;
     }
     get disabled() {
         return super.disabled;

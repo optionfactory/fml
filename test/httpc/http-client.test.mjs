@@ -235,6 +235,7 @@ describe('httpc client', () => {
             expect(url.searchParams.getAll('leading')).to.deep.equal(['v1'], 'a leading null does not discard the rest');
             expect(url.searchParams.getAll('trailing')).to.deep.equal(['v1'], 'a trailing null is skipped, not stringified');
             expect(url.searchParams.has('only')).to.be.false;
+        });
 
         it('sends no content-type nor body for an undefined json body', async () => {
             await client.post('/test').json(undefined).fetch();

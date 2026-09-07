@@ -236,6 +236,28 @@ describe('Form submit outcome events', () => {
         container.remove();
     });
 
+    it('shows a field problem with an empty context in the banner, as a null one', async () => {
+        stubLoader({
+            prepare: async (v) => v,
+            submit: async () => {
+                throw new Failure('invalid', [{ type: 'FIELD_ERROR', context: '', reason: 'an unnamed problem' }]);
+            },
+            transform: async (r) => r,
+        });
+        const [form, container] = await mount(`
+            <ful-form>
+                <ful-errors hidden></ful-errors>
+                <input name="name">
+            </ful-form>`);
+
+        await form.submit();
+
+        const errors = form.querySelector('ful-errors');
+        assert.strictEqual(errors.textContent, 'an unnamed problem');
+        assert.isFalse(errors.hasAttribute('hidden'));
+        container.remove();
+    });
+
     it('clears the problems of the previous attempt when submitting again', async () => {
         let fail = true;
         stubLoader({

@@ -69,6 +69,9 @@ class Bindings {
         if (el.dataset.fulBindType === 'boolean') {
             return !el.value ? null : el.value === 'true';
         }
+        if (el.tagName === 'SELECT' && /** @type {HTMLSelectElement} */ (el).multiple) {
+            return Array.from(/** @type {HTMLSelectElement} */ (el).selectedOptions).map((o) => o.value);
+        }
         if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
             return el.value === '' || el.value === undefined ? null : el.value;
         }
@@ -113,6 +116,13 @@ class Bindings {
             el.checked = raw;
             return;
         }
+        if (el.tagName === 'SELECT' && /** @type {HTMLSelectElement} */ (el).multiple) {
+            const values = Array.isArray(raw) ? raw.map(String) : raw == null ? [] : [String(raw)];
+            Array.from(/** @type {HTMLSelectElement} */ (el).options).forEach((o) => {
+                o.selected = values.includes(o.value);
+            });
+            return;
+        }
         el.value = raw;
     }
 
@@ -134,7 +144,7 @@ class Bindings {
         form.querySelectorAll('ful-field-error').forEach((el) => {
             el.setAttribute('aria-live', scrollOnError ? 'off' : 'polite');
         });
-        const pinned = (e) => (e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT') && e.context != null;
+        const pinned = (e) => (e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT') && e.context;
         const fieldErrors = es.filter(pinned);
         const globalErrors = es.filter((e) => !pinned(e));
         form.querySelectorAll(`[name]`).forEach((el) => {
