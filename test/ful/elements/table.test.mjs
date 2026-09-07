@@ -398,6 +398,104 @@ describe('Table stale loads', () => {
     });
 });
 
+describe('Table sort and pagination edges', () => {
+    let pending = [];
+    let requests = [];
+    beforeEach(() => {
+        pending = [];
+        requests = [];
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: (pageRequest, sortRequest, filterRequest) => {
+                    requests.push({ pageRequest, sortRequest, filterRequest });
+                    return new Promise((resolve, reject) => {
+                        pending.push({ resolve, reject });
+                    });
+                },
+            }),
+        });
+    });
+    const mountDeferred = async (
+        columns = '<column title="A" sorter="a">{{ a }}</column><column title="B" sorter="b">{{ b }}</column>',
+    ) => {
+        const container = document.createElement('div');
+        container.innerHTML = `
+            <ful-table autoload page-size="10">
+                <template slot="schema"><schema>${columns}</schema></template>
+            </ful-table>`;
+        document.body.appendChild(container);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        return [tableEl, container];
+    };
+
+    it("keeps the winning sort's header when a superseded sort resolves late", async () => {
+        const [tableEl, container] = await mountDeferred();
+        pending[0].resolve({ data: [{ a: 'init' }], size: 30 });
+        await settle();
+        const [sorterA, sorterB] = [...tableEl.querySelectorAll('ful-sorter')];
+        const sort = (el) => el.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
+
+        sort(sorterA);
+        sort(sorterB);
+        pending[2].resolve({ data: [{ b: 'B-data' }], size: 30 });
+        await settle();
+        pending[1].resolve({ data: [{ a: 'A-data' }], size: 30 });
+        await settle();
+
+        assert.deepStrictEqual(rowTexts(tableEl), ['B-data'], 'the load token already kept the newest rows');
+        const aria = [...tableEl.querySelectorAll('th')].map((th) => th.getAttribute('aria-sort'));
+        assert.deepStrictEqual(aria, [null, 'ascending'], 'the superseded sort leaves the header alone');
+
+        const reloaded = tableEl.reload();
+        pending[3].resolve({ data: [{ b: 'again' }], size: 30 });
+        await reloaded;
+        assert.deepStrictEqual(requests[3].sortRequest, { sorter: 'b', order: 'asc' }, 'reload replays the winning sort');
+        container.remove();
+    });
+
+    it('paginates an empty table as one empty page, with the arrows dead', async () => {
+        const [tableEl, container] = await mountDeferred();
+        pending[0].resolve({ data: [], size: 0 });
+        await settle();
+
+        const paginator = tableEl.querySelector('ful-pagination');
+        assert.deepStrictEqual(pageLabels(paginator), ['1'], 'one page link, to the only empty page');
+        assert.strictEqual(paginator.querySelector('li[data-ref=index]').textContent.trim(), 'Page 1 of 1');
+        container.remove();
+    });
+
+    it('falls back to the last existing page when the data shrinks behind the answer', async () => {
+        const [tableEl, container] = await mountDeferred();
+        pending[0].resolve({ data: [{ a: 'one' }], size: 25 });
+        await settle();
+
+        const beyond = tableEl.load({ page: 2, size: 10 }, null, {});
+        pending[1].resolve({ data: [], size: 10 });
+        await beyond;
+
+        assert.deepStrictEqual(requests[2].pageRequest, { page: 0, size: 10 }, 'the last existing page is asked for');
+        pending[2].resolve({ data: [{ a: 'only' }], size: 10 });
+        await settle();
+
+        assert.deepStrictEqual(rowTexts(tableEl), ['only']);
+        assert.strictEqual(tableEl.querySelector('li[data-ref=index]').textContent.trim(), 'Page 1 of 1');
+        container.remove();
+    });
+
+    it('carries no initial sort for an order declared without its sorter', async () => {
+        const [, container] = await mountDeferred(
+            '<column title="A" sorter="a">{{ a }}</column><column title="C" order="asc">{{ c }}</column>',
+        );
+        pending[0].resolve({ data: [{ a: 'x' }], size: 1 });
+        await settle();
+
+        assert.isNull(requests[0].sortRequest, 'no null property reaches the loader');
+        container.remove();
+    });
+});
+
 describe('Pagination links', () => {
     const mountPagination = async (attributes) => {
         const container = document.createElement('div');

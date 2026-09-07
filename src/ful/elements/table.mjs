@@ -166,9 +166,11 @@ class TableSchemaParser {
             rowsTr.setAttribute(attr, value ?? '');
         }
         const columns = Nodes.queryChildrenAll(schema, 'column');
+        //only a sortable column carries the initial sort: an order without its
+        //sorter would ask the backend for a "null" property
         const sort =
             columns
-                .filter((v) => v.hasAttribute('order'))
+                .filter((v) => v.hasAttribute('order') && v.hasAttribute('sorter'))
                 .map((v) => ({ sorter: v.getAttribute('sorter'), order: v.getAttribute('order') }))[0] ?? null;
         for (var column of columns) {
             const maybeTitleTag = Nodes.queryChildren(column, 'title');
@@ -394,6 +396,12 @@ class Table extends ParsedElement {
         this.addEventListener('sort-requested', async (/** @type any */ e) => {
             const sortRequest = e.detail.value.order ? e.detail.value : null;
             await this.load(this.#latestRequest.pageRequest, sortRequest, this.#latestRequest.filterRequest);
+            //only the load that still owns the table commits the header: a superseded
+            //sort must not wipe the arrows of the one that won, and a failed one
+            //leaves them where they were
+            if (this.#latestRequest.sortRequest !== sortRequest) {
+                return;
+            }
             this.#sorters.forEach((s) => {
                 s.order = null;
             });
@@ -462,6 +470,14 @@ class Table extends ParsedElement {
         );
     }
     #update(pageRequest, sortRequest, filterRequest, pageResponse) {
+        const pages = Math.ceil(pageResponse.size / pageRequest.size);
+        const lastPage = Math.max(0, pages - 1);
+        if (pageRequest.page > lastPage) {
+            //the data shrank behind the page being answered: the last page that
+            //still exists is loaded instead of an out-of-range empty one
+            this.load({ page: lastPage, size: pageRequest.size }, sortRequest, filterRequest);
+            return;
+        }
         this.#loading.setAttribute('hidden', '');
         this.#body.replaceChildren(
             this.template('row')
@@ -474,7 +490,7 @@ class Table extends ParsedElement {
                 .render(),
         );
         this.#paginator.current = pageRequest.page;
-        this.#paginator.total = Math.ceil(pageResponse.size / pageRequest.size);
+        this.#paginator.total = pages;
     }
 }
 
