@@ -4,16 +4,40 @@ import { Template } from './template.mjs';
 
 class UpgradeQueue {
     #q = new Map();
+    #readyResolve;
+    #ready = new Promise((resolve) => {
+        this.#readyResolve = resolve;
+    });
     constructor() {
-        document.addEventListener('DOMContentLoaded', async () => {
-            await this.settle();
-            document.dispatchEvent(
-                new CustomEvent('ftl:ready', {
-                    bubbles: false,
-                    cancelable: false,
-                }),
-            );
+        document.addEventListener('DOMContentLoaded', () => {
+            this.#start();
         });
+        if (document.readyState === 'complete') {
+            //imported after the document's own DOMContentLoaded: that event will
+            //never come, so the page settles now. 'interactive' is not enough,
+            //deferred and module scripts run there, before DOMContentLoaded, and
+            //elements are still being defined
+            this.#start();
+        }
+    }
+    /**
+     * Waits for the page's readiness: the promise resolves right after the
+     * ftl:ready event is dispatched, and immediately when that moment already
+     * passed.
+     * @returns {Promise<void>}
+     */
+    ready() {
+        return this.#ready;
+    }
+    async #start() {
+        await this.settle();
+        document.dispatchEvent(
+            new CustomEvent('ftl:ready', {
+                bubbles: false,
+                cancelable: false,
+            }),
+        );
+        this.#readyResolve();
     }
     #finished = new Map();
     enqueue(el) {
@@ -210,6 +234,14 @@ class Registry {
     }
     get upgrades() {
         return this.#upgradeQueue.entries;
+    }
+    /**
+     * Waits for the page's readiness: the same moment the ftl:ready event is
+     * dispatched at, resolving immediately when that moment already passed.
+     * @returns {Promise<void>}
+     */
+    ready() {
+        return this.#upgradeQueue.ready();
     }
     context() {
         return { modules: this.#modules, data: this.#data };

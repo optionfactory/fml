@@ -153,5 +153,23 @@ describe('Registry', () => {
 
             expect(readyFired).to.be.true;
         });
+
+        it('hands out the same readiness promise to every caller', () => {
+            expect(registry.ready()).to.equal(registry.ready());
+        });
+
+        it('awaits readiness, resolving after the ftl:ready event has been dispatched', async () => {
+            //the test document is complete by the time modules run, so a fresh
+            //registry is the late-import case: no DOMContentLoaded will ever come
+            let fired = false;
+            document.addEventListener('ftl:ready', () => { fired = true; }, { once: true });
+            const late = new Registry();
+
+            await late.ready();
+
+            expect(fired, 'the event is dispatched before the await resumes').to.be.true;
+            //a caller arriving after the moment still resolves, it cannot hang
+            await late.ready();
+        });
     });
 });
