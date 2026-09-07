@@ -49,8 +49,10 @@
     "scripts": {
         "initialize": "npm install && playwright install",
         "build": "rollup --config rollup.conf.mjs && npm run manifest",
-        "check": "tsc --project ./jsconfig.json",
+        "verify": "npm run lint && npm run check && npm test",
+        "prepublishOnly": "npm run verify && npm run build",
         "lint": "biome lint .",
+        "check": "tsc --project ./jsconfig.json",
         "format": "biome format --write .",
         "clean": "rm -rf dist && npm prune",
         "clean:deps": "rm -rf node_modules && rm -rf coverage",
