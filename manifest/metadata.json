@@ -49,7 +49,7 @@
             "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
-                "accept": "Comma separated list of accepted extensions. Files that do not match are dropped with a warning.",
+                "accept": "Comma separated list of accepted tokens: an extension (.pdf), a mime type (application/pdf) or a wildcard (image/*). Files that do not match are dropped with a warning.",
                 "multiple": "Allows selecting more than one file.",
                 "itemlist": "Shows the list of selected files.",
                 "dropzone": "Shows the dropzone.",

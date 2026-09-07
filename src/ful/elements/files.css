@@ -74,11 +74,20 @@ ful-input-file {
 
     &[readonly] {
         & > .default-dropzone,
-        & > .dropzone {
+        & > .dropzone,
+        & > ful-item-list {
             pointer-events: none;
         }
 
         & > ful-control-group > input {
+            pointer-events: none;
+        }
+    }
+
+    &:disabled {
+        & > .default-dropzone,
+        & > .dropzone,
+        & > ful-item-list {
             pointer-events: none;
         }
     }

@@ -563,6 +563,34 @@ describe('InputFile disabled and readonly claims', () => {
         el.removeAttribute('disabled');
         assert.isFalse(input.matches(':disabled'));
 
+    it('rejects a multi-file drop on a single-file field, as the native input does', async () => {
+        const [single, singleContainer] = await mount(`<ful-input-file dropzone>files</ful-input-file>`);
+
+        drop(single, file('a.pdf'), file('b.pdf'));
+        assert.deepStrictEqual(selected(single), [], 'the whole drop is rejected');
+
+        drop(single, file('one.pdf'));
+        assert.deepStrictEqual(selected(single), ['one.pdf'], 'a single-file drop is accepted');
+        singleContainer.remove();
+    });
+
+    it('ignores dropped directories, keeping the real files of the same drop', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple dropzone>files</ful-input-file>`);
+        const dt = {
+            items: [
+                { kind: 'file', getAsFile: () => null },
+                { kind: 'string', getAsFile: () => null },
+                { kind: 'file', getAsFile: () => file('real.pdf') },
+            ],
+        };
+        const ev = new DragEvent('drop', { dataTransfer: new DataTransfer(), cancelable: true });
+        Object.defineProperty(ev, 'dataTransfer', { value: dt });
+
+        el.querySelector('[data-ref=dropzone]').dispatchEvent(ev);
+
+        assert.deepStrictEqual(selected(el), ['real.pdf']);
+        container.remove();
+    });
         container.remove();
     });
 });

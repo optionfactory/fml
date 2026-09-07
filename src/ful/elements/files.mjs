@@ -119,12 +119,13 @@ class InputFile extends Input {
                 return;
             }
             const dropped = [...e.dataTransfer.items].filter((i) => i.kind === 'file');
-            if (dropped.length === 0) {
+            const files = dropped.map((i) => i.getAsFile()).filter((f) => f !== null);
+            if (files.length === 0 || (files.length > 1 && !this.multiple)) {
                 return;
             }
             const dt = new DataTransfer();
-            dropped.forEach((i) => {
-                dt.items.add(i.getAsFile());
+            files.forEach((f) => {
+                dt.items.add(f);
             });
             this.files = dt.files;
         });
@@ -234,6 +235,7 @@ class InputFile extends Input {
         this.warning('files.maxtotalsizeexceeded', { size: Localization.of().bytes(this.#maxtotalsize) });
         this._input.files = new DataTransfer().files;
     }
+
     get accept() {
         return this.#accept;
     }
