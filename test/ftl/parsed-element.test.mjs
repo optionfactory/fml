@@ -15,7 +15,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
         container.remove();
     });
 
-    it('injects static config properties as template overlays (lines 34-35)', async () => {
+    it('injects static config properties as template overlays', async () => {
         class ConfiguredEl extends ParsedElement {
             static config = { debug: true };
             static template = '<div></div>';

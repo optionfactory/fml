@@ -126,8 +126,9 @@ describe('Upgrade ordering and readiness', () => {
             caught = e;
         }
 
-        //the same rejection reaches the queue's own ftl:ready handler, which is why a
-        //single failing component keeps the event from firing for the whole page
+        //the queue attaches no rejection handler of its own: the failure stays free
+        //to reach the console and the error reporter, and ftl:ready still fires for
+        //the rest of the page, as the test below proves
         expect(caught?.message).to.equal('boom');
     });
 
