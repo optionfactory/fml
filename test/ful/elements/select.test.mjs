@@ -1816,3 +1816,113 @@ describe('Select focus and key coercion gaps', () => {
         container.remove();
     });
 });
+
+describe('Select stale searches', () => {
+    const keydown = (input, code, options = {}) => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
+    };
+    const rejections = [];
+    const onRejection = (e) => {
+        rejections.push(e.reason);
+        e.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', onRejection);
+    after(() => {
+        window.removeEventListener('unhandledrejection', onRejection);
+    });
+    let pending = [];
+    beforeEach(() => {
+        pending = [];
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                load: () =>
+                    new Promise((resolve, reject) => {
+                        pending.push({ resolve, reject });
+                    }),
+            }),
+        });
+    });
+    const mount = async () => {
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select>pick</ful-select>`;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+
+    it('discards a search resolving after a newer open, keeping the newest options', async () => {
+        const [selectEl, container] = await mount();
+        const input = selectEl.querySelector('input');
+        //alt-down opens without going through the search throttle, so two opens overlap:
+        //the first search is still in flight when the closed dropdown is opened again
+        keydown(input, 'ArrowDown', { altKey: true });
+        keydown(input, 'ArrowUp', { altKey: true });
+        keydown(input, 'ArrowDown', { altKey: true });
+        pending[1].resolve([
+            ['k2', 'fast'],
+        ]);
+        await settle();
+        const activeDescendant = input.getAttribute('aria-activedescendant');
+        pending[0].resolve([
+            ['k1', 'slow'],
+        ]);
+        await settle();
+
+        const dropdown = selectEl.querySelector('ful-dropdown');
+        assert.isTrue(dropdown.shown, 'the newest open owns the dropdown');
+        assert.match(dropdown.querySelector('menu').textContent, /fast/);
+        assert.notMatch(dropdown.querySelector('menu').textContent, /slow/, 'the stale search renders nothing');
+        assert.strictEqual(
+            input.getAttribute('aria-activedescendant'),
+            activeDescendant,
+            'the stale search highlights nothing',
+        );
+        assert.isTrue(dropdown.querySelector('ful-spinner').hasAttribute('hidden'));
+        container.remove();
+    });
+
+    it('discards a search failing after a newer open, without hiding it nor reporting the failure', async () => {
+        const [selectEl, container] = await mount();
+        const input = selectEl.querySelector('input');
+        keydown(input, 'ArrowDown', { altKey: true });
+        keydown(input, 'ArrowUp', { altKey: true });
+        keydown(input, 'ArrowDown', { altKey: true });
+        pending[1].resolve([
+            ['k2', 'fast'],
+        ]);
+        await settle();
+
+        const rejectionsBefore = rejections.length;
+        pending[0].reject(new Error('boom'));
+        await settle();
+
+        const dropdown = selectEl.querySelector('ful-dropdown');
+        assert.isTrue(dropdown.shown, 'a superseded failure must not hide the newer open');
+        assert.match(dropdown.querySelector('menu').textContent, /fast/);
+        assert.strictEqual(rejections.length, rejectionsBefore, 'a superseded failure is not reported');
+        container.remove();
+    });
+
+    it('keeps a search that lands after a hide from repopulating the hidden dropdown', async () => {
+        const [selectEl, container] = await mount();
+        const input = selectEl.querySelector('input');
+        keydown(input, 'ArrowDown', { altKey: true });
+        input.dispatchEvent(new FocusEvent('blur'));
+        pending[0].resolve([
+            ['k1', 'late'],
+        ]);
+        await settle();
+
+        const dropdown = selectEl.querySelector('ful-dropdown');
+        assert.isFalse(dropdown.shown);
+        assert.isTrue(dropdown.querySelector('menu').hasAttribute('hidden'), 'the late search renders no options');
+        assert.isNull(
+            input.getAttribute('aria-activedescendant'),
+            'the combobox is not pointed into a hidden dropdown',
+        );
+        container.remove();
+    });
+});

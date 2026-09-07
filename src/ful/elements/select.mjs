@@ -173,6 +173,7 @@ class Dropdown extends ParsedElement {
     #empty;
     #optionstemplate;
     #options = new Map();
+    #showToken = 0;
     combobox;
     render({ slots }) {
         const fragment = this.template().render();
@@ -244,6 +245,9 @@ class Dropdown extends ParsedElement {
         );
     }
     hide() {
+        //hiding ends the current claim: a search still in flight must neither
+        //repopulate the list nor point the combobox at an option of a hidden dropdown
+        ++this.#showToken;
         this.setAttribute('hidden', '');
         this.combobox?.removeAttribute('aria-activedescendant');
     }
@@ -251,17 +255,31 @@ class Dropdown extends ParsedElement {
         return !this.hasAttribute('hidden');
     }
     async show(loader, keys = []) {
+        //each show claims the dropdown: a search resolving after a newer show has
+        //started, or after the dropdown was hidden again, is stale, and neither
+        //renders nor highlights, whichever order the searches resolve in
+        const token = ++this.#showToken;
         this.removeAttribute('hidden');
         this.#menu.setAttribute('hidden', '');
         this.#spinner.removeAttribute('hidden');
         try {
             const data = await loader();
+            if (token !== this.#showToken) {
+                return;
+            }
             this.update(data, keys);
-        } catch (e) {
+        } catch (/** @type any */ e) {
+            if (token !== this.#showToken) {
+                //the newer show (or the hide that ended this one) owns the dropdown
+                //and its outcome: a superseded failure is neither shown nor thrown
+                return;
+            }
             this.hide();
             throw e;
         } finally {
-            this.#spinner.setAttribute('hidden', '');
+            if (token === this.#showToken) {
+                this.#spinner.setAttribute('hidden', '');
+            }
         }
     }
     async moveOrShow(forward, loader, keys = []) {
