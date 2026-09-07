@@ -50,7 +50,12 @@ class Field extends ParsedElement {
     focus(options) {
         this.#control?.focus(options);
     }
-    /** Clears or reports one validation problem, keeping the form's submit gate in sync. */
+    /**
+     * Clears or reports one validation problem: the text lands on the field's
+     * live region and the state on the element internals, driving `:invalid`
+     * styling. Validation is the server's: the submit travels regardless, and
+     * the problems come back pinned here.
+     */
     setCustomValidity(error) {
         if (!error) {
             this.internals.setValidity({});

@@ -68,6 +68,9 @@ class Form extends ParsedElement {
     render() {
         const form = document.createElement('form');
         this.form = form;
+        //the submit must travel regardless of validity: the server is the validation
+        //authority, and the browser's own gate would block a resubmit behind
+        //internals messages custom elements have no default UI for
         form.setAttribute('novalidate', '');
         Attributes.forward('form-', this, form);
         form.replaceChildren(...this.childNodes);
