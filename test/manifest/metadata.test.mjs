@@ -7,7 +7,8 @@ import { Plugin } from '../../src/ful/elements/plugin.mjs';
  * from the source, and these tests fail whenever the two disagree in either direction,
  * so the sidecar cannot quietly rot as the elements change.
  */
-describe('Element metadata', () => {
+describe('Element metadata', function () {
+    this.timeout(10000);
     /** what the plugin actually registers, captured without defining anything */
     const registered = () => {
         const found = [];

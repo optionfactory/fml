@@ -47,7 +47,7 @@
     "author": "rferranti",
     "contributors": [],
     "scripts": {
-        "initialize": "npm install",
+        "initialize": "npm install && playwright install",
         "build": "rollup --config rollup.conf.mjs && npm run manifest",
         "check": "tsc --project ./jsconfig.json",
         "lint": "biome lint .",

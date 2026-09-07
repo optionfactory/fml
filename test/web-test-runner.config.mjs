@@ -5,7 +5,9 @@ export default {
     files: ['test/*/**/*.test.mjs'],
     nodeResolve: true,
     browsers: [
-        playwrightLauncher({ product: 'chromium' })
+        playwrightLauncher({ product: 'chromium' }),
+        playwrightLauncher({ product: 'firefox' }),
+        playwrightLauncher({ product: 'webkit' })
     ],
     coverage: true,
     coverageConfig: {
