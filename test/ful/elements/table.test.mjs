@@ -337,6 +337,67 @@ describe('Table pagination', () => {
     });
 });
 
+describe('Table stale loads', () => {
+    let requests = [];
+    let pending = [];
+    beforeEach(() => {
+        requests = [];
+        pending = [];
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: (pageRequest) =>
+                    new Promise((resolve, reject) => {
+                        requests.push(pageRequest);
+                        pending.push({ resolve, reject });
+                    }),
+            })
+        });
+    });
+    const mountDeferred = () => mount(`
+        <ful-table autoload page-size="10">
+            <template slot="schema">
+                <schema><column title="A">{{ a }}</column></schema>
+            </template>
+        </ful-table>`);
+
+    it('discards a response resolving after a newer load, keeping the newest rows and request', async () => {
+        const [tableEl, container] = await mountDeferred();
+        //pending[0] is the autoload; two page loads supersede it, the slower one having started first
+        const slow = tableEl.load({ page: 1, size: 10 }, null, {});
+        const fast = tableEl.load({ page: 2, size: 10 }, null, {});
+        pending[2].resolve({ data: [{ a: 'fast page' }], size: 30 });
+        await settle();
+        pending[1].resolve({ data: [{ a: 'slow page' }], size: 30 });
+        await settle();
+        await slow;
+        await fast;
+
+        assert.deepStrictEqual(rowTexts(tableEl), ['fast page'], 'the stale response renders nothing');
+
+        const reloaded = tableEl.reload();
+        pending[3].resolve({ data: [{ a: 'reloaded' }], size: 30 });
+        await reloaded;
+
+        assert.deepStrictEqual(rowTexts(tableEl), ['reloaded']);
+        assert.deepStrictEqual(requests.map((r) => r.page), [0, 1, 2, 2], 'reload replays the newest request');
+        container.remove();
+    });
+
+    it('discards a failure resolving after a newer load, without an error state nor a rejection', async () => {
+        const [tableEl, container] = await mountDeferred();
+        const slow = tableEl.load({ page: 1, size: 10 }, null, {});
+        tableEl.load({ page: 2, size: 10 }, null, {});
+        pending[2].resolve({ data: [{ a: 'fast page' }], size: 30 });
+        await settle();
+        pending[1].reject(new Error('boom'));
+        await slow;
+
+        assert.deepStrictEqual(rowTexts(tableEl), ['fast page'], 'the newer response is what shows');
+        assert.isTrue(tableEl.querySelector('tbody[data-ref=feedback]').hasAttribute('hidden'), 'the stale failure renders no error state');
+        container.remove();
+    });
+});
+
 describe('Pagination links', () => {
     const mountPagination = async (attributes) => {
         const container = document.createElement('div');
