@@ -145,6 +145,28 @@ describe('Expression', () => {
         assert.strictEqual(caught.message, 'Method missing "boom"');
     });
 
+    it('reports a bare call on a missing value by name', () => {
+        let caught = null;
+        try {
+            Expressions.interpret({}, [{}], 'boom()');
+        } catch (ex) {
+            caught = ex;
+        }
+        assert.instanceOf(caught, Error);
+        assert.strictEqual(caught.message, 'Method missing "boom"');
+    });
+
+    it('reports a call following a subscript without interpolating the node', () => {
+        let caught = null;
+        try {
+            Expressions.interpret({}, [{ a: { b: null } }], "a['b']()");
+        } catch (ex) {
+            caught = ex;
+        }
+        assert.instanceOf(caught, Error);
+        assert.strictEqual(caught.message, 'Method missing');
+    });
+
     it('can report error on missing module', () => {
         let caught = null;
         try {

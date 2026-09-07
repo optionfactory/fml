@@ -22,6 +22,21 @@ class EvaluatingVisitor {
         }
         return undefined;
     }
+    /**
+     * The name a missing-method report can carry: the called symbol for a bare
+     * `boom()`, the member for a dotted `a.boom()`, nothing for anything else
+     * (a subscript or a grouped left-hand side has no static name).
+     */
+    #reportableName(node, index) {
+        const source = index === 0 ? node.lhs : node.rhs[index - 1];
+        if (source.type === nodes.symbol) {
+            return source.value;
+        }
+        if (source.type === nodes.member) {
+            return source.rhs;
+        }
+        return null;
+    }
 
     #cached_resolve_proxy;
     #resolve_proxy() {
@@ -130,7 +145,8 @@ class EvaluatingVisitor {
                 }
                 case nodes.method: {
                     if (!cur) {
-                        throw new Error(`Method missing "${node.rhs[i - 1].rhs}"`);
+                        const name = this.#reportableName(node, i);
+                        throw new Error(name === null ? 'Method missing' : `Method missing "${name}"`);
                     }
                     const args = rhs.args.map((arg) => this.visit(arg));
                     value = cur.apply(prev, args);
