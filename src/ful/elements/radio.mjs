@@ -30,7 +30,7 @@ class RadioGroup extends Field {
     #fieldset;
     #firstRadio;
     #booleanType;
-    render({ slots, observed, disabled }) {
+    render({ slots, observed }) {
         const name = this.getAttribute('name') ?? Attributes.uid('ful-radiogroup');
         const radioEls = Array.from(slots.default.querySelectorAll('ful-radio'));
         const inputsAndLabels = radioEls.map((el) => {
@@ -62,7 +62,7 @@ class RadioGroup extends Field {
         });
         this.template().withOverlay({ name, slots, inputsAndLabels }).renderTo(this);
         this.#fieldset = this.firstElementChild;
-        this.disabled = disabled;
+        this.disabled = observed.disabled;
         this.readonly = observed.readonly;
         this.required = observed.required;
         this.value = observed.value;

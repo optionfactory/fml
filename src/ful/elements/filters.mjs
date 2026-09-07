@@ -216,7 +216,7 @@ class CompareFilter extends Input {
             evt.stopPropagation();
             this._notifyChange();
         });
-        this.disabled = conf.disabled;
+        this.disabled = conf.observed.disabled;
         this.readonly = conf.observed.readonly;
         this.required = conf.observed.required;
         this.placeholder = conf.observed.placeholder;
@@ -532,7 +532,7 @@ class BooleanFilter extends Field {
     _value;
     _container;
     _allowed;
-    render({ slots, observed, disabled }) {
+    render({ slots, observed }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this._container = fragment.querySelector('ful-control-group');
         this._operator = fragment.querySelector('[data-ref=operator]');
@@ -547,7 +547,7 @@ class BooleanFilter extends Field {
         wireOperatorMenu(this._value);
         this._showValue('');
         this._wireLabel(fragment.querySelector('label'));
-        this.disabled = disabled;
+        this.disabled = observed.disabled;
         this.readonly = observed.readonly;
         this.required = observed.required;
         this.value = observed.value;

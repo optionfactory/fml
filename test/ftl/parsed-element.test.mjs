@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { ParsedElement } from '../../src/ftl/parsed-element.mjs';
 import { registry } from '../../src/ftl/registry.mjs';
 import { Template } from '../../src/ftl/template.mjs';
+import { tick } from '../tick.mjs';
 
 describe('ParsedElement Web Component Lifecycle', () => {
     let container;
@@ -85,26 +86,59 @@ describe('ParsedElement Web Component Lifecycle', () => {
         expect(unmarshalFired).to.be.false;
     });
 
-    it('hands the declared disabled claim to render, the property reflects it', async () => {
+    it('hands the observed attributes to render as the pre-render door', async () => {
         let renderArgs = null;
-        class FormDisabledEl extends ParsedElement {
+        class ObservedEl extends ParsedElement {
+            static observed = ['disabled:presence'];
             render(c) { renderArgs = c; }
         }
 
-        registry.defineElement('form-disabled-el', FormDisabledEl);
+        registry.defineElement('observed-el', ObservedEl);
         registry.configure();
 
-        const el = document.createElement('form-disabled-el');
+        const el = document.createElement('observed-el');
         el.setAttribute('disabled', '');
         container.appendChild(el);
-        await registry.upgrades.next()?.value;
+        const [upgraded, upgradePromise] = await registry.upgrades.next().value;
+        await upgradePromise;
 
-        expect(renderArgs.disabled).to.be.true;
+        expect(upgraded).to.equal(el);
+        expect(renderArgs.observed.disabled).to.be.true;
         expect(el.hasAttribute('disabled')).to.be.true;
 
         el.removeAttribute('disabled');
-        //the claim was read once at upgrade, as declared
-        expect(renderArgs.disabled).to.be.true;
+        //the snapshot is frozen once the render is done: the live door is the
+        //property forward, and the attribute no longer feeds the record
+        expect(renderArgs.observed.disabled).to.be.true;
+    });
+
+    it('patches the observed snapshot with attribute writes made before the render is done', async () => {
+        let release = /** @type any */ (null);
+        let applied = null;
+        class MidFlightEl extends ParsedElement {
+            static observed = ['value'];
+            async render(c) {
+                await new Promise((resolve) => { release = resolve; });
+                applied = c.observed.value;
+            }
+        }
+
+        registry.defineElement('mid-flight-el', MidFlightEl);
+        registry.configure();
+
+        const el = document.createElement('mid-flight-el');
+        el.setAttribute('value', 'stale');
+        container.appendChild(el);
+        const [, upgradePromise] = await registry.upgrades.next().value;
+        //let the upgrade reach the render's await, then write through the attribute
+        for (let i = 0; i !== 5; ++i) {
+            await tick();
+        }
+        el.setAttribute('value', 'current');
+        release();
+        await upgradePromise;
+
+        expect(applied).to.equal('current');
     });
 
     it('leverages atomic reflection context locks safely', () => {

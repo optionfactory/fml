@@ -14,14 +14,14 @@ class Checkbox extends Field {
     `;
     #container;
     #input;
-    render({ slots, observed, disabled }) {
+    render({ slots, observed }) {
         const isSwitch = this.getAttribute('type') === 'switch';
         const fragment = this.template().withOverlay({ slots, isSwitch }).render();
         this.#container = fragment.firstElementChild;
         this.#input = fragment.querySelector('input');
         Attributes.forward('input-', this, this.#input);
         this._adopt(this.#input, fragment.querySelector('ful-field-error'));
-        this.disabled = disabled;
+        this.disabled = observed.disabled;
         this.readonly = observed.readonly;
         this.required = observed.required;
         this.value = observed.value;

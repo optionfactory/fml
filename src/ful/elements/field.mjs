@@ -92,14 +92,30 @@ class Field extends ParsedElement {
         this.value = this.unmarshal('value', this.getAttribute('value'));
     }
     /**
-     * The disabled protocol follows native semantics: the attribute is the field's own
-     * claim, and nothing but its author ever writes it, in markup or through the
-     * property. The effective state is the claim OR a disabled fieldset ancestry,
-     * which the platform maintains on its own: `:disabled` matches both, a disabled
-     * field is left out of the submitted values, and the browser composes claim and
-     * ancestry when it disables and re-enables a fieldset's descendants.
-     * Subclass setters call super for the claim, then reach their own inner controls,
-     * which mirror the claim like a native input's would.
+     * The disabled protocol follows the semantics of a native form control:
+     *
+     * - the `disabled` attribute on the host is the field's own claim, and nothing
+     *   but its author ever writes or removes it, in markup or through the
+     *   property. The framework never claims on the form's behalf, so there is
+     *   nothing to unclaim and nothing to lose: a field declared disabled inside
+     *   a disabled `<fieldset>` stays disabled when the fieldset comes back,
+     *   exactly like a native input keeps its attribute.
+     * - the effective state is the claim OR a disabled fieldset ancestry, which
+     *   the platform maintains on its own: `:disabled` matches both, a disabled
+     *   field is left out of the submitted values, and the inner native controls
+     *   are reached by the ancestry as descendants of the fieldset.
+     * - the property reflects the claim only, like a native input's: a field
+     *   disabled by its ancestry reads `false` while `matches(':disabled')`
+     *   tells the effective state. Un-claiming inside a disabled fieldset
+     *   cannot enable the field.
+     * - the inner controls mirror the claim and nothing else: the ancestry state
+     *   is never written anywhere, so it can never go stale, and the browser
+     *   composes the two on its own when it disables and re-enables a fieldset's
+     *   descendants. Subclass setters call super for the claim, then reach their
+     *   own controls, which mirror the claim like a native input's would.
+     *
+     * Because of this, formDisabledCallback carries nothing the framework needs
+     * to apply, and the protocol does not define it.
      */
     get disabled() {
         //the claim only, like a native input: the effective state, claim or disabled
@@ -125,12 +141,7 @@ class Field extends ParsedElement {
         return this.#control?.readOnly ?? false;
     }
     set readonly(v) {
-        //the control may not be adopted yet: an attribute set between the upgrade
-        //and the render is reapplied by the render from the attribute, so the
-        //mirror is only skipped, never lost
-        if (this.#control) {
-            this.#control.readOnly = v;
-        }
+        this.#control.readOnly = v;
         this.reflect(() => {
             Attributes.toggle(this, 'readonly', v);
         });
@@ -143,9 +154,7 @@ class Field extends ParsedElement {
         return this.#control?.getAttribute('aria-required') === 'true';
     }
     set required(d) {
-        if (this.#control) {
-            Attributes.set(this.#control, 'aria-required', d ? 'true' : null);
-        }
+        Attributes.set(this.#control, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
             Attributes.toggle(this, 'required', d);
         });

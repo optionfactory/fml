@@ -23,7 +23,10 @@ class ParsedElement extends HTMLElement {
         return this.BITS.OBSERVED;
     }
     #parsed = false;
+    #started = false;
     #reflecting = 0;
+    /** the observed snapshot between the upgrade's start and its render's end */
+    #pending = /** @type {{ [k: string]: any } | null} */ (null);
     #bits() {
         return /** @type {typeof ParsedElement} */ (this.constructor).BITS;
     }
@@ -48,49 +51,39 @@ class ParsedElement extends HTMLElement {
         return t;
     }
     connectedCallback() {
-        if (this.#parsed) {
+        if (this.#started) {
             return;
         }
         this.#bits().enqueue(this);
     }
     attributeChangedCallback(attr, oldValue, newValue) {
-        if (!this.#parsed || oldValue === newValue) {
+        if (oldValue === newValue) {
             return;
         }
         if (this.#reflecting > 0) {
             return;
         }
+        //the properties are the post-render live door alone: before the render,
+        //an attribute write lands in the observed snapshot and the render applies
+        //it with the rest of the declared state
+        if (!this.#parsed) {
+            if (this.#pending !== null && attr in this.#pending) {
+                this.#pending[attr] = this.unmarshal(attr, newValue);
+            }
+            return;
+        }
         this[attr] = this.unmarshal(attr, newValue);
     }
     /**
-     * The disabled protocol follows the semantics of a native form control:
-     *
-     * - the `disabled` attribute on the host is the field's own claim, and nothing
-     *   but its author ever writes or removes it, in markup or through the property.
-     *   The framework never claims on the form's behalf, so there is nothing to
-     *   unclaim and nothing to lose: a field declared disabled inside a disabled
-     *   `<fieldset>` stays disabled when the fieldset comes back, exactly like a
-     *   native input keeps its attribute.
-     * - the effective state is the claim OR a disabled fieldset ancestry, which the
-     *   platform maintains on its own: `:disabled` matches both, a disabled field is
-     *   left out of the submitted values, and the inner native controls are reached
-     *   by the ancestry as descendants of the fieldset.
-     * - the `disabled` property reflects the claim only, like a native input's: a
-     *   field disabled by its ancestry reads `false` while `matches(':disabled')`
-     *   tells the effective state. Un-claiming inside a disabled fieldset cannot
-     *   enable the field.
-     * - the inner controls mirror the claim and nothing else: the ancestry state is
-     *   never written anywhere, so it can never go stale, and the browser composes
-     *   the two on its own when it disables and re-enables a fieldset's descendants.
-     *
-     * Because of this, formDisabledCallback carries nothing the framework needs to
-     * apply, and the protocol does not define it.
+     * Upgrades once: captures the observed snapshot, opens it to attribute
+     * writes made while the render is pending, and opens the property forward
+     * only when the render is done.
      */
     async upgrade() {
-        if (this.#parsed) {
+        if (this.#started) {
             return;
         }
-        this.#parsed = true;
+        this.#started = true;
         const slots = this.#bits().SLOTS ? LightSlots.from(this) : undefined;
         const observed = Object.fromEntries(
             this.#bits().OBSERVED.map((attribute) => [
@@ -98,10 +91,26 @@ class ParsedElement extends HTMLElement {
                 this.unmarshal(attribute, this.getAttribute(attribute)),
             ]),
         );
-        //the declared claim is what render receives: the ancestry state is not
-        //passed around, it is already where it needs to be
-        await this.render({ slots, observed, disabled: this.hasAttribute('disabled') });
+        this.#pending = observed;
+        try {
+            await this.render({ slots, observed });
+        } finally {
+            this.#pending = null;
+            //the live door opens once the render is done: from here on, an
+            //attribute write forwards to the property
+            this.#parsed = true;
+        }
     }
+    /**
+     * Renders the element from its declared state. The upgrade hands over the
+     * slots and the observed snapshot, the pre-render door for every declared
+     * attribute: a write made while the render was pending is already in it, so
+     * the render is the one place the declared state is applied. The properties
+     * are the post-render live door: an attribute write after the render
+     * forwards to the property, a property write before the render is not
+     * supported. The slots are undefined for an element declaring no slots.
+     * @param {{ slots: any, observed: { [k: string]: any } }} c
+     */
     render(c) {}
     reflect(fn) {
         ++this.#reflecting;

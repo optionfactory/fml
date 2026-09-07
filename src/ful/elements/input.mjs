@@ -22,7 +22,7 @@ class Input extends Field {
     _fragment(type, slots) {
         return this.template().withOverlay({ type, slots }).render();
     }
-    render({ slots, observed, disabled, skipObservedSetup }) {
+    render({ slots, observed, skipObservedSetup }) {
         const type = this._type();
         const fragment = this._fragment(type, slots);
         this._input = fragment.querySelector('input,textarea');
@@ -74,7 +74,7 @@ class Input extends Field {
         if (!skipObservedSetup) {
             // biome-ignore lint/complexity/noUselessThisAlias: keeps checkJs from seeing these as class fields
             const el = this;
-            el.disabled = disabled;
+            el.disabled = observed.disabled;
             el.readonly = observed.readonly;
             el.required = observed.required;
             el.placeholder = observed.placeholder;

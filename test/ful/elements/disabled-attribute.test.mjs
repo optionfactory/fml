@@ -153,17 +153,55 @@ describe('The disabled attribute after the upgrade', () => {
         container.remove();
     });
 
+    it('applies a value arriving while an async render is still in flight', async () => {
+        const uncaught = [];
+        const onError = (e) => {
+            uncaught.push(e.error ?? e.message);
+            e.preventDefault();
+        };
+        window.addEventListener('error', onError);
+        let release = /** @type any */ (null);
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: () =>
+                    new Promise((resolve) => {
+                        release = resolve;
+                    }),
+                load: async () => [],
+                exact: async (...k) => k.map((v) => [v, v]),
+            }),
+        });
+        const container = document.createElement('div');
+        container.innerHTML = '<ful-select name="a">l</ful-select>';
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        //let the upgrade reach the prefetch await, then write through the attribute
+        for (let i = 0; i !== 5; ++i) {
+            await tick();
+        }
+        selectEl.setAttribute('value', 'kept');
+        release();
+        await Rendering.waitFor(selectEl);
+        await settle();
+
+        assert.deepStrictEqual(uncaught, [], 'the write does not crash the unrendered field');
+        assert.strictEqual(selectEl.value, 'kept', 'the render applied it');
+        assert.strictEqual(selectEl.querySelector('input').value, 'kept');
+        window.removeEventListener('error', onError);
+        container.remove();
+    });
+
     it('reaches custom Field subclasses that never list it', async () => {
         class TestField extends Field {
             static observed = ['value'];
             static slots = true;
             static template = '<label>{{{{ slots.default }}}}</label><input form="">';
             #input;
-            render({ slots, observed, disabled }) {
+            render({ slots, observed }) {
                 const fragment = this.template().withOverlay({ slots }).render();
                 this.#input = fragment.querySelector('input');
                 this._adopt(this.#input, null);
-                this.disabled = disabled;
+                this.disabled = observed.disabled;
                 this.value = observed.value;
                 this.replaceChildren(fragment);
             }
@@ -178,9 +216,7 @@ describe('The disabled attribute after the upgrade', () => {
             }
             set disabled(d) {
                 super.disabled = d;
-                if (this.#input) {
-                    Attributes.toggle(this.#input, 'disabled', d);
-                }
+                Attributes.toggle(this.#input, 'disabled', d);
             }
         }
         registry.defineElement('x-test-field', TestField);

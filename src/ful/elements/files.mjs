@@ -64,7 +64,7 @@ class InputFile extends Input {
         this.maxfilesize = observed.maxfilesize;
         this.maxtotalsize = observed.maxtotalsize;
 
-        this.disabled = conf.disabled;
+        this.disabled = conf.observed.disabled;
         this.readonly = observed.readonly;
         this.required = observed.required;
         this.placeholder = observed.placeholder;
