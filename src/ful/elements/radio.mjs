@@ -80,17 +80,25 @@ class RadioGroup extends Field {
         return checked ? (this.#booleanType ? checked.value === 'true' : checked.value) : null;
     }
     set value(value) {
-        if (value === null) {
-            this.querySelectorAll(`input[type=radio]`).forEach((el) => {
+        const radios = this.querySelectorAll(`input[type=radio]`);
+        const clear = () => {
+            radios.forEach((el) => {
                 /** @type {HTMLInputElement} */ (el).checked = false;
             });
+        };
+        if (value === null) {
+            clear();
             return;
         }
         /** @type {HTMLInputElement|null} */
         const el = this.querySelector(`input[type=radio][value=${CSS.escape(String(value))}]`);
-        if (el) {
-            el.checked = true;
+        //an unknown key clears, like a null assignment and like the select's
+        //unknown keys: a stale radio must not keep answering for it
+        if (el === null) {
+            clear();
+            return;
         }
+        el.checked = true;
     }
     //radios have no editable text to preserve: readonly freezes the whole group,
     //so the fieldset inerts instead of the base's native readOnly

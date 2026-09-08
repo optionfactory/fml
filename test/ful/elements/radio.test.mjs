@@ -117,6 +117,20 @@ describe('RadioGroup value', () => {
         container.remove();
     });
 
+    it('clears the selection when the value is set to an unknown key', async () => {
+        const container = await mount(
+            `<ful-radio-group name="a" value="k1"><ful-radio value="k1">one</ful-radio><ful-radio value="k2">two</ful-radio></ful-radio-group>`,
+        );
+        const group = container.querySelector('ful-radio-group');
+        assert.strictEqual(group.value, 'k1');
+
+        group.value = 'unknown';
+
+        assert.isNull(group.value, 'an unknown key answers as no selection');
+        assert.isNull(group.querySelector('input[type=radio]:checked'), 'the stale radio does not keep answering');
+        container.remove();
+    });
+
     it('selects values that are not valid css identifiers', async () => {
         const container = await mount(
             `<ful-radio-group name="a"><ful-radio value="1">one</ful-radio><ful-radio value="a b">two</ful-radio></ful-radio-group>`,
