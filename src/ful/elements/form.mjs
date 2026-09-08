@@ -174,6 +174,10 @@ class Form extends ParsedElement {
                 hel.dataset.wd = String(hel.disabled);
                 hel.disabled = true;
             } else {
+                //a button that joined mid-spin was never saved: its authored state stands
+                if (hel.dataset.wd === undefined) {
+                    return;
+                }
                 hel.disabled = hel.dataset.wd === 'true';
                 delete hel.dataset.wd;
             }

@@ -408,6 +408,14 @@ describe('Pagination links', () => {
         return [el, container];
     };
 
+    it('renders an empty table as one empty page', async () => {
+        const [el, container] = await mountPagination(`current="0" total="0"`);
+
+        assert.deepStrictEqual(pageLabels(el), ['1'], 'the empty page is a page');
+        assert.include(el.querySelector('[data-ref=index]').textContent, 'Page 1 of 1');
+        container.remove();
+    });
+
     it('renders one link per page when they all fit', async () => {
         const [el, container] = await mountPagination(`current="0" total="3"`);
 

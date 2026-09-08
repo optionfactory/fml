@@ -109,21 +109,24 @@ class Pagination extends ParsedElement {
     }
     update(current, total) {
         const maxRender = Number(this.getAttribute('pages') ?? '5');
+        //an empty table is one empty page: everything downstream renders it like
+        //any single page result
+        const pageCount = Math.max(total, 1);
         const hasPrev = current > 0;
-        const hasNext = current + 1 < total;
+        const hasNext = current + 1 < pageCount;
         //a disabled arrow carries no page: there is nothing valid for it to point at
         const prev = { index: hasPrev ? current - 1 : null, enabled: hasPrev };
         const curr = { index: current, label: current + 1 };
         const next = { index: hasNext ? current + 1 : null, enabled: hasNext };
         //the window holds at most maxRender pages, centered on the current one and slid
         //back towards the end so it stays full on the last pages
-        const rendered = Math.max(1, Math.min(maxRender, total));
-        const first = Math.max(0, Math.min(current - Math.floor((rendered - 1) / 2), total - rendered));
+        const rendered = Math.max(1, Math.min(maxRender, pageCount));
+        const first = Math.max(0, Math.min(current - Math.floor((rendered - 1) / 2), pageCount - rendered));
         const pages = Array.from({ length: rendered }, (_, offset) => ({
             index: first + offset,
             label: first + offset + 1,
         }));
-        this.template().withOverlay({ total, prev, curr, next, pages }).renderTo(this);
+        this.template().withOverlay({ total: pageCount, prev, curr, next, pages }).renderTo(this);
     }
     get total() {
         return this.#total;

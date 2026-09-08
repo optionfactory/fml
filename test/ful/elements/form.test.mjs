@@ -37,6 +37,32 @@ describe('Form Spinner Button States', () => {
 
         container.remove();
     });
+
+    it('leaves a button that joined mid-spin on its authored state', async () => {
+        const container = document.createElement('div');
+        container.innerHTML = `
+            <ful-form>
+                <button type="submit" id="btn-enabled">Submit</button>
+            </ful-form>
+        `;
+        document.body.appendChild(container);
+        await tick();
+
+        const fulForm = container.querySelector('ful-form');
+        fulForm.spinner(true);
+        const latecomer = document.createElement('button');
+        latecomer.type = 'submit';
+        latecomer.disabled = true;
+        latecomer.textContent = 'joined disabled';
+        fulForm.querySelector('form').appendChild(latecomer);
+
+        fulForm.spinner(false);
+
+        assert.isFalse(fulForm.querySelector('#btn-enabled').disabled, 'the saved one restores');
+        assert.isTrue(latecomer.disabled, 'the latecomer keeps its authored state');
+
+        container.remove();
+    });
 });
 describe('Form Spinner Button States across overlapping submits', () => {
     it('saves and restores the button states only once', async () => {
