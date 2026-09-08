@@ -123,6 +123,28 @@ describe('Input enter key inside a form', () => {
         });
     });
 
+    it('does not submit on Enter from a file field, whose Enter opens the picker', async () => {
+        const container = document.createElement('div');
+        container.innerHTML = `
+            <ful-form>
+                <ful-input-file name="f">file</ful-input-file>
+                <button type="submit">go</button>
+            </ful-form>`;
+        document.body.appendChild(container);
+        const fileEl = container.querySelector('ful-input-file');
+        await Rendering.waitFor(container.firstElementChild);
+        await Rendering.waitFor(fileEl);
+        await settle();
+
+        fileEl.querySelector('input').dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }),
+        );
+        await settle();
+
+        assert.deepStrictEqual(submits, [], 'the picker opens, the form stays put');
+        container.remove();
+    });
+
     it('submits the enclosing form, which the detached inner input can never do', async () => {
         const [inputEl, container] = await mount(`
             <ful-form>
@@ -311,6 +333,26 @@ describe('Input mask', () => {
 
         assert.strictEqual(input.value, 'a1b2');
         container.remove();
+    });
+
+    it('warns once and ignores a malformed mask instead of throwing per keystroke', async () => {
+        const originalWarn = console.warn;
+        const warns = [];
+        console.warn = (...args) => warns.push(args);
+        try {
+            const [el, container] = await mount(`<ful-input mask="[">l</ful-input>`);
+
+            const input = type(el, 'a1');
+            assert.strictEqual(input.value, 'a1', 'an invalid mask behaves as no mask');
+            assert.strictEqual(el.value, 'a1');
+            type(el, 'a12');
+            assert.strictEqual(input.value, 'a12');
+            assert.lengthOf(warns, 1, 'warned once, not per keystroke');
+            assert.isTrue(String(warns[0]).includes('mask'));
+            container.remove();
+        } finally {
+            console.warn = originalWarn;
+        }
     });
 
     it('reads the mask on every input, so a later attribute change applies', async () => {

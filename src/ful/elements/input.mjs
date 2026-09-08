@@ -1,6 +1,22 @@
 import { Attributes } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
+//a bad mask is warned once, then ignored
+const maskCache = new Map();
+const compiledMask = (mask) => {
+    let compiled = maskCache.get(mask);
+    if (compiled === undefined) {
+        try {
+            compiled = new RegExp(mask, 'g');
+        } catch (/** @type any */ e) {
+            console.warn('invalid mask attribute', mask, e);
+            compiled = null;
+        }
+        maskCache.set(mask, compiled);
+    }
+    return compiled;
+};
+
 class Input extends Field {
     static observed = ['value', 'readonly:presence', 'required:presence', 'placeholder'];
     static slots = true;
@@ -31,7 +47,9 @@ class Input extends Field {
         this._adopt(this._input, fragment.querySelector('ful-field-error'));
         this._wireLabel(fragment.querySelector('label'));
         this._input.addEventListener('keydown', (evt) => {
-            if (evt.key !== 'Enter' || this._type() === 'textarea') {
+            //a file field's Enter opens the picker, as a native file input's would,
+            //and never submits
+            if (evt.key !== 'Enter' || this._type() === 'textarea' || this._type() === 'file') {
                 return;
             }
             this._requestSubmit();
@@ -41,7 +59,11 @@ class Input extends Field {
             if (!mask) {
                 return;
             }
-            const strip = (v) => v.replace(new RegExp(mask, 'g'), '');
+            const re = compiledMask(mask);
+            if (re === null) {
+                return;
+            }
+            const strip = (v) => v.replace(re, '');
             const before = evt.target.value;
             const after = strip(before);
             if (before === after) {
