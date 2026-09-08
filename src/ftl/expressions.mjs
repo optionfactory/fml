@@ -113,7 +113,7 @@ class EvaluatingVisitor {
         return this.#resolve(node.value);
     }
     [nodes.dict](node) {
-        return Object.fromEntries(node.value.map((entry) => [entry[0].value, this.visit(entry[1])]));
+        return Object.fromEntries(node.value.map((entry) => [this.visit(entry[0]), this.visit(entry[1])]));
     }
     [nodes.array](node) {
         return node.value.map((v) => this.visit(v));

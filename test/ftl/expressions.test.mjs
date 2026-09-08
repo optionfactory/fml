@@ -110,6 +110,9 @@ describe('Expression', () => {
     verify('can evaluate multiple !', '!!!!!!!!!!!a', [{ a: true }], false);
     verify('can use empty dict literal', '{}', [{}], {});
     verify('can use dict literal', "{'a': true, 'b': false}", [{}], { a: true, b: false });
+    verify('can use a template string as a literal dict key', '{`a`: 1}', [{}], { a: 1 });
+    verify('evaluates a template string dict key against the data', '{`{k}`: 1}', [{ k: 'dyn' }], { dyn: 1 });
+    verify('evaluates every part of a template string dict key', "{`{a}-{b}`: 1}", [{ a: 'x', b: 'y' }], { 'x-y': 1 });
     verify('can use empty array literal', '[]', [{}], []);
     verify('can use array literal', '[1,2]', [{}], [1, 2]);
     verify('can use string literal', '"abc"', [{}], 'abc');
