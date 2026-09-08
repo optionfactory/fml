@@ -562,6 +562,8 @@ describe('InputFile disabled and readonly claims', () => {
         assert.isTrue(input.matches(':disabled'));
         el.removeAttribute('disabled');
         assert.isFalse(input.matches(':disabled'));
+        container.remove();
+    });
 
     it('rejects a multi-file drop on a single-file field, as the native input does', async () => {
         const [single, singleContainer] = await mount(`<ful-input-file dropzone>files</ful-input-file>`);
@@ -589,8 +591,6 @@ describe('InputFile disabled and readonly claims', () => {
         el.querySelector('[data-ref=dropzone]').dispatchEvent(ev);
 
         assert.deepStrictEqual(selected(el), ['real.pdf']);
-        container.remove();
-    });
         container.remove();
     });
 });

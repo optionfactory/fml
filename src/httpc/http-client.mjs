@@ -168,16 +168,21 @@ class HttpClientError extends Failure {
 /**
  * @implements {HttpInterceptor}
  */
+const metaContent = (name) =>
+    globalThis.document?.querySelector(`meta[name="${name}"]`)?.getAttribute('content') ?? undefined;
+
 class CsrfTokenInterceptor {
-    #k;
-    #v;
-    constructor() {
-        this.#k = document.querySelector("meta[name='_csrf_header']")?.getAttribute('content');
-        this.#v = document.querySelector("meta[name='_csrf']")?.getAttribute('content');
-    }
     async intercept(url, request, chain) {
-        if (this.#k && this.#v) {
-            request.headers.set(this.#k, this.#v);
+        //the token is the page's own: it travels to the page's origin only, and it
+        //is read at request time, so metas landed after the client was built (a
+        //login flow) are honored without a rebuild
+        if (url.origin !== (globalThis.window?.location?.origin ?? url.origin)) {
+            return await chain.proceed(url, request);
+        }
+        const csrfHeader = metaContent('_csrf_header');
+        const csrfToken = metaContent('_csrf');
+        if (csrfHeader && csrfToken) {
+            request.headers.set(csrfHeader, csrfToken);
         }
         return await chain.proceed(url, request);
     }

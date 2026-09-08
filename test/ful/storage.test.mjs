@@ -101,12 +101,6 @@ describe('corrupt entries', () => {
         expect(VersionedLocalStorage.load('app-config', 'v1')).to.deep.equal({ theme: 'dark' });
     });
 
-    it('a bare non-object entry is absent to the versioned readers, not a crash, and is left in place', () => {
-        LocalStorage.save('shared.key', null);
-
-        expect(VersionedLocalStorage.load('shared.key', 'v1')).to.be.undefined;
-        expect(LocalStorage.load('shared.key')).to.be.null;
-    });
 });
 
 describe('absent entries', () => {

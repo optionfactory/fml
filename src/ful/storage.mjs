@@ -58,11 +58,7 @@ class VersionedLocalStorage {
     }
     static load(key, revision) {
         const stored = LocalStorage.load(key);
-        //not the wrapper's own shape: not ours to read, and not ours to remove either
-        if (stored == null || typeof stored !== 'object') {
-            return undefined;
-        }
-        if (stored === null || typeof stored !== 'object' || stored.revision !== revision) {
+        if (stored == null || typeof stored !== 'object' || stored.revision !== revision) {
             LocalStorage.remove(key);
             return undefined;
         }
@@ -76,10 +72,7 @@ class VersionedSessionStorage {
     }
     static load(key, revision) {
         const stored = SessionStorage.load(key);
-        if (stored == null || typeof stored !== 'object') {
-            return undefined;
-        }
-        if (stored === null || typeof stored !== 'object' || stored.revision !== revision) {
+        if (stored == null || typeof stored !== 'object' || stored.revision !== revision) {
             SessionStorage.remove(key);
             return undefined;
         }
