@@ -166,7 +166,7 @@ class LightSlots {
         if (el instanceof HTMLTemplateElement) {
             return document.adoptNode(el.content);
         }
-        if (el instanceof HTMLScriptElement && el.type !== '' && el.type !== 'text/javascript') {
+        if (el instanceof HTMLScriptElement && el.type === 'text/html') {
             return Fragments.fromHtml(el.innerHTML);
         }
         return el;

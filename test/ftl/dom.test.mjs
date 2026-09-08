@@ -121,6 +121,29 @@ describe('dom.mjs', () => {
             expect(el.childNodes.length, "The original element should be empty after extraction").to.equal(0);
         });
 
+        it('parses a text/html script slot as markup', () => {
+            const el = document.createElement('div');
+            el.innerHTML = `<script type="text/html" slot="tpl"><p>mark<u>up</u></p></${'script'}>`;
+
+            const slots = LightSlots.from(el);
+
+            expect(slots.tpl).to.be.instanceOf(DocumentFragment);
+            expect(slots.tpl.querySelector('u').textContent).to.equal('up');
+        });
+
+        it('never parses a module script as markup, it slots as the plain node', () => {
+            const el = document.createElement('div');
+            el.innerHTML = `<script type="module" slot="code">const tpl = "<b>not markup</b>";</${'script'}>`;
+
+            const slots = LightSlots.from(el);
+
+            const slotted = slots.code.querySelector('script');
+            expect(slotted).to.be.instanceOf(HTMLScriptElement);
+            expect(slotted.textContent).to.contain('const tpl');
+            expect(slots.code.querySelector('b')).to.be.null;
+        });
+
+
         it('extracts slot content directly from template elements', () => {
             const el = document.createElement('div');
             el.innerHTML = '<template slot="my-slot"><b>Bold</b></template>';
