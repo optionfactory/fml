@@ -186,7 +186,7 @@ class SelectLoader {
 class Dropdown extends ParsedElement {
     static slots = true;
     static template = `
-        <ful-spinner class="centered" hidden></ful-spinner>
+        <ful-spinner class="centered" role="status" hidden></ful-spinner>
         <p data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('dropdown.empty') }}</p>
         <menu tabindex="-1" role="listbox" hidden></menu>
     `;

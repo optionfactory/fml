@@ -1,12 +1,14 @@
-button.ful-tip {
+button:has(+ ful-note),
+.ful-tip {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     vertical-align: middle;
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
     padding: 0;
     border: 0;
+    border-radius: 50%;
     background: none;
     color: var(--ful-muted-color, var(--ful-color));
     cursor: pointer;
@@ -16,19 +18,21 @@ button.ful-tip {
         height: 1em;
     }
 
-    &:hover,
-    &:focus-visible {
-        color: var(--ful-active-color);
+    /*a soft accent chip, not a fill: the tip sits inline in text, a solid
+    square would shout; the accent ink keeps its contrast in both schemes*/
+    &:hover {
+        color: var(--ful-accent-ink);
+        background-color: color-mix(in srgb, var(--ful-active-bg) 12%, transparent);
     }
 
     &:focus-visible {
-        outline: var(--ful-focus-border-color) solid var(--ful-focus-border-width, 1px);
-        outline-offset: 1px;
-        border-radius: var(--ful-border-radius);
+        outline: 0;
+        box-shadow: var(--ful-focus-box-shadow);
     }
 }
 
-ful-note {
+ful-note,
+.ful-note {
     display: none;
     max-width: 20rem;
     padding: 0.5rem 0.75rem;
@@ -38,27 +42,34 @@ ful-note {
     border: var(--ful-border-width) solid var(--ful-border-color);
     border-radius: var(--ful-border-radius);
     font-size: 0.875rem;
+    /*the gap on the anchor-facing side, the placement attribute picks the area*/
     margin: 0.3rem 0 0;
 
     &:popover-open {
         display: block;
+        position-area: bottom;
     }
 
-    &[placement="top"] {
+    &[placement="top"]:popover-open {
+        position-area: top;
         margin: 0 0 0.3rem;
     }
 
-    &[placement="right"] {
+    &[placement="right"]:popover-open {
+        position-area: right;
         margin: 0 0 0 0.3rem;
     }
 
-    &[placement="left"] {
+    &[placement="left"]:popover-open {
+        position-area: left;
         margin: 0 0.3rem 0 0;
     }
 }
 
 dialog.ful-dialog {
-    width: min(90vw, 32rem);
+    --ful-dialog-width: min(90vw, 32rem);
+
+    width: var(--ful-dialog-width);
     padding: 0;
     border: var(--ful-border-width) solid var(--ful-border-color);
     border-radius: var(--ful-border-radius);
@@ -66,7 +77,7 @@ dialog.ful-dialog {
     color: var(--ful-color);
 
     &::backdrop {
-        background-color: rgb(0 0 0 / 50%);
+        background-color: var(--ful-backdrop-color);
     }
 
     & > header {
@@ -100,6 +111,11 @@ dialog.ful-dialog {
             &:hover {
                 background-color: var(--ful-active-bg);
                 color: var(--ful-active-color);
+            }
+
+            &:focus-visible {
+                outline: 0;
+                box-shadow: var(--ful-focus-box-shadow);
             }
         }
     }

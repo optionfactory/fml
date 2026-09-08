@@ -1,35 +1,28 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 
 <head>
+    <title>ful select</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <script src="../../dist/ftl.iife.js"></script>
     <link href="../../dist/ful.css" rel="stylesheet">
+    <link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
     <script src="../../dist/httpc.iife.min.js"></script>
     <script src="../../dist/ful.iife.min.js"></script>
-    <script>
-        ftl.registry
-            .plugin(new ful.Plugin())
-            .configure();
-    </script>
     <style>
-        body {
-            margin: 1rem;
+        fieldset :is(ful-select, fieldset > div) {
+            align-self: stretch;
         }
-        ful-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            max-width: 40rem;
-            padding: 1rem;
-            border: 1px solid canvasText;
+
+        fieldset label {
+            display: block;
+            margin-block-end: 0.5rem;
         }
-        ful-form form {
-            display: contents;
-        }
+
         .option {
             display: flex;
             flex-direction: row;
@@ -40,137 +33,141 @@
 </head>
 
 <body>
-    <ful-form>
-                <h1>ful-select</h1>
+    <h1>ful-select</h1>
+    <p>Single or multiple, chips or item list, options slotted from a native select or answered by a loader. The combobox pattern walks it: arrows, Home/End, Escape, and a click anywhere on the field toggles the list.</p>
 
-                <ful-select name="test.multi.select" value="test-key-4">
-                    <span slot="before">@</span>
-                    A ful-select
-                    <select slot="options">
-                        <option value="test-key-1">test-label-1</option>
-                        <option value="test-key-2">test-label-2</option>
-                        <option value="test-key-3">test-label-3</option>
-                        <option value="test-key-4">test-label-4</option>
-                        <option value="test-key-5">test-label-5</option>
-                        <option value="test-key-6">test-label-6</option>
-                        <option value="test-key-7">test-label-7</option>
-                        <option value="test-key-8">test-label-8</option>
-                        <option value="test-key-9">test-label-9</option>
-                        <option value="test-key-10">test-label-10</option>
-                        <option value="test-key-11">test-label-11</option>
-                        <option value="test-key-12">test-label-12</option>
-                        <option value="test-key-13">test-label-13</option>
-                        <option value="test-key-14">test-label-14</option>
-                        <option value="test-key-15">test-label-15</option>
-                        <option value="test-key-16">test-label-16</option>
-                        <option value="test-key-17">test-label-17</option>
-                        <option value="test-key-18">test-label-18</option>
-                        <option value="test-key-19">test-label-19</option>
-                    </select>
-                </ful-select>
-                <ful-select>
-                    <span slot="before">@</span>
-                    An empty select
-                </ful-select>
+    <h2>single</h2>
+    <fieldset>
+        <legend>options slotted from a native select</legend>
+        <ful-select name="single" value="issued">
+            <span slot="before">@</span>
+            With a value and an affix
+            <select slot="options">
+                <option value="quoted">Quoted</option>
+                <option value="issued">Issued</option>
+                <option value="suspended">Suspended</option>
+                <option value="renewed">Renewed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </ful-select>
+        <ful-select>
+            <span slot="before">@</span>
+            An empty select, the options promised later
+        </ful-select>
+    </fieldset>
 
-                <ful-select name="test.multi.select" value="test-key-4">
-                    <span slot="before">@</span>
-                    A ful select with a templated menu
-                    <select slot="options">
-                        <option value="test-key-1">test-label-1</option>
-                        <option value="test-key-2">test-label-2</option>
-                        <option value="test-key-3">test-label-3</option>
-                    </select>
-                    <template slot="dropdown">
-                        <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index" class="option">
-                            <div>
-                                <ful-icon name="star" aria-hidden="true"></ful-icon>
-                            </div>
-                            <div>
-                                <div>My custom option</div>
-                                <b>{{ label }}</b>
-                            </div>
-                        </li>
-                    </template>
-                </ful-select>
+    <h2>multiple</h2>
+    <fieldset>
+        <legend>the same options as chips, and as an item list</legend>
+        <ful-select multiple name="tags" value="home,vehicle">
+            Tags, preselected, as chips
+            <select slot="options">
+                <option value="home">Home</option>
+                <option value="vehicle">Vehicle</option>
+                <option value="health">Health</option>
+                <option value="travel">Travel</option>
+                <option value="pets">Pets</option>
+            </select>
+        </ful-select>
+        <ful-select multiple itemlist name="covers">
+            The same, as an item list
+            <select slot="options">
+                <option value="home">Home</option>
+                <option value="vehicle">Vehicle</option>
+                <option value="health">Health</option>
+                <option value="travel">Travel</option>
+                <option value="pets">Pets</option>
+            </select>
+        </ful-select>
+    </fieldset>
 
+    <h2>a templated menu</h2>
+    <fieldset>
+        <legend>the dropdown slot shapes each option</legend>
+        <ful-select name="shaped" value="health">
+            A templated menu
+            <select slot="options">
+                <option value="home">Home</option>
+                <option value="vehicle">Vehicle</option>
+                <option value="health">Health</option>
+                <option value="travel">Travel</option>
+            </select>
+            <template slot="dropdown">
+                <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index" class="option">
+                    <div><ful-icon name="star" aria-hidden="true"></ful-icon></div>
+                    <div>
+                        <div>My custom option</div>
+                        <b>{{ label }}</b>
+                    </div>
+                </li>
+            </template>
+        </ful-select>
+    </fieldset>
 
-                <ful-select multiple name="test.multi.select2">
-                    <span slot="before">@</span>
-                    <select slot="options">
-                        <option value="test-key-1">test-label-1</option>
-                        <option value="test-key-2">test-label-2</option>
-                        <option value="test-key-3">test-label-3</option>
-                        <option value="test-key-4">test-label-4</option>
-                        <option value="test-key-5">test-label-5</option>
-                        <option value="test-key-6">test-label-6</option>
-                        <option value="test-key-7">test-label-7</option>
-                        <option value="test-key-8">test-label-8</option>
-                        <option value="test-key-9">test-label-9</option>
-                        <option value="test-key-10">test-label-10</option>
-                        <option value="test-key-11">test-label-11</option>
-                        <option value="test-key-12">test-label-12</option>
-                        <option value="test-key-13">test-label-13</option>
-                        <option value="test-key-14">test-label-14</option>
-                        <option value="test-key-15">test-label-15</option>
-                        <option value="test-key-16">test-label-16</option>
-                        <option value="test-key-17">test-label-17</option>
-                        <option value="test-key-18">test-label-18</option>
-                        <option value="test-key-19">test-label-19</option>
-                    </select>
-                    A ful-select with multiple
-                </ful-select>
-                <ful-select multiple itemlist name="test.multi.select2">
-                    <span slot="before">@</span>
-                    <select slot="options">
-                        <option value="test-key-1">test-label-1</option>
-                        <option value="test-key-2">test-label-2</option>
-                        <option value="test-key-3">test-label-3</option>
-                        <option value="test-key-4">test-label-4</option>
-                        <option value="test-key-5">test-label-5</option>
-                        <option value="test-key-6">test-label-6</option>
-                        <option value="test-key-7">test-label-7</option>
-                        <option value="test-key-8">test-label-8</option>
-                        <option value="test-key-9">test-label-9</option>
-                        <option value="test-key-10">test-label-10</option>
-                        <option value="test-key-11">test-label-11</option>
-                        <option value="test-key-12">test-label-12</option>
-                        <option value="test-key-13">test-label-13</option>
-                        <option value="test-key-14">test-label-14</option>
-                        <option value="test-key-15">test-label-15</option>
-                        <option value="test-key-16">test-label-16</option>
-                        <option value="test-key-17">test-label-17</option>
-                        <option value="test-key-18">test-label-18</option>
-                        <option value="test-key-19">test-label-19</option>
-                    </select>
-                    A ful-select with multiple and itemlist
-                </ful-select>
+    <h2>loader-fed</h2>
+    <p>The remote shape without the network: a mock loader answers after a delay, so opening shows the spinner the real endpoint would. The vocabulary is the one the applications run — <code>src</code>, <code>method</code>, <code>revision</code> for the cached whole-set fetch, <code>mode="chunked"</code> for the searched one, <code>k-expr</code>/<code>l-expr</code> to map the payload.</p>
+    <fieldset>
+        <legend>single and multiple, answered by a mock loader</legend>
+        <ful-select loader="loaders:demo-options">
+            Single, loader-fed
+        </ful-select>
+        <ful-select multiple itemlist loader="loaders:demo-options">
+            Multiple, loader-fed
+        </ful-select>
+    </fieldset>
 
-                <ful-select method="GET" src="https://jsonplaceholder.typicode.com/posts" revision="12" k-expr="id" l-expr="title">
-                    <span slot="before">@</span>
-                    A ful select with revision
-                </ful-select>
+    <h2>the native baseline</h2>
+    <fieldset>
+        <legend>a plain select, for comparison</legend>
+        <div>
+            <label for="native-select">A plain native select</label>
+            <select id="native-select">
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+            </select>
+        </div>
+    </fieldset>
 
-
-                <ful-select multiple itemlist method="GET" src="https://jsonplaceholder.typicode.com/posts" revision="12" k-expr="id" l-expr="title">
-                    <span slot="before">@</span>
-                    A ful select with revision
-                </ful-select>
-
-                <div>
-                    <label for="native-select">A plain native select, for comparison</label>
-                    <select id="native-select">
-                        <option>1</option>
-                        <option>2</option>
-                        <option>3</option>
-                        <option>4</option>
-                    </select>
-                </div>
-            </ful-form>
     <script>
-        document.querySelector('[name="test.multi.select"]').addEventListener('change', e => {
-            console.log(e);
-        })
+        /**
+         * A mock of the remote select options: the loader contract the select
+         * drives — prefetch on preload, load on open and search, exact for the
+         * values that must resolve — answered with a simulated round trip.
+         */
+        class DemoOptionsLoader {
+            #data = [
+                ['quoted', 'Quoted'],
+                ['issued', 'Issued'],
+                ['suspended', 'Suspended'],
+                ['renewed', 'Renewed'],
+                ['cancelled', 'Cancelled'],
+                ['expired', 'Expired'],
+            ];
+            #roundtrip() {
+                return new Promise((resolve) => setTimeout(resolve, 500));
+            }
+            async prefetch() {
+                await this.#roundtrip();
+            }
+            async exact(...keys) {
+                await this.#roundtrip();
+                return this.#data.filter(([k]) => keys.some((r) => r === k));
+            }
+            async load(needle) {
+                await this.#roundtrip();
+                return this.#data.filter(([, v]) => (v ?? '').toLowerCase().includes((needle ?? '').toLowerCase()));
+            }
+            static create() {
+                return new DemoOptionsLoader();
+            }
+        }
+
+        ftl.registry
+            .plugin(new ful.Plugin())
+            .defineComponent('loaders:demo-options', DemoOptionsLoader)
+            .configure();
     </script>
 </body>
 

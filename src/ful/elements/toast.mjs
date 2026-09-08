@@ -1,25 +1,47 @@
 import { Localization, ParsedElement } from '../../ftl/index.mjs';
+import { problemsText } from './problems.mjs';
 
 const SEVERITIES = ['info', 'success', 'warning', 'error'];
 
+//the regions alive in the document: the show-toast door is wired once and
+//forwards to each of them, so a re-hosted or second region never doubles a toast
+const REGIONS = new Set();
+let doorWired = false;
+
 class Toasts extends ParsedElement {
     #timeout;
+    #rendered = false;
+    connectedCallback() {
+        super.connectedCallback();
+        if (this.#rendered) {
+            REGIONS.add(this);
+        }
+    }
+    disconnectedCallback() {
+        REGIONS.delete(this);
+    }
     render() {
-        this.classList.add('ful-toasts');
         this.#timeout = Number(this.getAttribute('timeout')) || 5000;
         this.setAttribute('role', 'region');
         this.setAttribute('aria-label', Localization.of().t('toast.region'));
-        document.addEventListener('show-toast', (/** @type any */ e) => {
-            this.show(e.detail.message, e.detail);
-        });
+        if (!doorWired) {
+            doorWired = true;
+            document.addEventListener('show-toast', (/** @type any */ e) => {
+                for (const region of REGIONS) {
+                    region.show(e.detail.message, e.detail);
+                }
+            });
+        }
+        REGIONS.add(this);
+        this.#rendered = true;
     }
     show(message, options = {}) {
         const severity = SEVERITIES.includes(options.severity) ? options.severity : 'info';
-        const item = document.createElement('div');
-        item.className = `ful-toast ${severity}`;
+        const item = document.createElement('ful-toast');
+        item.classList.add(severity);
         item.setAttribute('role', severity === 'error' ? 'alert' : 'status');
         const body = document.createElement('div');
-        body.textContent = message?.problems ? message.problems.map((p) => `${p.reason}`).join('\n') : `${message ?? ''}`;
+        body.textContent = problemsText(message, `${message ?? ''}`);
         const dismiss = document.createElement('button');
         dismiss.type = 'button';
         dismiss.setAttribute('aria-label', Localization.of().t('toast.dismiss'));

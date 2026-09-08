@@ -1,4 +1,5 @@
 import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from '../../ftl/index.mjs';
+import { problemsText } from './problems.mjs';
 
 class SortButton extends ParsedElement {
     static observed = ['order'];
@@ -63,7 +64,7 @@ class Pagination extends ParsedElement {
         reloadIcon: 'arrow-clockwise',
     };
     static template = `
-        <nav data-tpl-aria-label="#l10n:t('pagination.navigation')">
+        <ful-pagination-bar role="navigation" data-tpl-aria-label="#l10n:t('pagination.navigation')">
             <ul>
                 <li data-ref="index"> {{ #l10n:t('pagination.showing', { 'current': curr.label, 'total': total }) }}</li>
                 <li data-ref="reload"><button type="button" data-tpl-aria-label="#l10n:t('pagination.reload')"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></button></li>
@@ -83,7 +84,7 @@ class Pagination extends ParsedElement {
                     </button>
                 </li>
             </ul>
-        </nav>
+        </ful-pagination-bar>
     `;
     #total = 0;
     #current = 0;
@@ -281,7 +282,7 @@ class Table extends ParsedElement {
         <ful-form data-tpl-if="slots.filters">
             {{{{ slots.filters }}}}
         </ful-form>
-        <div class="table-wrapper">
+        <ful-table-wrapper>
             <table>
                 <caption data-tpl-if="slots.caption">{{{{ slots.caption }}}}</caption>
                 <thead></thead>
@@ -299,7 +300,7 @@ class Table extends ParsedElement {
                 <tbody data-ref="loading" hidden>
                     <tr>
                         <td data-tpl-colspan="schema.length">
-                            <ful-spinner class="big"></ful-spinner>
+                            <ful-spinner class="big" role="status"></ful-spinner>
                         </td>
                     </tr>
                 </tbody>
@@ -317,7 +318,7 @@ class Table extends ParsedElement {
                     {{{{ slots.footer }}}}
                 </tfoot>
             </table>
-        </div>
+        </ful-table-wrapper>
         <ful-pagination current="0" total="1"></ful-pagination>
     `;
     static templates = {
@@ -344,7 +345,7 @@ class Table extends ParsedElement {
         const template = this.template();
         const schema = TableSchemaParser.parse(slots.schema, template);
         const fragment = template.withOverlay({ slots, schema }).render();
-        const tableWrapper = /** @type HTMLTableElement */ (Nodes.queryChildren(fragment, '.table-wrapper'));
+        const tableWrapper = /** @type HTMLTableElement */ (Nodes.queryChildren(fragment, 'ful-table-wrapper'));
         const table = /** @type HTMLTableElement */ (tableWrapper.querySelector('table'));
         Attributes.forward('table-', this, table);
         this.#loader = registry.component(this.getAttribute('loader') ?? 'loaders:table').create(this);
@@ -446,13 +447,7 @@ class Table extends ParsedElement {
             }
             this.#loading.setAttribute('hidden', '');
             this.#feedback.removeAttribute('hidden');
-            if (!error.problems) {
-                this.#feedback.querySelector('[data-ref=feedback-error]').textContent = error;
-            } else {
-                this.#feedback.querySelector('[data-ref=feedback-error]').textContent = error.problems.map(
-                    (p) => `${p.reason}`,
-                );
-            }
+            this.#feedback.querySelector('[data-ref=feedback-error]').textContent = problemsText(error, `${error}`);
             throw error;
         }
     }

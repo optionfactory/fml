@@ -2,16 +2,16 @@
 <html lang="it">
 
 <head>
+    <title>ful table</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <script src="../../dist/ftl.iife.js"></script>
     <link href="../../dist/ful.css" rel="stylesheet">
+    <link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
     <script src="../../dist/httpc.iife.min.js"></script>
     <script src="../../dist/ful.iife.min.js"></script>
     <style>
-        body {
-            margin: 1rem;
-        }
         .filters {
             display: flex;
             gap: 0.5rem;
@@ -101,7 +101,7 @@
             <ful-filter-boolean name="byActive">
                 Attivo
             </ful-filter-boolean>
-            <button type="submit">Search</button>
+            <button type="submit" class="ful-button">Search</button>
         </div>
         <template slot="schema">
             <schema>

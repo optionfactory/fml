@@ -1,4 +1,6 @@
-.ful-toasts {
+*:has(> ful-toast):not(body, html) {
+    --ful-toasts-max-width: min(90vw, 24rem);
+
     position: fixed;
     top: 1rem;
     inset-inline-end: 1rem;
@@ -7,9 +9,9 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 0.5rem;
-    max-width: min(90vw, 24rem);
+    max-width: var(--ful-toasts-max-width);
 
-    & > .ful-toast {
+    & > ful-toast {
         display: flex;
         align-items: flex-start;
         gap: 0.5rem;
@@ -34,6 +36,7 @@
             height: 1.25rem;
             padding: 0;
             border: 0;
+            border-radius: var(--ful-border-radius);
             background: none;
             color: inherit;
             cursor: pointer;
@@ -43,21 +46,20 @@
                 height: 1em;
             }
 
-            &:hover,
-            &:focus-visible {
+            &:hover {
                 color: var(--ful-active-color);
+                background-color: var(--ful-active-bg);
             }
 
             &:focus-visible {
-                outline: var(--ful-focus-border-color) solid var(--ful-focus-border-width, 1px);
-                outline-offset: 1px;
-                border-radius: var(--ful-border-radius);
+                outline: 0;
+                box-shadow: var(--ful-focus-box-shadow);
             }
         }
 
         &.success {
-            border-color: var(--ful-active-bg);
-            color: var(--ful-active-bg);
+            border-color: var(--ful-accent-ink);
+            color: var(--ful-accent-ink);
         }
 
         &.warning {

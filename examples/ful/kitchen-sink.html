@@ -2,49 +2,21 @@
 <html lang="en">
 
 <head>
+    <title>ful kitchen sink</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <script src="../../dist/ftl.iife.js"></script>
     <link href="../../dist/ful.css" rel="stylesheet">
+    <link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
     <script src="../../dist/httpc.iife.min.js"></script>
     <script src="../../dist/ful.iife.min.js"></script>
     <style>
-        body {
-            font-family: system-ui, sans-serif;
-            margin: 0 auto;
-            padding: 2rem;
-            max-width: 60rem;
-        }
-
-        h1 {
-            font-size: 1.5rem;
-        }
-
-        h2 {
-            font-size: 1.1rem;
-            margin-top: 2.5rem;
-        }
-
-        h3 {
-            font-size: 1rem;
-            margin-top: 1.5rem;
-        }
-
         form {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
             gap: 1rem;
-        }
-
-        button[type='submit'] {
-            align-self: start;
-            padding: 0.375rem 0.75rem;
-            border: 1px solid #007376;
-            border-radius: 0.375rem;
-            color: white;
-            background: #007376;
-            cursor: pointer;
         }
 
         [data-state='focus'] > ful-control-group {
@@ -302,7 +274,7 @@
             <em slot="after">pick one</em>
         </ful-select>
         <ful-checkbox name="tos">Accept the terms</ful-checkbox>
-        <button type="submit">Validate</button>
+        <button type="submit" class="ful-button">Validate</button>
     </ful-form>
 
     <h2>files</h2>
@@ -351,6 +323,45 @@
     <h3>pagination</h3>
     <ful-pagination current="2" total="9"></ful-pagination>
     <ful-pagination current="5" total="30" pages="3"></ful-pagination>
+
+    <h2>disclosures</h2>
+    <p>Tooltips, dialogs and drawers on the native popover and dialog platforms: focus trapping, Escape and light dismiss come for free. The tip explains the field below; the dialog and the drawer open by their triggers.</p>
+    <ful-form>
+        <ful-input name="hinted" value="tab to the tip">A labelled input <ful-tooltip>the tooltip explains the field in one line, dismissed by Escape or an outside click.</ful-tooltip></ful-input>
+    </ful-form>
+    <button type="button" class="ful-button" dialog-target="sink-dialog">Open the dialog</button>
+    <ful-dialog id="sink-dialog" header="A native modal">
+        The body of the dialog, with the localized acknowledge button below.
+    </ful-dialog>
+    <button type="button" class="ful-button" dialog-target="sink-drawer">Open the drawer</button>
+    <ful-drawer id="sink-drawer" title="A side panel" placement="start">
+        The slotted body of the drawer, shown when update() never replaced it.
+    </ful-drawer>
+
+    <h2>toasts</h2>
+    <ful-toasts id="sink-toasts"></ful-toasts>
+    <button type="button" class="ful-button" id="sink-toast">Raise a toast</button>
+
+    <h2>navigation</h2>
+    <p>Tabs over the tab pattern, the accordion over native details, the wizard claiming its current step through aria-current — the chrome follows the claim alone.</p>
+    <ful-tabs>
+        <template slot="tabs"><tab>One</tab><tab>Two</tab></template>
+        <section>the first panel</section>
+        <section>the second panel</section>
+    </ful-tabs>
+    <ful-accordion exclusive>
+        <details>
+            <summary>First</summary>one
+        </details>
+        <details open>
+            <summary>Second</summary>two
+        </details>
+    </ful-accordion>
+    <ful-wizard>
+        <template slot="steps"><step>A</step><step>B</step></template>
+        <section data-step="a">the first step</section>
+        <section data-step="b">the last step</section>
+    </ful-wizard>
 
     <script>
         class MockDataLoader {
@@ -415,6 +426,10 @@
                 { type: 'FIELD_ERROR', context: 'tos', reason: 'the terms must be accepted' },
                 { type: 'GENERIC', context: null, reason: 'The server rejected the submission (demo).' },
             ];
+        });
+
+        document.getElementById('sink-toast').addEventListener('click', () => {
+            document.getElementById('sink-toasts').show('Saved (demo).', { severity: 'success' });
         });
     </script>
 </body>

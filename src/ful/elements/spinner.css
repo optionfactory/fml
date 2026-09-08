@@ -1,14 +1,27 @@
+/*the spinner is a style-only tag: the glyph is the tag's own face, the label
+its light-dom children — no backing element to upgrade, nothing to flash-guard*/
 ful-spinner {
     --ful-spinner-icon-width: 1rem;
     --ful-spinner-icon-height: 1rem;
     --ful-spinner-icon-border-width: 0.2em;
-    --ful-spinner-icon-vertical-align: -0.125em;
     --ful-spinner-icon-animation-speed: 0.75s;
     --ful-spinner-icon-animation-name: spinner-border;
     --ful-spinner-icon-color: currentcolor;
 
-    &:not(:defined) {
-        visibility: hidden;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+
+    &::after {
+        content: "";
+        flex: 0 0 auto;
+        display: inline-block;
+        width: var(--ful-spinner-icon-width);
+        height: var(--ful-spinner-icon-height);
+        border-radius: 50%;
+        border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
+        border-right-color: transparent;
+        animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
     }
 
     &.centered {
@@ -20,57 +33,52 @@ ful-spinner {
     &.big {
         --ful-spinner-icon-width: 2rem;
         --ful-spinner-icon-height: 2rem;
-        --ful-spinner-icon-border-width: 0.25em;
+        --ful-spinner-icon-border-width: 0.25rem;
     }
 
     &.bigger {
         --ful-spinner-icon-width: 4rem;
         --ful-spinner-icon-height: 4rem;
-        --ful-spinner-icon-border-width: 0.5em;
+        --ful-spinner-icon-border-width: 0.5rem;
     }
 
+    /*the page-loading spinner: the whole viewport behind a scrim, the glyph
+    wearing its own card — the portaleprodotti shape, card included. The
+    backdrop takes no label: the cell stacks the card and the glyph alone*/
     &.backdrop {
         --ful-spinner-icon-width: 4rem;
         --ful-spinner-icon-height: 4rem;
-        --ful-spinner-icon-border-width: 0.5em;
+        --ful-spinner-icon-border-width: 0.5rem;
 
         z-index: 2000;
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        overflow-x: hidden;
-        overflow-y: auto;
-        outline: 0;
+        inset: 0;
+        display: grid;
+        place-items: center;
         background-color: rgb(167 167 167 / 80%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
 
-        & > .ful-spinner-wrapper {
-            padding: 2rem;
-            background-color: white;
+        &::before {
+            content: "";
+            grid-area: 1 / 1;
+            width: calc(var(--ful-spinner-icon-width) + 4rem);
+            height: calc(var(--ful-spinner-icon-height) + 4rem);
+            background-color: var(--ful-bg);
             border-radius: 1rem;
         }
-    }
 
-    & > .ful-spinner-wrapper {
-        display: inline;
-
-        & > .ful-spinner-icon {
-            display: inline-block;
-            width: var(--ful-spinner-icon-width);
-            height: var(--ful-spinner-icon-height);
-            vertical-align: var(--ful-spinner-icon-vertical-align);
-            border-radius: 50%;
-            border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
-            border-right-color: transparent;
-            animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
+        &::after {
+            grid-area: 1 / 1;
         }
     }
 }
 
 body:has(ful-spinner.backdrop:not([hidden])) {
     overflow: hidden;
+}
+
+/*bootstrap's own keyframes, MIT licensed like the icon glyphs*/
+@keyframes spinner-border {
+    to {
+        transform: rotate(360deg);
+    }
 }

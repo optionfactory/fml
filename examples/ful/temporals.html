@@ -2,6 +2,7 @@
 <html lang="it">
 
 <head>
+    <title>ful temporals: local dates and instants per locale</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -9,22 +10,20 @@
     
     <script src="../../dist/ftl.iife.js"></script>
     <link href="../../dist/ful.css" rel="stylesheet">
+    <link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
     <script src="../../dist/httpc.iife.min.js"></script>
     <script src="../../dist/ful.iife.min.js"></script>
     <style>
+        /*the literal values and locale tags, as soft chips*/
         span {
             display: inline-block;
-            border: 1px solid #8888ff;
-            margin: 0.2rem;
-            padding: 0 0.3rem;
-        }
-
-        h2 {
-            margin-top: 2rem;
-        }
-
-        body {
-            margin: 1rem;
+            margin: 0.125rem;
+            padding: 0.0625rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.875em;
+            border: 1px solid color-mix(in srgb, var(--ful-active-bg) 35%, transparent);
+            background-color: color-mix(in srgb, var(--ful-active-bg) 8%, transparent);
         }
 
         .fields {

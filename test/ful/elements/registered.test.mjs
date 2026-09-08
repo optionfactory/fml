@@ -24,11 +24,6 @@ registry.defineElement = defineElement;
 const ANY = Symbol('any');
 const ELEMENTS = [
     {
-        tag: 'ful-spinner',
-        html: `<ful-spinner>loading</ful-spinner>`,
-        observed: {},
-    },
-    {
         tag: 'ful-tooltip',
         html: `<ful-tooltip>a short explanation</ful-tooltip>`,
         observed: {},
@@ -48,6 +43,25 @@ const ELEMENTS = [
         html: `<ful-toasts></ful-toasts>`,
         observed: {},
         empty: true,
+    },
+    {
+        tag: 'ful-tabs',
+        html: `<ful-tabs><template slot="tabs"><tab>A</tab><tab>B</tab></template><section>a</section><section>b</section></ful-tabs>`,
+        observed: {
+            active: ['1', 1],
+        },
+    },
+    {
+        tag: 'ful-accordion',
+        html: `<ful-accordion><details><summary>s</summary>c</details><details open><summary>s2</summary>c2</details></ful-accordion>`,
+        observed: {
+            exclusive: ['', true],
+        },
+    },
+    {
+        tag: 'ful-wizard',
+        html: `<ful-wizard><template slot="steps"><step>One</step><step>Two</step></template><section data-step="one">a</section><section data-step="two">b</section></ful-wizard>`,
+        observed: {},
     },
     {
         tag: 'ful-form',

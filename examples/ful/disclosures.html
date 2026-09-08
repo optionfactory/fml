@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>ful disclosures: tooltip, dialog, drawer, toasts</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="../../dist/ftl.iife.js"></script>
+    <link href="../../dist/ful.css" rel="stylesheet">
+    <link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
+    <script src="../../dist/httpc.iife.min.js"></script>
+    <script src="../../dist/ful.iife.min.js"></script>
+    <script>
+        ftl.registry
+            .plugin(new ful.Plugin())
+            .configure();
+    </script>
+    <style>
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ful disclosures and toasts</h1>
+    <p>Everything here runs on the native platform: tooltips are popovers, dialogs and drawers are <code>&lt;dialog&gt;</code>s with their focus trapping and Escape handling, toasts are a live region. The library wires them, <code>dist/ful.css</code> paints them.</p>
+
+    <h2>tooltips</h2>
+    <p>An icon button toggling a short explanation: placement picks the side, the default is below. Light dismiss, Escape and the <code>aria-expanded</code> accounting come from the wiring.</p>
+    <fieldset>
+        <legend>the four placements, below the default</legend>
+        <label>Below (default) <ful-tooltip>the default placement opens under the trigger.</ful-tooltip></label>
+        <label>Above <ful-tooltip placement="top">placement="top" opens over the trigger.</ful-tooltip></label>
+        <label>Before <ful-tooltip placement="left">placement="left" opens on the inline start side.</ful-tooltip></label>
+        <label>After <ful-tooltip placement="right">placement="right" opens on the inline end side.</ful-tooltip></label>
+    </fieldset>
+    <fieldset>
+        <legend>the info slot: a field carrying its own explanation</legend>
+        <ful-form>
+            <ful-input name="vat" value="IT01234567890">
+                VAT number
+                <ful-tooltip slot="info">the Italian VAT identifier: eleven digits, IT-prefixed.</ful-tooltip>
+            </ful-input>
+            <ful-input type="email" name="work-email">
+                Work email
+                <ful-tooltip slot="info">reaches you during office hours; personal addresses live in the profile.</ful-tooltip>
+            </ful-input>
+        </ful-form>
+    </fieldset>
+
+    <h2>dialogs</h2>
+    <p>The first one is fully declarative: any element carrying <code>dialog-target</code> set to the dialog's id opens it, and the localized acknowledge button closes it. The second one answers with the <code>data-result</code> of the button that closed it: <code>ask()</code> resolves with it, or null on Escape.</p>
+    <fieldset>
+        <legend>a declarative notice and a question answering ask()</legend>
+        <button type="button" class="ful-button" dialog-target="notice-dialog">Open the notice</button>
+        <ful-dialog id="notice-dialog" header="Maintenance scheduled">
+            The ledger closes at 23:00 for the monthly reconciliation. Expect a read-only window of about ten minutes.
+        </ful-dialog>
+
+        <button type="button" class="ful-button" id="ask-confirm">Ask the confirmation</button>
+        <output id="confirm-result">the answer will appear here</output>
+        <ful-dialog id="confirm-dialog" header="Publish the ledger?">
+            Once published, the entries are immutable and any correction needs a reversing entry.
+            <template slot="buttons">
+                <button type="button" data-result="published">Publish</button>
+                <button type="button" data-result="cancelled">Cancel</button>
+            </template>
+        </ful-dialog>
+    </fieldset>
+
+    <h2>drawers</h2>
+    <p>The first one shows its slotted body, opened again by a <code>dialog-target</code>. The other two are driven through <code>update(title, callback)</code>: the drawer opens in a loading state, then shows either the content the callback delivers or the problems a rejection carries.</p>
+    <fieldset>
+        <legend>one slotted, one delivered, one failing</legend>
+        <button type="button" class="ful-button" dialog-target="static-drawer">Open the static one</button>
+        <ful-drawer id="static-drawer" title="Slotted content" placement="start">
+            This body was slotted in the markup: <code>update()</code> never ran on this drawer.
+        </ful-drawer>
+
+        <button type="button" class="ful-button" id="drawer-deliver">Deliver content</button>
+        <ful-drawer id="delivered-drawer" title="Replaced on open">
+            You should never see this: update() replaces the slotted body with the delivered content.
+        </ful-drawer>
+
+        <button type="button" class="ful-button ghost" id="drawer-fail">Fail the delivery</button>
+        <ful-drawer id="failing-drawer" title="A failing update"></ful-drawer>
+    </fieldset>
+
+    <h2>toasts</h2>
+    <p>One <code>ful-toasts</code> region per page. Each toast announces itself by severity, carries its own dismiss button and retires on its timer. Anything in the page can raise one through the <code>show-toast</code> document event, and a <code>Failure</code> shows its problems.</p>
+    <ful-toasts id="toasts" timeout="8000"></ful-toasts>
+    <fieldset>
+        <legend>four severities, the event door, a failure's problems</legend>
+        <div class="row">
+            <button type="button" class="ful-button" data-toast="info">info</button>
+            <button type="button" class="ful-button" data-toast="success">success</button>
+            <button type="button" class="ful-button" data-toast="warning">warning</button>
+            <button type="button" class="ful-button" data-toast="error">error</button>
+        </div>
+        <button type="button" class="ful-button" id="toast-from-event">From anywhere: show-toast event</button>
+        <button type="button" class="ful-button" id="toast-failure">A failure's problems</button>
+    </fieldset>
+
+    <script>
+        const byId = (id) => document.getElementById(id);
+
+        byId('ask-confirm').addEventListener('click', async () => {
+            const result = await byId('confirm-dialog').ask();
+            byId('confirm-result').textContent = `ask() resolved with: ${result === null ? 'null (Escape or no result)' : `'${result}'`}`;
+        });
+
+        byId('drawer-deliver').addEventListener('click', async () => {
+            const content = await byId('delivered-drawer').update('The delivered content', async () => {
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+                const delivered = document.createElement('p');
+                delivered.textContent = 'Delivered by the callback after a simulated round trip: the loading state covered the wait.';
+                return delivered;
+            });
+            content.append('The update resolved with this section, ready for further wiring.');
+        });
+
+        byId('drawer-fail').addEventListener('click', () => {
+            byId('failing-drawer')
+                .update('The failing update', async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    throw new httpc.Failure('invalid', [
+                        { type: 'FIELD_ERROR', context: 'from', reason: 'from is after to' },
+                        { type: 'GENERIC_PROBLEM', context: null, reason: 'the period is inverted (demo)' },
+                    ]);
+                })
+                .catch(() => {});
+        });
+
+        for (const button of document.querySelectorAll('[data-toast]')) {
+            button.addEventListener('click', () => {
+                byId('toasts').show(`a ${button.dataset.toast} toast`, { severity: button.dataset.toast });
+            });
+        }
+
+        byId('toast-from-event').addEventListener('click', () => {
+            document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'raised without any reference to the region', severity: 'success' } }));
+        });
+
+        byId('toast-failure').addEventListener('click', () => {
+            byId('toasts').show(
+                new httpc.Failure('invalid', [
+                    { type: 'FIELD_ERROR', context: 'vat', reason: 'not a valid VAT id' },
+                    { type: 'GENERIC_PROBLEM', context: null, reason: 'the registry is unreachable (demo)' },
+                ]),
+                { severity: 'error' },
+            );
+        });
+    </script>
+</body>
+
+</html>

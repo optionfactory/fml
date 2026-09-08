@@ -1,18 +1,18 @@
-ful-input,
-.ful-input,
-ful-input-file,
-ful-input-local-date,
-ful-input-local-time,
-ful-input-instant {
-    display: block;
+/*the flash guard is inherently tag-based: it must hold before the structure renders*/
+ful-input:not(:defined),
+.ful-input:not(:defined),
+ful-input-file:not(:defined),
+ful-input-local-date:not(:defined),
+ful-input-local-time:not(:defined),
+ful-input-instant:not(:defined) {
+    visibility: hidden;
+}
 
+/*the chrome matches the structure instead: whoever presents a bare input or textarea in a control group*/
+*:has(> ful-control-group > input, > ful-control-group > textarea) {
     &[uppercase] input,
     &[uppercase] textarea {
         text-transform: uppercase;
-    }
-
-    &:not(:defined) {
-        visibility: hidden;
     }
 
     &:invalid textarea,

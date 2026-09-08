@@ -61,8 +61,8 @@ describe('Element metadata', function () {
                 }
                 return names;
             });
-        const modules = ['bindings', 'checkbox', 'drawer', 'files', 'field', 'filters', 'form', 'info', 'input', 'plugin',
-            'radio', 'select', 'spinner', 'table', 'temporals', 'toast'];
+        const modules = ['accordion', 'bindings', 'checkbox', 'drawer', 'files', 'field', 'filters', 'form', 'info', 'input', 'plugin',
+            'radio', 'select', 'table', 'tabs', 'temporals', 'toast', 'wizard'];
         for (const module of modules) {
             const text = await (await fetch(`/src/ful/elements/${module}.mjs`)).text();
             const marks = [...text.matchAll(/^class (\w+)/gm)];

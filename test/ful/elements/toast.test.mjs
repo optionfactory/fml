@@ -27,7 +27,9 @@ describe('Toasts', () => {
 
         assert.strictEqual(toasts.getAttribute('role'), 'region');
         assert.strictEqual(toasts.getAttribute('aria-label'), 'Notifications');
-        assert.isTrue(toasts.classList.contains('ful-toasts'), 'the region chrome anchors on the class');
+        assert.strictEqual(getComputedStyle(toasts).position, 'static', 'an empty region draws nothing');
+        toasts.show('saved');
+        assert.strictEqual(getComputedStyle(toasts).position, 'fixed', 'the region chrome is the structure it renders');
         container.remove();
     });
 
@@ -36,6 +38,7 @@ describe('Toasts', () => {
 
         const item = toasts.show('saved', { severity: 'success' });
 
+        assert.strictEqual(item.localName, 'ful-toast');
         assert.isTrue(item.classList.contains('success'));
         assert.strictEqual(item.getAttribute('role'), 'status');
         assert.strictEqual(item.querySelector('div').textContent, 'saved');
@@ -44,7 +47,7 @@ describe('Toasts', () => {
         item.querySelector('button').click();
         assert.isTrue(item.classList.contains('ful-toast-out'), 'the dismiss button retires the toast');
         retire(item);
-        assert.isNull(toasts.querySelector('.ful-toast'), 'the retired toast leaves the region');
+        assert.isNull(toasts.querySelector('ful-toast'), 'the retired toast leaves the region');
         container.remove();
     });
 
@@ -71,7 +74,7 @@ describe('Toasts', () => {
         const first = toasts.show('first');
         const second = toasts.show('second');
 
-        assert.strictEqual(toasts.querySelectorAll('.ful-toast').length, 2, 'both are stacked');
+        assert.strictEqual(toasts.querySelectorAll('ful-toast').length, 2, 'both are stacked');
         retire(first);
         assert.isNotNull(second.parentElement, 'one retiring does not retire the other');
         container.remove();
@@ -91,20 +94,36 @@ describe('Toasts', () => {
 
         document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'from anywhere', severity: 'warning' } }));
 
-        const item = toasts.querySelector('.ful-toast');
+        const item = toasts.querySelector('ful-toast');
         assert.isTrue(item.classList.contains('warning'));
         assert.include(item.textContent, 'from anywhere');
         container.remove();
     });
 
-    it('a custom subclass keeps the chrome through the class the render carries', async () => {
+    it('the show-toast door is wired once: a second region does not double the toast, a removed one stops answering', async () => {
+        const [first, firstContainer] = await mount('<ful-toasts id="first-region"></ful-toasts>');
+        const [second, secondContainer] = await mount('<ful-toasts id="second-region"></ful-toasts>');
+
+        document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'one each' } }));
+        assert.strictEqual(first.querySelectorAll('ful-toast').length, 1, 'the first region shows it once');
+        assert.strictEqual(second.querySelectorAll('ful-toast').length, 1, 'the second region shows it once');
+
+        firstContainer.remove();
+        document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'after the removal' } }));
+        assert.strictEqual(first.querySelectorAll('ful-toast').length, 1, 'the removed region answers no more');
+        assert.strictEqual(second.querySelectorAll('ful-toast').length, 2, 'the live one keeps answering');
+        secondContainer.remove();
+    });
+
+    it('a custom subclass keeps the chrome through the structure its toasts render', async () => {
         class MyToasts extends Toasts {}
         registry.defineElement('x-my-toasts', MyToasts);
         const [toasts, container] = await mount('<x-my-toasts></x-my-toasts>');
 
-        assert.isTrue(toasts.classList.contains('ful-toasts'));
         const item = toasts.show('reused');
-        assert.isTrue(item.classList.contains('ful-toast'));
+        assert.strictEqual(item.localName, 'ful-toast');
+        assert.strictEqual(getComputedStyle(item).display, 'flex', 'the item chrome follows the tag');
+        assert.strictEqual(getComputedStyle(toasts).position, 'fixed', 'the region chrome follows the hosted toasts');
         container.remove();
     });
 });

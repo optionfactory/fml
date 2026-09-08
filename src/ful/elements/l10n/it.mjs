@@ -35,4 +35,5 @@ export default {
     'drawer.close': 'Chiudi',
     'toast.region': 'Notifiche',
     'toast.dismiss': 'Chiudi',
+    'wizard.progress': 'Avanzamento',
 };

@@ -16,14 +16,6 @@
         }
     },
     "elements": {
-        "ful-spinner": {
-            "description": "A busy indicator. ful-form shows and hides the ones it contains while submitting.",
-            "attributes": {},
-            "slots": {
-                "default": "Text shown next to the spinner."
-            },
-            "events": []
-        },
         "ful-form": {
             "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to a loader on submit. Validation errors are announced politely without focus, or exactly once through focus management with scroll-on-error; global errors land in an author-provided ful-errors element, announced as an alert.",
             "attributes": {},
@@ -258,7 +250,9 @@
                 "default": "The dialog body.",
                 "buttons": "Buttons closing the dialog; each carries a data-result that ask() resolves with. Without this slot a localized acknowledge button is shown."
             },
-            "events": []
+            "events": {
+                "close": "Fired when the dialog closes, carrying the data-result of the button that closed it, or null on Escape; ask() and open() resolve with the same answer, and a dialog leaving the document while open answers its waiters with null."
+            }
         },
         "ful-drawer": {
             "description": "A side panel drawer on the native dialog platform: a header with its title and close button, and a body that opens in a loading state, then shows either the content delivered by update(title, callback) (or the slotted one, when it is never updated) or the error a rejecting callback carries. placement picks the side, end by default, start its mirror. Any element carrying dialog-target set to its id opens it too.",
@@ -266,13 +260,49 @@
             "slots": {
                 "default": "The drawer body, shown when update() never replaced it."
             },
-            "events": []
+            "events": {
+                "close": "Fired when the drawer closes, by its close button or Escape."
+            }
         },
         "ful-toasts": {
             "description": "A transient feedback region, one per page: each show() (or a show-toast document event carrying the same detail) appends a toast that dismisses itself after its timeout, the element's timeout attribute or five seconds by default, and carries its own dismiss button. severity picks the theme and the announcement, info by default, success, warning and error, the error one announced as an alert; a Failure message shows its problems' reasons.",
             "attributes": {},
             "slots": {},
             "events": []
+        },
+        "ful-tabs": {
+            "description": "A tab panel: one visible panel at a time, announced through the tab pattern (a tablist of tab buttons, each panel a tabpanel named by its tab, the arrows and Home/End walking the tabs with automatic activation). The tabs are declared as tab elements in the tabs slot, the panels as the slotless children, paired in order; the chrome anchors on the ful-tablist style-only tag, so a subclass or foreign markup built from it keeps the look.",
+            "attributes": {
+                "active": "The index of the visible panel, zero based, reflected as the active attribute. Clicks, the arrow keys and the property all move it, each move answering with a change event."
+            },
+            "slots": {
+                "tabs": "The tab declarations, one tab element per panel, carrying the tab's label.",
+                "default": "The panels, one element per declared tab, paired in order: each becomes a tabpanel announced by its tab."
+            },
+            "events": {
+                "change": "Fired with the active index and the previous one whenever the visible panel moves."
+            }
+        },
+        "ful-accordion": {
+            "description": "An accordion over native details/summary disclosures: the platform carries the semantics, the keyboard and the toggling, the chrome paints the group (anchored on the ful-accordion-group style-only tag). With the exclusive claim the render assigns one shared name to every panel, which is the platform's own exclusive grouping: opening one closes the others.",
+            "attributes": {
+                "exclusive": "When present, opening a panel closes the others: the native details name grouping, assigned (and assignable again) by the render."
+            },
+            "slots": {
+                "default": "The native details/summary disclosures, one per panel, rendered inside the group."
+            },
+            "events": []
+        },
+        "ful-wizard": {
+            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section — the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
+            "attributes": {},
+            "slots": {
+                "steps": "The step declarations, one step element per section, carrying the step's label.",
+                "default": "The sections, one per declared step: only the current one is shown, and each may carry a data-step name for move()."
+            },
+            "events": {
+                "change": "Fired with the index and the data-step name after next(), prev() or move() land on a different step."
+            }
         }
     }
 }

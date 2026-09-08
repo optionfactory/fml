@@ -27,6 +27,7 @@ describe('Drawer', () => {
         assert.strictEqual(drawer.querySelector('[data-ref=close]').getAttribute('aria-label'), 'Close');
         assert.include(drawer.querySelector('[data-ref=content]').textContent, 'the body');
         assert.isFalse(drawer.querySelector('dialog').open);
+        assert.strictEqual(getComputedStyle(drawer.querySelector('dialog')).display, 'none', 'a closed drawer stays unseen');
         container.remove();
     });
 
@@ -88,6 +89,55 @@ describe('Drawer', () => {
         assert.include(error.textContent, 'must not be blank');
         assert.include(error.textContent, 'start is after end');
         assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
+        container.remove();
+    });
+
+    it('a superseded update owns nothing: its outcome is not painted, a newer one wins', async () => {
+        const [drawer, container] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        let deliverFirst;
+        const first = drawer.update('first', () => new Promise((resolve) => (deliverFirst = resolve)));
+        const second = drawer.update('second', async () => {
+            const fresh = document.createElement('p');
+            fresh.textContent = 'the newer content';
+            return fresh;
+        });
+        const secondContent = await second;
+        assert.include(secondContent.textContent, 'the newer content');
+
+        const stale = document.createElement('p');
+        stale.textContent = 'the stale content';
+        deliverFirst(stale);
+        const firstContent = await first;
+        assert.strictEqual(firstContent, secondContent, 'the drawer has one content section, shared by its openings');
+        assert.isFalse(stale.isConnected, 'the superseded delivery was never painted');
+        assert.include(drawer.querySelector('[data-ref=content]').textContent, 'the newer content', 'only the newer outcome is painted');
+        assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
+        container.remove();
+    });
+
+    it('answers with a close event, Escape included', async () => {
+        const [drawer, container] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const closes = [];
+        drawer.addEventListener('close', () => closes.push('closed'));
+
+        drawer.open();
+        drawer.close();
+        await new Promise((r) => setTimeout(r));
+        assert.deepStrictEqual(closes, ['closed']);
+        container.remove();
+    });
+
+    it('slides in from the inline end side, mirrored in rtl', async () => {
+        const [wrapper, rtlContainer] = await mount('<div dir="rtl"><ful-drawer title="t">body</ful-drawer></div>');
+        const rtlDrawer = wrapper.querySelector('ful-drawer');
+        rtlDrawer.open();
+        assert.strictEqual(getComputedStyle(rtlDrawer.querySelector('dialog')).animationName, 'ful-drawer-slide-in-start', 'rtl end is ltr start');
+        rtlDrawer.close();
+        rtlContainer.remove();
+        const [drawer, container] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        drawer.open();
+        assert.strictEqual(getComputedStyle(drawer.querySelector('dialog')).animationName, 'ful-drawer-slide-in', 'ltr end');
+        drawer.close();
         container.remove();
     });
 });

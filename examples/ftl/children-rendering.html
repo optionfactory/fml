@@ -1,20 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
+<head>
+    <title>ftl children rendering</title>
+</head>
 <script src="../../dist/ftl.iife.min.js"></script>
-<style>
+<link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
+    <style>
     parent-element {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         padding: 1rem;
         margin: 1rem;
-        border: 1px solid #0000cc;
+        border: var(--ful-border-width, 1px) solid var(--ful-border-color, light-dark(#dee2e6, #495057));
     }
 
     nested-element {
         display: block;
         padding: 1rem;
         margin: 1rem;
-        border: 1px solid #ccc;
+        border: var(--ful-border-width, 1px) solid color-mix(in srgb, currentColor 25%, transparent);
         content-visibility: auto;
         contain-intrinsic-size: auto 18px;
     }

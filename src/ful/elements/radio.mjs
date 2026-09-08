@@ -12,14 +12,14 @@ class RadioGroup extends Field {
             <header data-tpl-if="slots.header">
                 {{{{ slots.header }}}}
             </header>
-            <section>
+            <ful-radio-list>
                 <div class="label-wrapper" data-tpl-each="inputsAndLabels" data-tpl-var="ial">
                     <label>
                         {{{{ ial[0] }}}}
                         <div>{{{{ ial[1] }}}}</div>
                     </label>
                 </div>
-            </section>
+            </ful-radio-list>
             <ful-field-error></ful-field-error>
             <footer data-tpl-if="slots.footer">
                 {{{{ slots.footer }}}}

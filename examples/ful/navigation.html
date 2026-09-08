@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>ful navigation: tabs, accordion, wizard</title>
+    <script src="../../dist/ftl.iife.js"></script>
+    <link href="../../dist/ful.css" rel="stylesheet">
+    <link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
+    <script src="../../dist/httpc.iife.min.js"></script>
+    <script src="../../dist/ful.iife.min.js"></script>
+    <style>
+        fieldset :is(ful-tabs, ful-accordion, ful-wizard) {
+            align-self: stretch;
+        }
+
+        section p {
+            margin: 0.5rem 0;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ful navigation</h1>
+    <p>Tabs, accordion and wizard. The accordion is native <code>details</code>/<code>summary</code>, the tabs follow the tab pattern with the arrow keys, the wizard is the homeinsurance layout: steps claim <code>aria-current</code>, the chrome follows the claim.</p>
+
+    <h2>tabs</h2>
+    <p>One tablist, three panels: clicks, the arrow keys (wrapping) and <code>Home</code>/<code>End</code> move the active panel, every move answering with a <code>change</code> event.</p>
+    <fieldset>
+        <legend>a tablist over shipping, invoices and claims</legend>
+        <ful-tabs id="tabs">
+            <template slot="tabs">
+                <tab>Shipping</tab>
+                <tab>Invoices</tab>
+                <tab>Claims</tab>
+            </template>
+            <section>
+                <p>The shipping address on file, editable from this panel.</p>
+                <ful-input name="address" value="Via Roma 1">Address</ful-input>
+            </section>
+            <section>
+                <p>The last twelve invoices, newest first.</p>
+            </section>
+            <section>
+                <p>No open claims.</p>
+            </section>
+        </ful-tabs>
+    </fieldset>
+
+    <h2>accordion</h2>
+    <p>The same disclosures twice: free, where any number stays open, and exclusive, where the platform's own <code>name</code> grouping closes the others.</p>
+    <fieldset>
+        <legend>free: any number open</legend>
+        <ful-accordion>
+            <details>
+                <summary>What is covered</summary>
+                <p>Fire, water damage and theft, as declared in the policy schedule.</p>
+            </details>
+            <details open>
+                <summary>What is not covered</summary>
+                <p>Wear and tear, and anything the schedule lists under exclusions.</p>
+            </details>
+            <details>
+                <summary>How to claim</summary>
+                <p>Open a claim from the policy page; a wizard walks the rest.</p>
+            </details>
+        </ful-accordion>
+    </fieldset>
+    <fieldset>
+        <legend>exclusive: one open at most</legend>
+        <ful-accordion exclusive>
+            <details>
+                <summary>Damages</summary>
+                <p>Building and contents, each with its own deductible.</p>
+            </details>
+            <details>
+                <summary>Liability</summary>
+                <p>Third-party liability towards others, included by default.</p>
+            </details>
+        </ful-accordion>
+    </fieldset>
+
+    <h2>wizard</h2>
+    <p>Three steps paired with sections by position, each section carrying its own buttons: <code>next()</code>, <code>prev()</code> and <code>move(name)</code> walk, the focus follows the step, each landing answering with a <code>change</code> event.</p>
+    <fieldset>
+        <legend>verify, edit, confirm — named by data-step</legend>
+        <ful-wizard id="wizard">
+            <template slot="steps">
+                <step>Verify</step>
+                <step>Edit</step>
+                <step>Confirm</step>
+            </template>
+            <section data-step="verify">
+                <p>The data on file: confirm it is current, or move on to edit it.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button" data-next>Continue</button>
+                </div>
+            </section>
+            <section data-step="edit">
+                <ful-input name="phone" value="+39 02 0000000">Phone</ful-input>
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-prev>Back</button>
+                    <button type="button" class="ful-button" data-next>Continue</button>
+                </div>
+            </section>
+            <section data-step="confirm">
+                <p>Confirm the changes to close the flow.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-prev>Back</button>
+                    <button type="button" class="ful-button" id="wizard-done" data-result="confirmed">Confirm</button>
+                </div>
+            </section>
+        </ful-wizard>
+        <output id="wizard-output">the wizard answers here</output>
+    </fieldset>
+
+    <h2>wizard, form-driven</h2>
+    <p>Each step hosts a <code>ful-form</code>: a failure pins its problems to the step and nothing moves, a success moves where the response says. Try phone <code>000</code> for the failure path.</p>
+    <fieldset>
+        <legend>verify, then edit: the response picks the step</legend>
+        <ful-wizard id="form-wizard">
+            <template slot="steps">
+                <step>Verify</step>
+                <step>Edit</step>
+                <step>Done</step>
+            </template>
+            <section data-step="verify">
+                <ful-form loader="loaders:demo-reply">
+                    <ful-input name="email" type="email" required>Email</ful-input>
+                    <ful-errors hidden></ful-errors>
+                    <div class="actions">
+                        <button type="submit" class="ful-button">Continue</button>
+                    </div>
+                </ful-form>
+            </section>
+            <section data-step="edit">
+                <ful-form loader="loaders:demo-reply" scroll-on-error clear-invalid-on-change>
+                    <ful-input name="phone" value="+39 02 0000000">Phone</ful-input>
+                    <ful-errors hidden></ful-errors>
+                    <div class="actions">
+                        <button type="button" class="ful-button ghost" data-prev>Back</button>
+                        <button type="submit" class="ful-button">Confirm</button>
+                    </div>
+                </ful-form>
+            </section>
+            <section data-step="done">
+                <p>Submitted: the server said done.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button small ghost" id="form-wizard-restart">Restart</button>
+                </div>
+            </section>
+        </ful-wizard>
+        <output id="form-wizard-output">the forms answer here</output>
+    </fieldset>
+
+    <script>
+        /**
+         * A mock form loader: the response names the step the wizard must
+         * show, and a phone of 000 is the failure path, its problem pinned
+         * back to the field by the form itself.
+         */
+        class DemoReplyLoader {
+            async prepare(values) {
+                return { values };
+            }
+            async submit(request) {
+                await new Promise((resolve) => setTimeout(resolve, 600));
+                if (request.values.phone === '000') {
+                    throw new httpc.Failure('invalid', [
+                        { type: 'FIELD_ERROR', context: 'phone', reason: 'not a valid number (demo)' },
+                    ]);
+                }
+                return request.values.phone !== undefined ? { next: 'done' } : { next: 'edit' };
+            }
+            async transform(response) {
+                return response;
+            }
+            static create() {
+                return new DemoReplyLoader();
+            }
+        }
+
+        ftl.registry
+            .plugin(new ful.Plugin())
+            .defineComponent('loaders:demo-reply', DemoReplyLoader)
+            .configure();
+
+        const byId = (id) => document.getElementById(id);
+        const wizard = byId('wizard');
+        for (const button of wizard.querySelectorAll('[data-next]')) {
+            button.addEventListener('click', () => wizard.next());
+        }
+        for (const button of wizard.querySelectorAll('[data-prev]')) {
+            button.addEventListener('click', () => wizard.prev());
+        }
+        wizard.addEventListener('change', (e) => {
+            byId('wizard-output').textContent = `change: index ${e.detail.index}, step "${e.detail.step}"`;
+        });
+        byId('wizard-done').addEventListener('click', () => {
+            byId('wizard-output').textContent = 'confirmed (demo): move("verify") restarts';
+            wizard.move('verify');
+        });
+
+        byId('tabs').addEventListener('change', (e) => {
+            byId('wizard-output').textContent = `tabs change: active ${e.detail.active}, previous ${e.detail.previous}`;
+        });
+
+        //the form-driven wizard: the response chooses the step, the form pins the failures
+        const formWizard = byId('form-wizard');
+        for (const form of formWizard.querySelectorAll('ful-form')) {
+            form.addEventListener('submit:success', (e) => {
+                formWizard.move(e.detail.response.next);
+            });
+            form.addEventListener('submit:failure', (e) => {
+                byId('form-wizard-output').textContent = `submit:failure: ${e.detail.exception.message}`;
+            });
+        }
+        for (const button of formWizard.querySelectorAll('[data-prev]')) {
+            button.addEventListener('click', () => formWizard.prev());
+        }
+        byId('form-wizard-restart').addEventListener('click', () => formWizard.move('verify'));
+        formWizard.addEventListener('change', (e) => {
+            byId('form-wizard-output').textContent = `change: index ${e.detail.index}, step "${e.detail.step}"`;
+        });
+    </script>
+</body>
+
+</html>

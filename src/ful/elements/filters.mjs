@@ -196,8 +196,10 @@ class CompareFilter extends Input {
                 <button data-ref="operator" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
                 <ul popover role="menu"></ul>
             </ful-affix>
-            <input data-ref="value1" data-tpl-type="type" form="">
-            <input data-ref="value2" data-tpl-type="type" form="" hidden>
+            <ful-control>
+                <input data-ref="value1" data-tpl-type="type" form="">
+                <input data-ref="value2" data-tpl-type="type" form="" hidden>
+            </ful-control>
             <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>
@@ -400,8 +402,10 @@ class TextFilter extends CompareFilter {
                 <button data-ref="sensitivity" type="button" form="" aria-expanded="false" aria-haspopup="true"></button>
                 <ul popover role="menu"></ul>
             </ful-affix>
-            <input data-ref="value1" data-tpl-type="type" form="">
-            <input data-ref="value2" data-tpl-type="type" form="" hidden>
+            <ful-control>
+                <input data-ref="value1" data-tpl-type="type" form="">
+                <input data-ref="value2" data-tpl-type="type" form="" hidden>
+            </ful-control>
             <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
         </ful-control-group>
         <ful-field-error></ful-field-error>

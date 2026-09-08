@@ -64,6 +64,18 @@ describe('Accessibility audit', () => {
         ['ful-drawer', `<ful-drawer title="the title">body</ful-drawer>`],
         ['ful-toasts', `<ful-toasts></ful-toasts>`],
         [
+            'ful-tabs',
+            `<ful-tabs><template slot="tabs"><tab>First</tab><tab>Second</tab></template><section>one</section><section>two</section></ful-tabs>`,
+        ],
+        [
+            'ful-accordion',
+            `<ful-accordion exclusive><details><summary>first</summary>one</details><details open><summary>second</summary>two</details></ful-accordion>`,
+        ],
+        [
+            'ful-wizard',
+            `<ful-wizard><template slot="steps"><step>One</step><step>Two</step></template><section data-step="one">first</section><section data-step="two">second</section></ful-wizard>`,
+        ],
+        [
             'ful-form',
             `<ful-form name="frm"><ful-input name="fi">inside a form</ful-input><button type="submit">submit</button></ful-form>`,
         ],

@@ -1,9 +1,11 @@
 import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { wireTargets } from './targets.mjs';
 
 class Tooltip extends ParsedElement {
     static slots = true;
     static config = {
-        icon: 'info-circle',
+        //the fill variant: a ring and a curly stem go noisy at 1em, a solid disc reads
+        icon: 'info-circle-fill',
     };
     static template = `
         <button type="button" class="ful-tip" data-ref="trigger" data-tpl-aria-label="#l10n:t('info.tooltip')"><ful-icon data-tpl-name="config.icon" aria-hidden="true"></ful-icon></button>
@@ -31,21 +33,6 @@ class Tooltip extends ParsedElement {
     }
 }
 
-let targetsWired = false;
-const wireTargets = () => {
-    if (targetsWired) {
-        return;
-    }
-    targetsWired = true;
-    document.addEventListener('click', (/** @type any */ e) => {
-        const trigger = e.target.closest?.('[dialog-target]');
-        if (!trigger) {
-            return;
-        }
-        /** @type {any} */ (document.getElementById(trigger.getAttribute('dialog-target')))?.open?.();
-    });
-};
-
 class Dialog extends ParsedElement {
     static slots = true;
     static template = `
@@ -61,17 +48,17 @@ class Dialog extends ParsedElement {
     #dialog;
     #resolvers = [];
     render({ slots }) {
-        const fragment = this
-            .template()
+        const fragment = this.template()
             .withOverlay({ slots, header: this.getAttribute('header') ?? '' })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#dialog.addEventListener('close', () => {
-            const resolvers = this.#resolvers;
-            this.#resolvers = [];
-            for (const resolve of resolvers) {
-                resolve(this.#dialog.returnValue === '' ? null : this.#dialog.returnValue);
-            }
+            this.dispatchEvent(
+                new CustomEvent('close', {
+                    detail: { result: this.#dialog.returnValue === '' ? null : this.#dialog.returnValue },
+                }),
+            );
+            this.#settle();
         });
         this.#dialog.addEventListener('click', (/** @type any */ e) => {
             const result = e.target.closest('button[data-result]')?.dataset.result;
@@ -81,6 +68,19 @@ class Dialog extends ParsedElement {
         });
         this.replaceChildren(fragment);
         wireTargets();
+    }
+    //answers every waiter with the dialog's own answer: null while still open
+    //or closed without a result, which is also the unanswered answer a dialog
+    //leaving the document owes its waiters instead of hanging them
+    #settle() {
+        const resolvers = this.#resolvers;
+        this.#resolvers = [];
+        for (const resolve of resolvers) {
+            resolve(this.#dialog.returnValue === '' ? null : this.#dialog.returnValue);
+        }
+    }
+    disconnectedCallback() {
+        this.#settle();
     }
     open() {
         if (!this.#dialog.open) {
@@ -101,4 +101,4 @@ class Dialog extends ParsedElement {
     }
 }
 
-export { Tooltip, Dialog, wireTargets };
+export { Tooltip, Dialog };

@@ -33,11 +33,28 @@ describe('Tooltip', () => {
         assert.isTrue(popover.matches(':popover-open'));
         await settle();
         assert.strictEqual(button.getAttribute('aria-expanded'), 'true');
+        const triggerBox = button.getBoundingClientRect();
+        const noteBox = popover.getBoundingClientRect();
+        assert.isAtLeast(Math.round(noteBox.top), Math.round(triggerBox.bottom) - 1, 'the note is anchored below the trigger');
+        assert.isBelow(Math.round(noteBox.left), Math.round(triggerBox.right), 'the note overlaps the trigger horizontally');
 
         button.click();
         assert.isFalse(popover.matches(':popover-open'));
         await settle();
         assert.strictEqual(button.getAttribute('aria-expanded'), 'false');
+        container.remove();
+    });
+
+    it('anchors the note on the side the placement attribute picks', async () => {
+        const [tooltip, container] = await mount('<ful-tooltip placement="right">side note</ful-tooltip>');
+        const button = tooltip.querySelector('button');
+        const popover = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+        const triggerBox = button.getBoundingClientRect();
+        const noteBox = popover.getBoundingClientRect();
+        assert.isAtLeast(Math.round(noteBox.left), Math.round(triggerBox.right) - 1, 'the note is anchored after the trigger');
         container.remove();
     });
 });
@@ -88,6 +105,26 @@ describe('Dialog', () => {
         dialog.querySelector('dialog').close('');
 
         assert.isNull(await asked);
+        container.remove();
+    });
+
+    it('a dialog leaving the document while open answers its waiters with null', async () => {
+        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
+        const asked = dialog.ask();
+
+        container.remove();
+        assert.isNull(await asked, 'the await does not hang on a destroyed element');
+    });
+
+    it('answers with a close event carrying the answer', async () => {
+        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
+        const answers = [];
+        dialog.addEventListener('close', (e) => answers.push(e.detail.result));
+
+        dialog.ask();
+        dialog.querySelector('[data-ref=acknowledge]').click();
+        await new Promise((r) => setTimeout(r));
+        assert.deepStrictEqual(answers, ['acknowledged']);
         container.remove();
     });
 

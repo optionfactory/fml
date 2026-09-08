@@ -2,12 +2,15 @@
 <html lang="it">
 
 <head>
+    <title>ful files</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <script src="../../dist/ftl.iife.js"></script>
     <link href="../../dist/ful.css" rel="stylesheet">
+    <link href="../base.css" rel="stylesheet">
+    <script src="../theme.js" defer></script>
     <script src="../../dist/httpc.iife.min.js"></script>
     <script src="../../dist/ful.iife.min.js"></script>
 
@@ -22,7 +25,6 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-            padding: 1rem;
         }
 
 
@@ -30,21 +32,21 @@
             margin-top: 5px;
 
             & .muted {
-                color: #617282;
+                color: color-mix(in srgb, currentColor 60%, transparent);
             }
 
             &>section {
-                background-color: #EEFBFB;
+                background-color: color-mix(in srgb, var(--ful-active-bg) 8%, transparent);
                 text-align: center;
                 padding: 1rem;
                 border-radius: 0.375rem;
-                border: 1px solid #007376;
+                border: 1px solid var(--ful-active-bg);
                 margin-bottom: 0.5rem;
-                color: #007376;
+                color: var(--ful-active-bg);
 
                 & a {
                     font-weight: 700;
-                    color: #007376;
+                    color: var(--ful-active-bg);
                 }
             }
         }

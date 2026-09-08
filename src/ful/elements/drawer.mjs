@@ -1,5 +1,6 @@
 import { ParsedElement } from '../../ftl/index.mjs';
-import { wireTargets } from './info.mjs';
+import { problemsText } from './problems.mjs';
+import { wireTargets } from './targets.mjs';
 
 class Drawer extends ParsedElement {
     static slots = true;
@@ -9,7 +10,7 @@ class Drawer extends ParsedElement {
                 <h2 data-ref="title">{{ title }}</h2>
                 <button type="button" data-ref="close" data-tpl-aria-label="#l10n:t('drawer.close')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </header>
-            <section data-ref="loading" hidden><ful-spinner class="centered"></ful-spinner></section>
+            <section data-ref="loading" hidden><ful-spinner class="centered" role="status"></ful-spinner></section>
             <section data-ref="error" role="alert" hidden></section>
             <section data-ref="content">{{{{ slots.default }}}}</section>
         </dialog>
@@ -19,8 +20,11 @@ class Drawer extends ParsedElement {
     #loading;
     #error;
     #content;
+    #updateToken = 0;
     render({ slots }) {
-        const fragment = this.template().withOverlay({ slots, title: this.getAttribute('title') ?? '' }).render();
+        const fragment = this.template()
+            .withOverlay({ slots, title: this.getAttribute('title') ?? '' })
+            .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#title = fragment.querySelector('[data-ref=title]');
         this.#loading = fragment.querySelector('[data-ref=loading]');
@@ -31,6 +35,9 @@ class Drawer extends ParsedElement {
             this.#dialog.setAttribute('placement', placement);
         }
         fragment.querySelector('[data-ref=close]').addEventListener('click', () => this.close());
+        this.#dialog.addEventListener('close', () => {
+            this.dispatchEvent(new CustomEvent('close'));
+        });
         this.replaceChildren(fragment);
         wireTargets();
     }
@@ -41,6 +48,9 @@ class Drawer extends ParsedElement {
         this.#title.textContent = v ?? '';
     }
     async update(title, cb) {
+        //the token detaches any update still in flight: its outcome belongs to
+        //an abandoned opening and must neither be painted nor own the drawer
+        const token = ++this.#updateToken;
         this.title = title;
         this.#error.replaceChildren();
         this.#content.replaceChildren();
@@ -50,15 +60,20 @@ class Drawer extends ParsedElement {
         this.open();
         try {
             const delivered = await cb();
+            if (token !== this.#updateToken) {
+                return this.#content;
+            }
             this.#content.replaceChildren(delivered);
             this.#loading.setAttribute('hidden', '');
             this.#content.removeAttribute('hidden');
             return this.#content;
         } catch (/** @type any */ e) {
-            this.#error.textContent = e?.problems ? e.problems.map((p) => `${p.reason}`).join('\n') : `${e?.message ?? e}`;
-            this.#error.removeAttribute('hidden');
-            this.#loading.setAttribute('hidden', '');
-            this.#content.setAttribute('hidden', '');
+            if (token === this.#updateToken) {
+                this.#error.textContent = problemsText(e, `${e?.message ?? e}`);
+                this.#error.removeAttribute('hidden');
+                this.#loading.setAttribute('hidden', '');
+                this.#content.setAttribute('hidden', '');
+            }
             throw e;
         }
     }

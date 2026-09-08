@@ -15,6 +15,8 @@ ful-errors {
 ful-field-error {
     --ful-field-error-invalid-color: var(--ful-invalid-color);
     display: none;
+    /*the error text sits a step under the label*/
+    font-size: 0.875rem;
 
     :invalid & {
         display: block;

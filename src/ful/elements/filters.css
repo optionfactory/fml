@@ -1,10 +1,10 @@
-ful-affix:has(> button[data-ref='operator'], > button[data-ref='sensitivity']) {
+ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) {
     padding: 0;
     min-width: 4rem;
     overflow: hidden;
 
-    & > button[data-ref='operator'],
-    & > button[data-ref='sensitivity'] {
+    & > button[data-ref="operator"],
+    & > button[data-ref="sensitivity"] {
         anchor-name: --ful-filter-operator;
         display: flex;
         align-items: center;
@@ -23,38 +23,56 @@ ful-affix:has(> button[data-ref='operator'], > button[data-ref='sensitivity']) {
         cursor: pointer;
     }
 
-    & > button[data-ref='operator'] {
+    & > button[data-ref="operator"] {
         min-width: 4rem;
     }
 
-    & > button[data-ref='sensitivity'] {
+    & > button[data-ref="sensitivity"] {
         min-width: 2.5rem;
     }
 
-    & > button[data-ref='operator']:hover,
-    & > button[data-ref='sensitivity']:hover {
+    & > button[data-ref="operator"]:hover,
+    & > button[data-ref="sensitivity"]:hover {
         color: var(--ful-active-color);
         background-color: var(--ful-active-bg);
     }
 
-    & > button[data-ref='operator']:focus,
-    & > button[data-ref='sensitivity']:focus {
+    & > button[data-ref="operator"]:focus,
+    & > button[data-ref="sensitivity"]:focus {
         outline: 0;
     }
 
-    & > button[data-ref='operator']:focus-visible,
-    & > button[data-ref='sensitivity']:focus-visible {
+    & > button[data-ref="operator"]:focus-visible,
+    & > button[data-ref="sensitivity"]:focus-visible {
         background-color: color-mix(in srgb, var(--ful-active-bg) 20%, transparent);
     }
 
-    & > button[data-ref='operator']:disabled,
-    & > button[data-ref='sensitivity']:disabled {
+    & > button[data-ref="operator"]:disabled,
+    & > button[data-ref="sensitivity"]:disabled {
         cursor: default;
         opacity: 0.5;
     }
 }
 
-ful-control-group > button[data-ref='value'] {
+ful-control-group > ful-control > input {
+    flex: 1 1 auto;
+    width: 1%;
+    min-width: 0;
+    min-height: var(--ful-controls-height);
+    padding: 0.375rem 0.75rem;
+    font: inherit;
+    line-height: 1.5;
+    color: var(--ful-color);
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+}
+
+ful-control-group > ful-control > input:focus {
+    outline: 0;
+}
+
+ful-control-group > button[data-ref="value"] {
     anchor-name: --ful-filter-operator;
     display: flex;
     align-items: center;
@@ -78,19 +96,19 @@ ful-control-group > button[data-ref='value'] {
     cursor: pointer;
 }
 
-ful-control-group > button[data-ref='value']:focus {
+ful-control-group > button[data-ref="value"]:focus {
     outline: 0;
 }
 
-ful-control-group > button[data-ref='value']:disabled {
+ful-control-group > button[data-ref="value"]:disabled {
     cursor: default;
     opacity: 0.5;
     background-size: 0;
 }
 
 ul[popover].ful-filter-menu,
-ful-affix:has(> button[data-ref='operator'], > button[data-ref='sensitivity']) > ul[popover],
-ful-control-group > button[data-ref='value'] + ul[popover] {
+ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) > ul[popover],
+ful-control-group > button[data-ref="value"] + ul[popover] {
     position-anchor: --ful-filter-operator;
     top: anchor(bottom);
     left: anchor(left);

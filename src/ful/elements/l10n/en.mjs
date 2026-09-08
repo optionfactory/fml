@@ -35,4 +35,5 @@ export default {
     'drawer.close': 'Close',
     'toast.region': 'Notifications',
     'toast.dismiss': 'Dismiss',
+    'wizard.progress': 'Progress',
 };

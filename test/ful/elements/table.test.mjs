@@ -172,7 +172,7 @@ describe('Table load failures', () => {
 
         const feedback = tableEl.querySelector('tbody[data-ref=feedback]');
         assert.isFalse(feedback.hasAttribute('hidden'));
-        assert.include(feedback.querySelector('[data-ref=feedback-error]').textContent, 'start is after end,page is negative');
+        assert.include(feedback.querySelector('[data-ref=feedback-error]').textContent, 'start is after end\npage is negative');
         container.remove();
     });
 

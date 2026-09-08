@@ -1,5 +1,5 @@
-ful-select {
-    display: block;
+/*the chrome matches the structure instead: whoever opens a dropdown from its control group*/
+*:has(> ful-control-group > ful-dropdown) {
     cursor: pointer;
 
     &:not([itemlist]) > ful-item-list {
@@ -15,21 +15,27 @@ ful-select {
         background-position: right 0.75rem center;
         background-repeat: no-repeat;
         background-size: 16px 12px;
+
         & > ful-badge + ful-badge {
             margin-left: 3px;
         }
-    }    &[itemlist][readonly],
+    }
+
+    &[itemlist][readonly],
     &[itemlist]:disabled {
         & > ful-control-group {
             display: none;
         }
+
         & > ful-item-list > ful-item:first-child {
             margin-top: 0;
         }
+
         & > ful-item-list > ful-item {
             & > *:first-child {
                 grid-column: 1 / -1;
             }
+
             & > *:last-child {
                 display: none;
             }
@@ -41,11 +47,7 @@ ful-select {
         cursor: default;
     }
 
-    &:disabled > ful-control-group > ful-control {
-        background-size: 0;
-        cursor: default;
-    }
-
+    &:disabled > ful-control-group > ful-control,
     &[readonly] > ful-control-group > ful-control {
         background-size: 0;
         cursor: default;
@@ -93,7 +95,7 @@ ful-dropdown {
     border-radius: var(--ful-dropdown-border-radius);
     width: 100%;
 
-    p[data-ref='empty'] {
+    p[data-ref="empty"] {
         margin: 0;
         padding: 0.5rem 0.751rem;
         color: var(--ful-dropdown-color);
