@@ -2,7 +2,7 @@ import { Attributes } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
 class Checkbox extends Field {
-    static observed = ['value:bool', 'readonly:presence', 'required:presence'];
+    static observed = ['value:bool'];
     static slots = true;
     static template = `
         <ful-choice data-tpl-switch="isSwitch">

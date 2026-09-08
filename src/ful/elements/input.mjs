@@ -18,7 +18,7 @@ const compiledMask = (mask) => {
 };
 
 class Input extends Field {
-    static observed = ['value', 'readonly:presence', 'required:presence', 'placeholder'];
+    static observed = ['placeholder'];
     static slots = true;
     static template = `
         <label>{{{{ slots.default }}}}</label>

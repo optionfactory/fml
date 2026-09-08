@@ -2,7 +2,6 @@ import { Attributes, Fragments } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
 class RadioGroup extends Field {
-    static observed = ['value', 'readonly:presence', 'required:presence'];
     static slots = true;
     static ROLE = 'radiogroup';
     static template = `

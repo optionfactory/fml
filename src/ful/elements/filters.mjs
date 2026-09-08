@@ -184,7 +184,7 @@ const refreshOperators = (filter) => {
  * the data-jpa compare annotations.
  */
 class CompareFilter extends Input {
-    static observed = ['value:json', 'operators:csv', 'readonly:presence', 'required:presence', 'placeholder'];
+    static observed = ['value:json', 'operators:csv', 'placeholder'];
     static OPERATORS = COMPARE_OPERATORS;
     static DEFAULT_OPERATOR = 'EQ';
     static template = `
@@ -392,8 +392,6 @@ class TextFilter extends CompareFilter {
         'value:json',
         'operators:csv',
         'sensitivities:csv',
-        'readonly:presence',
-        'required:presence',
         'placeholder',
     ];
     static template = `
@@ -513,7 +511,7 @@ const BOOLEAN_VALUES = ['', 'true', 'false'];
 const BOOLEAN_VALUE_GLYPHS = { true: '✓', false: '✗' };
 
 class BooleanFilter extends Field {
-    static observed = ['value:json', 'operators:csv', 'readonly:presence', 'required:presence'];
+    static observed = ['value:json', 'operators:csv'];
     static slots = true;
     static OPERATORS = ['EQ', 'NEQ'];
     static DEFAULT_OPERATOR = 'EQ';

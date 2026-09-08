@@ -193,7 +193,6 @@ describe('The disabled attribute after the upgrade', () => {
 
     it('reaches custom Field subclasses that never list it', async () => {
         class TestField extends Field {
-            static observed = ['value'];
             static slots = true;
             static template = '<label>{{{{ slots.default }}}}</label><input form="">';
             #input;
@@ -202,6 +201,8 @@ describe('The disabled attribute after the upgrade', () => {
                 this.#input = fragment.querySelector('input');
                 this._adopt(this.#input, null);
                 this.disabled = observed.disabled;
+                this.readonly = observed.readonly;
+                this.required = observed.required;
                 this.value = observed.value;
                 this.replaceChildren(fragment);
             }
@@ -223,13 +224,53 @@ describe('The disabled attribute after the upgrade', () => {
 
         const container = await mount('<x-test-field name="a" value="x">l</x-test-field>');
         const field = container.querySelector('x-test-field');
+        const input = field.querySelector('input');
 
         field.setAttribute('disabled', '');
 
         assert.isTrue(field.disabled, 'the base-observed claim reaches the subclass');
-        assert.isTrue(field.querySelector('input').matches(':disabled'), 'the subclass mirror ran');
+        assert.isTrue(input.matches(':disabled'), 'the subclass mirror ran');
         field.removeAttribute('disabled');
-        assert.isFalse(field.querySelector('input').matches(':disabled'));
+        assert.isFalse(input.matches(':disabled'));
+
+        field.setAttribute('readonly', '');
+        assert.isTrue(input.readOnly, 'the readonly claim reaches the subclass mirror');
+        field.setAttribute('required', '');
+        assert.strictEqual(input.getAttribute('aria-required'), 'true', 'the required claim reaches the subclass mirror');
+        field.removeAttribute('readonly');
+        field.removeAttribute('required');
+        assert.isFalse(input.readOnly);
+        assert.isNull(input.getAttribute('aria-required'));
+        assert.strictEqual(field.value, 'x', 'the base-delivered value mapper feeds the subclass');
+        container.remove();
+    });
+
+    it('resets a custom field that never declared a value, instead of crashing', async () => {
+        class BareField extends Field {
+            static slots = true;
+            static template = '<label>{{{{ slots.default }}}}</label><input form="">';
+            render({ slots }) {
+                const fragment = this.template().withOverlay({ slots }).render();
+                this._adopt(fragment.querySelector('input'), null);
+                this.replaceChildren(fragment);
+            }
+        }
+        registry.defineElement('x-bare-field', BareField);
+        const uncaught = [];
+        const onError = (e) => {
+            uncaught.push(e.error?.message ?? e.message);
+            e.preventDefault();
+        };
+        window.addEventListener('error', onError);
+
+        const container = await mount('<form><x-bare-field name="a">l</x-bare-field></form>');
+        try {
+            container.querySelector('form').reset();
+        } finally {
+            window.removeEventListener('error', onError);
+        }
+
+        assert.deepStrictEqual(uncaught, [], 'the inert base value pair absorbs the reset write');
         container.remove();
     });
 });

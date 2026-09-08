@@ -349,7 +349,7 @@ class Dropdown extends ParsedElement {
 }
 
 class Select extends Field {
-    static observed = ['value:csvm', 'readonly:presence', 'required:presence', 'itemlist:presence'];
+    static observed = ['value:csvm', 'itemlist:presence'];
     static slots = true;
     static template = `
         <label>{{{{ slots.default }}}}</label>

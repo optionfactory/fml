@@ -12,11 +12,14 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 class Field extends ParsedElement {
     static formAssociated = true;
     /**
-     * The disabled claim is observed here so every field, including the custom
-     * ones, keeps it live after the upgrade: the attribute is a third authoring
-     * door beside markup and the property, exactly as a native input's.
+     * The claim attributes and the value are observed here so every field,
+     * including the custom ones, keeps them live after the upgrade: the
+     * attribute is a third authoring door beside markup and the property,
+     * exactly as a native input's. The value defaults to the string mapper and
+     * every field with its own vocabulary overrides it (`value:bool`,
+     * `value:csvm`, `value:json`).
      */
-    static observed = ['disabled:presence'];
+    static observed = ['value', 'disabled:presence', 'readonly:presence', 'required:presence'];
     /** the role the element internals carry, 'presentation' unless the control is its own */
     static ROLE = 'presentation';
     /** the platform's window into form state: shared with subclasses by necessity */

@@ -54,7 +54,7 @@ class Instant extends ParsedElement {
 }
 
 class InputLocalDate extends Input {
-    static observed = ['value', 'readonly:presence', 'required:presence', 'placeholder', 'min', 'max', 'step'];
+    static observed = ['placeholder', 'min', 'max', 'step'];
     _type() {
         return 'date';
     }
@@ -185,7 +185,7 @@ class InputLocalTime extends InputLocalDate {
 }
 
 class InputInstant extends Input {
-    static observed = ['value', 'readonly:presence', 'required:presence', 'placeholder', 'min', 'max', 'step'];
+    static observed = ['placeholder', 'min', 'max', 'step'];
     _type() {
         return 'datetime-local';
     }

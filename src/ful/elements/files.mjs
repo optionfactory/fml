@@ -3,9 +3,6 @@ import { Input } from './input.mjs';
 
 class InputFile extends Input {
     static observed = [
-        'value',
-        'readonly:presence',
-        'required:presence',
         'placeholder',
         'accept:csv',
         'multiple:presence',
