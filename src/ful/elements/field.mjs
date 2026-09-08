@@ -71,7 +71,7 @@ class Field extends ParsedElement {
         if (!form) {
             return;
         }
-        const candidates = /** @type [HTMLButtonElement|HTMLInputElement] */ (
+        const candidates = /** @type {NodeListOf<HTMLButtonElement|HTMLInputElement>} */ (
             form.querySelectorAll('button:not(:disabled), input:not(:disabled)')
         );
         form.requestSubmit([...candidates].find((el) => el.type === 'submit' && el.form === form));
