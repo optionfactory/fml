@@ -1,7 +1,7 @@
 import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
-import { Plugin } from '../../../src/ful/index.mjs';
+import { Plugin, SelectLoader } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -282,5 +282,136 @@ describe('SelectLoader runtime updates', () => {
         assert.lengthOf(calls, 2);
         assert.deepStrictEqual(calls.map((c) => c.url), ['/before', '/after']);
         container.remove();
+    });
+});
+
+describe('SelectLoader fetch discipline', () => {
+    /** an http stub whose responses resolve only when released, recording every request */
+    const deferredHttp = () => {
+        const calls = [];
+        const pending = [];
+        registry.defineComponent('http-client', {
+            request(method, url) {
+                calls.push({ method, url });
+                const resolvers = Promise.withResolvers();
+                pending.push(resolvers);
+                return {
+                    fetchJson: () => resolvers.promise,
+                };
+            },
+        });
+        return { calls, pending };
+    };
+    const remoteLoader = (attributes) => {
+        const el = document.createElement('div');
+        for (const [k, v] of Object.entries(attributes)) {
+            el.setAttribute(k, v);
+        }
+        return SelectLoader.create(el, {});
+    };
+
+    it('shares one in-flight fetch across concurrent prefetch, search and lookup', async () => {
+        const { calls, pending } = deferredHttp();
+        const loader = remoteLoader({ src: '/slow', preload: '' });
+
+        const concurrent = [loader.prefetch(), loader.load('one'), loader.exact('k1')];
+        assert.lengthOf(calls, 1, 'the concurrent callers ride one request');
+        pending[0].resolve([['k1', 'One']]);
+        await Promise.all(concurrent);
+
+        assert.deepStrictEqual(await loader.load('one'), [['k1', 'One']]);
+        assert.deepStrictEqual(await loader.exact('k1'), [['k1', 'One']]);
+        assert.lengthOf(calls, 1, 'the served answers never hit the network again');
+    });
+
+    it('discards the outcome of a fetch superseded by a reconfiguration', async () => {
+        const { calls, pending } = deferredHttp();
+        const loader = remoteLoader({ src: '/old', preload: '' });
+
+        const stale = loader.prefetch();
+        loader.reconfigureUrl('/new');
+        pending[0].resolve([['k1', 'Old']]);
+        await stale;
+
+        const fresh = loader.load('x');
+        assert.lengthOf(calls, 2);
+        pending[1].resolve([['k2', 'New']]);
+        await fresh;
+        assert.deepStrictEqual(await loader.load('new'), [['k2', 'New']]);
+        assert.deepStrictEqual(await loader.exact('k1'), [], 'the old url answer was never stored');
+        assert.lengthOf(calls, 2);
+    });
+
+    it('serves the fetched options when the cache write hits a full quota', async () => {
+        const calls = [];
+        registry.defineComponent('http-client', {
+            request(method, url) {
+                calls.push({ method, url });
+                return {
+                    async fetchJson() {
+                        return [['k1', 'One']];
+                    },
+                };
+            },
+        });
+        const originalWarn = console.warn;
+        const originalSetItem = Storage.prototype.setItem;
+        const warns = [];
+        console.warn = (...args) => warns.push(args);
+        Storage.prototype.setItem = () => {
+            throw new DOMException('full', 'QuotaExceededError');
+        };
+        let container;
+        try {
+            container = document.createElement('div');
+            container.innerHTML = '<ful-select src="/quota" revision="1"></ful-select>';
+            document.body.appendChild(container);
+            const selectEl = container.querySelector('ful-select');
+            await Rendering.waitFor(selectEl);
+            await opened();
+            keydown(selectEl.querySelector('input'), 'ArrowDown', { altKey: true });
+            await opened();
+
+            const items = selectEl.querySelector('ful-dropdown').querySelectorAll('menu li');
+            assert.deepStrictEqual(Array.from(items).map((li) => li.textContent.trim()), ['One']);
+            assert.isTrue(warns.some((args) => String(args[0]).includes('cache')), 'the failed write is warned, once');
+        } finally {
+            console.warn = originalWarn;
+            Storage.prototype.setItem = originalSetItem;
+            container?.remove();
+            localStorage.removeItem('POST@/quota');
+        }
+    });
+
+    it('treats a tampered cache entry as a miss and fetches', async () => {
+        localStorage.setItem('POST@/tampered', 'null');
+        const calls = [];
+        registry.defineComponent('http-client', {
+            request(method, url) {
+                calls.push({ method, url });
+                return {
+                    async fetchJson() {
+                        return [['k1', 'One']];
+                    },
+                };
+            },
+        });
+        const container = document.createElement('div');
+        container.innerHTML = '<ful-select src="/tampered" revision="9"></ful-select>';
+        document.body.appendChild(container);
+        try {
+            const selectEl = container.querySelector('ful-select');
+            await Rendering.waitFor(selectEl);
+            await opened();
+            keydown(selectEl.querySelector('input'), 'ArrowDown', { altKey: true });
+            await opened();
+
+            const items = selectEl.querySelector('ful-dropdown').querySelectorAll('menu li');
+            assert.deepStrictEqual(Array.from(items).map((li) => li.textContent.trim()), ['One']);
+            assert.lengthOf(calls, 1);
+        } finally {
+            localStorage.removeItem('POST@/tampered');
+            container.remove();
+        }
     });
 });

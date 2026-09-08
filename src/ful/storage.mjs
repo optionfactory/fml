@@ -61,7 +61,7 @@ class VersionedLocalStorage {
         if (stored === undefined) {
             return undefined;
         }
-        if (stored.revision !== revision) {
+        if (stored === null || typeof stored !== 'object' || stored.revision !== revision) {
             LocalStorage.remove(key);
             return undefined;
         }
@@ -78,7 +78,7 @@ class VersionedSessionStorage {
         if (stored === undefined) {
             return undefined;
         }
-        if (stored.revision !== revision) {
+        if (stored === null || typeof stored !== 'object' || stored.revision !== revision) {
             SessionStorage.remove(key);
             return undefined;
         }

@@ -11,6 +11,8 @@ class RemoteLoader {
     #prefetch;
     #revision;
     #data;
+    #inFlight;
+    #config;
     constructor({ http, url, method, responseMapper, prefetch, revision }) {
         this.#http = http;
         this.#url = url;
@@ -19,6 +21,8 @@ class RemoteLoader {
         this.#prefetch = prefetch;
         this.#revision = revision;
         this.#data = null;
+        this.#inFlight = null;
+        this.#config = 0;
     }
     async prefetch() {
         if (!this.#prefetch) {
@@ -35,15 +39,34 @@ class RemoteLoader {
         return this.#data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase()));
     }
     async reconfigureUrl(url) {
+        //the generation detaches any fetch still in flight: its outcome belongs
+        //to the old url and must neither be served nor stored for the new one
+        ++this.#config;
         this.#data = null;
+        this.#inFlight = null;
         this.#url = url;
     }
     async #ensureFetched() {
         if (this.#data !== null) {
             return;
         }
-        const raw = await RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision);
-        this.#data = this.#responseMapper(raw);
+        if (this.#inFlight !== null) {
+            await this.#inFlight;
+            return;
+        }
+        const config = this.#config;
+        this.#inFlight = RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision)
+            .then((raw) => {
+                if (config === this.#config) {
+                    this.#data = this.#responseMapper(raw);
+                }
+            })
+            .finally(() => {
+                if (config === this.#config) {
+                    this.#inFlight = null;
+                }
+            });
+        await this.#inFlight;
     }
     static async #revisionedData(http, method, url, revision) {
         const storageKey = `${method}@${url}`;
@@ -55,7 +78,13 @@ class RemoteLoader {
         }
         const data = await http.request(method, url).fetchJson();
         if (revision !== null) {
-            VersionedLocalStorage.save(storageKey, revision, data);
+            try {
+                VersionedLocalStorage.save(storageKey, revision, data);
+            } catch (/** @type any */ e) {
+                //the cache write is best effort: the fetched data is the answer,
+                //a full quota must not fail the load that already succeeded
+                console.warn('failed to cache the select options', e);
+            }
         }
         return data;
     }

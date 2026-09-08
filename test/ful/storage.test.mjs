@@ -16,7 +16,15 @@ describe('VersionedLocalStorage', () => {
         VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });
         const loaded = VersionedLocalStorage.load('app-config', 'v2');
         expect(loaded).to.be.undefined;
-        expect(localStorage.getItem('app-config')).to.be.null; 
+        expect(localStorage.getItem('app-config')).to.be.null;
+    });
+
+    it('treats a foreign value under the key as a miss, not a crash', () => {
+        for (const foreign of ['null', '3', '"oops"', '[1,2]']) {
+            localStorage.setItem('app-config', foreign);
+            expect(VersionedLocalStorage.load('app-config', 'v1')).to.be.undefined;
+            expect(localStorage.getItem('app-config')).to.be.null;
+        }
     });
 
     it('safely pops data, removing it from storage entirely', () => {
