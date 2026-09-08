@@ -1,0 +1,106 @@
+button.ful-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ful-muted-color, var(--ful-color));
+    cursor: pointer;
+
+    & ful-icon {
+        width: 1em;
+        height: 1em;
+    }
+
+    &:hover,
+    &:focus-visible {
+        color: var(--ful-active-color);
+    }
+
+    &:focus-visible {
+        outline: var(--ful-focus-border-color) solid var(--ful-focus-border-width, 1px);
+        outline-offset: 1px;
+        border-radius: var(--ful-border-radius);
+    }
+}
+
+ful-note {
+    display: none;
+    max-width: 20rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--ful-color);
+    background-color: var(--ful-bg);
+    background-clip: padding-box;
+    border: var(--ful-border-width) solid var(--ful-border-color);
+    border-radius: var(--ful-border-radius);
+    font-size: 0.875rem;
+    margin: 0.3rem 0 0;
+
+    &:popover-open {
+        display: block;
+    }
+
+    &[placement="top"] {
+        margin: 0 0 0.3rem;
+    }
+
+    &[placement="right"] {
+        margin: 0 0 0 0.3rem;
+    }
+
+    &[placement="left"] {
+        margin: 0 0.3rem 0 0;
+    }
+}
+
+dialog.ful-dialog {
+    width: min(90vw, 32rem);
+    padding: 0;
+    border: var(--ful-border-width) solid var(--ful-border-color);
+    border-radius: var(--ful-border-radius);
+    background-color: var(--ful-bg);
+    color: var(--ful-color);
+
+    &::backdrop {
+        background-color: rgb(0 0 0 / 50%);
+    }
+
+    & > header {
+        padding: 1rem 1.25rem 0.5rem;
+
+        & h2 {
+            margin: 0;
+            font-size: 1.125rem;
+        }
+    }
+
+    & > [data-ref="body"] {
+        padding: 0.5rem 1.25rem;
+    }
+
+    & > footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem 1rem;
+
+        & > button {
+            padding: 0.375rem 0.75rem;
+            height: var(--ful-controls-height);
+            border: var(--ful-controls-border-width) solid var(--ful-controls-border-color);
+            border-radius: var(--ful-controls-border-radius);
+            background-color: var(--ful-selected-bg);
+            color: var(--ful-color);
+            cursor: pointer;
+
+            &:hover {
+                background-color: var(--ful-active-bg);
+                color: var(--ful-active-color);
+            }
+        }
+    }
+}

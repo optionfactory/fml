@@ -19,7 +19,9 @@
         "ful-spinner": {
             "description": "A busy indicator. ful-form shows and hides the ones it contains while submitting.",
             "attributes": {},
-            "slots": { "default": "Text shown next to the spinner." },
+            "slots": {
+                "default": "Text shown next to the spinner."
+            },
             "events": []
         },
         "ful-form": {
@@ -35,15 +37,21 @@
         },
         "ful-checkbox": {
             "description": "A checkbox, or a switch with type=\"switch\". Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": { "value": "Checked when the attribute is the string true." },
+            "attributes": {
+                "value": "Checked when the attribute is the string true."
+            },
             "slots": {},
-            "events": { "change": "Fired with the new checked state when the box or its label is clicked." }
+            "events": {
+                "change": "Fired with the new checked state when the box or its label is clicked."
+            }
         },
         "ful-input": {
             "description": "A labelled text input. Use type to pick any native input type, or textarea. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {},
             "slots": {},
-            "events": { "change": "Fired with the current value when the field is committed." }
+            "events": {
+                "change": "Fired with the current value when the field is committed."
+            }
         },
         "ful-input-file": {
             "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -57,8 +65,12 @@
                 "maxfilesize": "Maximum size of a single file, in bytes. Larger files are dropped.",
                 "maxtotalsize": "Maximum size of all the selected files, in bytes. Exceeding it clears the selection."
             },
-            "slots": { "dropzone": "Replaces the contents of the default dropzone." },
-            "events": { "change": "Fired with the names of the selected files." }
+            "slots": {
+                "dropzone": "Replaces the contents of the default dropzone."
+            },
+            "events": {
+                "change": "Fired with the names of the selected files."
+            }
         },
         "ful-local-date": {
             "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page.",
@@ -80,7 +92,9 @@
                 "step": "Step between selectable dates, in days."
             },
             "slots": {},
-            "events": { "change": "Fired with the current date." }
+            "events": {
+                "change": "Fired with the current date."
+            }
         },
         "ful-input-local-time": {
             "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -90,7 +104,9 @@
                 "step": "Step between selectable times, in seconds. The bounds are truncated to this grid."
             },
             "slots": {},
-            "events": { "change": "Fired with the current time." }
+            "events": {
+                "change": "Fired with the current time."
+            }
         },
         "ful-input-instant": {
             "description": "A datetime input whose value is read and written as an ISO instant. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -100,17 +116,23 @@
                 "step": "Step between selectable instants, in seconds."
             },
             "slots": {},
-            "events": { "change": "Fired with the current instant." }
+            "events": {
+                "change": "Fired with the current instant."
+            }
         },
         "ful-radio-group": {
             "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": { "value": "The value of the selected radio." },
+            "attributes": {
+                "value": "The value of the selected radio."
+            },
             "slots": {
                 "default": "The legend of the group, and its ful-radio children.",
                 "header": "Content rendered above the radios.",
                 "footer": "Content rendered below the radios."
             },
-            "events": { "change": "Fired with the value of the selected radio." }
+            "events": {
+                "change": "Fired with the value of the selected radio."
+            }
         },
         "ful-table": {
             "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot.",
@@ -129,13 +151,19 @@
                 "current": "Zero based index of the page being shown."
             },
             "slots": {},
-            "events": { "page-requested": "Fired with the zero based index of the page the user asked for." }
+            "events": {
+                "page-requested": "Fired with the zero based index of the page the user asked for."
+            }
         },
         "ful-sorter": {
             "description": "The sort control rendered in a ful-table header, focusable and activated by Enter and Space, carrying aria-sort on its header cell. Rarely used on its own.",
-            "attributes": { "order": "The sort currently applied, asc or desc, or absent when unsorted." },
+            "attributes": {
+                "order": "The sort currently applied, asc or desc, or absent when unsorted."
+            },
             "slots": {},
-            "events": { "sort-requested": "Fired with the sorter and the next order when activated." }
+            "events": {
+                "sort-requested": "Fired with the sorter and the next order when activated."
+            }
         },
         "ful-filter-instant": {
             "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -144,7 +172,9 @@
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
             },
             "slots": {},
-            "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
+            }
         },
         "ful-filter-local-date": {
             "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -153,7 +183,9 @@
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
             },
             "slots": {},
-            "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
+            }
         },
         "ful-filter-text": {
             "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH and a case sensitivity. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only. A multiple ful-select used as a filter emits the bare value array the in-list annotations expect.",
@@ -163,7 +195,9 @@
                 "sensitivities": "Comma separated list of the case sensitivity modes, IGNORE_CASE, CASE_SENSITIVE. A single entry pins every emitted tuple to it."
             },
             "slots": {},
-            "events": { "change": "Fired with the whole tuple, or undefined when the filter is empty." }
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is empty."
+            }
         },
         "ful-filter-number": {
             "description": "A ful-table filter over numbers, with an operator such as GTE or BETWEEN. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -172,7 +206,9 @@
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
             },
             "slots": {},
-            "events": { "change": "Fired with the whole tuple, or undefined when the filter is incomplete." }
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
+            }
         },
         "ful-filter-boolean": {
             "description": "A ful-table filter over booleans, with the EQ or NEQ operator and a yes/no menu carrying the true and false tokens, plus an any entry that contributes nothing. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -181,7 +217,9 @@
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ. Defaults to both."
             },
             "slots": {},
-            "events": { "change": "Fired with the whole tuple, or undefined when nothing is picked." }
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when nothing is picked."
+            }
         },
         "ful-select": {
             "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -190,14 +228,51 @@
                 "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
                 "k-type": "The type every key is coerced to, both the assigned ones and the loader's: string (default), number or boolean. A key that does not decode, such as an empty string with number, is kept as it is."
             },
-            "slots": { "dropdown": "Replaces the template used to render the options." },
-            "events": { "change": "Fired with the selection, an array when multiple." }
+            "slots": {
+                "dropdown": "Replaces the template used to render the options."
+            },
+            "events": {
+                "change": "Fired with the selection, an array when multiple."
+            }
         },
         "ful-dropdown": {
             "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. Rarely used on its own.",
             "attributes": {},
             "slots": {},
-            "events": { "change": "Fired with the option that was picked." }
+            "events": {
+                "change": "Fired with the option that was picked."
+            }
+        },
+        "ful-tooltip": {
+            "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click.",
+            "attributes": {},
+            "slots": {
+                "default": "The short explanation shown in the popover."
+            },
+            "events": []
+        },
+        "ful-dialog": {
+            "description": "A modal dialog on the native platform: header, body and buttons, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which resolve with the data-result of the button that closed the dialog (null on Escape). Longer explanations belong here, shorter ones in ful-tooltip.",
+            "attributes": {},
+            "slots": {
+                "default": "The dialog body.",
+                "buttons": "Buttons closing the dialog; each carries a data-result that ask() resolves with. Without this slot a localized acknowledge button is shown."
+            },
+            "events": []
+        },
+        "ful-drawer": {
+            "description": "A side panel drawer on the native dialog platform: a header with its title and close button, and a body that opens in a loading state, then shows either the content delivered by update(title, callback) (or the slotted one, when it is never updated) or the error a rejecting callback carries. placement picks the side, end by default, start its mirror. Any element carrying dialog-target set to its id opens it too.",
+            "attributes": {},
+            "slots": {
+                "default": "The drawer body, shown when update() never replaced it."
+            },
+            "events": []
+        },
+        "ful-toasts": {
+            "description": "A transient feedback region, one per page: each show() (or a show-toast document event carrying the same detail) appends a toast that dismisses itself after its timeout, the element's timeout attribute or five seconds by default, and carries its own dismiss button. severity picks the theme and the announcement, info by default, success, warning and error, the error one announced as an alert; a Failure message shows its problems' reasons.",
+            "attributes": {},
+            "slots": {},
+            "events": []
         }
     }
 }

@@ -30,4 +30,9 @@ export default {
     'filters.boolean.any': 'Qualsiasi',
     'filters.boolean.true': 'Sì',
     'filters.boolean.false': 'No',
+    'info.tooltip': 'Maggiori informazioni',
+    'dialog.acknowledge': 'Ho capito',
+    'drawer.close': 'Chiudi',
+    'toast.region': 'Notifiche',
+    'toast.dismiss': 'Chiudi',
 };

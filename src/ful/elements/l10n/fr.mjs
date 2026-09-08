@@ -33,4 +33,9 @@ export default {
     'filters.boolean.any': 'Indifférent',
     'filters.boolean.true': 'Oui',
     'filters.boolean.false': 'Non',
+    'info.tooltip': 'Plus d’informations',
+    'dialog.acknowledge': 'J’ai compris',
+    'drawer.close': 'Fermer',
+    'toast.region': 'Notifications',
+    'toast.dismiss': 'Fermer',
 };

@@ -29,6 +29,27 @@ const ELEMENTS = [
         observed: {},
     },
     {
+        tag: 'ful-tooltip',
+        html: `<ful-tooltip>a short explanation</ful-tooltip>`,
+        observed: {},
+    },
+    {
+        tag: 'ful-dialog',
+        html: `<ful-dialog header="the header">body</ful-dialog>`,
+        observed: {},
+    },
+    {
+        tag: 'ful-drawer',
+        html: `<ful-drawer title="the title">body</ful-drawer>`,
+        observed: {},
+    },
+    {
+        tag: 'ful-toasts',
+        html: `<ful-toasts></ful-toasts>`,
+        observed: {},
+        empty: true,
+    },
+    {
         tag: 'ful-form',
         html: `<ful-form><input name="a"></ful-form>`,
         observed: {},
@@ -282,7 +303,9 @@ describe('Registered elements', () => {
                 const [el, container] = await mount(spec.html);
 
                 assert.deepStrictEqual(uncaught, [], `${spec.tag} reported errors while mounting`);
-                assert.isAbove(el.childNodes.length, 0, `${spec.tag} rendered no content`);
+                if (!spec.empty) {
+                    assert.isAbove(el.childNodes.length, 0, `${spec.tag} rendered no content`);
+                }
                 container.remove();
             });
 

@@ -9,6 +9,9 @@ import { InputFile } from './files.mjs';
 import { RadioGroup } from './radio.mjs';
 import { SelectLoader, Dropdown, Select } from './select.mjs';
 import { Spinner } from './spinner.mjs';
+import { Tooltip, Dialog } from './info.mjs';
+import { Drawer } from './drawer.mjs';
+import { Toasts } from './toast.mjs';
 import { TableLoader, Table, Pagination, SortButton } from './table.mjs';
 import en from './l10n/en.mjs';
 import it from './l10n/it.mjs';
@@ -42,6 +45,10 @@ class Plugin {
             .defineModule('l10n', Localization)
             .defineComponent('http-client', httpClient)
             .defineElement('ful-spinner', Spinner)
+            .defineElement('ful-tooltip', Tooltip)
+            .defineElement('ful-dialog', Dialog)
+            .defineElement('ful-drawer', Drawer)
+            .defineElement('ful-toasts', Toasts)
             .defineElement('ful-form', Form)
             .defineElement('ful-checkbox', Checkbox)
             .defineElement('ful-input', Input)

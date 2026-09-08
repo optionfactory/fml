@@ -1,0 +1,93 @@
+.ful-toasts {
+    position: fixed;
+    top: 1rem;
+    inset-inline-end: 1rem;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    max-width: min(90vw, 24rem);
+
+    & > .ful-toast {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.625rem 0.75rem;
+        border: var(--ful-controls-border-width) solid var(--ful-border-color);
+        border-radius: var(--ful-controls-border-radius);
+        background-color: var(--ful-bg);
+        color: var(--ful-color);
+        white-space: pre-line;
+        animation: ful-toast-in 0.2s ease-out;
+
+        & > div:first-child {
+            flex-grow: 1;
+        }
+
+        & > button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            width: 1.25rem;
+            height: 1.25rem;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: inherit;
+            cursor: pointer;
+
+            & ful-icon {
+                width: 1em;
+                height: 1em;
+            }
+
+            &:hover,
+            &:focus-visible {
+                color: var(--ful-active-color);
+            }
+
+            &:focus-visible {
+                outline: var(--ful-focus-border-color) solid var(--ful-focus-border-width, 1px);
+                outline-offset: 1px;
+                border-radius: var(--ful-border-radius);
+            }
+        }
+
+        &.success {
+            border-color: var(--ful-active-bg);
+            color: var(--ful-active-bg);
+        }
+
+        &.warning {
+            border-color: var(--ful-warning-border-color);
+            background-color: var(--ful-warning-bg);
+            color: var(--ful-warning-color);
+        }
+
+        &.error {
+            border-color: var(--ful-error-border-color);
+            background-color: var(--ful-error-bg);
+            color: var(--ful-error-color);
+        }
+
+        &.ful-toast-out {
+            animation: ful-toast-out 0.2s ease-in forwards;
+        }
+    }
+}
+
+@keyframes ful-toast-in {
+    from {
+        transform: translateY(-0.5rem);
+        opacity: 0;
+    }
+}
+
+@keyframes ful-toast-out {
+    to {
+        transform: translateY(-0.5rem);
+        opacity: 0;
+    }
+}

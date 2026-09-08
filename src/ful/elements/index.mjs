@@ -20,4 +20,10 @@ export { SortButton, Table, TableSchemaParser, Pagination, TableLoader } from '.
 import './table.css';
 export { BooleanFilter, CompareFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter } from './filters.mjs';
 import './filters.css';
+export { Tooltip, Dialog } from './info.mjs';
+import './info.css';
+export { Drawer } from './drawer.mjs';
+import './drawer.css';
+export { Toasts } from './toast.mjs';
+import './toast.css';
 export { Plugin } from './plugin.mjs';

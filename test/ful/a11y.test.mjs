@@ -59,6 +59,10 @@ describe('Accessibility audit', () => {
         ['ful-local-date', `<ful-local-date name="ld">2026-09-07</ful-local-date>`],
         ['ful-instant', `<ful-instant name="in">2026-09-07T10:30:00Z</ful-instant>`],
         ['ful-spinner', `<ful-spinner name="sp">spin</ful-spinner>`],
+        ['ful-tooltip', `<ful-tooltip name="t">a short explanation</ful-tooltip>`],
+        ['ful-dialog', `<ful-dialog header="the header">body</ful-dialog>`],
+        ['ful-drawer', `<ful-drawer title="the title">body</ful-drawer>`],
+        ['ful-toasts', `<ful-toasts></ful-toasts>`],
         [
             'ful-form',
             `<ful-form name="frm"><ful-input name="fi">inside a form</ful-input><button type="submit">submit</button></ful-form>`,
