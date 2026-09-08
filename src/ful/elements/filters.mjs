@@ -184,7 +184,7 @@ const refreshOperators = (filter) => {
  * the data-jpa compare annotations.
  */
 class CompareFilter extends Input {
-    static observed = ['value:json', 'operators:csv', 'placeholder'];
+    static observed = ['value:json', 'operators:csv'];
     static OPERATORS = COMPARE_OPERATORS;
     static DEFAULT_OPERATOR = 'EQ';
     static template = `
@@ -388,12 +388,7 @@ class NumberFilter extends CompareFilter {
 }
 
 class TextFilter extends CompareFilter {
-    static observed = [
-        'value:json',
-        'operators:csv',
-        'sensitivities:csv',
-        'placeholder',
-    ];
+    static observed = ['sensitivities:csv'];
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
