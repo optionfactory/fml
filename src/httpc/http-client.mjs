@@ -492,7 +492,7 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Adds a query parameter to the request, overriding it if it already exists. Empty vs, or a single null or undefined value cause the key to be removed.
+     * Adds a query parameter to the request, overriding it if it already exists. An empty list, or one carrying only null and undefined values, causes the key to be removed; nullish entries among real values are skipped.
      * @param {string} k
      * @param {...string} vs
      * @returns {HttpRequestBuilder} this builder
@@ -501,10 +501,11 @@ class HttpRequestBuilder {
         //overriding, as header, headers and params all do: pass every value in one
         //call to get a multi valued parameter
         this.#params.delete(k);
-        if (vs.length === 0 || vs[0] == null) {
+        const values = vs.filter((v) => v != null);
+        if (values.length === 0) {
             return this;
         }
-        for (const v of vs) {
+        for (const v of values) {
             this.#params.append(k, v);
         }
         return this;

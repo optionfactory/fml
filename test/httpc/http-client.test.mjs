@@ -197,6 +197,19 @@ describe('httpc client', () => {
             expect(url.searchParams.getAll('k')).to.deep.equal(['a', 'b']);
         });
 
+        it('skips nullish entries among real values, in any position', async () => {
+            await client.get('/test')
+                .param('leading', null, 'v1')
+                .param('trailing', 'v1', null)
+                .param('only', null)
+                .fetch();
+
+            const url = new URL(fetchArgs.url.toString());
+            expect(url.searchParams.getAll('leading')).to.deep.equal(['v1'], 'a leading null does not discard the rest');
+            expect(url.searchParams.getAll('trailing')).to.deep.equal(['v1'], 'a trailing null is skipped, not stringified');
+            expect(url.searchParams.has('only')).to.be.false;
+        });
+
         it('removes headers and params set to null through the plural forms', async () => {
             await client.get('/test')
                 .headers({ 'X-Keep': '1', 'X-Remove': '2' })
