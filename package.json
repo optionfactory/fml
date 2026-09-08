@@ -49,8 +49,8 @@
     "scripts": {
         "initialize": "npm install && playwright install",
         "build": "rollup --config rollup.conf.mjs && npm run manifest",
-        "verify": "npm run lint && npm run check && npm test",
-        "prepublishOnly": "npm run verify && npm run build",
+        "verify": "npm run lint && npm run check && npm run build && npm test",
+        "prepublishOnly": "npm run verify",
         "lint": "biome lint .",
         "check": "tsc --project ./jsconfig.json",
         "format": "biome format --write .",
