@@ -75,8 +75,13 @@ const syncOperatorControl = (operator, allowed, claimed = false) => {
     Attributes.toggle(operator, 'disabled', pinned || claimed);
     Attributes.set(operator, 'aria-haspopup', pinned ? null : 'true');
     Attributes.set(operator, 'aria-expanded', pinned ? null : 'false');
+    const menu = operator.nextElementSibling;
     if (pinned) {
         operator.removeAttribute('popovertarget');
+    } else if (menu?.id) {
+        //the menu is wired once, its link is what a pin may break: lifting the
+        //pin re-links the invoker to the menu it already owns
+        operator.setAttribute('popovertarget', menu.id);
     }
     return pinned;
 };

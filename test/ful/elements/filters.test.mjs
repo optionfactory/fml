@@ -528,6 +528,37 @@ describe('Filter operator whitelisting', () => {
         container.remove();
     });
 
+    it('re-links the invoker when a pin that arrived after wiring is lifted', async () => {
+        const [el, container] = await mount(`<ful-filter-number operators="GTE,EQ" name="f">n</ful-filter-number>`);
+        const button = el.querySelector('[data-ref=operator]');
+        assert.isNotNull(button.getAttribute('popovertarget'), 'the menu was wired at render');
+
+        el.setAttribute('operators', 'GTE');
+        await settle();
+        assert.isNull(button.getAttribute('popovertarget'), 'the pin broke the link');
+
+        el.setAttribute('operators', 'GTE,EQ');
+        await settle();
+        assert.strictEqual(button.getAttribute('popovertarget'), button.nextElementSibling.id, 'lifting the pin restores it');
+        assert.strictEqual(button.getAttribute('aria-haspopup'), 'true');
+        container.remove();
+    });
+
+    it('re-links the sensitivity invoker the same way', async () => {
+        const [el, container] = await mount(`<ful-filter-text name="f">t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=sensitivity]');
+        assert.isNotNull(button.getAttribute('popovertarget'));
+
+        el.setAttribute('sensitivities', 'CASE_SENSITIVE');
+        await settle();
+        assert.isNull(button.getAttribute('popovertarget'));
+
+        el.setAttribute('sensitivities', 'IGNORE_CASE,CASE_SENSITIVE');
+        await settle();
+        assert.strictEqual(button.getAttribute('popovertarget'), button.nextElementSibling.id);
+        container.remove();
+    });
+
     it('pins the boolean operator the same way', async () => {
         const [el, container] = await mount(
             `<ful-filter-boolean operators="NEQ" value='["EQ","true"]' name="f">b</ful-filter-boolean>`,
