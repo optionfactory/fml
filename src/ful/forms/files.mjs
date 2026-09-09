@@ -90,6 +90,9 @@ class InputFile extends Input {
                     dt.items.add(f);
                 });
             this.files = dt.files;
+            //the removal is the user's own gesture: it reports through change as the
+            //picker's selection does, while the files setter stays silent like a native one
+            this.#changed();
         });
         this.#dropzone.addEventListener('click', (e) => {
             //the dropzone is not a form control, the guard must ask the effective state
@@ -124,10 +127,24 @@ class InputFile extends Input {
                 dt.items.add(f);
             });
             this.files = dt.files;
+            //a drop is the user's own gesture too: a native file input receiving
+            //one fires change on its own
+            this.#changed();
         });
         this._input.addEventListener('change', (e) => {
             this.#update();
         });
+    }
+    #changed() {
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                cancelable: false,
+                detail: {
+                    value: this.value,
+                },
+            }),
+        );
     }
     /**
      * A file input has no native freeze: readOnly does nothing to it, so the

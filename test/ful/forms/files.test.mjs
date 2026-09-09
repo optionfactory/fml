@@ -123,6 +123,25 @@ describe('InputFile selection', () => {
         container.remove();
     });
 
+    it('reports the drop and removal gestures through change, keeping the setters silent', async () => {
+        const [el, container] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
+        const seen = [];
+        el.addEventListener('change', (evt) => seen.push(evt.detail.value));
+
+        drop(el, file('a.txt'), file('b.txt'));
+        assert.deepStrictEqual(seen, [['a.txt', 'b.txt']], 'a drop is a selection, as a native input reports it');
+
+        el.querySelector('ful-item[data-name="a.txt"] button').dispatchEvent(
+            new MouseEvent('click', { bubbles: true }),
+        );
+        assert.deepStrictEqual(seen, [['a.txt', 'b.txt'], ['b.txt']], 'a removal is a gesture too');
+
+        el.value = null;
+        assert.strictEqual(seen.length, 2, 'a programmatic write stays silent, like a native input');
+
+        container.remove();
+    });
+
     it('removes only the clicked item when two files share a name', async () => {
         const [el, container] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
         pick(el, file('a.txt', 1), file('a.txt', 2));
