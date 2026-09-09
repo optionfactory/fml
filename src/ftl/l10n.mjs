@@ -1,3 +1,4 @@
+import { BoundedCache } from './cache.mjs';
 import { registry } from './registry.mjs';
 
 /**
@@ -29,8 +30,7 @@ const warnOnce = (problem) => {
     }
 };
 
-const MAX_FORMATTERS = 100;
-const formatters = new Map();
+const formatters = new BoundedCache(100);
 /**
  * Intl construction is the expensive part of formatting (locale parsing, CLDR
  * lookups), while formatting on a built instance is near free: a list rendering
@@ -43,15 +43,7 @@ const formatters = new Map();
  */
 const formatter = (ctor, locale, options) => {
     const key = `${ctor.name}|${locale ?? ''}|${options === undefined ? '' : JSON.stringify(options)}`;
-    let instance = formatters.get(key);
-    if (instance === undefined) {
-        if (formatters.size >= MAX_FORMATTERS) {
-            formatters.delete(formatters.keys().next().value);
-        }
-        instance = new ctor(locale, options);
-        formatters.set(key, instance);
-    }
-    return instance;
+    return formatters.getOrCompute(key, () => new ctor(locale, options));
 };
 
 class Localization {

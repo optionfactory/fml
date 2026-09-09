@@ -1,21 +1,17 @@
-import { Attributes } from '../../ftl/index.mjs';
+import { Attributes, BoundedCache } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
 //a bad mask is warned once, then ignored
-const maskCache = new Map();
-const compiledMask = (mask) => {
-    let compiled = maskCache.get(mask);
-    if (compiled === undefined) {
+const maskCache = new BoundedCache(100);
+const compiledMask = (mask) =>
+    maskCache.getOrCompute(mask, () => {
         try {
-            compiled = new RegExp(mask, 'g');
+            return new RegExp(mask, 'g');
         } catch (/** @type any */ e) {
             console.warn('invalid mask attribute', mask, e);
-            compiled = null;
+            return null;
         }
-        maskCache.set(mask, compiled);
-    }
-    return compiled;
-};
+    });
 
 /** A labelled text input over any native type or textarea; the temporal inputs are its subclasses. */
 class Input extends Field {

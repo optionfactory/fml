@@ -1,4 +1,5 @@
 import { nodes } from './ast.mjs';
+import { BoundedCache } from './cache.mjs';
 import { Fragments } from './dom.mjs';
 import { Expressions, ExpressionEvaluator } from './expressions.mjs';
 
@@ -157,10 +158,8 @@ class CommandsHandler {
     }
 }
 
-// Module-isolated string cache for dataset-to-attribute conversions, bounded with
-// FIFO eviction like the expression ast cache
-const attributeCache = new Map();
-const ATTRIBUTE_CACHE_MAX_SIZE = 1000;
+// Module-isolated string cache for dataset-to-attribute conversions
+const attributeCache = new BoundedCache(1000);
 
 /**
  * Converts a tpl camelCase dataset key into a kebab-case attribute name.
@@ -169,19 +168,13 @@ const ATTRIBUTE_CACHE_MAX_SIZE = 1000;
  * @returns {string}
  */
 function toAttr(dataSetKey) {
-    let cached = attributeCache.get(dataSetKey);
-    if (!cached) {
-        if (attributeCache.size >= ATTRIBUTE_CACHE_MAX_SIZE) {
-            attributeCache.delete(attributeCache.keys().next().value);
-        }
-        cached = dataSetKey
+    return attributeCache.getOrCompute(dataSetKey, (k) =>
+        k
             .substring(3)
             .split(/(?=[A-Z])/)
             .join('-')
-            .toLowerCase();
-        attributeCache.set(dataSetKey, cached);
-    }
-    return cached;
+            .toLowerCase(),
+    );
 }
 
 class Template {

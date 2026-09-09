@@ -1,5 +1,6 @@
 import { parse } from './expressions-parser.peggy';
 import { nodes } from './ast.mjs';
+import { BoundedCache } from './cache.mjs';
 
 class EvaluatingVisitor {
     #modules;
@@ -185,8 +186,7 @@ class Expressions {
     static MODE_EXPRESSION = Symbol('MODE_EXPRESSION');
     static MODE_TEMPLATED = Symbol('MODE_TEMPLATED');
 
-    static #astCache = new Map();
-    static #MAX_CACHE_SIZE = 1000;
+    static #astCache = new BoundedCache(1000);
 
     /**
      * Parses an expression.
@@ -196,21 +196,11 @@ class Expressions {
      */
     static parse(expression, mode) {
         const key = mode?.toString() + expression;
-
-        if (!this.#astCache.has(key)) {
-            if (this.#astCache.size >= this.#MAX_CACHE_SIZE) {
-                const oldestKey = this.#astCache.keys().next().value;
-                this.#astCache.delete(oldestKey);
-            }
-            this.#astCache.set(
-                key,
-                parse(expression, {
-                    startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot',
-                }),
-            );
-        }
-
-        return this.#astCache.get(key);
+        return this.#astCache.getOrCompute(key, () =>
+            parse(expression, {
+                startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot',
+            }),
+        );
     }
     /**
      * Evaluates an expression.

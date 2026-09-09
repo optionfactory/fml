@@ -1,3 +1,4 @@
+export { BoundedCache } from './cache.mjs';
 export { Expressions, ExpressionEvaluator } from './expressions.mjs';
 export { Template, RenderError } from './template.mjs';
 export { Fragments, Attributes, LightSlots, Nodes } from './dom.mjs';
