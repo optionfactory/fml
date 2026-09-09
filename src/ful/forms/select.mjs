@@ -366,6 +366,11 @@ class Dropdown extends ParsedElement {
 class Select extends Field {
     static observed = ['value:csvm', 'itemlist:presence'];
     static slots = true;
+    //the dropdown's popover attribute is a selector hook alone (form.css scopes
+    //its focus chrome through [popover]), never shown through showPopover(): the
+    //dropdown's own display:block overrides the UA's closed-popover display:none,
+    //and it deliberately stays out of the top layer, anchored to its control
+    //group at the cost of clipping inside overflow containers
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}

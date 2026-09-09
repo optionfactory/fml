@@ -208,6 +208,10 @@ class RedirectOnUnauthorizedInterceptor {
         const response = await chain.proceed(url, request);
         if (response.status === 401) {
             window.location.href = this.#redirectUri;
+            //the page is navigating away: a promise that never settles keeps the
+            //callers' spinners up instead of flashing a failure nobody will read.
+            //Where the navigation is blocked (a beforeunload gate), they stay
+            //pending until the page actually leaves
             return new Promise(() => {});
         }
         return response;
