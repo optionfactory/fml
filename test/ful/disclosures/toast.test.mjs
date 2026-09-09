@@ -63,6 +63,24 @@ describe('Toasts', () => {
         container.remove();
     });
 
+    it('retires without an out animation to wait for: a host disabling animations still loses the toast', async () => {
+        const [toasts, container] = await mount('<ful-toasts></ful-toasts>');
+        const style = document.createElement('style');
+        style.textContent = 'ful-toast { animation: none !important; }';
+        container.prepend(style);
+        try {
+            const dismissed = toasts.show('by hand');
+            dismissed.querySelector('button').click();
+            assert.isFalse(dismissed.isConnected, 'no animationend will ever come, the dismiss removes it');
+
+            const timed = toasts.show('by timer', { timeout: 1 });
+            await settle();
+            assert.isFalse(timed.isConnected, 'the timer removes it the same way');
+        } finally {
+            container.remove();
+        }
+    });
+
     it('shows a failure as its problems, announced as an alert', async () => {
         const [toasts, container] = await mount('<ful-toasts></ful-toasts>');
 

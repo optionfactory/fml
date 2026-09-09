@@ -70,6 +70,9 @@ class Toasts extends ParsedElement {
                 return;
             }
             item.classList.add('ful-toast-out');
+            if (item.getAnimations().length === 0) {
+                item.remove();
+            }
         };
         dismiss.addEventListener('click', retire);
         this.append(item);

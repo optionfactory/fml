@@ -88,14 +88,11 @@ class Dialog extends ParsedElement {
         this.#settle();
     }
     open() {
-        if (!this.#dialog.open) {
-            this.#dialog.showModal();
-            this.#request();
-        }
         return this.ask();
     }
     ask() {
         if (!this.#dialog.open) {
+            this.#dialog.returnValue = '';
             this.#dialog.showModal();
             this.#request();
         }

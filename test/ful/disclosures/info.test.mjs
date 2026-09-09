@@ -114,9 +114,25 @@ describe('Dialog', () => {
         const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
 
-        dialog.querySelector('dialog').close('');
+        dialog.querySelector('dialog').close();
 
         assert.isNull(await asked);
+        container.remove();
+    });
+
+    it('an Escape after an earlier answer resolves null, not the earlier answer', async () => {
+        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
+        const first = dialog.ask();
+        dialog.querySelector('[data-ref=acknowledge]').click();
+        assert.strictEqual(await first, 'acknowledged');
+
+        const results = [];
+        dialog.addEventListener('close', (e) => results.push(e.detail.result));
+        const second = dialog.ask();
+        dialog.querySelector('dialog').close();
+
+        assert.isNull(await second, 'the stale acknowledged is not the answer');
+        assert.deepStrictEqual(results, [null], 'the close event agrees');
         container.remove();
     });
 
