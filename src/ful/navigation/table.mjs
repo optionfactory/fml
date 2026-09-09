@@ -1,4 +1,5 @@
 import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from '../../ftl/index.mjs';
+import { Claims } from '../claims.mjs';
 import { Failure } from '../../httpc/index.mjs';
 
 /** The sort control of a table header: focusable, keyboard-activated, walking asc, desc, unsorted. */
@@ -345,7 +346,7 @@ class Table extends ParsedElement {
     #paginator;
     #sorters;
     #latestRequest;
-    #loadToken = 0;
+    #loads = new Claims();
     async render({ slots, observed }) {
         const template = this.template();
         const schema = TableSchemaParser.parse(slots.schema, template);
@@ -432,20 +433,20 @@ class Table extends ParsedElement {
         //each load claims the table: a response resolving after a newer load has
         //started is stale, and neither renders nor updates the request a later
         //reload replays, whichever order the responses arrive in
-        const token = ++this.#loadToken;
+        const claim = this.#loads.take();
         this.#body.replaceChildren();
         this.#loading.removeAttribute('hidden');
         this.#feedback.setAttribute('hidden', '');
         this.#noAutoload.setAttribute('hidden', '');
         try {
             const pageResponse = await this.#loader.load(pageRequest, sortRequest, filterRequest);
-            if (token !== this.#loadToken) {
+            if (claim.stale) {
                 return;
             }
             this.#latestRequest = { pageRequest, sortRequest, filterRequest };
             this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
         } catch (/** @type any */ error) {
-            if (token !== this.#loadToken) {
+            if (claim.stale) {
                 //the newer load owns the table and its outcome: a superseded
                 //failure is neither shown nor thrown
                 return;

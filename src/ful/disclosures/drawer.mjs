@@ -1,4 +1,5 @@
 import { ParsedElement } from '../../ftl/index.mjs';
+import { Claims } from '../claims.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 import { Failure } from '../../httpc/index.mjs';
 import { wireTargets } from './targets.mjs';
@@ -23,9 +24,9 @@ class Drawer extends ParsedElement {
     #error;
     #content;
     #requests = new SectionRequests();
-    /** @type {number|null} */
+    /** @type {import('../claims.mjs').Claim | null} */
     #quietOpen = null;
-    #updateToken = 0;
+    #updates = new Claims();
     render({ slots }) {
         const fragment = this.template()
             .withOverlay({ slots, title: this.getAttribute('title') ?? '' })
@@ -59,9 +60,9 @@ class Drawer extends ParsedElement {
      * superseded by a newer one paints nothing.
      */
     async update(title, cb) {
-        //the token detaches any update still in flight: its outcome belongs to
+        //the claim detaches any update still in flight: its outcome belongs to
         //an abandoned opening and must neither be painted nor own the drawer
-        const token = ++this.#updateToken;
+        const claim = this.#updates.take();
         this.title = title;
         this.#content.replaceChildren();
         this.#restChrome();
@@ -69,7 +70,7 @@ class Drawer extends ParsedElement {
         this.#content.setAttribute('hidden', '');
         //update owns its own open-answer-deliver cycle: only the open it makes
         //itself stays quiet, a user reopen during the wait is a real open
-        this.#quietOpen = token;
+        this.#quietOpen = claim;
         try {
             this.open();
         } finally {
@@ -77,7 +78,7 @@ class Drawer extends ParsedElement {
         }
         try {
             const delivered = await cb();
-            if (token !== this.#updateToken) {
+            if (claim.stale) {
                 return this.#content;
             }
             this.#content.replaceChildren(delivered);
@@ -85,7 +86,7 @@ class Drawer extends ParsedElement {
             this.#content.removeAttribute('hidden');
             return this.#content;
         } catch (/** @type any */ e) {
-            if (token === this.#updateToken) {
+            if (!claim.stale) {
                 this.#error.textContent = Failure.problemsText(e);
                 this.#error.removeAttribute('hidden');
                 this.#loading.setAttribute('hidden', '');

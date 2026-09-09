@@ -1,4 +1,5 @@
 import { Attributes, Fragments, ParsedElement, registry, Templates } from '../../ftl/index.mjs';
+import { Claims } from '../claims.mjs';
 import { Field } from './field.mjs';
 import { VersionedLocalStorage } from '../storage.mjs';
 import { Timing } from '../timing.mjs';
@@ -12,7 +13,7 @@ class RemoteLoader {
     #revision;
     #data;
     #inFlight;
-    #config;
+    #configs = new Claims();
     constructor({ http, url, method, responseMapper, prefetch, revision }) {
         this.#http = http;
         this.#url = url;
@@ -22,7 +23,6 @@ class RemoteLoader {
         this.#revision = revision;
         this.#data = null;
         this.#inFlight = null;
-        this.#config = 0;
     }
     async prefetch() {
         if (!this.#prefetch) {
@@ -41,9 +41,9 @@ class RemoteLoader {
         return data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
     }
     async reconfigureUrl(url) {
-        //the generation detaches any fetch still in flight: its outcome belongs
+        //invalidating detaches any fetch still in flight: its outcome belongs
         //to the old url and must neither be served nor stored for the new one
-        ++this.#config;
+        this.#configs.invalidate();
         this.#data = null;
         this.#inFlight = null;
         this.#url = url;
@@ -51,15 +51,17 @@ class RemoteLoader {
     async #ensureFetched() {
         if (this.#data === null) {
             if (this.#inFlight === null) {
-                const config = this.#config;
+                //held, not taken: concurrent fetch users share one configuration,
+                //only a reconfiguration supersedes it
+                const claim = this.#configs.hold();
                 this.#inFlight = RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision)
                     .then((raw) => {
-                        if (config === this.#config) {
+                        if (!claim.stale) {
                             this.#data = this.#responseMapper(raw);
                         }
                     })
                     .finally(() => {
-                        if (config === this.#config) {
+                        if (!claim.stale) {
                             this.#inFlight = null;
                         }
                     });
@@ -208,7 +210,7 @@ class Dropdown extends ParsedElement {
     #empty;
     #optionstemplate;
     #options = new Map();
-    #showToken = 0;
+    #shows = new Claims();
     combobox;
     render({ slots }) {
         const fragment = this.template().render();
@@ -288,7 +290,7 @@ class Dropdown extends ParsedElement {
     hide() {
         //hiding ends the current claim: a search still in flight must neither
         //repopulate the list nor point the combobox at an option of a hidden dropdown
-        ++this.#showToken;
+        this.#shows.invalidate();
         this.setAttribute('hidden', '');
         this.combobox?.removeAttribute('aria-activedescendant');
         this.combobox?.setAttribute('aria-expanded', 'false');
@@ -300,18 +302,18 @@ class Dropdown extends ParsedElement {
         //each show claims the dropdown: a search resolving after a newer show has
         //started, or after the dropdown was hidden again, is stale, and neither
         //renders nor highlights, whichever order the searches resolve in
-        const token = ++this.#showToken;
+        const claim = this.#shows.take();
         this.removeAttribute('hidden');
         this.#menu.setAttribute('hidden', '');
         this.#spinner.removeAttribute('hidden');
         try {
             const data = await loader();
-            if (token !== this.#showToken) {
+            if (claim.stale) {
                 return;
             }
             this.update(data, keys);
         } catch (/** @type any */ e) {
-            if (token !== this.#showToken) {
+            if (claim.stale) {
                 //the newer show (or the hide that ended this one) owns the dropdown
                 //and its outcome: a superseded failure is neither shown nor thrown
                 return;
@@ -319,7 +321,7 @@ class Dropdown extends ParsedElement {
             this.hide();
             throw e;
         } finally {
-            if (token === this.#showToken) {
+            if (!claim.stale) {
                 this.#spinner.setAttribute('hidden', '');
             }
         }
@@ -393,7 +395,7 @@ class Select extends Field {
     #itemstemplate;
     #multiple;
     #values = new Map();
-    #token = 0;
+    #assignments = new Claims();
     #editing = false;
     #dload;
     #abortdload;
@@ -785,7 +787,7 @@ class Select extends Field {
         //the keys are known synchronously and are all `value` reads, so they are applied
         //now: only the labels need the loader, until then a key stands in for its own
         this.#values = new Map(keys.map((k) => [k, [k]]));
-        const token = ++this.#token;
+        const claim = this.#assignments.take();
         if (!this.#control) {
             return;
         }
@@ -793,15 +795,15 @@ class Select extends Field {
         if (keys.length === 0) {
             return;
         }
-        this.#resolve(keys, token);
+        this.#resolve(keys, claim);
     }
     /**
      * Resolves the labels of the assigned keys. A failed lookup is left to reject so
      * that it is reported like any other failure: the keys stay applied either way.
      */
-    async #resolve(keys, token) {
+    async #resolve(keys, claim) {
         const entries = await this.#loader.exact(...keys);
-        if (token !== this.#token) {
+        if (claim.stale) {
             //a newer assignment has been made in the meantime
             return;
         }
