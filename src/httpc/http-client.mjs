@@ -165,12 +165,12 @@ class HttpClientError extends Failure {
     }
 }
 
-/**
- * @implements {HttpInterceptor}
- */
 const metaContent = (name) =>
     globalThis.document?.querySelector(`meta[name="${name}"]`)?.getAttribute('content') ?? undefined;
 
+/**
+ * @implements {HttpInterceptor}
+ */
 class CsrfTokenInterceptor {
     async intercept(url, request, chain) {
         //the token is the page's own: it travels to the page's origin only, and it

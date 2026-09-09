@@ -407,7 +407,7 @@ class Template {
         el.appendChild(this.render());
     }
     /**
-     * Renders this template appending the resulting fragment to the first Element matching the selector, if exists.
+     * Renders this template on the first Element matching the selector (replacing children), if exists.
      * @param {string} selector
      */
     renderToSelector(selector) {

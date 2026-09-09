@@ -13,9 +13,20 @@ class Failure extends Error {
         this.name = 'Failure';
         this.problems = problems;
     }
+    /**
+     * A copy of this failure whose problems' contexts had the prefix dropped:
+     * a boundary rethrowing another component's problems under its own namespace.
+     * @param {string} prefix
+     * @returns {Failure}
+     */
     dropping(prefix) {
         return new Failure(this.message, Failure.dropProblemsContext(this.problems, prefix), this);
     }
+    /**
+     * @param {Problem[]} problems
+     * @param {string} prefix
+     * @returns {Problem[]}
+     */
     static dropProblemsContext(problems, prefix) {
         return problems.map(({ type, context, reason, details }) => {
             const nctx = context?.startsWith(prefix) ? context.substring(prefix.length) : context;

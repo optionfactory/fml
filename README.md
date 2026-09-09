@@ -50,7 +50,7 @@ ful.AsyncEvents.asyncOn(wizard, 'section:requested:dettagli', async (e) => {
 });
 ```
 
-The component awaits the union of the answers: the loading ring covers the wait, a failed delivery paints the section's problems and rejects the wizard's `move()`, and nobody listening is a plain activation at zero cost — server-rendered sections never know the door exists. `refresh()` re-fires explicitly (wizard and tabs by name, index or section; dialog and drawer argument-less), the drawer's `update()` keeping its own open-answer-deliver cycle.
+The component awaits the union of the answers: the loading ring covers the wait, a failed delivery paints the section's problems and rejects the wizard's `move()`, and nobody listening is a plain activation at zero cost — server-rendered sections never know the door exists. `refresh()` re-fires explicitly (wizard by name or section, tabs by index or section; dialog and drawer argument-less), the drawer's `update()` keeping its own open-answer-deliver cycle.
 
 The palette is `light-dark()` based and follows the page's `color-scheme` alone: pin `color-scheme: light` to disable the dark side, declare `light dark` to follow the os, `dark` to force it — the library declares nothing itself, and it works per-subtree too. The theme's ink pairs hold WCAG AA in both schemes, kept honest by a suite that computes the ratios; wherever the accent is read instead of filled (ghost outlines, done steps, success toasts) use `--ful-accent-ink`, the accent tuned for text.
 

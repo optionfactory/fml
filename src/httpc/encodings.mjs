@@ -1,4 +1,15 @@
+/**
+ * Base64 encoding and decoding over ArrayBuffers, in the STANDARD and URL_SAFE
+ * alphabets. The encoder never emits padding; the decoder accepts both padded
+ * and unpadded input, and rejects anything it cannot decode faithfully instead
+ * of corrupting silently.
+ */
 class Base64 {
+    /**
+     * @param {ArrayBuffer} arrayBuffer
+     * @param {string} [dialect] one of Base64.STANDARD or Base64.URL_SAFE, URL_SAFE by default
+     * @returns {string} the unpadded encoding
+     */
     static encode(arrayBuffer, dialect) {
         const d = dialect || Base64.URL_SAFE;
         const len = arrayBuffer.byteLength;
@@ -18,6 +29,11 @@ class Base64 {
         }
         return res;
     }
+    /**
+     * @param {string} str
+     * @param {string} [dialect] one of Base64.STANDARD or Base64.URL_SAFE, URL_SAFE by default
+     * @returns {ArrayBuffer}
+     */
     static decode(str, dialect) {
         const d = dialect || Base64.URL_SAFE;
         //padding belongs at the tail only, two at most, and nothing outside the
@@ -69,7 +85,14 @@ class Base64 {
 Base64.STANDARD = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 Base64.URL_SAFE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
+/**
+ * Hex encoding and decoding over byte sequences, lowercase by default.
+ */
 class Hex {
+    /**
+     * @param {string} hex
+     * @returns {Uint8Array}
+     */
     static decode(hex) {
         if (hex.length % 2 !== 0) {
             throw new Error('invalid length');
@@ -84,6 +107,11 @@ class Hex {
             return parseInt(octet, 16);
         });
     }
+    /**
+     * @param {Iterable<number>} bytes
+     * @param {boolean} [upper]
+     * @returns {string}
+     */
     static encode(bytes, upper) {
         return Array.from(bytes)
             .map((b) => b.toString(16))

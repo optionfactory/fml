@@ -9,8 +9,9 @@ import { SectionRequests } from '../events/sections.mjs';
  * step is the aria-current=step claim, carried in lockstep by the step and
  * its section: the chrome (including which section is shown) follows the
  * claim alone, so the markup state and the style can never disagree. The
- * progress chrome picks its shape through the progress attribute (timeline
- * by default, counter, dots, none) over the same claims. Entering a section
+ * progress chrome shows the current step alone by default; the progress
+ * attribute picks another shape over the same claims (timeline, dots, none).
+ * Entering a section
  * fires the section:requested family on it and awaits the answers, so a
  * section can deliver itself asynchronously; move() resolves when the entered
  * section is painted, and rejects when its delivery fails.
