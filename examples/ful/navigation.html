@@ -90,7 +90,7 @@
     <p>Three steps paired with sections by position, each section carrying its own buttons: <code>next()</code>, <code>prev()</code> and <code>move(name)</code> walk, the focus follows the step, each landing answering with a <code>change</code> event.</p>
     <fieldset>
         <legend>verify, edit, confirm — named by data-step</legend>
-        <ful-wizard id="wizard">
+        <ful-wizard id="wizard" progress="timeline">
             <template slot="steps">
                 <step>Verify</step>
                 <step>Edit</step>
@@ -124,7 +124,7 @@
     <p>Each step hosts a <code>ful-form</code>: a failure pins its problems to the step and nothing moves, a success moves where the response says. Try phone <code>000</code> for the failure path.</p>
     <fieldset>
         <legend>verify, then edit: the response picks the step</legend>
-        <ful-wizard id="form-wizard">
+        <ful-wizard id="form-wizard" progress="timeline">
             <template slot="steps">
                 <step>Verify</step>
                 <step>Edit</step>
@@ -187,10 +187,10 @@
     </fieldset>
 
     <h2>wizard, minimal progress</h2>
-    <p>The progress chrome picks its shape through the <code>progress</code> attribute over the same claims: <code>counter</code> shows the current step and its position, <code>dots</code> a dot strip, <code>none</code> leaves the chrome to the page. <code>move()</code>, the focus and the <code>change</code> events are the same in every shape.</p>
+    <p>The progress chrome shows the current step alone by default — the counter, the separator, any dressing is the page's own, this one riding a <code>data-counter</code> attribute its css reads. The <code>progress</code> attribute picks another shape over the same claims: <code>timeline</code> (the full timeline), <code>dots</code>, <code>none</code>. <code>move()</code>, the focus and the <code>change</code> events are the same in every shape.</p>
     <fieldset>
-        <legend>counter: the current step and 2 of 3</legend>
-        <ful-wizard progress="counter" id="counter-wizard">
+        <legend>the default shape, this page's own counter riding it</legend>
+        <ful-wizard id="counter-wizard">
             <template slot="steps"><step>Anagrafica</step><step>Contatti</step><step>Conferma</step></template>
             <section data-step="anagrafica">
                 <p>Il primo passo.</p>
@@ -239,6 +239,13 @@
         </ful-wizard>
     </fieldset>
 
+    <style>
+        #counter-wizard ful-steps li[aria-current='step']::after {
+            content: attr(data-counter);
+            font-weight: 400;
+            color: var(--ful-muted-color, var(--ful-color));
+        }
+    </style>
     <script src="../markup.js"></script>
     <script>
         /**
@@ -333,6 +340,12 @@
         });
 
         const counterWizard = byId('counter-wizard');
+        const paintCounter = () => {
+            const current = counterWizard.querySelector('ful-steps li[aria-current=step]');
+            current?.setAttribute('data-counter', ` \u2014 ${counterWizard.index + 1} / ${counterWizard.querySelectorAll('ful-steps li').length}`);
+        };
+        counterWizard.addEventListener('change', paintCounter);
+        paintCounter();
         for (const button of counterWizard.querySelectorAll('[data-next]')) {
             button.addEventListener('click', () => counterWizard.next());
         }

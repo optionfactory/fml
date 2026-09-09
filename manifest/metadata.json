@@ -299,7 +299,7 @@
         "ful-wizard": {
             "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section \u2014 the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
             "attributes": {
-                "progress": "picks the progress chrome's shape over the same claims: timeline (default), counter (the current step and its position), dots (a done/current/future strip), none (the page owns the chrome)."
+                "progress": "picks the progress chrome's shape over the same claims: the default shows the current step alone (any counter or dressing is the page's own), timeline the full timeline, dots a done/current/future strip, none leaves the chrome to the page."
             },
             "slots": {
                 "steps": "The step declarations, one step element per section, carrying the step's label.",

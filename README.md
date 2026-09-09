@@ -39,7 +39,7 @@ Remote translations are the app's concern: `translations: await (await fetch(`/l
 
 ### Async sections
 
-Every content surface can deliver itself: entering a panel of `ful-tabs`, a section of `ful-wizard` (its `progress` attribute picking the timeline, counter, dots or no chrome at all), or opening a `ful-dialog`/`ful-drawer` fires the `section:requested` family on the component — the generic type, its zero-based `#index`, and its `data-step` name when it has one — the event's target being the component itself, so a host's own sections are told from a nested component's by `e.target === e.currentTarget`. Answer through one door per section:
+Every content surface can deliver itself: entering a panel of `ful-tabs`, a section of `ful-wizard` (its `progress` attribute picking the shape: the current step alone by default, `timeline` the full timeline, `dots`, `none`), or opening a `ful-dialog`/`ful-drawer` fires the `section:requested` family on the component — the generic type, its zero-based `#index`, and its `data-step` name when it has one — the event's target being the component itself, so a host's own sections are told from a nested component's by `e.target === e.currentTarget`. Answer through one door per section:
 
 ```js
 ful.AsyncEvents.asyncOn(wizard, 'section:requested:dettagli', async (e) => {

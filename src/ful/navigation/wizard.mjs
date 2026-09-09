@@ -39,11 +39,9 @@ class Wizard extends ParsedElement {
             );
         }
         const count = Math.min(declared.length, this.#sections.length);
-        list.style.setProperty('--ful-step-count', `"${count}"`);
         this.#steps = [];
         for (let i = 0; i !== count; ++i) {
             const li = document.createElement('li');
-            li.style.setProperty('--ful-step-index', `"${i + 1}"`);
             li.append(...declared[i].childNodes);
             declared[i].replaceWith(li);
             this.#steps.push(li);

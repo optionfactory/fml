@@ -187,15 +187,30 @@ describe('Wizard, async sections', () => {
         container.remove();
     });
 
-    it('hides the timeline behind the counter progress claim', async () => {
-        const [wizard, container] = await mount(markup.replace('<ful-wizard>', '<ful-wizard progress="counter">'));
+    it('shows only the current step by default, the counter hooks left to the page', async () => {
+        const [wizard, container] = await mount(markup);
         const steps = [...wizard.querySelectorAll('ful-steps li')];
 
         assert.strictEqual(getComputedStyle(steps[0]).display, 'flex');
         assert.strictEqual(getComputedStyle(steps[1]).display, 'none');
         assert.strictEqual(getComputedStyle(steps[2]).display, 'none');
-        assert.strictEqual(wizard.querySelector('ful-steps ol').style.getPropertyValue('--ful-step-count'), '"3"');
-        assert.include(getComputedStyle(steps[0], '::after').content.replace(/[" ]/g, ''), '1/3');
+        assert.include(getComputedStyle(steps[0], '::after').content, 'none', 'no counter of its own');
+        container.remove();
+    });
+
+    it('linear progress restores the full timeline', async () => {
+        const [wizard, container] = await mount(markup.replace('<ful-wizard>', '<ful-wizard progress="timeline">'));
+        const steps = [...wizard.querySelectorAll('ful-steps li')];
+
+        assert.deepStrictEqual(
+            steps.map((li) => getComputedStyle(li).display),
+            ['flex', 'flex', 'flex'],
+        );
+        assert.notStrictEqual(
+            getComputedStyle(steps[2]).borderBottomColor,
+            getComputedStyle(steps[0]).borderBottomColor,
+            'the future steps mute',
+        );
         container.remove();
     });
 
