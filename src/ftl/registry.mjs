@@ -71,6 +71,14 @@ class UpgradeQueue {
     }
 }
 
+/**
+ * The page's single source of truth for elements, modules, data, components
+ * and attribute mappers. Elements defined before configure() are deferred and
+ * defined by it; from then on every defineElement takes effect immediately.
+ * The exported `registry` singleton is the page's own; a `new Registry()` is a
+ * separate instance, and Rendering and the ftl:ready machinery wait on the
+ * singleton alone.
+ */
 class Registry {
     #tagToClass = {};
     #configured = false;
@@ -152,6 +160,14 @@ class Registry {
     #modules;
     #data = [];
     #upgradeQueue = new UpgradeQueue();
+    /**
+     * Registers a custom element under its tag: the class is augmented with its
+     * BITS (observed attributes, mappers, templates) and handed to the platform.
+     * Before configure() the definition is deferred, so import order never
+     * matters.
+     * @param {string} tag
+     * @param {*} klass a ParsedElement subclass
+     */
     defineElement(tag, klass) {
         if (!this.#configured) {
             this.#tagToClass[tag] = klass;
@@ -202,35 +218,74 @@ class Registry {
         };
         customElements.define(tag, klass);
     }
+    /**
+     * Merges one module under its name, its functions resolving as
+     * `#name:fn`; an empty name merges a whole map, whose keys resolve bare,
+     * as `#fn`.
+     * @param {string} name
+     * @param {object} value
+     */
     defineModule(name, value) {
         const module = name ? { [name]: value } : value;
         this.#modules = { ...this.#modules, ...module };
         return this;
     }
+    /**
+     * Replaces the whole module map.
+     * @param {object} ms
+     */
     defineModules(ms) {
         this.#modules = ms;
         return this;
     }
+    /**
+     * Registers a named component (a loader, a response mapper), fetched back
+     * through component().
+     * @param {string} name
+     * @param {*} value
+     */
     defineComponent(name, value) {
         this.#components[name] = value;
         return this;
     }
+    /**
+     * Replaces the data stack the templates evaluate over.
+     * @param {...any} data
+     */
     defineData(...data) {
         this.#data = data;
         return this;
     }
+    /**
+     * Appends to the data stack, the later entry winning a shared name.
+     * @param {...any} data
+     */
     defineOverlay(...data) {
         this.#data = [...this.#data, ...data];
         return this;
     }
+    /**
+     * Registers a custom attribute mapper type, available to every later
+     * `name:type` declaration.
+     * @param {string} k
+     * @param {{ unmarshal(str: string|null, name: string, el: Element): any, marshal(value: any, name: string, el: Element): string|null }} v
+     */
     defineMapper(k, v) {
         this.#mappers[k] = v;
         return this;
     }
+    /**
+     * Hands the registry over to the plugin's configure.
+     * @param {{ configure(registry: Registry): void }} p
+     */
     plugin(p) {
         p.configure(this);
         return this;
     }
+    /**
+     * Defines every element deferred so far; from then on, defineElement takes
+     * effect immediately.
+     */
     configure() {
         for (const [tag, klass] of Object.entries(this.#tagToClass)) {
             this.#augmentAndDefineElement(tag, klass);
@@ -239,6 +294,7 @@ class Registry {
         this.#configured = true;
         return this;
     }
+    /** The elements whose upgrade is still pending, in queue order. */
     get upgrades() {
         return this.#upgradeQueue.entries;
     }
@@ -250,12 +306,15 @@ class Registry {
     ready() {
         return this.#upgradeQueue.ready();
     }
+    /** The modules and data stack a template renders with. */
     context() {
         return { modules: this.#modules, data: this.#data };
     }
+    /** A fresh evaluator over the current modules and data stack. */
     evaluator() {
         return new ExpressionEvaluator(this.#modules, this.#data);
     }
+    /** The component registered under the name, undefined when none is. */
     component(name) {
         return this.#components[name];
     }

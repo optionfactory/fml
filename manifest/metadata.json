@@ -17,7 +17,7 @@
     },
     "elements": {
         "ful-form": {
-            "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to a loader on submit. Validation errors are announced politely without focus, or exactly once through focus management with scroll-on-error; global errors land in an author-provided ful-errors element, announced as an alert.",
+            "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to the loader named by loader (loaders:form by default) on submit: with action the values travel as json (method, POST by default) through the request-mapper and response-mapper components when declared, without it the submit:requested listeners deliver the response themselves. Validation errors are announced politely without focus, or exactly once through focus management with scroll-on-error, and clear-invalid-on-change drops a field's problem as soon as the field changes again; global errors land in an author-provided ful-errors element, announced as an alert.",
             "attributes": {},
             "slots": {},
             "events": {
@@ -38,7 +38,7 @@
             }
         },
         "ful-input": {
-            "description": "A labelled text input. Use type to pick any native input type, or textarea. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A labelled text input. Use type to pick any native input type, or textarea; a mask of allowed characters drops every other keystroke in place, and the uppercase and trim claims shape the value before it is read. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {},
             "slots": {},
             "events": {
@@ -46,7 +46,7 @@
             }
         },
         "ful-input-file": {
-            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares; the noinput claim hides the picker control, the dropzone and the item list carrying the field alone. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
                 "accept": "Comma separated list of accepted tokens: an extension (.pdf), a mime type (application/pdf) or a wildcard (image/*). Files that do not match are dropped with a warning.",
@@ -65,13 +65,13 @@
             }
         },
         "ful-local-date": {
-            "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page.",
+            "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page or the one its locale attribute names; default is shown when the content is empty.",
             "attributes": {},
             "slots": {},
             "events": []
         },
         "ful-instant": {
-            "description": "Formats the ISO instant in its content in the locale and timezone of the page.",
+            "description": "Formats the ISO instant in its content in the locale and timezone of the page or the one its locale attribute names; default is shown when the content is empty.",
             "attributes": {},
             "slots": {},
             "events": []
@@ -127,7 +127,7 @@
             }
         },
         "ful-table": {
-            "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot.",
+            "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot; the rows come from src (method, GET by default) through the loader named by loader (loaders:table by default), page-size rows a page (10 by default), the first one loading on upgrade under the autoload claim.",
             "attributes": {},
             "slots": {
                 "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
@@ -137,7 +137,7 @@
             "events": []
         },
         "ful-pagination": {
-            "description": "The pager of a ful-table. Rarely used on its own.",
+            "description": "The pager of a ful-table, its window rendering at most pages links (5 by default). Rarely used on its own.",
             "attributes": {
                 "total": "Number of pages.",
                 "current": "Zero based index of the page being shown."
@@ -214,11 +214,10 @@
             }
         },
         "ful-select": {
-            "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "The selected key, or a comma separated list of keys when multiple.",
-                "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
-                "k-type": "The type every key is coerced to, both the assigned ones and the loader's: string (default), number or boolean. A key that does not decode, such as an empty string with number, is kept as it is."
+                "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple)."
             },
             "slots": {
                 "dropdown": "Replaces the template used to render the options."
@@ -236,7 +235,7 @@
             }
         },
         "ful-tooltip": {
-            "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click.",
+            "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click. placement picks the side the note sits on: bottom (default), top, left or right.",
             "attributes": {},
             "slots": {
                 "default": "The short explanation shown in the popover."
@@ -244,7 +243,7 @@
             "events": []
         },
         "ful-dialog": {
-            "description": "A modal dialog on the native platform: header, body and buttons, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which resolve with the data-result of the button that closed the dialog (null on Escape). Longer explanations belong here, shorter ones in ful-tooltip.",
+            "description": "A modal dialog on the native platform: header, body and buttons, the header attribute naming its heading, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which resolve with the data-result of the button that closed the dialog (null on Escape). Longer explanations belong here, shorter ones in ful-tooltip.",
             "attributes": {},
             "slots": {
                 "default": "The dialog body.",
@@ -256,7 +255,7 @@
             }
         },
         "ful-drawer": {
-            "description": "A side panel drawer on the native dialog platform: a header with its title and close button, and a body that opens in a loading state, then shows either the content delivered by update(title, callback) (or the slotted one, when it is never updated) or the error a rejecting callback carries. placement picks the side, end by default, start its mirror. Any element carrying dialog-target set to its id opens it too.",
+            "description": "A side panel drawer on the native dialog platform: a header with its title (the title attribute, or update()'s own) and close button, and a body that opens in a loading state, then shows either the content delivered by update(title, callback) (or the slotted one, when it is never updated) or the error a rejecting callback carries. placement picks the side, end by default, start its mirror. Any element carrying dialog-target set to its id opens it too.",
             "attributes": {},
             "slots": {
                 "default": "The drawer body, shown when update() never replaced it."

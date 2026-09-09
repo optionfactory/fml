@@ -8,6 +8,7 @@ const SEVERITIES = ['info', 'success', 'warning', 'error'];
 const REGIONS = new Set();
 let doorWired = false;
 
+/** A transient feedback region: each show() stacks a toast that retires on its own timer. */
 class Toasts extends ParsedElement {
     #timeout;
     #rendered = false;
@@ -35,6 +36,14 @@ class Toasts extends ParsedElement {
         REGIONS.add(this);
         this.#rendered = true;
     }
+    /**
+     * Appends a toast carrying the message (a Failure shows its problems'
+     * reasons, one per line), severity picking the theme and the announcement,
+     * the toast retiring through its own timer or its dismiss button.
+     * @param {any} message
+     * @param {any} [options] severity and timeout
+     * @returns {HTMLElement}
+     */
     show(message, options = {}) {
         const severity = SEVERITIES.includes(options.severity) ? options.severity : 'info';
         const item = document.createElement('ful-toast');

@@ -1,6 +1,7 @@
 import { Attributes } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
+/** A checkbox, or a switch under the type=switch claim. */
 class Checkbox extends Field {
     static observed = ['value:bool'];
     static slots = true;

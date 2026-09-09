@@ -1,6 +1,7 @@
 import { Attributes, Localization } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
+/** A file input with an optional dropzone and item list, enforcing the size and count limits it declares. */
 class InputFile extends Input {
     static observed = [
         'placeholder',

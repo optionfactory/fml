@@ -45,6 +45,7 @@ class LocalFormLoader {
     }
 }
 
+/** Builds the form's loader from its attributes: a local one when no action is declared, a json post to it otherwise. */
 class FormLoader {
     static create(el, conf) {
         const http = registry.component('http-client');
@@ -63,6 +64,11 @@ class FormLoader {
     }
 }
 
+/**
+ * Wraps its fields in a native form, extracts their values on submit and hands
+ * them to a loader (loaders:form, or the action url as a json post),
+ * announcing failures through the errors setter.
+ */
 class Form extends ParsedElement {
     form;
     render() {
@@ -144,10 +150,12 @@ class Form extends ParsedElement {
             this.spinner(false);
         }
     }
+    /** The native reset, routing every field through its own value semantics. */
     reset() {
         this.form.reset();
     }
     #spinning = 0;
+    /** Shows the spinners and disables the submit buttons, overlapping submits sharing one claim. */
     spinner(spin) {
         //submits can overlap: only the outermost one saves and restores the button states
         if (spin) {
@@ -183,12 +191,14 @@ class Form extends ParsedElement {
             }
         });
     }
+    /** The values of the fields the form contains, extracted and filled back through Bindings. */
     set values(vs) {
         Bindings.mutateIn(this.form, vs);
     }
     get values() {
         return Bindings.extractFrom(this.form);
     }
+    /** Pins problems to the fields they name, the banner taking the nameless ones. */
     set errors(es) {
         Bindings.errors(this.form, es, this.hasAttribute('scroll-on-error'));
     }

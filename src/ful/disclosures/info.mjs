@@ -2,6 +2,7 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 import { wireTargets } from './targets.mjs';
 
+/** An info icon button toggling a popover with a short explanation. */
 class Tooltip extends ParsedElement {
     static slots = true;
     static config = {
@@ -33,6 +34,7 @@ class Tooltip extends ParsedElement {
     }
 }
 
+/** A modal dialog on the native platform, open()/ask() resolving with the closer's data-result. */
 class Dialog extends ParsedElement {
     static slots = true;
     static template = `

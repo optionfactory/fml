@@ -1,3 +1,4 @@
+/** Field wiring: extracting and filling values, pinning problems to the fields they name. */
 class Bindings {
     /**
      * @param {{ [x: string]: any; }} obj

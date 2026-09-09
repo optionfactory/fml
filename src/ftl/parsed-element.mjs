@@ -40,7 +40,11 @@ class ParsedElement extends HTMLElement {
      */
     template(name) {
         const { modules, data } = registry.context();
-        let t = this.#bits().TEMPLATES[name ?? 'default'].withData(data).withModules(modules);
+        const target = this.#bits().TEMPLATES[name ?? 'default'];
+        if (!target) {
+            throw new Error(`no template named '${name ?? 'default'}' on ${this.constructor.name}`);
+        }
+        let t = target.withData(data).withModules(modules);
         for (const k of ['config']) {
             const v = this.constructor[k];
             if (v) {

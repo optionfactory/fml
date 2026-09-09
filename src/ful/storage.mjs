@@ -45,7 +45,7 @@ class LocalStorage extends Storage {
 }
 
 /**
- * Json values in sessionStorage, with LocalStorage's own tolerances.
+ * Json values in sessionStorage, with the same tolerances as LocalStorage.
  */
 class SessionStorage extends Storage {
     /** @param {string} k @param {*} v */
@@ -111,7 +111,9 @@ class VersionedLocalStorage {
 }
 
 /**
- * VersionedLocalStorage's own contract over sessionStorage.
+ * A revisioned cache over sessionStorage: the key holds the data together with
+ * the revision it was written under, and a load under any other revision is a
+ * miss that also clears the stale entry.
  */
 class VersionedSessionStorage {
     /** @param {string} key @param {string|number} revision @param {*} data */

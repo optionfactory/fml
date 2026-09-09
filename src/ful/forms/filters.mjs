@@ -364,6 +364,7 @@ class CompareFilter extends Input {
     _syncSensitivity() {}
 }
 
+/** The compare filter over ISO instants, defaulting to LTE. */
 class InstantFilter extends CompareFilter {
     _defaultOperator() {
         return 'LTE';
@@ -379,18 +380,21 @@ class InstantFilter extends CompareFilter {
     }
 }
 
+/** The compare filter over dates. */
 class LocalDateFilter extends CompareFilter {
     _type() {
         return 'date';
     }
 }
 
+/** The compare filter over numbers. */
 class NumberFilter extends CompareFilter {
     _type() {
         return 'number';
     }
 }
 
+/** The compare filter over text, carrying a case sensitivity beside the operator. */
 class TextFilter extends CompareFilter {
     static observed = ['sensitivities:csv'];
     static template = `
@@ -511,6 +515,7 @@ class TextFilter extends CompareFilter {
 const BOOLEAN_VALUES = ['', 'true', 'false'];
 const BOOLEAN_VALUE_GLYPHS = { true: '✓', false: '✗' };
 
+/** The boolean filter: an EQ or NEQ operator and an any/yes/no menu. */
 class BooleanFilter extends Field {
     static observed = ['value:json', 'operators:csv'];
     static slots = true;

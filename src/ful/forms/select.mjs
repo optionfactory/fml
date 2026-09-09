@@ -131,6 +131,7 @@ class InMemoryLoader {
     }
 }
 
+/** Builds the select's loader from its attributes: the slotted options in memory, or a remote or chunked loader over src. */
 class SelectLoader {
     static create(el, conf) {
         if (!el.hasAttribute('src')) {
@@ -184,6 +185,7 @@ class SelectLoader {
     }
 }
 
+/** The options popup of a select: listbox semantics, one loading claim per show, a localized empty state. */
 class Dropdown extends ParsedElement {
     static slots = true;
     static template = `
@@ -355,6 +357,7 @@ class Dropdown extends ParsedElement {
     }
 }
 
+/** A combobox acting like a select over a loader's vocabulary, single or multiple. */
 class Select extends Field {
     static observed = ['value:csvm', 'itemlist:presence'];
     static slots = true;
@@ -546,6 +549,7 @@ class Select extends Field {
             }
         });
     }
+    /** Hands the loader to the callback, for runtime reconfigurations. */
     async withLoader(fn) {
         return await fn(this.#loader);
     }
@@ -820,6 +824,7 @@ class Select extends Field {
         }
         return [...this.#values.keys()][0] ?? null;
     }
+    /** The selection as [key, label, metadata] tuples: the only one for a single select, every one when multiple. */
     get entry() {
         if (this.#multiple) {
             return [...this.#values.entries()];

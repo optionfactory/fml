@@ -27,6 +27,10 @@ BeginText = '{{'
 EndText = '}}'
 
 TemplatedText
+    //the text grammar's one escape rule: a backslash drops itself and hands the
+    //next character through verbatim, whatever it is, so `\{` writes a literal
+    //brace and a trailing lone backslash is a parse error. The quoting literals
+    //('...', "...") carry no escapes at all; only template strings do
     = parts:(
         $( [^\\{]+ )       // normal text
         / '\\' c:. { return c; } //escaped

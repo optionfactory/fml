@@ -3,6 +3,7 @@ import { SectionRequests } from '../events/sections.mjs';
 import { Failure } from '../../httpc/index.mjs';
 import { wireTargets } from './targets.mjs';
 
+/** A side panel drawer on the native dialog platform, update() owning its open-deliver cycle. */
 class Drawer extends ParsedElement {
     static slots = true;
     static template = `
@@ -51,6 +52,12 @@ class Drawer extends ParsedElement {
     set title(v) {
         this.#title.textContent = v ?? '';
     }
+    /**
+     * Opens the drawer under the given title and waits for the callback: a
+     * resolved value paints the content section (which is returned), a
+     * rejection paints the problems and travels to the caller, and an update
+     * superseded by a newer one paints nothing.
+     */
     async update(title, cb) {
         //the token detaches any update still in flight: its outcome belongs to
         //an abandoned opening and must neither be painted nor own the drawer

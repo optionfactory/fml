@@ -1,4 +1,9 @@
+/**
+ * Time-based helpers: sleeping, debouncing and throttling; debounce and
+ * throttle return the wrapped function together with a cancel function.
+ */
 class Timing {
+    /** Resolves after the given milliseconds. @param {number} ms */
     static sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }

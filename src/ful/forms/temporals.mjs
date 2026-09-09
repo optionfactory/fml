@@ -1,6 +1,7 @@
 import { ParsedElement, Localization } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
+/** Formats the yyyy-mm-dd date in its content in the page's locale, or the one its locale attribute names. */
 class LocalDate extends ParsedElement {
     render() {
         const content = this.textContent.trim();
@@ -15,6 +16,7 @@ class LocalDate extends ParsedElement {
     }
 }
 
+/** Formats the ISO instant in its content in the page's locale and timezone. */
 class Instant extends ParsedElement {
     render() {
         const content = this.textContent.trim();
@@ -53,6 +55,7 @@ class Instant extends ParsedElement {
     }
 }
 
+/** A date input whose bounds accept a date, now, or an offset such as +1d. */
 class InputLocalDate extends Input {
     static observed = ['min', 'max', 'step'];
     _type() {
@@ -126,6 +129,7 @@ class InputLocalDate extends Input {
     }
 }
 
+/** A time input whose bounds accept a time, now, or an hour or minute offset, snapped to the step grid. */
 class InputLocalTime extends InputLocalDate {
     _type() {
         return 'time';
@@ -184,6 +188,7 @@ class InputLocalTime extends InputLocalDate {
     }
 }
 
+/** A datetime input whose value is read and written as an ISO instant. */
 class InputInstant extends Input {
     static observed = ['min', 'max', 'step'];
     _type() {

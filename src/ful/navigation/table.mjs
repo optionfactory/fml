@@ -1,6 +1,7 @@
 import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from '../../ftl/index.mjs';
 import { Failure } from '../../httpc/index.mjs';
 
+/** The sort control of a table header: focusable, keyboard-activated, walking asc, desc, unsorted. */
 class SortButton extends ParsedElement {
     static observed = ['order'];
     #order;
@@ -56,6 +57,7 @@ class SortButton extends ParsedElement {
     }
 }
 
+/** The pager: a window of page links around the current one, and the reload control. */
 class Pagination extends ParsedElement {
     static observed = ['total:number', 'current:number'];
     static config = {
@@ -151,6 +153,7 @@ class Pagination extends ParsedElement {
     }
 }
 
+/** Reads the schema declaration into the header and row templates a table renders from. */
 class TableSchemaParser {
     static parse(nodeOrFragment, template) {
         //nodeOrFragment is undefined when the slot is missing altogether
@@ -261,6 +264,7 @@ class RemoteTableLoader {
     }
 }
 
+/** Builds the table's loader from its attributes: an in-memory one, or the remote loader over src. */
 class TableLoader {
     static create(el, conf) {
         const url = el.getAttribute('src');
@@ -273,6 +277,7 @@ class TableLoader {
     }
 }
 
+/** A table loading its rows from a loader, with sorting, pagination and an optional filter form. */
 class Table extends ParsedElement {
     static slots = true;
     static config = {
@@ -454,6 +459,7 @@ class Table extends ParsedElement {
             throw error;
         }
     }
+    /** Hands the loader to the callback, for runtime reconfigurations. */
     async withLoader(fn) {
         return await fn(this.#loader);
     }

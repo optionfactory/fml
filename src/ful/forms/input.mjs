@@ -17,6 +17,7 @@ const compiledMask = (mask) => {
     return compiled;
 };
 
+/** A labelled text input over any native type or textarea; the temporal inputs are its subclasses. */
 class Input extends Field {
     static observed = ['placeholder'];
     static slots = true;

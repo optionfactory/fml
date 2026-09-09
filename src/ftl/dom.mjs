@@ -210,6 +210,15 @@ class Nodes {
         });
     }
 
+    /**
+     * Waits for the element's closing tag to be parsed: a MutationObserver
+     * over the parent resolves once the element, or any of its ancestors,
+     * gains a next sibling (the parser has moved past this subtree), with the
+     * document's DOMContentLoaded as the deadline. Resolves immediately for
+     * an element that is already parsed.
+     * @param {any} el
+     * @returns {Promise<any>}
+     */
     static waitParsed(el) {
         if (Nodes.isParsed(el)) {
             return Promise.resolve(el);

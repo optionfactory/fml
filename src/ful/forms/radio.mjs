@@ -1,6 +1,7 @@
 import { Attributes, Fragments } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
+/** A group of radios declared as ful-radio children, a fieldset carrying the group semantics. */
 class RadioGroup extends Field {
     static slots = true;
     static ROLE = 'radiogroup';
