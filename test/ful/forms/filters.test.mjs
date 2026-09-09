@@ -78,6 +78,20 @@ describe('Filter value tuples', () => {
         container.remove();
     });
 
+    it('leaves the second operand empty when a shorter tuple is applied', async () => {
+        //the applied tuple carries no second operand: revealing it through BETWEEN
+        //must show an empty input, not a stringified "undefined"
+        const [el, container] = await mount(
+            `<ful-filter-text value='["EQ","IGNORE_CASE","ab"]'>t</ful-filter-text>`,
+        );
+
+        el.querySelector('a[value=BETWEEN]').click();
+
+        assert.strictEqual(el.querySelector('[data-ref=value2]').value, '');
+        assert.isUndefined(el.value, 'half a range is never reported as a partial tuple');
+        container.remove();
+    });
+
     it('announces the whole tuple, not the raw input value, when an operand changes', async () => {
         const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
         const seen = [];

@@ -310,8 +310,10 @@ class CompareFilter extends Input {
         //a pinned operator wins over whatever the tuple carries
         const operator = this._allowed?.length === 1 ? this._allowed[0] : declared;
         this._showOperator(operator);
-        this._value1.value = values[0] ? this._deserialize(values[0]) : values[0];
-        this._value2.value = values[1] ? this._deserialize(values[1]) : values[1];
+        //a tuple shorter than the operands leaves the missing ones empty: the DOM
+        //would stringify a nullish assignment to "undefined"
+        this._value1.value = values[0] ? this._deserialize(values[0]) : (values[0] ?? '');
+        this._value2.value = values[1] ? this._deserialize(values[1]) : (values[1] ?? '');
     }
     _showOperator(operator) {
         this._operator.setAttribute('value', operator);
