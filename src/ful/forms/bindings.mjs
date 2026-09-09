@@ -156,20 +156,35 @@ class Bindings {
             el.replaceChildren();
             el.setAttribute('hidden', '');
         });
+        const unmatched = [];
         fieldErrors.forEach((e) => {
             const name = e.context.replace(/\[/g, '.').replace(/\]\./g, '.').replace(/\]/g, '');
             const parts = name.split('.');
             for (let i = parts.length; i !== 0; --i) {
                 const prefix = parts.slice(0, i).join('.');
-                form.querySelectorAll(`[name='${CSS.escape(prefix)}']`).forEach((input) => {
-                    input.setCustomValidity?.(e.reason);
+                const targets = form.querySelectorAll(`[name='${CSS.escape(prefix)}']`);
+                if (targets.length === 0) {
+                    continue;
+                }
+                //the most specific name wins: the walk exists so a composite field
+                //owning a whole subtree catches its inner contexts, not so an outer
+                //field doubles a problem an exact one already shows. The remaining
+                //path rides along ('' on an exact match), so a composite can route
+                //the problem to the inner control it names
+                const context = parts.slice(i).join('.');
+                targets.forEach((input) => {
+                    input.setCustomValidity?.(e.reason, context);
                 });
+                return;
             }
+            //a context naming no field must not vanish: it reads in the banner
+            unmatched.push(e);
         });
+        const bannered = [...globalErrors, ...unmatched];
         form.querySelectorAll('ful-errors').forEach((el) => {
             const hel = /** @type HTMLElement} */ (el);
-            hel.innerText = globalErrors.map((e) => e.reason).join('\n');
-            if (globalErrors.length !== 0) {
+            hel.innerText = bannered.map((e) => e.reason).join('\n');
+            if (bannered.length !== 0) {
                 el.removeAttribute('hidden');
             }
         });

@@ -80,6 +80,7 @@
 - [BUG] storage: an unreachable backing (blocked cookies, and the embedded or private contexts where the accessor itself throws) reads as a miss and removes as a no-op instead of failing the caller, so a revisioned `ful-select` still loads its options from the network there; writes keep reporting to their caller
 - [ENH] `ful-input-file`: drops and item removals report through `change` as a picker selection does; programmatic `files`/`value` assignments and the form's reset stay silent, like a native input's
 - [BRK] `ful-form` submits one exchange at a time: a submit while one is in flight is dropped before the values are even extracted, nothing fires and nothing travels, so a second Enter or a programmatic call racing the first cannot double the write; `spinner()` still nests for a caller's own wraps
+- [ENH] form error mapping: a field error pins on the most specific name its context reaches (deep contexts still catch onto the composite field owning the subtree, which now receives the remaining path as setCustomValidity's second argument to route the problem internally), and a context naming no field reads in the banner instead of vanishing
 
 ### version 8.0.2
 

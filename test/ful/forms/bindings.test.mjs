@@ -369,6 +369,58 @@ describe('Bindings', () => {
             expect(fieldError.getAttribute('aria-live')).to.equal('polite');
         });
 
+        it('pins a deep context on the most specific field alone', () => {
+            const composite = document.createElement('input');
+            composite.name = 'users.0';
+            form.append(composite);
+
+            Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Invalid name' }], false);
+
+            expect(inputName.validationMessage).to.equal('Invalid name');
+            expect(composite.validationMessage).to.equal('', 'the outer field must not double the exact one');
+        });
+
+        it('falls back onto the composite owning the subtree when no exact field exists', () => {
+            const composite = document.createElement('input');
+            composite.name = 'owner';
+            form.append(composite);
+
+            Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'owner.firstName', reason: 'Required' }], false);
+
+            expect(composite.validationMessage).to.equal('Required');
+            expect(fulErrors.hasAttribute('hidden'), 'a caught error stays off the banner').to.be.true;
+        });
+
+        it('hands the composite the inner path, and the exact match an empty one', () => {
+            const calls = [];
+            const composite = document.createElement('div');
+            composite.setAttribute('name', 'owner');
+            composite.setCustomValidity = (reason, context) => calls.push([reason, context]);
+            form.append(composite);
+
+            Bindings.errors(
+                form,
+                [
+                    { type: 'FIELD_ERROR', context: 'owner.name.first', reason: 'Required' },
+                    { type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Invalid name' },
+                ],
+                false,
+            );
+
+            expect(calls).to.deep.equal([
+                ['', undefined],
+                ['Required', 'name.first'],
+            ]);
+            expect(inputName.validationMessage).to.equal('Invalid name', 'the exact match routes nowhere deeper');
+        });
+
+        it('shows a field error naming no field in the banner instead of dropping it', () => {
+            Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'ghost.field', reason: 'Nowhere to pin' }], false);
+
+            expect(fulErrors.hasAttribute('hidden')).to.be.false;
+            expect(fulErrors.innerText).to.include('Nowhere to pin');
+        });
+
         it('does not focus anything if scrollOnError is false', () => {
             const errs = [{ type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Invalid name' }];
 

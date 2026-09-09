@@ -63,9 +63,15 @@ class Field extends ParsedElement {
      * Clears or reports one validation problem: the text lands on the field's
      * live region and the state on the element internals, driving `:invalid`
      * styling. Validation is the server's: the submit travels regardless, and
-     * the problems come back pinned here.
+     * the problems come back pinned here. The error mapping pins on the most
+     * specific field name a problem's context reaches, handing over the
+     * remaining path ('' on an exact match): the base ignores it, a composite
+     * field owning a whole subtree overrides to route the problem to the inner
+     * control it names.
+     * @param {string} [error]
+     * @param {string} [context] the path below this field's name, '' when exact
      */
-    setCustomValidity(error) {
+    setCustomValidity(error, context) {
         if (!error) {
             this.internals.setValidity({});
             this.#fieldError.innerText = '';
