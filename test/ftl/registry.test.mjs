@@ -69,6 +69,7 @@ describe('Registry', () => {
             expect(mappers.cm.unmarshal(null, 'cm', el)).to.deep.equal([]);
             expect(mappers.cm.marshal(['a', 'b'], 'cm', el)).to.equal('a,b');
             expect(mappers.cm.marshal(null, 'cm', el)).to.be.null;
+            expect(mappers.cm.marshal(undefined, 'cm', el)).to.be.null;
         });
 
         it('throws an error if an unsupported mapper is requested', () => {

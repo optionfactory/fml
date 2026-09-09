@@ -142,7 +142,7 @@ class Registry {
             },
             marshal(value, name, el) {
                 if (el.hasAttribute('multiple')) {
-                    return value === null ? null : value.join(',');
+                    return value == null ? null : value.join(',');
                 }
                 return value == null ? null : String(value);
             },
