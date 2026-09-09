@@ -646,10 +646,15 @@ class HttpRequestBuilder {
     }
     /**
      * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
+     * A 204 yields null without reading the body; any other empty body is an unmarshaling failure.
      * @returns {Promise<any>} the response body, deserialized as JSON
      */
     async fetchJson() {
         const response = await this.fetch();
+        if (response.status === 204) {
+            //a 204 declares no content: there is no body to decode
+            return null;
+        }
         return await unmarshal(response, 'json');
     }
     /**

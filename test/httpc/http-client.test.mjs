@@ -368,6 +368,22 @@ describe('httpc client', () => {
             }
         });
 
+        it('yields null for a 204 without decoding a body it does not have', async () => {
+            globalThis.fetch = async () => new Response(null, { status: 204 });
+            expect(await client.get('/test').fetchJson()).to.be.null;
+        });
+
+        it('still reports an empty body on any other status as an unmarshaling failure', async () => {
+            globalThis.fetch = async () =>
+                new Response('', { status: 200, headers: { 'Content-Type': 'application/json' } });
+            try {
+                await client.get('/test').fetchJson();
+                expect.fail('Should have thrown UNMARSHALING_PROBLEM');
+            } catch (err) {
+                expect(err.problems[0].type).to.equal('UNMARSHALING_PROBLEM');
+            }
+        });
+
         it('throws a connection error if fetch completely fails', async () => {
             globalThis.fetch = async () => {
                 throw new TypeError('Failed to fetch');
