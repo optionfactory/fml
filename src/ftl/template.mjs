@@ -74,10 +74,23 @@ class CommandsHandler {
         const varName = ops.popData(node, 'tplVar');
         const template = new Template(node, modules, dataStack);
         const evaluated = Expressions.interpret(modules, dataStack, expression);
-        if (!evaluated?.[Symbol.iterator]) {
+        //keyed collections iterate as {key, value} entries: a Map in its own
+        //order, a non-iterable plain dict in Object.entries order. Plain alone:
+        //a class instance or a response wrapper standing where an array was
+        //expected still fails loudly below, and any other iterable (a Set, a
+        //generator, an entries() iterator) iterates as itself
+        const proto = evaluated === null || typeof evaluated !== 'object' ? undefined : Object.getPrototypeOf(evaluated);
+        const keyed =
+            evaluated instanceof Map
+                ? [...evaluated]
+                : !evaluated?.[Symbol.iterator] && (proto === Object.prototype || proto === null)
+                  ? Object.entries(evaluated)
+                  : null;
+        const entries = keyed === null ? evaluated : keyed.map(([key, value]) => ({ key, value }));
+        if (!entries?.[Symbol.iterator]) {
             throw new Error(`Expected an iterable got '${evaluated}'`);
         }
-        for (const v of evaluated) {
+        for (const v of entries) {
             ops.prepend(node, template.withOverlay(varName ? { [varName]: v } : v).render());
         }
         ops.remove(node);

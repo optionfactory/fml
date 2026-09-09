@@ -387,8 +387,8 @@ class Select extends Field {
     `;
     static templates = {
         items: `
-            <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
-                <div><span>{{ entry[1][0] }}</span><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
+            <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry.key">
+                <div><span>{{ entry.label }}</span><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
             </ful-item>
         `,
     };
@@ -719,12 +719,16 @@ class Select extends Field {
         const entry = this.#values.values().next().value;
         this.#input.value = this.#multiple ? '' : (entry?.[0] ?? '');
     }
-    #changed() {
-        const selection = [...this.#values.entries()].map((e) => ({
+    /** The selection in its one vocabulary: the change detail and the items overlay both speak it. */
+    #selection() {
+        return [...this.#values.entries()].map((e) => ({
             key: e[0],
             label: e[1][0],
             metadata: e[1].slice(1),
         }));
+    }
+    #changed() {
+        const selection = this.#selection();
         //the announced value is the labeled selection, not the bare keys the
         //value property answers with
         this._notifyChange(this.#multiple ? selection : (selection[0] ?? null));
@@ -749,7 +753,7 @@ class Select extends Field {
         }
         this.#items.replaceChildren();
         (this.#itemstemplate ?? this.template('items'))
-            .withOverlay({ entries: this.#values.entries() })
+            .withOverlay({ entries: this.#selection() })
             .renderTo(this.#items);
     }
     /**

@@ -943,8 +943,8 @@ describe('Select selection removal', () => {
             <ful-select multiple itemlist value="k1,k2">
                 pick
                 <template slot="items">
-                    <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
-                        <div><em>{{ entry[1][0] }}</em><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
+                    <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry.key">
+                        <div><em>{{ entry.label }}</em><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
                     </ful-item>
                 </template>
             </ful-select>`);

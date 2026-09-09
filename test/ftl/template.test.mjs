@@ -14,6 +14,71 @@ describe('Template', () => {
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>1</div><div>2</div>');
     });
+
+    it('iterates a plain object as its {key, value} entries', () => {
+        const data = { labels: { it: 'Italiano', en: 'English' } };
+        const template = Template.fromHtml('<div data-tpl-each="labels">{{key}}: {{value}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>it: Italiano</div><div>en: English</div>');
+    });
+
+    it('iterates a plain object under a tpl-var name', () => {
+        const data = { labels: { it: 'Italiano' } };
+        const template = Template.fromHtml(
+            '<div data-tpl-each="labels" data-tpl-var="e">{{e.key}}: {{e.value}}</div>',
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>it: Italiano</div>');
+    });
+
+    it('still rejects a non-plain non-iterable, loudly', () => {
+        const data = { d: new Date() };
+        const template = Template.fromHtml('<div data-tpl-each="d">{{key}}</div>', modules, data);
+        try {
+            template.render();
+            assert.fail('should have thrown');
+        } catch (e) {
+            let cause = e;
+            while (cause.cause) {
+                cause = cause.cause;
+            }
+            assert.match(cause.message, /Expected an iterable/);
+        }
+    });
+
+    it('iterates a Map as its {key, value} entries, in its own order', () => {
+        const data = { m: new Map([['b', 2], ['a', 1]]) };
+        const template = Template.fromHtml('<div data-tpl-each="m">{{key}}={{value}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>b=2</div><div>a=1</div>');
+    });
+
+    it('lets a Map entries() iterator iterate raw, as any other iterable', () => {
+        const data = { es: new Map([['a', 1]]).entries() };
+        const template = Template.fromHtml(
+            '<div data-tpl-each="es" data-tpl-var="e">{{e[0]}}={{e[1]}}</div>',
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>a=1</div>');
+    });
+
+    it('lets an iterable plain object iterate as itself, not as entries', () => {
+        const data = {
+            gen: {
+                [Symbol.iterator]: function* () {
+                    yield 'a';
+                    yield 'b';
+                },
+            },
+        };
+        const template = Template.fromHtml('<div data-tpl-each="gen">{{self}}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>a</div><div>b</div>');
+    });
     it('can skip rendering with *-if', () => {
         const data = {};
         const template = Template.fromHtml('<div data-tpl-if="false">{{v}}</div>', modules, data);
