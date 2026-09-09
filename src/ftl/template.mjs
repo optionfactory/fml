@@ -72,6 +72,7 @@ class CommandsHandler {
     }
     static tplEach(node, expression, ops, modules, dataStack) {
         const varName = ops.popData(node, 'tplVar');
+        const statName = ops.popData(node, 'tplStat');
         const template = new Template(node, modules, dataStack);
         const evaluated = Expressions.interpret(modules, dataStack, expression);
         //keyed collections iterate as {key, value} entries: a Map in its own
@@ -90,8 +91,42 @@ class CommandsHandler {
         if (!entries?.[Symbol.iterator]) {
             throw new Error(`Expected an iterable got '${evaluated}'`);
         }
+        if (!statName) {
+            for (const v of entries) {
+                ops.prepend(node, template.withOverlay(varName ? { [varName]: v } : v).render());
+            }
+            ops.remove(node);
+            return;
+        }
+        //the stat rides grouped under its declared name, overlaid below the
+        //item, so data can never collide with its fields and an item property
+        //sharing the stat's very name wins, as data always does. The size is
+        //read where the collection already knows it (arrays and keyed entries
+        //by length, sets and the like by size): an arbitrary iterator is never
+        //consumed to learn it, so its size and last read null, the unknown
+        const size = Array.isArray(entries)
+            ? entries.length
+            : typeof entries.length === 'number'
+              ? entries.length
+              : typeof entries.size === 'number'
+                ? entries.size
+                : null;
+        let index = 0;
         for (const v of entries) {
-            ops.prepend(node, template.withOverlay(varName ? { [varName]: v } : v).render());
+            const stat = {
+                index,
+                count: index + 1,
+                size,
+                first: index === 0,
+                last: size === null ? null : index === size - 1,
+                even: index % 2 === 0,
+                odd: index % 2 === 1,
+            };
+            ops.prepend(
+                node,
+                template.withOverlay({ [statName]: stat }, varName ? { [varName]: v } : v).render(),
+            );
+            ++index;
         }
         ops.remove(node);
     }

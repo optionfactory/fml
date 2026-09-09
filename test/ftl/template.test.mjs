@@ -66,6 +66,84 @@ describe('Template', () => {
         assert.strictEqual(Fragments.toHtml(rendered), '<div>a=1</div>');
     });
 
+    it('overlays the iteration stat under its declared name', () => {
+        const data = { items: ['a', 'b', 'c'] };
+        const template = Template.fromHtml(
+            '<div data-tpl-each="items" data-tpl-var="item" data-tpl-stat="s">{{s.index}}/{{s.count}}/{{s.size}} {{item}}</div>',
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>0/1/3 a</div><div>1/2/3 b</div><div>2/3/3 c</div>');
+    });
+
+    it('marks the ends and the parity through the stat flags', () => {
+        const data = { items: ['a', 'b', 'c'] };
+        const template = Template.fromHtml(
+            `<div data-tpl-each="items" data-tpl-stat="s" data-tpl-class-append="[s.first ? 'first' : null, s.last ? 'last' : null, s.odd ? 'odd' : 'even']">{{self}}</div>`,
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(
+            Fragments.toHtml(rendered),
+            '<div class="first even">a</div><div class="odd">b</div><div class="last even">c</div>',
+        );
+    });
+
+    it('carries the stat over keyed collections, sized without consuming them', () => {
+        const data = { labels: { it: 'Italiano', en: 'English' } };
+        const template = Template.fromHtml(
+            '<i data-tpl-each="labels" data-tpl-stat="s">{{s.count}}/{{s.size}}:{{key}}{{s.last ? "!" : ""}}</i>',
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<i>1/2:it</i><i>2/2:en!</i>');
+    });
+
+    it('never consumes an iterator to learn the size: an unsized stat reads null', () => {
+        const data = {
+            gen: (function* () {
+                yield 'x';
+                yield 'y';
+            })(),
+            set: new Set(['a', 'b']),
+        };
+        const template = Template.fromHtml(
+            '<b data-tpl-each="gen" data-tpl-stat="s">{{s.index}}({{s.size ?? "?"}}) {{self}}</b><i data-tpl-each="set" data-tpl-stat="s">{{s.last}} {{self}}</i>',
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(
+            Fragments.toHtml(rendered),
+            '<b>0(?) x</b><b>1(?) y</b><i>false a</i><i>true b</i>',
+        );
+    });
+
+    it('exposes the stat to tpl-when, which gates after each opened the scope', () => {
+        const data = { items: ['a', 'b', 'c', 'd'] };
+        const template = Template.fromHtml(
+            '<div data-tpl-each="items" data-tpl-stat="s" data-tpl-when="s.even">{{self}}</div>',
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>a</div><div>c</div>');
+    });
+
+    it('lets an item property sharing the stat name win, as data always does', () => {
+        const data = { items: [{ s: 'shadow' }] };
+        const template = Template.fromHtml(
+            '<div data-tpl-each="items" data-tpl-stat="s">{{s}}</div>',
+            modules,
+            data,
+        );
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>shadow</div>');
+    });
+
     it('lets an iterable plain object iterate as itself, not as entries', () => {
         const data = {
             gen: {
