@@ -355,10 +355,13 @@ describe('SelectLoader fetch discipline', () => {
         const { calls, pending } = deferredHttp();
         const loader = remoteLoader({ src: '/old', preload: '' });
 
-        const stale = loader.prefetch();
+        const stale = loader.prefetch().then(
+            () => assert.fail('the superseded prefetch rejects'),
+            (e) => String(e),
+        );
         loader.reconfigureUrl('/new');
         pending[0].resolve([['k1', 'Old']]);
-        await stale;
+        assert.match(await stale, /superseded/);
 
         const fresh = loader.load('x');
         assert.lengthOf(calls, 2);
@@ -367,6 +370,24 @@ describe('SelectLoader fetch discipline', () => {
         assert.deepStrictEqual(await loader.load('new'), [['k2', 'New']]);
         assert.deepStrictEqual(await loader.exact('k1'), [], 'the old url answer was never stored');
         assert.lengthOf(calls, 2);
+    });
+
+    it('rejects a caller whose fetch a reconfiguration superseded, instead of crashing', async () => {
+        const { calls, pending } = deferredHttp();
+        const loader = remoteLoader({ src: '/old' });
+
+        const superseded = loader.exact('k1').then(
+            () => assert.fail('the superseded lookup rejects'),
+            (e) => String(e),
+        );
+        loader.reconfigureUrl('/new');
+        pending[0].resolve([['k1', 'Old']]);
+        assert.match(await superseded, /superseded/);
+
+        const next = loader.exact('k1');
+        pending[1].resolve([['k1', 'New']]);
+        assert.deepStrictEqual(await next, [['k1', 'New']], 'the next caller is served from the new url');
+        assert.deepStrictEqual(calls.map((c) => c.url), ['/old', '/new']);
     });
 
     it('serves the fetched options when the cache write hits a full quota', async () => {

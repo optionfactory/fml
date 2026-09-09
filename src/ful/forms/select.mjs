@@ -31,12 +31,12 @@ class RemoteLoader {
         await this.#ensureFetched();
     }
     async exact(...keys) {
-        await this.#ensureFetched();
-        return this.#data.filter(([k, v]) => keys.some((r) => r == k));
+        const data = await this.#ensureFetched();
+        return data.filter(([k, v]) => keys.some((r) => r == k));
     }
     async load(needle) {
-        await this.#ensureFetched();
-        return this.#data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase()));
+        const data = await this.#ensureFetched();
+        return data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase()));
     }
     async reconfigureUrl(url) {
         //the generation detaches any fetch still in flight: its outcome belongs
@@ -47,26 +47,27 @@ class RemoteLoader {
         this.#url = url;
     }
     async #ensureFetched() {
-        if (this.#data !== null) {
-            return;
-        }
-        if (this.#inFlight !== null) {
+        if (this.#data === null) {
+            if (this.#inFlight === null) {
+                const config = this.#config;
+                this.#inFlight = RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision)
+                    .then((raw) => {
+                        if (config === this.#config) {
+                            this.#data = this.#responseMapper(raw);
+                        }
+                    })
+                    .finally(() => {
+                        if (config === this.#config) {
+                            this.#inFlight = null;
+                        }
+                    });
+            }
             await this.#inFlight;
-            return;
         }
-        const config = this.#config;
-        this.#inFlight = RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision)
-            .then((raw) => {
-                if (config === this.#config) {
-                    this.#data = this.#responseMapper(raw);
-                }
-            })
-            .finally(() => {
-                if (config === this.#config) {
-                    this.#inFlight = null;
-                }
-            });
-        await this.#inFlight;
+        if (this.#data === null) {
+            throw new Error('superseded by a reconfiguration');
+        }
+        return this.#data;
     }
     static async #revisionedData(http, method, url, revision) {
         const storageKey = `${method}@${url}`;
