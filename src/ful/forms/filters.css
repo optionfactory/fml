@@ -106,7 +106,6 @@ ful-control-group > button[data-ref="value"]:disabled {
     background-size: 0;
 }
 
-ul[popover].ful-filter-menu,
 ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) > ul[popover],
 ful-control-group > button[data-ref="value"] + ul[popover] {
     position-anchor: --ful-filter-operator;

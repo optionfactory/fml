@@ -412,7 +412,7 @@ class HttpRequestBuilder {
     #body;
     #options;
     #interceptors;
-    #fragment = '';
+    #fragment;
     /**
      * Creates an HttpRequestBuilder.
      * @param {HttpClient} client

@@ -161,9 +161,8 @@ class Bindings {
             const parts = name.split('.');
             for (let i = parts.length; i !== 0; --i) {
                 const prefix = parts.slice(0, i).join('.');
-                const suffix = parts.slice(i, parts.length).join('.');
                 form.querySelectorAll(`[name='${CSS.escape(prefix)}']`).forEach((input) => {
-                    input.setCustomValidity?.(e.reason, suffix);
+                    input.setCustomValidity?.(e.reason);
                 });
             }
         });
