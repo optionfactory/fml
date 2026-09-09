@@ -61,6 +61,28 @@ ful-note,
         position-area: left;
         margin: 0 0.3rem 0 0;
     }
+
+    @supports not (position-area: bottom) {
+        /*no anchoring to fall back on: the platform's own centering beats the
+        corner the gap margins would otherwise force*/
+        &:popover-open,
+        &[placement]:popover-open {
+            margin: auto;
+        }
+
+        @media (max-width: 30rem) {
+            /*a phone reads the unanchorable note as a floating bottom sheet, the
+            reachable spot under the thumb, lifted clear of the screen edge and
+            the home indicator*/
+            &:popover-open,
+            &[placement]:popover-open {
+                inset: auto 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+                margin: 0;
+                width: auto;
+                max-width: none;
+            }
+        }
+    }
 }
 
 dialog.ful-dialog {

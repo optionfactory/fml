@@ -56,6 +56,19 @@ The palette is `light-dark()` based and follows the page's `color-scheme` alone:
 
 See `examples/ful/kitchen-sink.html` for a page showing every component in its normal, disabled, readonly, invalid and loading states; every example page is bootstrap-free, styled by `dist/ful.css` and the shared `examples/base.css` page skeleton, with each demonstration grouped in a legended card that shows its own authored markup in a collapsible block (the kitchen sink excepted). A `ful-select` with `itemlist` renders its entries as deletable chips — one pill per entry with the remove zone at its end — and shapes them through a `<template slot="items">` when the stock chip is not enough; the open dropdown marks the options already picked.
 
+## Browser support
+
+fml targets evergreen browsers from spring 2024. The hard floor is Chrome/Edge 123 (March 2024), Firefox 125 (April 2024) and Safari 17.5 (May 2024), set by the newest platform features the library leans on everywhere: `light-dark()`, the Popover API, `Promise.withResolvers`, `:has()` and native CSS nesting. Below the floor, script or styling fail outright.
+
+Two features degrade instead of breaking, under newer floors of their own:
+
+- anchored popovers (the tooltip's note, the filter and boolean-value menus) need CSS anchor positioning: Chrome/Edge 129 (September 2024), Safari 26 (September 2025), Firefox 147 (January 2026; Firefox's support is partial against the full specification, but covers the subset fml uses, `anchor-name`, `position-anchor` and `position-area`, the last being Baseline since January 2026). Below these the popovers still open, toggle and light-dismiss, unanchored: the tooltip's note centers in the viewport, and floats as a bottom sheet on phones (below 30rem), lifted clear of the screen edge and the home indicator; the filter menus land at the viewport's top start corner
+- the fields' label and description wiring uses aria element reflection, Baseline since April 2025: an older browser keeps the visible layout intact while assistive technology silently loses the label and description associations
+
+On iOS every browser runs the system WebKit, so the floor reads in iOS versions: iOS 17.5 (May 2024) or newer, which every iPhone from the XS/XR (2018) onward can reach; the anchored-popover tier is iOS 26 (September 2025), iPhone 11 (2019) onward, older devices keeping the centered fallback.
+
+The test suite runs on current Chromium, Firefox and WebKit on every `npm run verify`.
+
 ## client-errors
 
 A standalone IIFE (`dist/client-errors.iife.js`, no module machinery: one `script src` tag carrying `data-report-client-errors-uri`) listening for `error` and `unhandledrejection` and POSTing a json report (page url, message, stack) to that uri. The report travels same-origin with the page's csrf meta pair (`_csrf_header`/`_csrf`) when present, `keepalive` so it survives navigation away, and the script swallows its own failures: an unreachable endpoint is never re-reported as an error.

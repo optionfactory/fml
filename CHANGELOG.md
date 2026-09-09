@@ -85,6 +85,7 @@
 - [ENH] `data-tpl-each` iterates keyed collections as `{ key, value }` entries: a `Map` in its own order, a plain object in `Object.entries` order (`<li data-tpl-each="languages">{{ key }}: {{ value }}</li>`); every other iterable iterates as itself, and a non-plain non-iterable still fails loudly
 - [BRK] `ful-select.entry` answers `{ key, label, metadata }` entries, the vocabulary the change detail and the items overlay already speak, instead of the raw `[key, [label, ...metadata]]` tuples exposed since ful 4.x: one selection shape across every door
 - [NEW] `data-tpl-stat` names an iteration stat beside `data-tpl-each`'s item: `{ index, count, size, first, last, even, odd }`, grouped under the declared name so it can never collide with data (an item property sharing the name wins). The stat observes without changing consumption: the size is read where the collection already knows it, and an iterator or generator is never consumed to learn it, its `size` and `last` reading null, the honest unknown of a source that chose to have no size
+- [ENH] the tooltip's note degrades honestly where CSS anchor positioning is missing: centered in the viewport, and floating as a bottom sheet on phones (below 30rem, lifted clear of the screen edge and the home indicator), instead of the corner the gap margins used to force under the platform's fallback
 
 ### version 8.0.2
 
