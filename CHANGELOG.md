@@ -83,6 +83,7 @@
 - [ENH] form error mapping: a field error pins on the most specific name its context reaches (deep contexts still catch onto the composite field owning the subtree, which now receives the remaining path as setCustomValidity's second argument to route the problem internally), and a context naming no field reads in the banner instead of vanishing
 - [ENH] `ful-input` decodes its value to a number under `v-type="number"`, an explicit opt in like the select's `k-type`: blank stays null, a value that does not decode is kept as it is, the change detail and the form extraction carry the number, and an undeclared `type` defaults to `number` so the numeric widget rides along (a declared one wins)
 - [ENH] `data-tpl-each` iterates keyed collections as `{ key, value }` entries: a `Map` in its own order, a plain object in `Object.entries` order (`<li data-tpl-each="languages">{{ key }}: {{ value }}</li>`); every other iterable iterates as itself, and a non-plain non-iterable still fails loudly
+- [BRK] `ful-select.entry` answers `{ key, label, metadata }` entries, the vocabulary the change detail and the items overlay already speak, instead of the raw `[key, [label, ...metadata]]` tuples exposed since ful 4.x: one selection shape across every door
 
 ### version 8.0.2
 

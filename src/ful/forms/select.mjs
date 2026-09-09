@@ -831,12 +831,13 @@ class Select extends Field {
         }
         return [...this.#values.keys()][0] ?? null;
     }
-    /** The selection as [key, label, metadata] tuples: the only one for a single select, every one when multiple. */
+    /** The selection as {key, label, metadata} entries, the change detail's vocabulary: the only one for a single select, every one when multiple. */
     get entry() {
+        const selection = this.#selection();
         if (this.#multiple) {
-            return [...this.#values.entries()];
+            return selection;
         }
-        return [...this.#values.entries()][0] ?? null;
+        return selection[0] ?? null;
     }
     get disabled() {
         return super.disabled;

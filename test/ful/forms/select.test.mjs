@@ -725,7 +725,7 @@ describe('Select key types', () => {
 
         assert.strictEqual(selectEl.value, 16);
         assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
-        assert.deepStrictEqual(selectEl.entry, [16, ['Label 16']]);
+        assert.deepStrictEqual(selectEl.entry, { key: 16, label: 'Label 16', metadata: [] });
         container.remove();
     });
 
@@ -1374,8 +1374,8 @@ describe('Select loader access and entries', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(selectEl.entry, [
-            ['k1', ['Label k1', { id: 'k1' }]],
-            ['k2', ['Label k2', { id: 'k2' }]],
+            { key: 'k1', label: 'Label k1', metadata: [{ id: 'k1' }] },
+            { key: 'k2', label: 'Label k2', metadata: [{ id: 'k2' }] },
         ]);
         container.remove();
     });
@@ -1383,7 +1383,7 @@ describe('Select loader access and entries', () => {
     it('reports the one entry of a single select, and null when it has none', async () => {
         const [selectEl, container] = await mount(`<ful-select value="k1"></ful-select>`, described());
 
-        assert.deepStrictEqual(selectEl.entry, ['k1', ['Label k1', { id: 'k1' }]]);
+        assert.deepStrictEqual(selectEl.entry, { key: 'k1', label: 'Label k1', metadata: [{ id: 'k1' }] });
 
         selectEl.value = null;
         await settle();
