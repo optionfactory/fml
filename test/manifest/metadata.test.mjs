@@ -99,11 +99,6 @@ describe('Element metadata', function () {
         );
     });
 
-    const documented = (tag, kind) => ({
-        ...(metadata.common[kind] ?? {}),
-        ...(metadata.elements[tag]?.[kind] ?? {}),
-    });
-
     it('documents exactly the elements the plugin registers', () => {
         assert.deepStrictEqual(Object.keys(metadata.elements).sort(), elements.map((e) => e.tag).sort());
     });
@@ -119,11 +114,21 @@ describe('Element metadata', function () {
         it(`documents exactly the ${kind} each element has`, () => {
             for (const { tag, klass } of registered()) {
                 const actual = kind === 'attributes' ? attributesOf(klass) : slotsOf(klass);
-                const described = Object.keys(documented(tag, kind)).filter((name) => actual.includes(name));
+                const common = Object.keys(metadata.common[kind] ?? {});
+                const own = Object.keys(metadata.elements[tag]?.[kind] ?? {});
+                //the element's own prose must be real: an entry the code no
+                //longer has cannot rot here unnoticed
                 assert.deepStrictEqual(
-                    described.sort(),
-                    [...actual].sort(),
-                    `${tag}: the ${kind} in the metadata and in the code disagree`,
+                    own.filter((name) => !actual.includes(name)),
+                    [],
+                    `${tag}: the metadata documents ${kind} the code no longer has`,
+                );
+                //and everything real must be documented, the common overlay
+                //standing in for the shared vocabulary
+                assert.deepStrictEqual(
+                    actual.filter((name) => !(own.includes(name) || common.includes(name))),
+                    [],
+                    `${tag}: the ${kind} in the code are not all documented`,
                 );
             }
         });

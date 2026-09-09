@@ -10,7 +10,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 //the element classes extend DOM types when the module is evaluated, and the plugin
 //builds an http client that looks for the csrf meta tags: enough of a page to load
@@ -30,7 +30,7 @@ globalThis.window = globalThis;
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const metadata = JSON.parse(readFileSync(join(root, 'manifest/metadata.json'), 'utf8'));
-const { Plugin } = await import(`file://${join(root, 'dist/fml.mjs')}`);
+const { Plugin } = await import(pathToFileURL(join(root, 'dist/fml.mjs')).href);
 
 const TYPES = {
     presence: 'boolean',
