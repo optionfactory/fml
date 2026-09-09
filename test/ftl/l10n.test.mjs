@@ -74,9 +74,12 @@ describe('Localization formatters', () => {
         assert.strictEqual(bytes(100), '100B');
         assert.strictEqual(bytes(2048), '2KiB');
         assert.strictEqual(bytes(1536), '1.5KiB');
-        //1MiB on the nose is still on the KiB step, like it always was
-        assert.strictEqual(bytes(1024 * 1024), '1,024KiB');
+        //a size exactly on a threshold takes the larger unit
+        assert.strictEqual(bytes(1024), '1KiB');
+        assert.strictEqual(bytes(1024 * 1024), '1MiB');
         assert.strictEqual(bytes(1024 * 1024 + 1024 * 512), '1.5MiB');
+        assert.strictEqual(bytes(1024 * 1024 * 1024), '1GiB');
+        assert.strictEqual(bytes(5 * 1024 * 1024 * 1024 + 512 * 1024 * 1024), '5.5GiB');
     });
 
     it('formats byte sizes with locale digits', () => {

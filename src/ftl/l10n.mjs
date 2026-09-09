@@ -136,17 +136,21 @@ class Localization {
 
     /**
      * Formats a byte size with binary thresholds and literal unit suffixes:
-     * the digits honor the locale, the units are the near-universal KiB/MiB.
+     * the digits honor the locale, the units are the near-universal KiB/MiB/GiB.
+     * A size exactly on a threshold takes the larger unit: 1024 is 1KiB.
      *
      * @param {number} value
      * @this {Receiver}
      */
     static bytes(value) {
         const format = formatter(Intl.NumberFormat, this.locale, { maximumFractionDigits: 2 }).format;
-        if (value > 1024 * 1024) {
+        if (value >= 1024 * 1024 * 1024) {
+            return `${format(value / 1024 / 1024 / 1024)}GiB`;
+        }
+        if (value >= 1024 * 1024) {
             return `${format(value / 1024 / 1024)}MiB`;
         }
-        if (value > 1024) {
+        if (value >= 1024) {
             return `${format(value / 1024)}KiB`;
         }
         return `${format(value)}B`;
