@@ -41,6 +41,37 @@ describe('VersionedLocalStorage', () => {
     });
 });
 
+describe('unreachable storage', () => {
+    //blocked cookies and some embedded or private contexts make the accessor
+    //itself throw: redefining the property simulates it, and the saved
+    //descriptor puts the real storage back
+    const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    const deny = () => {
+        Object.defineProperty(window, 'localStorage', {
+            configurable: true,
+            get() {
+                throw new DOMException('denied', 'SecurityError');
+            },
+        });
+    };
+    afterEach(() => {
+        Object.defineProperty(window, 'localStorage', original);
+    });
+
+    it('reads are misses and removes are no-ops, never failures', () => {
+        deny();
+        expect(LocalStorage.load('k')).to.be.undefined;
+        expect(LocalStorage.pop('k')).to.be.undefined;
+        expect(() => LocalStorage.remove('k')).to.not.throw();
+        expect(VersionedLocalStorage.load('k', 'v1')).to.be.undefined;
+    });
+
+    it('writes still report the failure to their caller', () => {
+        deny();
+        expect(() => LocalStorage.save('k', 'v')).to.throw();
+    });
+});
+
 describe('VersionedSessionStorage', () => {
     beforeEach(() => {
         localStorage.clear();
