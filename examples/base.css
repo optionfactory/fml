@@ -92,17 +92,17 @@ section p {
     margin-top: 1rem;
 }
 
-body > fieldset > details.markup {
+details.markup {
     align-self: stretch;
 }
 
-body > fieldset > details.markup > summary {
+details.markup > summary {
     cursor: pointer;
     font-size: 0.875rem;
     color: color-mix(in srgb, currentColor 55%, transparent);
 }
 
-body > fieldset > details.markup > pre {
+details.markup > pre {
     margin: 0.5rem 0 0;
     padding: 0.75rem 1rem;
     white-space: pre-wrap;

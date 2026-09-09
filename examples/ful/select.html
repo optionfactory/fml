@@ -106,7 +106,10 @@
             </select>
             <template slot="items">
                 <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
-                    <div><span><ful-icon name="star" aria-hidden="true"></ful-icon> {{ entry[1][0] }}</span><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
+                    <div>
+                        <span><ful-icon name="star" aria-hidden="true" style="margin-right: 0.5rem"></ful-icon> {{ entry[1][0] }}</span>
+                        <button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+                    </div>
                 </ful-item>
             </template>
         </ful-select>
