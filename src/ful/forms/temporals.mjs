@@ -5,14 +5,17 @@ import { Input } from './input.mjs';
 class LocalDate extends ParsedElement {
     render() {
         const content = this.textContent.trim();
-        if (content === '') {
+        const [y, m, d] = content.split('-').map(Number);
+        const parsed = content === '' ? null : new Date(y, m - 1, d);
+        //content that does not name a date renders like none: formatting an
+        //invalid date would throw and fail the upgrade over a template hole
+        if (parsed === null || Number.isNaN(parsed.getTime())) {
             this.replaceChildren(this.getAttribute('default') ?? '');
             return;
         }
         //the attribute wins, then the page's locale, then the platform default
         const { date } = Localization.of({ locale: this.getAttribute('locale') ?? undefined });
-        const [y, m, d] = content.split('-').map(Number);
-        this.replaceChildren(date(new Date(y, m - 1, d), { year: 'numeric', month: 'numeric', day: 'numeric' }));
+        this.replaceChildren(date(parsed, { year: 'numeric', month: 'numeric', day: 'numeric' }));
     }
 }
 
@@ -20,13 +23,15 @@ class LocalDate extends ParsedElement {
 class Instant extends ParsedElement {
     render() {
         const content = this.textContent.trim();
-        if (content === '') {
+        const parsed = content === '' ? null : new Date(Instant.isoToLocal(content));
+        //content that does not name an instant renders like none, as ful-local-date
+        if (parsed === null || Number.isNaN(parsed.getTime())) {
             this.replaceChildren(this.getAttribute('default') ?? '');
             return;
         }
         const { date } = Localization.of({ locale: this.getAttribute('locale') ?? undefined });
         this.replaceChildren(
-            date(new Date(Instant.isoToLocal(content)), {
+            date(parsed, {
                 year: 'numeric',
                 month: 'numeric',
                 day: 'numeric',

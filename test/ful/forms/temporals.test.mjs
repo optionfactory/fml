@@ -149,6 +149,12 @@ describe('ful-local-date rendering', () => {
         container.remove();
     });
 
+    it('renders the default attribute for content that does not name a date', async () => {
+        const [el, container] = await mount(`default="not set">soon</ful-local-date>`);
+        assert.strictEqual(el.textContent, 'not set');
+        container.remove();
+    });
+
     it('renders the numeric date in the page locale', async () => {
         const [el, container] = await mount('>2026-09-04</ful-local-date>');
         assert.strictEqual(el.textContent, '9/4/2026');
@@ -166,6 +172,17 @@ describe('ful-instant rendering', () => {
     it('renders the default attribute for blank content', async () => {
         const container = document.createElement('div');
         container.innerHTML = `<ful-instant default="never"> </ful-instant>`;
+        document.body.appendChild(container);
+        const el = container.querySelector('ful-instant');
+        await Rendering.waitFor(el);
+
+        assert.strictEqual(el.textContent, 'never');
+        container.remove();
+    });
+
+    it('renders the default attribute for content that does not name an instant', async () => {
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-instant default="never">soon</ful-instant>`;
         document.body.appendChild(container);
         const el = container.querySelector('ful-instant');
         await Rendering.waitFor(el);
