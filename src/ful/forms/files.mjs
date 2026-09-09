@@ -41,9 +41,7 @@ class InputFile extends Input {
     static templates = {
         items: `
             <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
-                <div>{{ file.name }}</div>
-                <div>{{ #l10n:bytes(file.size) }}</div>
-                <button type="button" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+                <div><span>{{ file.name }}</span><span>{{ #l10n:bytes(file.size) }}</span><button type="button" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
             </ful-item>
         `,
         warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`,

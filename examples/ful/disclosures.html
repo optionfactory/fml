@@ -6,28 +6,15 @@
     <title>ful disclosures: tooltip, dialog, drawer, toasts</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <script src="../../dist/ftl.iife.js"></script>
-    <link href="../../dist/ful.css" rel="stylesheet">
+        <link href="../../dist/ful.css" rel="stylesheet">
     <link href="../base.css" rel="stylesheet">
+    <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-    <script src="../../dist/httpc.iife.min.js"></script>
-    <script src="../../dist/ful.iife.min.js"></script>
-    <script>
-        ftl.registry
-            .plugin(new ful.Plugin())
-            .configure();
-    </script>
-    <style>
+            <style>
         label {
             display: flex;
             align-items: center;
             gap: 0.375rem;
-        }
-
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
         }
     </style>
 </head>
@@ -112,6 +99,12 @@
         <button type="button" class="ful-button" id="toast-failure">A failure's problems</button>
     </fieldset>
 
+    <script src="../markup.js"></script>
+    <script>
+        ftl.registry
+            .plugin(new ful.Plugin())
+            .configure();
+    </script>
     <script>
         const byId = (id) => document.getElementById(id);
 

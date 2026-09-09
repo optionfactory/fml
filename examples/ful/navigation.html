@@ -6,29 +6,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>ful navigation: tabs, accordion, wizard</title>
-    <script src="../../dist/ftl.iife.js"></script>
-    <link href="../../dist/ful.css" rel="stylesheet">
+        <link href="../../dist/ful.css" rel="stylesheet">
     <link href="../base.css" rel="stylesheet">
+    <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-    <script src="../../dist/httpc.iife.min.js"></script>
-    <script src="../../dist/ful.iife.min.js"></script>
-    <style>
-        fieldset :is(ful-tabs, ful-accordion, ful-wizard) {
-            align-self: stretch;
-        }
-
-        section p {
-            margin: 0.5rem 0;
-        }
-
-        .actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-    </style>
-</head>
+        </head>
 
 <body>
     <h1>ful navigation</h1>
@@ -88,6 +70,13 @@
                 <p>Third-party liability towards others, included by default.</p>
             </details>
         </ful-accordion>
+    <details open>
+        <summary>Liability</summary>
+        <p>Included by default.</p>
+    </details>
+</ful-accordion>
+</script></code></pre>
+        </details>
     </fieldset>
 
     <h2>wizard</h2>
@@ -163,6 +152,7 @@
         <output id="form-wizard-output">the forms answer here</output>
     </fieldset>
 
+    <script src="../markup.js"></script>
     <script>
         /**
          * A mock form loader: the response names the step the wizard must

@@ -907,6 +907,35 @@ describe('Select selection removal', () => {
         container.remove();
     });
 
+    it('renders the item list from a slotted items template, removals still working', async () => {
+        const [selectEl, container] = await mount(`
+            <ful-select multiple itemlist value="k1,k2">
+                pick
+                <template slot="items">
+                    <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
+                        <div><em>{{ entry[1][0] }}</em><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
+                    </ful-item>
+                </template>
+            </ful-select>`);
+        const changes = [];
+        selectEl.addEventListener('change', (e) => changes.push(e.detail.value));
+
+        assert.deepStrictEqual(
+            items(selectEl).map((i) => i.querySelector('em')?.textContent),
+            ['Label k1', 'Label k2'],
+            'the slotted template shapes each entry',
+        );
+
+        click(items(selectEl)[0].querySelector('button'));
+
+        assert.deepStrictEqual(selectEl.value, ['k2']);
+        assert.deepStrictEqual(
+            items(selectEl).map((i) => i.querySelector('em')?.textContent),
+            ['Label k2'],
+        );
+        container.remove();
+    });
+
     it('removes nothing when the click misses both a badge and a remove button', async () => {
         const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];

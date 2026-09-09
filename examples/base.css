@@ -48,7 +48,7 @@ code {
 }
 
 /*the demo card: a fieldset groups one named demonstration, its legend names it*/
-fieldset {
+body > fieldset {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -59,10 +59,61 @@ fieldset {
     border-radius: var(--ful-border-radius, 0.375rem);
 }
 
-fieldset > legend {
+body > fieldset > legend {
     padding: 0 0.375rem;
     font-size: 0.875rem;
     color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+body > fieldset :is(ful-form, ful-select, ful-input-file, ful-tabs, ful-accordion, ful-wizard, ful-table, ful-pagination) {
+    display: block;
+    align-self: stretch;
+}
+
+body > fieldset form {
+    display: grid;
+    gap: 1rem;
+}
+
+section p {
+    margin: 0.5rem 0;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+body > fieldset > details.markup {
+    align-self: stretch;
+}
+
+body > fieldset > details.markup > summary {
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+body > fieldset > details.markup > pre {
+    margin: 0.5rem 0 0;
+    padding: 0.75rem 1rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--ful-color, light-dark(#212529, #dee2e6));
+    background-color: var(--ful-selected-bg, light-dark(#f8f9fa, #343a40));
+    border: var(--ful-border-width, 1px) solid var(--ful-border-color, light-dark(#dee2e6, #495057));
+    border-radius: var(--ful-border-radius, 0.375rem);
 }
 
 output {

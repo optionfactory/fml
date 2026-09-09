@@ -7,22 +7,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <script src="../../dist/ftl.iife.js"></script>
-    <link href="../../dist/ful.css" rel="stylesheet">
+        <link href="../../dist/ful.css" rel="stylesheet">
     <link href="../base.css" rel="stylesheet">
+    <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-    <script src="../../dist/httpc.iife.min.js"></script>
-    <script src="../../dist/ful.iife.min.js"></script>
-    <style>
-        fieldset :is(ful-select, fieldset > div) {
-            align-self: stretch;
-        }
-
-        fieldset label {
-            display: block;
-            margin-block-end: 0.5rem;
-        }
-
+            <style>
         .option {
             display: flex;
             flex-direction: row;
@@ -104,6 +93,25 @@
         </ful-select>
     </fieldset>
 
+    <h2>a templated item list</h2>
+    <fieldset>
+        <legend>the items slot shapes each entry</legend>
+        <ful-select multiple itemlist name="shapedList" value="home,vehicle">
+            The same, as a templated item list
+            <select slot="options">
+                <option value="home">Home</option>
+                <option value="vehicle">Vehicle</option>
+                <option value="health">Health</option>
+                <option value="travel">Travel</option>
+            </select>
+            <template slot="items">
+                <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
+                    <div><span><ful-icon name="star" aria-hidden="true"></ful-icon> {{ entry[1][0] }}</span><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
+                </ful-item>
+            </template>
+        </ful-select>
+    </fieldset>
+
     <h2>loader-fed</h2>
     <p>The remote shape without the network: a mock loader answers after a delay, so opening shows the spinner the real endpoint would. The vocabulary is the one the applications run — <code>src</code>, <code>method</code>, <code>revision</code> for the cached whole-set fetch, <code>mode="chunked"</code> for the searched one, <code>k-expr</code>/<code>l-expr</code> to map the payload.</p>
     <fieldset>
@@ -130,6 +138,7 @@
         </div>
     </fieldset>
 
+    <script src="../markup.js"></script>
     <script>
         /**
          * A mock of the remote select options: the loader contract the select

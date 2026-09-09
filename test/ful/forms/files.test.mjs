@@ -103,7 +103,7 @@ describe('InputFile selection', () => {
 
         assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt']);
         assert.deepStrictEqual(listed(el), ['a.txt', 'b.txt']);
-        const sizes = Array.from(el.querySelectorAll('ful-item')).map((i) => i.children[1].innerText);
+        const sizes = Array.from(el.querySelectorAll('ful-item')).map((i) => i.querySelectorAll('span')[1].innerText);
         assert.deepStrictEqual(sizes, ['3B', '2KiB']);
 
         container.remove();

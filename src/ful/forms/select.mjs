@@ -256,6 +256,12 @@ class Dropdown extends ParsedElement {
         this.#options = new Map(values.map((v, i) => [String(i), v]));
         const data = values.map(([key, label, metadata], index) => ({ index, key, label, metadata }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
+        for (const [index, li] of [...this.#menu.children].entries()) {
+            li.toggleAttribute(
+                'picked',
+                keys.some((r) => r == values[index]?.[0]),
+            );
+        }
         this.#empty.toggleAttribute('hidden', values.length !== 0);
         this.#menu.toggleAttribute('hidden', values.length === 0);
         const current = values.findIndex(([k]) => keys.some((r) => r == k));
@@ -368,8 +374,7 @@ class Select extends Field {
     static templates = {
         items: `
             <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry[0]">
-                <div>{{ entry[1][0] }}</div>
-                <button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+                <div><span>{{ entry[1][0] }}</span><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
             </ful-item>
         `,
     };
@@ -378,6 +383,7 @@ class Select extends Field {
     #ddmenu;
     #input;
     #items;
+    #itemstemplate;
     #multiple;
     #values = new Map();
     #token = 0;
@@ -399,6 +405,8 @@ class Select extends Field {
         const fragment = this.template().withOverlay({ slots, name }).render();
         this.#input = fragment.querySelector('input');
         this.#items = fragment.querySelector('ful-item-list');
+        this.#itemstemplate =
+            slots.items && !Fragments.isBlank(slots.items) ? Templates.fromFragment(slots.items) : null;
         Attributes.forward('input-', this, this.#input);
         this._adopt(this.#input, fragment.querySelector('ful-field-error'));
         this.#control = fragment.querySelector('ful-control');
@@ -732,7 +740,9 @@ class Select extends Field {
             this.#display();
         }
         this.#items.replaceChildren();
-        this.template('items').withOverlay({ entries: this.#values.entries() }).renderTo(this.#items);
+        (this.#itemstemplate ?? this.template('items'))
+            .withOverlay({ entries: this.#values.entries() })
+            .renderTo(this.#items);
     }
     /**
      * Coerces a key to the type declared by `k-type`. Keys reach the element from

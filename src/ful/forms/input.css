@@ -29,12 +29,7 @@ ful-item-list {
     --ful-item-list-item-bg: var(--ful-active-bg);
 
     display: grid;
-    grid-template-columns: 1fr auto;
     gap: 4px;
-
-    &:has(> ful-item > *:nth-child(3):last-child) {
-        grid-template-columns: 1fr auto auto;
-    }
 
     & > ful-item:first-child {
         margin-top: 6px;
@@ -44,30 +39,63 @@ ful-item-list {
         margin-bottom: 6px;
     }
 
-    & > ful-item {
-        display: grid;
-        grid-column: 1 / -1;
-        grid-template-columns: subgrid;
+    & > ful-item > div {
+        display: flex;
         align-items: center;
-        text-align: right;
-        line-height: 21px;
+        gap: 0.5rem;
+        min-width: 0;
+        padding: 5px 0.25rem 5px 0.5rem;
+        color: var(--ful-item-list-item-color);
+        border-radius: var(--ful-item-list-item-border-radius);
+        background-color: var(--ful-item-list-item-bg);
 
-        & > *:first-child {
-            text-align: left;
-            min-width: 30px;
-            display: inline-block;
+        &:focus-within {
+            box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ful-active-color) 40%, transparent);
+        }
+
+        & > span {
+            flex: 1 1 auto;
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            line-height: calc(var(--ful-controls-height) - 10px);
-            padding: 5px 0.5rem;
-            color: var(--ful-item-list-item-color);
-            border-radius: var(--ful-item-list-item-border-radius);
-            background-color: var(--ful-item-list-item-bg);
+            text-align: left;
         }
 
-        & > *:last-child {
-            text-align: left;
+        & > span + span {
+            flex: 0 0 auto;
+            font-size: 0.875em;
+            opacity: 0.75;
+        }
+
+        & > button {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: calc(var(--ful-controls-height) - 0.625rem);
+            height: calc(var(--ful-controls-height) - 0.625rem);
+            padding: 0;
+            font-size: inherit;
+            font-family: inherit;
+            color: inherit;
+            background-color: transparent;
+            border: 0;
+            border-radius: calc(var(--ful-item-list-item-border-radius) - 0.1875rem);
+            cursor: pointer;
+
+            & ful-icon {
+                width: 1em;
+                height: 1em;
+            }
+
+            &:hover {
+                background-color: color-mix(in srgb, var(--ful-invalid-color) 25%, transparent);
+            }
+
+            &:focus-visible {
+                outline: 0;
+            }
         }
     }
 }

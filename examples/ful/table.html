@@ -5,13 +5,11 @@
     <title>ful table</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <script src="../../dist/ftl.iife.js"></script>
-    <link href="../../dist/ful.css" rel="stylesheet">
+        <link href="../../dist/ful.css" rel="stylesheet">
     <link href="../base.css" rel="stylesheet">
+    <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-    <script src="../../dist/httpc.iife.min.js"></script>
-    <script src="../../dist/ful.iife.min.js"></script>
-    <style>
+            <style>
         .filters {
             display: flex;
             gap: 0.5rem;
@@ -32,6 +30,40 @@
             font-size: 0.75rem;
         }
     </style>
+</head>
+
+<body>
+    <h1>ful-table</h1>
+    <p>A filtered, sorted, paginated table over a mock loader: the filters feed the load, the sorter claims the header, the pagination walks the pages.</p>
+    <fieldset>
+        <legend>a hundred rows, walked and filtered</legend>
+        <ful-table loader="loaders:mock-data" autoload page-size="25">
+        <div slot="filters" class="filters">
+            <ful-filter-text name="byName">
+                Nome
+            </ful-filter-text>
+            <ful-filter-instant name="byAt">
+                Data
+            </ful-filter-instant>
+            <ful-filter-number name="byCount">
+                Id
+            </ful-filter-number>
+        </div>
+        <template slot="schema">
+            <schema>
+                <column title="Id" sorter="id" order="desc">
+                    {{ id }}
+                </column>
+                <column title="Tipo">
+                    <span class="pill" data-tpl-each="types">{{ self }}</span>
+                </column>
+                <column title="Utente" sorter="username">{{ username }}</column>
+                <column title="Data" sorter="date">{{ date }}</column>
+            </schema>
+        </template>
+    </ful-table>
+    </fieldset>
+    <script src="../markup.js"></script>
     <script>
         class MockDataLoader {
             #mockdata = Array.from({ length: 100 }, (x, i) => ({ id: i + 1, types: ['type1', 'type2'], username: `test${i}@example.com`, date: '2025-01-01', active: i % 2 === 0 }));
@@ -84,38 +116,6 @@
             .defineComponent("loaders:mock-data", MockDataLoader)
             .configure();
     </script>
-</head>
-
-<body>
-    <ful-table loader="loaders:mock-data" autoload page-size="25">
-        <div slot="filters" class="filters">
-            <ful-filter-text name="byName">
-                Nome
-            </ful-filter-text>
-            <ful-filter-instant name="byAt">
-                Data
-            </ful-filter-instant>
-            <ful-filter-number name="byCount">
-                Id
-            </ful-filter-number>
-            <ful-filter-boolean name="byActive">
-                Attivo
-            </ful-filter-boolean>
-            <button type="submit" class="ful-button">Search</button>
-        </div>
-        <template slot="schema">
-            <schema>
-                <column title="Id" sorter="id" order="desc">
-                    {{ id }}
-                </column>
-                <column title="Tipo">
-                    <span class="pill" data-tpl-each="types">{{ self }}</span>
-                </column>
-                <column title="Utente" sorter="username">{{ username }}</column>
-                <column title="Data" sorter="date">{{ date }}</column>
-            </schema>
-        </template>
-    </ful-table>
 </body>
 
 </html>

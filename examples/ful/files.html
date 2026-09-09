@@ -1,33 +1,16 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 
 <head>
-    <title>ful files</title>
+    <title>ful-input-file</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-    <script src="../../dist/ftl.iife.js"></script>
-    <link href="../../dist/ful.css" rel="stylesheet">
+        <link href="../../dist/ful.css" rel="stylesheet">
     <link href="../base.css" rel="stylesheet">
+    <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-    <script src="../../dist/httpc.iife.min.js"></script>
-    <script src="../../dist/ful.iife.min.js"></script>
-
-    <script>
-
-        ftl.registry
-            .plugin(new ful.Plugin())
-            .configure();
-    </script>
-    <style>
-        fieldset {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-
+            <style>
         .dropzone {
             margin-top: 5px;
 
@@ -54,128 +37,126 @@
 </head>
 
 <body>
-    <ful-form>
-        <h1>ful-input-file</h1>
+    <h1>ful-input-file</h1>
 
+    <fieldset>
+        <legend>a custom dropzone over the default one</legend>
+        <ful-input-file multiple itemlist dropzone noinput maxtotalsize="5000000" maxfiles="3" accept=".jpg,.jpeg,.pdf,.png">
+            Single with itemlist and dropzone
+            <template slot="dropzone">
+                <section>
+                    <div><ful-icon name="upload" aria-hidden="true"></ful-icon></div>
+                    <div>Trascina qui o <a href="#" role="button">scegli il file</a></div>
+                    <div class="muted">Aggiungi un massimo di 3 file</div>
+                </section>
+                <footer class="muted">Formati supportati: JPG, PDF, PNG non oltre i 5MB</footer>
+            </template>
+        </ful-input-file>
+    </fieldset>
 
-        <h2>style</h2>
-        <fieldset>
-            <ful-input-file multiple itemlist dropzone noinput maxtotalsize="5000000" maxfiles="3" accept=".jpg,.jpeg,.pdf,.png">
-                Single with itemlist and dropzone
-                <template slot="dropzone">
-                    <section>
-                        <div><ful-icon name="upload" aria-hidden="true"></ful-icon></div>
-                        <div>Trascina qui o <a href="#" role="button">scegli il file</a></div>
-                        <div class="muted">Aggiungi un massimo di 3 file</div>
-                    </section>
-                    <footer class="muted">Formati supportati: JPG, PDF, PNG non oltre i 5MB</footer>
-                </template>
+    <fieldset>
+        <legend>single</legend>
+        <ful-input-file>
+            Single
+        </ful-input-file>
+        <ful-input-file itemlist>
+            Single with itemlist
+        </ful-input-file>
+        <ful-input-file dropzone>
+            Single with dropzone
+        </ful-input-file>
+        <ful-input-file itemlist dropzone>
+            Single with itemlist and dropzone
+        </ful-input-file>
+        <ful-input-file dropzone>
+            Single with custom dropzone
+            <template slot="dropzone">Drop your file here</template>
+        </ful-input-file>
+    </fieldset>
 
-            </ful-input-file>
+    <fieldset>
+        <legend>multiple</legend>
+        <ful-input-file multiple>
+            Multiple
+        </ful-input-file>
+        <ful-input-file multiple itemlist>
+            Multiple with itemlist
+        </ful-input-file>
+        <ful-input-file multiple dropzone>
+            Multiple with dropzone
+        </ful-input-file>
+        <ful-input-file multiple itemlist dropzone>
+            Multiple with itemlist and dropzone
+        </ful-input-file>
+        <ful-input-file multiple dropzone>
+            Multiple with custom dropzone
+            <template slot="dropzone">Drop your file here</template>
+        </ful-input-file>
+    </fieldset>
 
-        </fieldset>
+    <fieldset>
+        <legend>accept</legend>
+        <ful-input-file itemlist dropzone accept=".svg">
+            accept .svg
+        </ful-input-file>
+        <ful-input-file multiple itemlist dropzone accept=".svg">
+            Multiple, accept .svg
+        </ful-input-file>
+    </fieldset>
 
-        <h2>single</h2>
-        <fieldset>
-            <ful-input-file>
-                Single
-            </ful-input-file>
-            <ful-input-file itemlist>
-                Single with itemlist
-            </ful-input-file>
+    <fieldset>
+        <legend>maxfilesize</legend>
+        <ful-input-file itemlist dropzone maxfilesize="1024">
+            Single, maxfilesize 1024
+        </ful-input-file>
+        <ful-input-file multiple itemlist dropzone maxfilesize="1024">
+            Multiple, maxfilesize 1024
+        </ful-input-file>
+    </fieldset>
 
-            <ful-input-file dropzone>
-                Single with dropzone
-            </ful-input-file>
-            <ful-input-file itemlist dropzone>
-                Single with itemlist and dropzone
-            </ful-input-file>
+    <fieldset>
+        <legend>maxtotalsize</legend>
+        <ful-input-file itemlist dropzone maxtotalsize="1024">
+            Single, maxtotalsize 1024
+        </ful-input-file>
+        <ful-input-file multiple itemlist dropzone maxtotalsize="1024">
+            Multiple, maxtotalsize 1024
+        </ful-input-file>
+    </fieldset>
 
-            <ful-input-file dropzone>
-                Single with custom dropzone
-                <template slot="dropzone">Drop your file here</template>
-            </ful-input-file>
-        </fieldset>
+    <fieldset>
+        <legend>readonly</legend>
+        <ful-input-file itemlist dropzone readonly>
+            Single, readonly
+        </ful-input-file>
+        <ful-input-file multiple itemlist dropzone readonly>
+            Multiple, readonly
+        </ful-input-file>
+    </fieldset>
 
-        <h2>multiple</h2>
-        <fieldset>
-            <ful-input-file multiple>
-                Multiple
-            </ful-input-file>
-            <ful-input-file multiple itemlist>
-                Multiple with itemlist
-            </ful-input-file>
-            <ful-input-file multiple dropzone>
-                Multiple with dropzone
-            </ful-input-file>
-            <ful-input-file multiple itemlist dropzone>
-                Multiple with itemlist and dropzone
-            </ful-input-file>
-            <ful-input-file multiple dropzone>
-                Multiple with custom dropzone
-                <template slot="dropzone">Drop your file here</template>
-            </ful-input-file>
-        </fieldset>
+    <fieldset>
+        <legend>disabled</legend>
+        <ful-input-file itemlist dropzone disabled>
+            Single, disabled
+        </ful-input-file>
+        <ful-input-file multiple itemlist dropzone disabled>
+            Multiple, disabled
+        </ful-input-file>
+    </fieldset>
 
-        <h2>Accept</h2>
-        <fieldset>
-            <ful-input-file itemlist dropzone accept=".svg">
-                accept .svg
-            </ful-input-file>
-            <ful-input-file multiple itemlist dropzone accept=".svg">
-                Multiple, accept .svg
-            </ful-input-file>
-        </fieldset>
-
-
-        <h2>maxfilesize</h2>
-        <fieldset>
-            <ful-input-file itemlist dropzone maxfilesize="1024">
-                Single, maxfilesize 1024
-            </ful-input-file>
-            <ful-input-file multiple itemlist dropzone maxfilesize="1024">
-                Multiple, maxfilesize 1024
-            </ful-input-file>
-        </fieldset>
-        <h2>maxtotalsize</h2>
-        <fieldset>
-            <ful-input-file itemlist dropzone maxtotalsize="1024">
-                Single, maxtotalsize 1024
-            </ful-input-file>
-            <ful-input-file multiple itemlist dropzone maxtotalsize="1024">
-                Multiple, maxtotalsize 1024
-            </ful-input-file>
-        </fieldset>
-
-        <h2>Readonly</h2>
-        <fieldset>
-            <ful-input-file itemlist dropzone readonly>
-                Single, maxfilesize 1024
-            </ful-input-file>
-            <ful-input-file multiple itemlist dropzone readonly>
-                Multiple, maxfilesize 1024
-            </ful-input-file>
-
-        </fieldset>
-        <h2>Disabled</h2>
-        <fieldset>
-            <ful-input-file itemlist dropzone disabled>
-                Single, maxfilesize 1024
-            </ful-input-file>
-            <ful-input-file multiple itemlist dropzone disabled>
-                Multiple, maxfilesize 1024
-            </ful-input-file>
-
-        </fieldset>
-        <h2>In disabled fieldset</h2>
-        <fieldset disabled>
-            <ful-input-file itemlist dropzone>
-                Single, maxfilesize 1024
-            </ful-input-file>
-            <ful-input-file multiple itemlist dropzone>
-                Multiple, maxfilesize 1024
-            </ful-input-file>
-        </fieldset>
-    </ful-form>
+    <fieldset disabled>
+        <legend>in a disabled fieldset</legend>
+        <ful-input-file itemlist dropzone>
+            Single
+        </ful-input-file>
+        <ful-input-file multiple itemlist dropzone>
+            Multiple
+        </ful-input-file>
+    </fieldset>
+    <script src="../markup.js"></script>
+    <script>
+        ftl.registry.plugin(new ful.Plugin()).configure();
+    </script>
 </body>
+
 </html>

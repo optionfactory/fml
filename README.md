@@ -39,7 +39,7 @@ Remote translations are the app's concern: `translations: await (await fetch(`/l
 
 The palette is `light-dark()` based and follows the page's `color-scheme` alone: pin `color-scheme: light` to disable the dark side, declare `light dark` to follow the os, `dark` to force it — the library declares nothing itself, and it works per-subtree too. The theme's ink pairs hold WCAG AA in both schemes, kept honest by a suite that computes the ratios; wherever the accent is read instead of filled (ghost outlines, done steps, success toasts) use `--ful-accent-ink`, the accent tuned for text.
 
-See `examples/ful/kitchen-sink.html` for a page showing every component in its normal, disabled, readonly, invalid and loading states; every example page is bootstrap-free, styled by `dist/ful.css` and the shared `examples/base.css` page skeleton, with each demonstration grouped in a legended card.
+See `examples/ful/kitchen-sink.html` for a page showing every component in its normal, disabled, readonly, invalid and loading states; every example page is bootstrap-free, styled by `dist/ful.css` and the shared `examples/base.css` page skeleton, with each demonstration grouped in a legended card that shows its own authored markup in a collapsible block (the kitchen sink excepted). A `ful-select` with `itemlist` renders its entries as deletable chips — one pill per entry with the remove zone at its end — and shapes them through a `<template slot="items">` when the stock chip is not enough; the open dropdown marks the options already picked.
 
 ## client-errors
 

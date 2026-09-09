@@ -8,13 +8,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     
-    <script src="../../dist/ftl.iife.js"></script>
-    <link href="../../dist/ful.css" rel="stylesheet">
+        <link href="../../dist/ful.css" rel="stylesheet">
     <link href="../base.css" rel="stylesheet">
+    <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-    <script src="../../dist/httpc.iife.min.js"></script>
-    <script src="../../dist/ful.iife.min.js"></script>
-    <style>
+            <style>
         /*the literal values and locale tags, as soft chips*/
         span {
             display: inline-block;
@@ -45,17 +43,14 @@
             background-color: #ccffcc;
         }
     </style>
-    <script>
-        ftl.registry
-            .plugin(new ful.Plugin())
-            .configure();
-    </script>
 </head>
 
 <body>
     <h1>Temporals</h1>
     <h2>Local Date</h2>
-    <div>
+    <fieldset>
+        <legend>the same date over locales</legend>
+        <div>
         The LocalDate <span>2020-01-02</span> with <span>current</span> locale is rendered as: <ful-local-date>2020-01-02</ful-local-date>
     </div>
     <div>
@@ -79,9 +74,12 @@
     <div>
         The LocalDate <span>2020-01-02</span> with <span>zh-cn</span> locale is rendered as: <ful-local-date locale="zh-cn">2020-01-02</ful-local-date>
     </div>
+    </fieldset>
 
     <h2>Instant</h2>
-    <div>
+    <fieldset>
+        <legend>the same instant over locales</legend>
+        <div>
         The ISO Instant: <span>2020-01-02T10:11:12.123Z</span> with <span>current</span> locale is rendered as: <ful-instant>2020-01-02T10:11:12.123Z</ful-instant>
     </div>
     <div>
@@ -105,13 +103,19 @@
     <div>
         The ISO Instant: <span>2020-01-02T10:11:12.123Z</span> with <span>zh-cn</span> locale is rendered as: <ful-instant locale="zh-cn">2020-01-02T10:11:12.123Z</ful-instant>
     </div>
+    </fieldset>
+
     <h2>ful-input-local-date</h2>
-    <div class="fields">
-        <ful-input-local-date>
-            A local date input
-        </ful-input-local-date>
-    </div>
-    <div class="fields">
+    <fieldset>
+        <legend>plain</legend>
+        <div class="fields">
+            <ful-input-local-date>
+                A local date input
+            </ful-input-local-date>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>min claims</legend>
         <ful-input-local-date min="now">
             A local date input with min = now
         </ful-input-local-date>
@@ -125,6 +129,9 @@
             A local date input with min = -10d
         </ful-input-local-date>
     </div>
+    </fieldset>
+    <fieldset>
+        <legend>max claims</legend>
     <div class="fields">
         <ful-input-local-date max="now">
             A local date input with max = now
@@ -139,6 +146,9 @@
             A local date input with max = -10d
         </ful-input-local-date>
     </div>
+    </fieldset>
+    <fieldset>
+        <legend>min and max together</legend>
     <div class="fields">
         <ful-input-local-date min="now" max="now">
             A local date input with min = now, max = now
@@ -153,13 +163,22 @@
             A local date input with min = -20d, max = -10d
         </ful-input-local-date>
     </div>
-    <h2>ful-input-instant</h2>
-    <div class="fields">
-        <ful-input-instant>
-            An instant input
-        </ful-input-instant>
-    </div>
+    </fieldset>
 
+    <h2>ful-input-instant</h2>
+    <fieldset>
+        <legend>plain</legend>
+        <div class="fields">
+            <ful-input-instant>
+                An instant input
+            </ful-input-instant>
+        </div>
+    </fieldset>
+
+    <script src="../markup.js"></script>
+    <script>
+        ftl.registry.plugin(new ful.Plugin()).configure();
+    </script>
 </body>
 
 </html>
