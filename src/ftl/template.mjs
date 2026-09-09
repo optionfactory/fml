@@ -41,6 +41,9 @@ class NodeOperations {
 }
 
 class CommandsHandler {
+    //the order is the semantics: each command sees the node as the ones before
+    //it left it, so tplIf gates before tplWith/tplEach push their overlay and
+    //tplWhen gates after (inside the sub-render, where the overlay is in scope)
     static ORDERED_COMMANDS = [
         'tplIf',
         'tplWith',
@@ -51,6 +54,8 @@ class CommandsHandler {
         'tplRemove',
         'tplVerbatim',
     ];
+    //same body as tplWhen: the two differ only in ORDERED_COMMANDS position,
+    //if evaluates in the outer scope, before with/each
     static tplIf(node, expression, ops, modules, dataStack) {
         const accept = Expressions.interpret(modules, dataStack, expression);
         if (!accept) {
@@ -77,6 +82,8 @@ class CommandsHandler {
         }
         ops.remove(node);
     }
+    //same body as tplIf: the two differ only in ORDERED_COMMANDS position,
+    //when evaluates after with/each, in the scope their overlay opened
     static tplWhen(node, expression, ops, modules, dataStack) {
         const accept = Expressions.interpret(modules, dataStack, expression);
         if (!accept) {
