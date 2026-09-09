@@ -238,9 +238,7 @@ class CompareFilter extends Input {
             if (!item) {
                 return;
             }
-            //buttons and menus are not form controls, the guard must ask the
-            //effective state
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             const btn = /** @type HTMLButtonElement */ (item.closest('ul')?.previousElementSibling);
@@ -322,17 +320,6 @@ class CompareFilter extends Input {
         this._operator.textContent = GLYPHS[operator] ?? operator;
         Attributes.set(this._operator, 'aria-label', operatorLabel(operator));
         this._value2.toggleAttribute('hidden', operator !== 'BETWEEN');
-    }
-    _notifyChange() {
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                    value: this.value,
-                },
-            }),
-        );
     }
     get readonly() {
         return super.readonly;
@@ -440,7 +427,7 @@ class TextFilter extends CompareFilter {
             if (!item) {
                 return;
             }
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             const btn = /** @type HTMLButtonElement */ (item.closest('ul')?.previousElementSibling);
@@ -566,7 +553,7 @@ class BooleanFilter extends Field {
             if (!item) {
                 return;
             }
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             const btn = /** @type HTMLButtonElement */ (item.closest('ul')?.previousElementSibling);
@@ -618,17 +605,6 @@ class BooleanFilter extends Field {
     _showValue(token) {
         this._value.value = token;
         this._value.innerText = booleanValueLabel(token);
-    }
-    _notifyChange() {
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                    value: this.value,
-                },
-            }),
-        );
     }
     //the base's native readOnly cannot freeze the popover buttons, so the whole
     //control group inerts

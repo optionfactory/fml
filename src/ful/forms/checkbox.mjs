@@ -28,34 +28,17 @@ class Checkbox extends Field {
         this.value = observed.value;
         this.#input.addEventListener('change', (evt) => {
             evt.stopPropagation();
-            this.dispatchEvent(
-                new CustomEvent('change', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: {
-                        value: this.value,
-                    },
-                }),
-            );
+            this._notifyChange();
         });
         const label = fragment.querySelector('label');
         this._wireA11y(label);
         label.addEventListener('click', () => {
             this.focus();
-            //a label is not a form control, the guard must ask the effective state
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             this.value = !this.value;
-            this.dispatchEvent(
-                new CustomEvent('change', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: {
-                        value: this.value,
-                    },
-                }),
-            );
+            this._notifyChange();
         });
         this.replaceChildren(fragment);
     }

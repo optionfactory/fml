@@ -442,9 +442,7 @@ class Select extends Field {
      */
     #wireChrome() {
         this.addEventListener('click', (/** @type any */ e) => {
-            //badges and other chrome are not form controls, the guard must ask the
-            //effective state
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             if (this.#ddmenu.shown) {
@@ -459,7 +457,7 @@ class Select extends Field {
             if (!e.target.closest('button')) {
                 return;
             }
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             this.#removeKeyAt([...this.#items.children].indexOf(e.target.closest('ful-item')));
@@ -515,14 +513,14 @@ class Select extends Field {
             this.#close();
         });
         this.#input.addEventListener('keydown', (e) => {
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             this.#comboboxKeydown(e);
         });
         this.#input.addEventListener('input', (e) => {
             e.stopPropagation();
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             this.#editing = true;
@@ -535,7 +533,7 @@ class Select extends Field {
             //a claim landing while the dropdown is open must not accept a pick:
             //disabled closes the list on its own (the focused input blurs), readonly
             //leaves it open, so the guard lives here
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 this.#close();
                 return;
             }
@@ -562,7 +560,7 @@ class Select extends Field {
         return Array.from(this.#control.querySelectorAll(':scope > ful-badge'));
     }
     #removeBadge(badge) {
-        if (this.matches(':disabled') || this.readonly) {
+        if (!this._interactive()) {
             return;
         }
         this.#removeKeyAt(this.#badges().indexOf(badge));
@@ -722,14 +720,9 @@ class Select extends Field {
             label: e[1][0],
             metadata: e[1].slice(1),
         }));
-        const value = this.#multiple ? selection : (selection[0] ?? null);
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: { value },
-            }),
-        );
+        //the announced value is the labeled selection, not the bare keys the
+        //value property answers with
+        this._notifyChange(this.#multiple ? selection : (selection[0] ?? null));
     }
     #syncBadges() {
         const badges = this.#multiple

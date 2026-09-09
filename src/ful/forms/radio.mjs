@@ -42,16 +42,7 @@ class RadioGroup extends Field {
             input.setAttribute('form', ``);
             input.addEventListener('change', (evt) => {
                 evt.stopPropagation();
-                //change is not cancelable
-                this.dispatchEvent(
-                    new CustomEvent('change', {
-                        bubbles: true,
-                        cancelable: false,
-                        detail: {
-                            value: this.value,
-                        },
-                    }),
-                );
+                this._notifyChange();
             });
             const label = Fragments.fromChildNodes(el);
             return [input, label];

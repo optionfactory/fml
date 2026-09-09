@@ -86,6 +86,31 @@ class Field extends ParsedElement {
         form.requestSubmit([...candidates].find((el) => el.type === 'submit' && el.form === form));
     }
     /**
+     * Dispatches the field's change event: bubbling, not cancelable, the value
+     * in the detail. Every field announces through this one door; a field whose
+     * announced value is not its own `value` (the select's labeled selection)
+     * passes it explicitly.
+     */
+    _notifyChange(value = this.value) {
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                cancelable: false,
+                detail: { value },
+            }),
+        );
+    }
+    /**
+     * Whether the field's chrome should answer a gesture. Badges, dropzones,
+     * menus and labels are not form controls, so their handlers must ask the
+     * effective state: matches(':disabled') covers the fieldset ancestry the
+     * disabled property deliberately does not reflect, readonly the field's
+     * own claim.
+     */
+    _interactive() {
+        return !this.matches(':disabled') && !this.readonly;
+    }
+    /**
      * The field's value: every concrete field owns its semantics and overrides
      * this pair. The base pair exists so the form integration (the reset
      * protocol among others) has a member to write through; a custom field

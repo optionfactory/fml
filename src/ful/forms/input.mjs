@@ -79,15 +79,7 @@ class Input extends Field {
         });
         this._input.addEventListener('change', (evt) => {
             evt.stopPropagation();
-            this.dispatchEvent(
-                new CustomEvent('change', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: {
-                        value: this.value,
-                    },
-                }),
-            );
+            this._notifyChange();
         });
         this.replaceChildren(fragment);
         if (!skipObservedSetup) {

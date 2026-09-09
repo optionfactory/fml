@@ -74,9 +74,7 @@ class InputFile extends Input {
             if (!e.target.closest('button')) {
                 return;
             }
-            //items and other chrome are not form controls, the guard must ask the
-            //effective state
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             const idx = [...this.#items.children].indexOf(e.target.closest('ful-item'));
@@ -92,11 +90,10 @@ class InputFile extends Input {
             this.files = dt.files;
             //the removal is the user's own gesture: it reports through change as the
             //picker's selection does, while the files setter stays silent like a native one
-            this.#changed();
+            this._notifyChange();
         });
         this.#dropzone.addEventListener('click', (e) => {
-            //the dropzone is not a form control, the guard must ask the effective state
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             this.querySelector('input')?.click();
@@ -114,7 +111,7 @@ class InputFile extends Input {
             this.toggleAttribute('dragover', false);
             //the drop's default stays suppressed even when inert: a disabled field
             //must not turn into a navigation target
-            if (this.matches(':disabled') || this.readonly) {
+            if (!this._interactive()) {
                 return;
             }
             const dropped = [...e.dataTransfer.items].filter((i) => i.kind === 'file');
@@ -129,22 +126,11 @@ class InputFile extends Input {
             this.files = dt.files;
             //a drop is the user's own gesture too: a native file input receiving
             //one fires change on its own
-            this.#changed();
+            this._notifyChange();
         });
         this._input.addEventListener('change', (e) => {
             this.#update();
         });
-    }
-    #changed() {
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                    value: this.value,
-                },
-            }),
-        );
     }
     /**
      * A file input has no native freeze: readOnly does nothing to it, so the
