@@ -122,6 +122,12 @@ describe('Template', () => {
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>bxd</div>');
     });
+    it('a lone brace in templated text is preserved', () => {
+        const data = { x: 42 };
+        const template = Template.fromHtml('<div>cost {{x}} is {high}</div>', modules, data);
+        const rendered = template.render();
+        assert.strictEqual(Fragments.toHtml(rendered), '<div>cost 42 is {high}</div>');
+    });
     it('rendering a number from an html node yields its string', () => {
         const data = { a: 42 };
         const template = Template.fromHtml('<div>b{{{a}}}d</div>', modules, data);

@@ -30,7 +30,7 @@ TemplatedText
     = parts:(
         $( [^\\{]+ )       // normal text
         / '\\' c:. { return c; } //escaped
-        / '{' !'{'           // single brace that isn't a delimiter
+        / $('{' !'{')       // single brace that isn't a delimiter
     )+ { return parts.join(''); }
 
 ExpressionRoot
