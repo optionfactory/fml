@@ -38,12 +38,13 @@ describe('Element metadata', function () {
         return [...slots];
     };
     //the registry composes observed attributes along the inheritance chain with
-    //the leaf winning for a shared name, so the parity check reads the same list
+    //the leaf winning for a shared name, so the parity check reads the same
+    //list: declarations are verbatim, the name is everything before the colon
     const attributesOf = (klass) => {
         const names = new Set();
         for (let c = klass; c?.name && c.name !== 'ParsedElement'; c = Object.getPrototypeOf(c)) {
             for (const declared of Object.getOwnPropertyDescriptor(c, 'observed')?.value ?? []) {
-                names.add(declared.split(':')[0].trim());
+                names.add(declared.split(':')[0]);
             }
         }
         return [...names];

@@ -68,7 +68,7 @@ const observedOf = (klass) => {
     const byName = new Map();
     for (let c = klass; c?.name && c.name !== 'ParsedElement'; c = Object.getPrototypeOf(c)) {
         for (const declared of Object.getOwnPropertyDescriptor(c, 'observed')?.value ?? []) {
-            const name = declared.split(':')[0].trim();
+            const name = declared.split(':')[0];
             if (!byName.has(name)) {
                 byName.set(name, declared);
             }
@@ -80,7 +80,7 @@ const observedOf = (klass) => {
 const model = registered().map(({ tag, klass }) => {
     const entry = metadata.elements[tag] ?? {};
     const attributes = observedOf(klass).map((declared) => {
-        const [name, mapper] = declared.split(':').map((p) => p.trim());
+        const [name, mapper] = declared.split(':');
         return { name, type: TYPES[mapper] ?? 'string', description: describe(tag, 'attributes', name) };
     });
     const slots = new Set();

@@ -196,11 +196,11 @@ class Registry {
         const observedNames = [...new Set(observed.map((a) => a.split(':')[0]))];
         const attrToMapper = [...attributes, ...observed].reduce((acc, a) => {
             const [attr, maybeType] = a.split(':');
-            const type = maybeType?.trim() ?? 'string';
+            const type = maybeType ?? 'string';
             if (!(type in this.#mappers) && !(type in (mappers ?? {}))) {
                 throw new Error(`unsupported attribute type: ${type}`);
             }
-            acc[attr.trim()] = mappers?.[type] ?? this.#mappers[type];
+            acc[attr] = mappers?.[type] ?? this.#mappers[type];
             return acc;
         }, {});
 
