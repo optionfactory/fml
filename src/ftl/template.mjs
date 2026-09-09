@@ -117,9 +117,7 @@ class CommandsHandler {
             return;
         }
         const classesAsArray = Array.isArray(classes) ? classes : [classes];
-        const cleanClasses = classesAsArray
-            .flatMap(c => typeof c === 'string' ? c.split(' ') : c)
-            .filter(Boolean);
+        const cleanClasses = classesAsArray.flatMap((c) => (typeof c === 'string' ? c.split(' ') : c)).filter(Boolean);
         if (cleanClasses.length === 0) {
             return;
         }
@@ -333,10 +331,10 @@ class Template {
                 imported.nodeType === Node.DOCUMENT_FRAGMENT_NODE
                     ? imported
                     : (() => {
-                        const d = new DocumentFragment();
-                        d.appendChild(imported);
-                        return d;
-                    })();
+                          const d = new DocumentFragment();
+                          d.appendChild(imported);
+                          return d;
+                      })();
             const iterator = document.createNodeIterator(
                 fragment,
                 NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,

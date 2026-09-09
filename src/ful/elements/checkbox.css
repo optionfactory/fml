@@ -1,9 +1,0 @@
-/*the flash guard is inherently tag-based: it must hold before the structure renders*/
-ful-checkbox:not(:defined) {
-    visibility: hidden;
-}
-
-/*the chrome matches the structure instead: whoever hosts a choice row*/
-*:has(> ful-choice) {
-    display: block;
-}

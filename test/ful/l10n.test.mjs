@@ -1,10 +1,10 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/index.mjs';
-import en from '../../src/ful/elements/l10n/en.mjs';
-import itTranslations from '../../src/ful/elements/l10n/it.mjs';
-import es from '../../src/ful/elements/l10n/es.mjs';
-import fr from '../../src/ful/elements/l10n/fr.mjs';
+import en from '../../src/ful/l10n/en.mjs';
+import itTranslations from '../../src/ful/l10n/it.mjs';
+import es from '../../src/ful/l10n/es.mjs';
+import fr from '../../src/ful/l10n/fr.mjs';
 
 registry
     .plugin(
@@ -75,7 +75,11 @@ const parityProblems = (translations) => {
 
 describe('built-in translations', () => {
     it('keeps every language at parity', () => {
-        assert.deepStrictEqual(parityProblems({ en, it: itTranslations, es, fr }), [], 'the built-in translations are not at parity');
+        assert.deepStrictEqual(
+            parityProblems({ en, it: itTranslations, es, fr }),
+            [],
+            'the built-in translations are not at parity',
+        );
     });
 
     it('notices a broken language, so the parity guard cannot pass vacuously', () => {

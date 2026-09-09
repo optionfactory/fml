@@ -19,7 +19,9 @@ describe('Remote translations, awaited before configure', () => {
         assert.isUndefined(customElements.get('ful-input-file'), 'the element stays inert until configure');
 
         //the startup fetch: resolved before configure, exactly like a remote /l10n/{lang}.json
-        const payload = encodeURIComponent(JSON.stringify({ 'files.unacceptablefiletype': 'we only take {types} here' }));
+        const payload = encodeURIComponent(
+            JSON.stringify({ 'files.unacceptablefiletype': 'we only take {types} here' }),
+        );
         const translations = await (await fetch(`data:application/json,${payload}`)).json();
         assert.strictEqual(translations['files.unacceptablefiletype'], 'we only take {types} here');
 

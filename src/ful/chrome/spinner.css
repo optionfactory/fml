@@ -1,0 +1,78 @@
+ful-spinner {
+    --ful-spinner-icon-width: 1rem;
+    --ful-spinner-icon-height: 1rem;
+    --ful-spinner-icon-border-width: 0.2em;
+    --ful-spinner-icon-animation-speed: 0.75s;
+    --ful-spinner-icon-animation-name: spinner-border;
+    --ful-spinner-icon-color: currentcolor;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+
+    &::after {
+        content: "";
+        flex: 0 0 auto;
+        display: inline-block;
+        width: var(--ful-spinner-icon-width);
+        height: var(--ful-spinner-icon-height);
+        border-radius: 50%;
+        border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
+        border-right-color: transparent;
+        animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
+    }
+
+    &.centered {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &.big {
+        --ful-spinner-icon-width: 2rem;
+        --ful-spinner-icon-height: 2rem;
+        --ful-spinner-icon-border-width: 0.25rem;
+    }
+
+    &.bigger {
+        --ful-spinner-icon-width: 4rem;
+        --ful-spinner-icon-height: 4rem;
+        --ful-spinner-icon-border-width: 0.5rem;
+    }
+
+    &.backdrop {
+        --ful-spinner-icon-width: 4rem;
+        --ful-spinner-icon-height: 4rem;
+        --ful-spinner-icon-border-width: 0.5rem;
+
+        z-index: 2000;
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background-color: rgb(167 167 167 / 80%);
+
+        &::before {
+            content: "";
+            grid-area: 1 / 1;
+            width: calc(var(--ful-spinner-icon-width) + 4rem);
+            height: calc(var(--ful-spinner-icon-height) + 4rem);
+            background-color: var(--ful-bg);
+            border-radius: 1rem;
+        }
+
+        &::after {
+            grid-area: 1 / 1;
+        }
+    }
+}
+
+body:has(ful-spinner.backdrop:not([hidden])) {
+    overflow: hidden;
+}
+
+@keyframes spinner-border {
+    to {
+        transform: rotate(360deg);
+    }
+}

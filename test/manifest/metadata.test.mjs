@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Plugin } from '../../src/ful/elements/plugin.mjs';
+import { Plugin } from '../../src/ful/plugin.mjs';
 
 /**
  * manifest/metadata.json carries the prose that cannot be read off the code: what each
@@ -12,14 +12,19 @@ describe('Element metadata', function () {
     /** what the plugin actually registers, captured without defining anything */
     const registered = () => {
         const found = [];
-        const recorder = new Proxy({}, {
-            get: (_target, key) => (...args) => {
-                if (key === 'defineElement') {
-                    found.push({ tag: args[0], klass: args[1] });
-                }
-                return recorder;
+        const recorder = new Proxy(
+            {},
+            {
+                get:
+                    (_target, key) =>
+                    (...args) => {
+                        if (key === 'defineElement') {
+                            found.push({ tag: args[0], klass: args[1] });
+                        }
+                        return recorder;
+                    },
             },
-        });
+        );
         new Plugin({ language: 'en' }).configure(recorder);
         return found;
     };
@@ -53,25 +58,45 @@ describe('Element metadata', function () {
         elements = registered();
         //each class owns the source between its declaration and the next one
         sources = new Map();
-        const files = [...new Set(elements.map((e) => e.klass))]
-            .flatMap((k) => {
-                const names = [];
-                for (let c = k; c?.name && c.name !== 'ParsedElement'; c = Object.getPrototypeOf(c)) {
-                    names.push(c.name);
-                }
-                return names;
-            });
-        const modules = ['accordion', 'bindings', 'checkbox', 'drawer', 'files', 'field', 'filters', 'form', 'info', 'input', 'plugin',
-            'radio', 'select', 'table', 'tabs', 'temporals', 'toast', 'wizard'];
+        const files = [...new Set(elements.map((e) => e.klass))].flatMap((k) => {
+            const names = [];
+            for (let c = k; c?.name && c.name !== 'ParsedElement'; c = Object.getPrototypeOf(c)) {
+                names.push(c.name);
+            }
+            return names;
+        });
+        const modules = [
+            'disclosures/accordion',
+            'disclosures/drawer',
+            'disclosures/info',
+            'disclosures/toast',
+            'forms/bindings',
+            'forms/checkbox',
+            'forms/field',
+            'forms/files',
+            'forms/filters',
+            'forms/form',
+            'forms/input',
+            'forms/radio',
+            'forms/select',
+            'forms/temporals',
+            'navigation/table',
+            'navigation/tabs',
+            'navigation/wizard',
+            'plugin',
+        ];
         for (const module of modules) {
-            const text = await (await fetch(`/src/ful/elements/${module}.mjs`)).text();
+            const text = await (await fetch(`/src/ful/${module}.mjs`)).text();
             const marks = [...text.matchAll(/^class (\w+)/gm)];
             marks.forEach((mark, i) => {
                 const body = text.slice(mark.index, marks[i + 1]?.index ?? text.length);
                 sources.set(mark[1], body);
             });
         }
-        assert.isTrue(files.every((n) => sources.has(n) || n === 'HTMLElement'), 'every element class was located in a module');
+        assert.isTrue(
+            files.every((n) => sources.has(n) || n === 'HTMLElement'),
+            'every element class was located in a module',
+        );
     });
 
     const documented = (tag, kind) => ({
@@ -80,10 +105,7 @@ describe('Element metadata', function () {
     });
 
     it('documents exactly the elements the plugin registers', () => {
-        assert.deepStrictEqual(
-            Object.keys(metadata.elements).sort(),
-            elements.map((e) => e.tag).sort(),
-        );
+        assert.deepStrictEqual(Object.keys(metadata.elements).sort(), elements.map((e) => e.tag).sort());
     });
 
     it('gives every element a description', () => {

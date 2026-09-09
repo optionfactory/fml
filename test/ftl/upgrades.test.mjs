@@ -11,7 +11,7 @@ import { Rendering } from '../../src/ftl/rendering.mjs';
 describe('Upgrade ordering and readiness', () => {
     let container;
     let order;
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
             await sleep(1);
@@ -59,14 +59,20 @@ describe('Upgrade ordering and readiness', () => {
         container.appendChild(document.createElement('ready-parent'));
 
         let atReady = null;
-        document.addEventListener('ftl:ready', () => { atReady = [...order]; }, { once: true });
+        document.addEventListener(
+            'ftl:ready',
+            () => {
+                atReady = [...order];
+            },
+            { once: true },
+        );
         await fresh.ready();
 
         expect(atReady).to.deep.equal(['parent', 'child'], 'the nested child is covered too');
         expect(order).to.deep.equal(['parent', 'child']);
     });
 
-    it('waitFor covers what the element\'s own upgrade enqueues', async () => {
+    it("waitFor covers what the element's own upgrade enqueues", async () => {
         registry.defineElement('waitfor-child', slow('child'));
         registry.defineElement('waitfor-parent', nesting('parent', 'waitfor-child'));
         registry.configure();
@@ -133,18 +139,16 @@ describe('Upgrade ordering and readiness', () => {
         //the rest of the page, as the test below proves
         expect(caught?.message).to.equal('boom');
     });
-
 });
 
 describe('Rendering waitFor and waitForChildren', () => {
     it('waits for the element itself only in waitFor', async () => {
-
         class RenderEl extends HTMLElement {
-            upgrade() { 
-                return new Promise(resolve => setTimeout(resolve, 20)); 
+            upgrade() {
+                return new Promise((resolve) => setTimeout(resolve, 20));
             }
         }
-        
+
         if (!customElements.get('render-el')) {
             registry.defineElement('render-el', RenderEl);
             registry.configure();
@@ -158,18 +162,18 @@ describe('Rendering waitFor and waitForChildren', () => {
         RenderEl.BITS.enqueue(parent);
 
         let childrenDone = false;
-        Rendering.waitForChildren(parent).then(() => childrenDone = true);
-        
-        await new Promise(resolve => setTimeout(resolve, 5));
-        expect(childrenDone).to.be.true; 
+        Rendering.waitForChildren(parent).then(() => (childrenDone = true));
+
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        expect(childrenDone).to.be.true;
 
         let allDone = false;
-        Rendering.waitFor(parent).then(() => allDone = true);
+        Rendering.waitFor(parent).then(() => (allDone = true));
 
-        await new Promise(resolve => setTimeout(resolve, 5));
+        await new Promise((resolve) => setTimeout(resolve, 5));
         expect(allDone).to.be.false; // Still locked by the 20ms timer
 
-        await new Promise(resolve => setTimeout(resolve, 20));
+        await new Promise((resolve) => setTimeout(resolve, 20));
         expect(allDone).to.be.true;
 
         parent.remove();
@@ -212,7 +216,13 @@ describe('Readiness when a component fails', () => {
             caught = e;
         });
         let fired = false;
-        document.addEventListener('ftl:ready', () => { fired = true; }, { once: true });
+        document.addEventListener(
+            'ftl:ready',
+            () => {
+                fired = true;
+            },
+            { once: true },
+        );
         await fresh.ready();
         await settle();
 

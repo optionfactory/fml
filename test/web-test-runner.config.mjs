@@ -7,7 +7,7 @@ export default {
     browsers: [
         playwrightLauncher({ product: 'chromium' }),
         playwrightLauncher({ product: 'firefox' }),
-        playwrightLauncher({ product: 'webkit' })
+        playwrightLauncher({ product: 'webkit' }),
     ],
     coverage: true,
     coverageConfig: {
@@ -15,7 +15,7 @@ export default {
         exclude: ['test/**/*', 'node_modules/**/*'],
         reportDir: 'coverage/',
         report: true,
-        reporters: ['text', 'html']
+        reporters: ['text', 'html'],
     },
     plugins: [
         {
@@ -31,16 +31,13 @@ export default {
                         format: 'es',
                         output: 'source',
                         allowedStartRules: ['TemplatedRoot', 'ExpressionRoot'],
-                        cache: true
+                        cache: true,
                     });
                     return { body: jsSource };
                 }
 
                 if (context.path.endsWith('.css')) {
-                    const escapedCss = context.body
-                        .replace(/\\/g, '\\\\')
-                        .replace(/`/g, '\\`')
-                        .replace(/\$/g, '\\$');
+                    const escapedCss = context.body.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
 
                     const jsSource = `
                         const css = \`${escapedCss}\`;
@@ -53,7 +50,7 @@ export default {
                     `;
                     return { body: jsSource };
                 }
-            }
-        }
+            },
+        },
     ],
 };

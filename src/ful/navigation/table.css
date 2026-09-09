@@ -1,0 +1,36 @@
+ful-pagination:not(:defined),
+ful-table:not(:defined) {
+    visibility: hidden;
+}
+
+*:has(> ful-table-wrapper) {
+    display: block;
+
+    & tbody[data-ref="initial"],
+    & tbody[data-ref="loading"],
+    & tbody[data-ref="feedback"] {
+        height: 360px;
+        padding: 1.5rem;
+
+        & td {
+            & p {
+                margin-top: 1rem;
+            }
+        }
+    }
+}
+
+ful-sorter {
+    display: block;
+
+    &:not(:defined) {
+        visibility: hidden;
+    }
+
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 0;
+        box-shadow: var(--ful-focus-box-shadow);
+    }
+}

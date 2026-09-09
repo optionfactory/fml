@@ -3,7 +3,6 @@ import { assert } from 'chai';
 import { Expressions, ExpressionEvaluator } from '../../src/ftl/index.mjs';
 import { nodes } from '../../src/ftl/ast.mjs';
 
-
 const modules = {
     one: () => 1,
     l10n: {
@@ -78,7 +77,12 @@ describe('Expression', () => {
     for (const name of ['truex', 'truthy', 'falseFlag', 'nullable', 'nullish', 'null2', 'undefinedVar']) {
         verify(`resolves '${name}' as an identifier, not a keyword prefix`, name, [{ [name]: 'value' }], 'value');
     }
-    verify('resolves inherited names such as constructor as identifiers', 'constructor', [{ constructor: 'value' }], 'value');
+    verify(
+        'resolves inherited names such as constructor as identifiers',
+        'constructor',
+        [{ constructor: 'value' }],
+        'value',
+    );
     verify('keywords still win over same-named data fields', 'true', [{ true: 'shadowed' }], true);
     verify('can use member access', 'a.b.c', [{ a: { b: { c: 1 } } }], 1);
     verify('can use nullsafe member access', 'a?.b.c', [{}], undefined);
@@ -112,7 +116,7 @@ describe('Expression', () => {
     verify('can use dict literal', "{'a': true, 'b': false}", [{}], { a: true, b: false });
     verify('can use a template string as a literal dict key', '{`a`: 1}', [{}], { a: 1 });
     verify('evaluates a template string dict key against the data', '{`{k}`: 1}', [{ k: 'dyn' }], { dyn: 1 });
-    verify('evaluates every part of a template string dict key', "{`{a}-{b}`: 1}", [{ a: 'x', b: 'y' }], { 'x-y': 1 });
+    verify('evaluates every part of a template string dict key', '{`{a}-{b}`: 1}', [{ a: 'x', b: 'y' }], { 'x-y': 1 });
     verify('can use empty array literal', '[]', [{}], []);
     verify('can use array literal', '[1,2]', [{}], [1, 2]);
     verify('can use string literal', '"abc"', [{}], 'abc');
@@ -215,7 +219,12 @@ describe('Templated Mode Evaluation', () => {
     });
 
     it('handles mixed templated segments', () => {
-        const res = Expressions.interpret({}, [{ a: 'A' }, { b: 'B' }], 'Text {{ a }} more {{{ b }}}', Expressions.MODE_TEMPLATED);
+        const res = Expressions.interpret(
+            {},
+            [{ a: 'A' }, { b: 'B' }],
+            'Text {{ a }} more {{{ b }}}',
+            Expressions.MODE_TEMPLATED,
+        );
         assert.strictEqual(res.length, 4);
         assert.strictEqual(res[0].value, 'Text ');
         assert.strictEqual(res[1].value, 'A');
@@ -274,7 +283,7 @@ describe('AST Execution Edge Cases', () => {
             type: nodes.cmp,
             op: 'INVALID_OP',
             lhs: { type: nodes.literal, value: 1 },
-            rhs: { type: nodes.literal, value: 2 }
+            rhs: { type: nodes.literal, value: 2 },
         };
         try {
             Expressions.evaluate({}, [], badAst);
@@ -284,7 +293,7 @@ describe('AST Execution Edge Cases', () => {
         }
     });
     it('handles function overlays and null/primitive values in the data stack', () => {
-        const fnOverlay = () => { };
+        const fnOverlay = () => {};
         fnOverlay.secretKey = 'activated';
         const resFn = Expressions.interpret({}, [fnOverlay], 'secretKey');
         assert.strictEqual(resFn, 'activated');
@@ -293,8 +302,8 @@ describe('AST Execution Edge Cases', () => {
         assert.strictEqual(resNull, 42);
     });
     it('correctly handles cached templates', () => {
-        const a = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
-        const b = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
+        const a = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
+        const b = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
         assert.strictEqual(a, b);
     });
 
@@ -303,7 +312,7 @@ describe('AST Execution Edge Cases', () => {
         for (let i = 0; i !== 1001; ++i) {
             Expressions.parse(`true == ${i}`, Expressions.MODE_EXPRESSION);
         }
-        const b = Expressions.parse("1 == 1", Expressions.MODE_EXPRESSION);
+        const b = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
         assert.notStrictEqual(a, b);
     });
 });

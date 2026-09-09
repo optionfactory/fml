@@ -1,0 +1,68 @@
+import { assert } from 'chai';
+import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { Plugin } from '../../../src/ful/index.mjs';
+
+registry.plugin(new Plugin({ language: 'en' })).configure();
+
+const settle = async () => {
+    for (let i = 0; i !== 20; ++i) {
+        await new Promise((r) => setTimeout(r, 0));
+    }
+};
+const mount = async (html) => {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    await Rendering.waitFor(container);
+    await settle();
+    return [container.firstElementChild, container];
+};
+
+describe('Accordion', () => {
+    const markup = `
+        <ful-accordion>
+            <details><summary>First</summary>one</details>
+            <details open><summary>Second</summary>two</details>
+            <details><summary>Third</summary>three</details>
+        </ful-accordion>`;
+
+    it('renders the disclosures inside the group, untouched', async () => {
+        const [accordion, container] = await mount(markup);
+        const details = accordion.querySelectorAll('ful-accordion-group > details');
+
+        assert.lengthOf(details, 3);
+        assert.isNull(details[0].getAttribute('name'), 'a free accordion assigns no name');
+        assert.isTrue(details[1].open, 'the author-claimed open panel stays open');
+        container.remove();
+    });
+
+    it('the exclusive claim names the group: opening one closes the others', async () => {
+        const [accordion, container] = await mount(markup.replace('<ful-accordion>', '<ful-accordion exclusive>'));
+        const details = [...accordion.querySelectorAll('ful-accordion-group > details')];
+
+        assert.strictEqual(
+            details[0].getAttribute('name'),
+            details[2].getAttribute('name'),
+            'one shared name for the whole group',
+        );
+        assert.isTrue(details[1].open);
+
+        details[0].open = true;
+        await settle();
+        assert.isFalse(details[1].open, 'the platform closed the other named panel');
+        container.remove();
+    });
+
+    it('the exclusive claim is a live door', async () => {
+        const [accordion, container] = await mount(markup);
+        const details = [...accordion.querySelectorAll('details')];
+
+        accordion.exclusive = true;
+        assert.strictEqual(details[0].getAttribute('name'), details[1].getAttribute('name'));
+        assert.strictEqual(accordion.getAttribute('exclusive'), '');
+
+        accordion.exclusive = false;
+        assert.isNull(details[0].getAttribute('name'));
+        container.remove();
+    });
+});

@@ -33,7 +33,7 @@ describe('dom.mjs', () => {
             div.innerHTML = '<p>1</p><p>2</p>';
             const frag = Fragments.fromChildNodes(div);
             expect(frag.childNodes.length).to.equal(2);
-            expect(div.childNodes.length, "Nodes are moved out of div").to.equal(0);
+            expect(div.childNodes.length, 'Nodes are moved out of div').to.equal(0);
         });
     });
 
@@ -118,7 +118,7 @@ describe('dom.mjs', () => {
             expect(slots.default).to.be.instanceOf(DocumentFragment);
             expect(slots.default.querySelectorAll('p').length).to.equal(2);
 
-            expect(el.childNodes.length, "The original element should be empty after extraction").to.equal(0);
+            expect(el.childNodes.length, 'The original element should be empty after extraction').to.equal(0);
         });
 
         it('parses a text/html script slot as markup', () => {
@@ -142,7 +142,6 @@ describe('dom.mjs', () => {
             expect(slotted.textContent).to.contain('const tpl');
             expect(slots.code.querySelector('b')).to.be.null;
         });
-
 
         it('extracts slot content directly from template elements', () => {
             const el = document.createElement('div');
@@ -191,10 +190,10 @@ describe('dom.mjs', () => {
             const child2 = document.createElement('div');
 
             parent.appendChild(child1);
-            expect(Nodes.isParsed(child1), "child1 has no nextSibling, so it evaluates to false").to.be.false;
+            expect(Nodes.isParsed(child1), 'child1 has no nextSibling, so it evaluates to false').to.be.false;
 
             parent.appendChild(child2);
-            expect(Nodes.isParsed(child1), "child1 now has a nextSibling, so it evaluates to true").to.be.true;
+            expect(Nodes.isParsed(child1), 'child1 now has a nextSibling, so it evaluates to true').to.be.true;
         });
 
         it('resolves waitParsed immediately if node is already parsed', async () => {
@@ -206,19 +205,21 @@ describe('dom.mjs', () => {
             parent.appendChild(child2);
 
             const resolved = await Nodes.waitParsed(child1);
-            expect(resolved, "waitParsed should resolve immediately without MutationObserver triggering").to.equal(child1);
+            expect(resolved, 'waitParsed should resolve immediately without MutationObserver triggering').to.equal(
+                child1,
+            );
         });
         it('waits for parsing to complete via DOMContentLoaded event', async () => {
             const parent = document.createElement('div');
             const el = document.createElement('div');
-            parent.appendChild(el); 
+            parent.appendChild(el);
 
             let loadHandler;
             const fakeDoc = {
                 readyState: 'loading',
                 addEventListener: (event, handler, options) => {
                     if (event === 'DOMContentLoaded') loadHandler = handler;
-                }
+                },
             };
             Object.defineProperty(el, 'ownerDocument', { get: () => fakeDoc });
 
@@ -238,7 +239,7 @@ describe('dom.mjs', () => {
             // Mock the document so it doesn't resolve instantly
             const fakeDoc = {
                 readyState: 'loading',
-                addEventListener: () => { }
+                addEventListener: () => {},
             };
             Object.defineProperty(el, 'ownerDocument', { get: () => fakeDoc });
 
@@ -255,7 +256,6 @@ describe('dom.mjs', () => {
             parent.remove();
         });
         it('bails out of MutationObserver callback if mutation does not parse the element', async () => {
-
             const wrapper = document.createElement('div');
             const parent = document.createElement('div');
             const el = document.createElement('div');
@@ -265,7 +265,7 @@ describe('dom.mjs', () => {
 
             const fakeDoc = {
                 readyState: 'loading',
-                addEventListener: () => { }
+                addEventListener: () => {},
             };
             Object.defineProperty(el, 'ownerDocument', { get: () => fakeDoc });
 
@@ -273,7 +273,7 @@ describe('dom.mjs', () => {
 
             parent.insertBefore(document.createElement('span'), el);
 
-            await new Promise(resolve => setTimeout(resolve, 10));
+            await new Promise((resolve) => setTimeout(resolve, 10));
 
             parent.appendChild(document.createElement('span'));
 

@@ -37,7 +37,9 @@ describe('ParsedElement Web Component Lifecycle', () => {
     it('guards connectedCallback and upgrade against double execution', async () => {
         let renderCount = 0;
         class MultiConnectedEl extends ParsedElement {
-            render() { renderCount++; }
+            render() {
+                renderCount++;
+            }
         }
 
         registry.defineElement('multi-connected-el', MultiConnectedEl);
@@ -62,9 +64,12 @@ describe('ParsedElement Web Component Lifecycle', () => {
             static observed = ['test-attr'];
             static mappers = {
                 string: {
-                    unmarshal: (v) => { unmarshalFired = true; return v; },
-                    marshal: (v) => v
-                }
+                    unmarshal: (v) => {
+                        unmarshalFired = true;
+                        return v;
+                    },
+                    marshal: (v) => v,
+                },
             };
         }
 
@@ -90,7 +95,9 @@ describe('ParsedElement Web Component Lifecycle', () => {
         let renderArgs = null;
         class ObservedEl extends ParsedElement {
             static observed = ['disabled:presence'];
-            render(c) { renderArgs = c; }
+            render(c) {
+                renderArgs = c;
+            }
         }
 
         registry.defineElement('observed-el', ObservedEl);
@@ -118,7 +125,9 @@ describe('ParsedElement Web Component Lifecycle', () => {
         class MidFlightEl extends ParsedElement {
             static observed = ['value'];
             async render(c) {
-                await new Promise((resolve) => { release = resolve; });
+                await new Promise((resolve) => {
+                    release = resolve;
+                });
                 applied = c.observed.value;
             }
         }
@@ -145,7 +154,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
         class ReflectiveEl extends ParsedElement {
             static observed = ['my-prop'];
             static mappers = {
-                string: { unmarshal: (v) => v, marshal: (v) => v }
+                string: { unmarshal: (v) => v, marshal: (v) => v },
             };
         }
 
@@ -155,7 +164,9 @@ describe('ParsedElement Web Component Lifecycle', () => {
         const el = document.createElement('reflective-el');
 
         let blocksExecuted = false;
-        el.reflect(() => { blocksExecuted = true; });
+        el.reflect(() => {
+            blocksExecuted = true;
+        });
         expect(blocksExecuted).to.be.true;
 
         el.reflectTo('my-prop', 'active-state');

@@ -9,7 +9,6 @@ import { registry } from './registry.mjs';
  * @property {(val: any, name: string, el: Element) => string|null} marshal
  */
 
-
 class ParsedElement extends HTMLElement {
     static BITS = {
         enqueue: (el) => {},

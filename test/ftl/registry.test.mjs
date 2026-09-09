@@ -12,10 +12,7 @@ describe('Registry', () => {
     describe('Attribute Mappers', () => {
         it('correctly marshals and unmarshals all built-in types', () => {
             class DummyEl extends HTMLElement {
-                static attributes = [
-                    's:string', 'n:number', 'p:presence', 'b:bool',
-                    'j:json', 'c:csv', 'cm:csvm'
-                ];
+                static attributes = ['s:string', 'n:number', 'p:presence', 'b:bool', 'j:json', 'c:csv', 'cm:csvm'];
             }
             registry.defineElement('dummy-mappers', DummyEl);
             registry.configure();
@@ -75,7 +72,9 @@ describe('Registry', () => {
         });
 
         it('throws an error if an unsupported mapper is requested', () => {
-            class BadEl extends HTMLElement { static attributes = ['attr:unknownType']; }
+            class BadEl extends HTMLElement {
+                static attributes = ['attr:unknownType'];
+            }
             registry.defineElement('bad-mappers', BadEl);
             expect(() => registry.configure()).to.throw('unsupported attribute type: unknownType');
         });
@@ -109,7 +108,11 @@ describe('Registry', () => {
             registry.defineMapper('customMap', { unmarshal: () => 'u', marshal: () => 'm' });
 
             let pluginConfigured = false;
-            registry.plugin({ configure: () => { pluginConfigured = true; } });
+            registry.plugin({
+                configure: () => {
+                    pluginConfigured = true;
+                },
+            });
 
             expect(pluginConfigured).to.be.true;
 
@@ -126,7 +129,9 @@ describe('Registry', () => {
         it('allows defining elements dynamically after configuration is finalized', () => {
             registry.configure();
 
-            class DirectEl extends HTMLElement { static observed = ['val']; }
+            class DirectEl extends HTMLElement {
+                static observed = ['val'];
+            }
             registry.defineElement('direct-el', DirectEl);
 
             expect(DirectEl.BITS).to.exist;
@@ -138,7 +143,9 @@ describe('Registry', () => {
         it('queues elements, ignores double-enqueues, and drops them upon completion', async () => {
             let upgraded = false;
             class QueueEl extends HTMLElement {
-                async upgrade() { upgraded = true; }
+                async upgrade() {
+                    upgraded = true;
+                }
             }
             registry.defineElement('queue-el', QueueEl);
             registry.configure();
@@ -168,7 +175,13 @@ describe('Registry', () => {
             //the test document is complete by the time modules run, so a fresh
             //registry is the late-import case: no DOMContentLoaded will ever come
             let fired = false;
-            document.addEventListener('ftl:ready', () => { fired = true; }, { once: true });
+            document.addEventListener(
+                'ftl:ready',
+                () => {
+                    fired = true;
+                },
+                { once: true },
+            );
             const late = new Registry();
 
             await late.ready();

@@ -1,5 +1,10 @@
 import { expect } from 'chai';
-import { VersionedLocalStorage, VersionedSessionStorage, LocalStorage, SessionStorage } from '../../src/ful/storage.mjs';
+import {
+    VersionedLocalStorage,
+    VersionedSessionStorage,
+    LocalStorage,
+    SessionStorage,
+} from '../../src/ful/storage.mjs';
 
 describe('VersionedLocalStorage', () => {
     beforeEach(() => {
@@ -7,7 +12,7 @@ describe('VersionedLocalStorage', () => {
     });
 
     it('saves and successfully loads data with matching revisions', () => {
-        VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });        
+        VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });
         const loaded = VersionedLocalStorage.load('app-config', 'v1');
         expect(loaded).to.deep.equal({ theme: 'dark' });
     });
@@ -29,10 +34,10 @@ describe('VersionedLocalStorage', () => {
 
     it('safely pops data, removing it from storage entirely', () => {
         LocalStorage.save('temp-key', 'ephemeral-data');
-        
+
         const popped = LocalStorage.pop('temp-key');
         expect(popped).to.equal('ephemeral-data');
-        expect(localStorage.getItem('temp-key')).to.be.null; 
+        expect(localStorage.getItem('temp-key')).to.be.null;
     });
 });
 
@@ -100,7 +105,6 @@ describe('corrupt entries', () => {
         VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });
         expect(VersionedLocalStorage.load('app-config', 'v1')).to.deep.equal({ theme: 'dark' });
     });
-
 });
 
 describe('absent entries', () => {

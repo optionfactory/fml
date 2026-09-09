@@ -12,7 +12,7 @@ describe('httpc client', () => {
             fetchArgs = { url, init };
             return new Response(JSON.stringify({ ok: true }), {
                 status: 200,
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
             });
         };
     });
@@ -73,7 +73,7 @@ describe('httpc client', () => {
             const payload = [{ type: 'AUTH', reason: 'Expired' }];
             const res = new Response(JSON.stringify(payload), {
                 status: 401,
-                headers: { 'Content-Type': 'application/failures+json' }
+                headers: { 'Content-Type': 'application/failures+json' },
             });
             const err = await HttpClientError.fromResponse(res);
             expect(err.status).to.equal(401);
@@ -84,19 +84,21 @@ describe('httpc client', () => {
             const res = new Response('not json{', {
                 status: 500,
                 statusText: 'Server Error',
-                headers: { 'Content-Type': 'application/failures+json' }
+                headers: { 'Content-Type': 'application/failures+json' },
             });
             const err = await HttpClientError.fromResponse(res);
             expect(err.status).to.equal(500);
             expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
-            expect(err.message).to.equal('500 Server Error: the application/failures+json body does not decode as json');
+            expect(err.message).to.equal(
+                '500 Server Error: the application/failures+json body does not decode as json',
+            );
         });
 
         it('reports a failures+json body that is not an array as a generic problem, keeping it droppable', async () => {
             const res = new Response(JSON.stringify({ oops: true }), {
                 status: 500,
                 statusText: 'Server Error',
-                headers: { 'Content-Type': 'application/failures+json' }
+                headers: { 'Content-Type': 'application/failures+json' },
             });
             const err = await HttpClientError.fromResponse(res);
             expect(err.status).to.equal(500);
@@ -109,7 +111,7 @@ describe('httpc client', () => {
             const res = new Response('<html>proxy error page</html>', {
                 status: 502,
                 statusText: 'Bad Gateway',
-                headers: { 'Content-Type': 'application/problem+json' }
+                headers: { 'Content-Type': 'application/problem+json' },
             });
             const err = await HttpClientError.fromResponse(res);
             expect(err.status).to.equal(502);
@@ -121,24 +123,28 @@ describe('httpc client', () => {
             const res = new Response(JSON.stringify({ oops: true }), {
                 status: 400,
                 statusText: 'Bad Request',
-                headers: { 'Content-Type': 'application/failures+json' }
+                headers: { 'Content-Type': 'application/failures+json' },
             });
             const err = await HttpClientError.fromResponse(res);
             expect(err.status).to.equal(400);
             expect(Array.isArray(err.problems)).to.be.true;
-            expect(err.message).to.equal('400 Bad Request: the application/failures+json body does not decode as a failures array');
+            expect(err.message).to.equal(
+                '400 Bad Request: the application/failures+json body does not decode as a failures array',
+            );
         });
 
         it('reports a problem+json body that is not an object', async () => {
             const res = new Response('"oops"', {
                 status: 400,
                 statusText: 'Bad Request',
-                headers: { 'Content-Type': 'application/problem+json' }
+                headers: { 'Content-Type': 'application/problem+json' },
             });
             const err = await HttpClientError.fromResponse(res);
             expect(err.status).to.equal(400);
             expect(Array.isArray(err.problems)).to.be.true;
-            expect(err.message).to.equal('400 Bad Request: the application/problem+json body does not decode as a problem object');
+            expect(err.message).to.equal(
+                '400 Bad Request: the application/problem+json body does not decode as a problem object',
+            );
         });
 
         it('keeps the served status when the body cannot be read', async () => {
@@ -196,28 +202,25 @@ describe('httpc client', () => {
         });
 
         it('handles headers and params additions and removals', async () => {
-            await client.get('/test')
+            await client
+                .get('/test')
                 .headers({ 'X-Keep': '1', 'X-Remove': '2' })
                 .header('X-Remove', null)
                 .param('p1', 'v1', 'v2')
                 .param('p2', 'v3')
-                .param('p2', null) 
+                .param('p2', null)
                 .fetch();
 
             expect(fetchArgs.url.toString()).to.include('?p1=v1&p1=v2');
             expect(fetchArgs.url.toString()).to.not.include('p2');
-            
+
             const reqHeaders = new Headers(fetchArgs.init.headers);
             expect(reqHeaders.get('X-Keep')).to.equal('1');
             expect(reqHeaders.has('X-Remove')).to.be.false;
         });
 
         it('overrides a param already set, and keeps every value of a single call', async () => {
-            await client.get('/test')
-                .param('page', '1')
-                .param('page', '2')
-                .param('k', 'a', 'b')
-                .fetch();
+            await client.get('/test').param('page', '1').param('page', '2').param('k', 'a', 'b').fetch();
 
             const url = new URL(fetchArgs.url.toString());
             expect(url.searchParams.getAll('page')).to.deep.equal(['2']);
@@ -225,15 +228,22 @@ describe('httpc client', () => {
         });
 
         it('skips nullish entries among real values, in any position', async () => {
-            await client.get('/test')
+            await client
+                .get('/test')
                 .param('leading', null, 'v1')
                 .param('trailing', 'v1', null)
                 .param('only', null)
                 .fetch();
 
             const url = new URL(fetchArgs.url.toString());
-            expect(url.searchParams.getAll('leading')).to.deep.equal(['v1'], 'a leading null does not discard the rest');
-            expect(url.searchParams.getAll('trailing')).to.deep.equal(['v1'], 'a trailing null is skipped, not stringified');
+            expect(url.searchParams.getAll('leading')).to.deep.equal(
+                ['v1'],
+                'a leading null does not discard the rest',
+            );
+            expect(url.searchParams.getAll('trailing')).to.deep.equal(
+                ['v1'],
+                'a trailing null is skipped, not stringified',
+            );
             expect(url.searchParams.has('only')).to.be.false;
         });
 
@@ -246,7 +256,11 @@ describe('httpc client', () => {
 
         it('turns a non-Error interceptor throw into a failure', async () => {
             const throwing = HttpClient.builder()
-                .withInterceptors({ intercept: async () => { throw undefined; } })
+                .withInterceptors({
+                    intercept: async () => {
+                        throw undefined;
+                    },
+                })
                 .build();
 
             try {
@@ -260,7 +274,8 @@ describe('httpc client', () => {
         });
 
         it('removes headers and params set to null through the plural forms', async () => {
-            await client.get('/test')
+            await client
+                .get('/test')
                 .headers({ 'X-Keep': '1', 'X-Remove': '2' })
                 .headers({ 'X-Remove': null, 'X-Undefined': undefined })
                 .params({ p1: 'v1', p2: 'v2' })
@@ -277,7 +292,8 @@ describe('httpc client', () => {
         });
 
         it('accepts the other headers and params initializer shapes', async () => {
-            await client.get('/test?q=0')
+            await client
+                .get('/test?q=0')
                 .headers([['X-Pair', 'a']])
                 .headers(new Headers({ 'X-Instance': 'b' }))
                 .params([['p1', 'v1']])
@@ -298,19 +314,22 @@ describe('httpc client', () => {
 
         it('serializes JSON bodies automatically', async () => {
             await client.post('/test').json({ a: 1 }).fetch();
-            
+
             const reqHeaders = new Headers(fetchArgs.init.headers);
             expect(reqHeaders.get('Content-Type')).to.equal('application/json');
             expect(fetchArgs.init.body).to.equal('{"a":1}');
         });
 
         it('builds multipart forms correctly', async () => {
-            await client.post('/test').multipart(form => {
-                form.field('user', 'john');
-                form.json('meta', { age: 30 });
-                form.blob('file', new Blob(['data']), 'data.txt');
-                form.blobs('files', [new Blob(['a']), new Blob(['b'])]);
-            }).fetch();
+            await client
+                .post('/test')
+                .multipart((form) => {
+                    form.field('user', 'john');
+                    form.json('meta', { age: 30 });
+                    form.blob('file', new Blob(['data']), 'data.txt');
+                    form.blobs('files', [new Blob(['a']), new Blob(['b'])]);
+                })
+                .fetch();
 
             expect(fetchArgs.init.body).to.be.instanceOf(FormData);
             const formData = fetchArgs.init.body;
@@ -320,7 +339,8 @@ describe('httpc client', () => {
 
         it('supports unmarshaling variations', async () => {
             // Setup global fetch to return specific data types for testing
-            globalThis.fetch = async () => new Response('{"a": 1}', { headers: { 'Content-Type': 'application/json' }});
+            globalThis.fetch = async () =>
+                new Response('{"a": 1}', { headers: { 'Content-Type': 'application/json' } });
             const json = await client.get('/test').fetchJson();
             expect(json.a).to.equal(1);
 
@@ -338,7 +358,8 @@ describe('httpc client', () => {
         });
 
         it('throws an error on unmarshaling failure', async () => {
-            globalThis.fetch = async () => new Response('{ bad json', { headers: { 'Content-Type': 'application/json' }});
+            globalThis.fetch = async () =>
+                new Response('{ bad json', { headers: { 'Content-Type': 'application/json' } });
             try {
                 await client.get('/test').fetchJson();
                 expect.fail('Should have thrown UNMARSHALING_PROBLEM');
@@ -348,7 +369,9 @@ describe('httpc client', () => {
         });
 
         it('throws a connection error if fetch completely fails', async () => {
-            globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
+            globalThis.fetch = async () => {
+                throw new TypeError('Failed to fetch');
+            };
             try {
                 await client.get('/test').fetch();
                 expect.fail('Should have thrown CONNECTION_PROBLEM');
@@ -540,8 +563,7 @@ describe('HttpRequestBuilder request-level configuration', () => {
     });
 
     it('exchange resolves the raw response without throwing on error statuses', async () => {
-        globalThis.fetch = async () =>
-            new Response('nope', { status: 500, headers: { 'Content-Type': 'text/plain' } });
+        globalThis.fetch = async () => new Response('nope', { status: 500, headers: { 'Content-Type': 'text/plain' } });
 
         const response = await client.request('GET', '/raw').exchange();
         expect(response.status).to.equal(500);
@@ -650,10 +672,13 @@ describe('RedirectOnUnauthorizedInterceptor', () => {
         const client = HttpClient.builder().withRedirectOnUnauthorized('#/relogin').build();
 
         const outcome = await Promise.race([
-            client.get('/protected').exchange().then(
-                () => 'settled',
-                () => 'settled',
-            ),
+            client
+                .get('/protected')
+                .exchange()
+                .then(
+                    () => 'settled',
+                    () => 'settled',
+                ),
             new Promise((resolve) => setTimeout(() => resolve('still pending'), 80)),
         ]);
 

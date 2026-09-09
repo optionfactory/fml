@@ -119,7 +119,6 @@ describe('Localization.of', () => {
     });
 });
 
-
 describe('Localization edge contracts', () => {
     it('returns the key and warns when a plural leaf has no other form', () => {
         assert.strictEqual(

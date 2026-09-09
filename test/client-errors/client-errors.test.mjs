@@ -18,14 +18,16 @@ describe('client errors reporting', () => {
     };
     const settle = async () => {
         for (let i = 0; i !== 20; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 5));
+            await new Promise((resolve) => setTimeout(resolve, 5));
         }
     };
     const reject = (reason) => {
-        window.dispatchEvent(new PromiseRejectionEvent('unhandledrejection', {
-            promise: Promise.resolve(),
-            reason,
-        }));
+        window.dispatchEvent(
+            new PromiseRejectionEvent('unhandledrejection', {
+                promise: Promise.resolve(),
+                reason,
+            }),
+        );
     };
 
     beforeEach(() => {

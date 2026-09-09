@@ -17,15 +17,15 @@ describe('AsyncEvents', () => {
         AsyncEvents.asyncOn(el, 'test-async', async () => {
             return 'Task A Completed';
         });
-        
+
         AsyncEvents.asyncOn(el, 'test-async', async () => {
-            return new Promise(resolve => setTimeout(() => resolve('Task B Completed'), 10));
+            return new Promise((resolve) => setTimeout(() => resolve('Task B Completed'), 10));
         });
 
         const evt = new CustomEvent('test-async');
-        
+
         const results = await AsyncEvents.fireAsync(el, evt);
-        
+
         expect(results).to.be.an('array');
         expect(results).to.deep.equal(['Task A Completed', 'Task B Completed']);
     });
@@ -36,17 +36,17 @@ describe('AsyncEvents', () => {
         });
 
         const evt = new CustomEvent('test-async-pipeline');
-        
+
         const result = await AsyncEvents.fireAsync(el, evt, { mode: 'pipeline' });
-        
+
         expect(result).to.equal('Pipeline Intercepted Value');
     });
 
     it('handles events with no async listeners gracefully', async () => {
         const evt = new CustomEvent('unhandled-async');
-        
+
         const results = await AsyncEvents.fireAsync(el, evt);
-        
+
         expect(results).to.be.an('array').that.is.empty;
     });
 
@@ -59,9 +59,9 @@ describe('AsyncEvents', () => {
         });
 
         const evt = new CustomEvent('bubbling-async', { bubbles: true });
-        
+
         const results = await AsyncEvents.fireAsync(child, evt);
-        
+
         expect(results).to.deep.equal(['Bubbled Task']);
     });
 });
@@ -76,7 +76,9 @@ describe('AsyncEvents guarantees', () => {
     });
 
     it('rejects when a listener fails, so the caller learns about it', async () => {
-        AsyncEvents.asyncOn(el, 'save', async () => { throw new Error('disk full'); });
+        AsyncEvents.asyncOn(el, 'save', async () => {
+            throw new Error('disk full');
+        });
 
         let caught = null;
         try {
@@ -135,22 +137,28 @@ describe('AsyncEvents guarantees', () => {
     });
 
     it('requires exactly one listener in delegate mode', async () => {
-        const none = await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' })
-            .then(() => null, (e) => e);
+        const none = await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' }).then(
+            () => null,
+            (e) => e,
+        );
         assert.include(none.message, 'requires exactly one');
 
         AsyncEvents.asyncOn(el, 'save', async () => 'only');
         assert.strictEqual(await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' }), 'only');
 
         AsyncEvents.asyncOn(el, 'save', async () => 'second');
-        const two = await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' })
-            .then(() => null, (e) => e);
+        const two = await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' }).then(
+            () => null,
+            (e) => e,
+        );
         assert.include(two.message, 'requires exactly one');
     });
 
     it('stops calling a listener that has been removed', async () => {
         const calls = [];
-        const listener = AsyncEvents.asyncOn(el, 'save', async () => { calls.push('kept'); });
+        const listener = AsyncEvents.asyncOn(el, 'save', async () => {
+            calls.push('kept');
+        });
         AsyncEvents.asyncOff(el, 'save', listener);
 
         const got = await AsyncEvents.fireAsync(el, new CustomEvent('save'));
@@ -160,7 +168,7 @@ describe('AsyncEvents guarantees', () => {
     });
 
     it('gives a class the three methods, bound to the instance', async () => {
-        class Widget extends HTMLElement { }
+        class Widget extends HTMLElement {}
         AsyncEvents.mixInto(Widget);
         customElements.define('mixed-widget', Widget);
         const widget = document.createElement('mixed-widget');

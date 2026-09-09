@@ -71,7 +71,6 @@ class UpgradeQueue {
     }
 }
 
-
 class Registry {
     #tagToClass = {};
     #configured = false;

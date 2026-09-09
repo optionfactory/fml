@@ -42,7 +42,7 @@ class EvaluatingVisitor {
     #resolve_proxy() {
         if (!this.#cached_resolve_proxy) {
             this.#cached_resolve_proxy = new Proxy(this.#dataStack, {
-                get: (target, prop) => this.#resolve(prop)
+                get: (target, prop) => this.#resolve(prop),
             });
         }
         return this.#cached_resolve_proxy;
@@ -126,14 +126,14 @@ class EvaluatingVisitor {
         return cond ? cond : this.visit(node.ifFalse);
     }
     [nodes.access](node) {
-        let prev ;
+        let prev;
         let cur = this.visit(node.lhs);
         for (let i = 0; i !== node.rhs.length; ++i) {
             const rhs = node.rhs[i];
             if (rhs.ns && cur == null) {
                 return undefined;
             }
-            let value ;
+            let value;
             switch (rhs.type) {
                 case nodes.member: {
                     value = cur[rhs.rhs];
@@ -165,19 +165,19 @@ class EvaluatingVisitor {
         return !templated
             ? this.visit(ast)
             : ast.map((node) => {
-                switch (node.type) {
-                    case nodes.templated.tel:
-                        return { type: nodes.dom.t, value: node.value };
-                    case nodes.templated.tet:
-                        return { type: nodes.dom.t, value: this.visit(node.value) };
-                    case nodes.templated.teh:
-                        return { type: nodes.dom.h, value: this.visit(node.value) };
-                    case nodes.templated.ten:
-                        return { type: nodes.dom.n, value: this.visit(node.value) };
-                    default:
-                        throw new Error(`unknown node type ${node.type.toString()}`);
-                }
-            });
+                  switch (node.type) {
+                      case nodes.templated.tel:
+                          return { type: nodes.dom.t, value: node.value };
+                      case nodes.templated.tet:
+                          return { type: nodes.dom.t, value: this.visit(node.value) };
+                      case nodes.templated.teh:
+                          return { type: nodes.dom.h, value: this.visit(node.value) };
+                      case nodes.templated.ten:
+                          return { type: nodes.dom.n, value: this.visit(node.value) };
+                      default:
+                          throw new Error(`unknown node type ${node.type.toString()}`);
+                  }
+              });
     }
 }
 
@@ -202,9 +202,12 @@ class Expressions {
                 const oldestKey = this.#astCache.keys().next().value;
                 this.#astCache.delete(oldestKey);
             }
-            this.#astCache.set(key, parse(expression, {
-                startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot',
-            }));
+            this.#astCache.set(
+                key,
+                parse(expression, {
+                    startRule: mode === Expressions.MODE_TEMPLATED ? 'TemplatedRoot' : 'ExpressionRoot',
+                }),
+            );
         }
 
         return this.#astCache.get(key);

@@ -7,7 +7,7 @@ describe('Encodings', () => {
             const text = 'Hello FML';
             const buffer = new TextEncoder().encode(text).buffer;
             const encoded = Base64.encode(buffer, Base64.STANDARD);
-            expect(encoded).to.equal('SGVsbG8gRk1M'); 
+            expect(encoded).to.equal('SGVsbG8gRk1M');
             const decodedBuffer = Base64.decode(encoded, Base64.STANDARD);
             const decodedText = new TextDecoder().decode(decodedBuffer);
             expect(decodedText).to.equal(text);
@@ -28,7 +28,7 @@ describe('Encodings', () => {
         it('handles padding correctly for URL_SAFE payloads', () => {
             const buffer = new TextEncoder().encode('foob').buffer;
             const encoded = Base64.encode(buffer, Base64.URL_SAFE);
-            
+
             expect(encoded).to.be.a('string');
             const decodedBuffer = Base64.decode(encoded, Base64.URL_SAFE);
             expect(new TextDecoder().decode(decodedBuffer)).to.equal('foob');

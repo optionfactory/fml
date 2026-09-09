@@ -129,7 +129,13 @@ describe('Template', () => {
         assert.strictEqual(Fragments.toHtml(rendered), '<div>b42d</div>');
     });
     it('rendering an object from an html node yields its string', () => {
-        const data = { a: { toString() { return '<span></span>'; } } };
+        const data = {
+            a: {
+                toString() {
+                    return '<span></span>';
+                },
+            },
+        };
         const template = Template.fromHtml('<div>b{{{a}}}d</div>', modules, data);
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>b<span></span>d</div>');
@@ -185,7 +191,11 @@ describe('Template', () => {
     });
     it('can *-remove-tag from *-if', () => {
         const data = {};
-        const template = Template.fromHtml('<div data-tpl-if="true" data-tpl-remove="tag">{{ 1 }}</div>', modules, data);
+        const template = Template.fromHtml(
+            '<div data-tpl-if="true" data-tpl-remove="tag">{{ 1 }}</div>',
+            modules,
+            data,
+        );
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '1');
     });
@@ -326,7 +336,11 @@ describe('Template', () => {
     });
     it('can scope variables using *-with and *-var', () => {
         const data = { user: { name: 'Alice' } };
-        const template = Template.fromHtml('<div data-tpl-with="user" data-tpl-var="u">{{u.name}}</div>', modules, data);
+        const template = Template.fromHtml(
+            '<div data-tpl-with="user" data-tpl-var="u">{{u.name}}</div>',
+            modules,
+            data,
+        );
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>Alice</div>');
     });
@@ -353,14 +367,22 @@ describe('Template', () => {
     });
     it('can filter rendering with *-when directives', () => {
         const data = { ok: true };
-        const template = Template.fromHtml('<div><span data-tpl-when="ok">Yes</span><span data-tpl-when="!ok">No</span></div>', modules, data);
+        const template = Template.fromHtml(
+            '<div><span data-tpl-when="ok">Yes</span><span data-tpl-when="!ok">No</span></div>',
+            modules,
+            data,
+        );
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div><span>Yes</span></div>');
     });
 
     it('can append classes using *-class-append directives', () => {
         const data = { myClasses: 'foo bar', extra: null };
-        const template = Template.fromHtml('<div class="base" data-tpl-class-append="myClasses"></div><span class="base" data-tpl-class-append="extra"></span>', modules, data);
+        const template = Template.fromHtml(
+            '<div class="base" data-tpl-class-append="myClasses"></div><span class="base" data-tpl-class-append="extra"></span>',
+            modules,
+            data,
+        );
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div class="base foo bar"></div><span class="base"></span>');
     });
@@ -373,8 +395,18 @@ describe('Template', () => {
     });
 
     it('can append attributes using *-attr-append', () => {
-        const data = { attrs: [['disabled', 'true'], ['title', 'hello']], empty: null };
-        const template = Template.fromHtml('<button data-tpl-attr-append="attrs"></button><div data-tpl-attr-append="empty"></div>', modules, data);
+        const data = {
+            attrs: [
+                ['disabled', 'true'],
+                ['title', 'hello'],
+            ],
+            empty: null,
+        };
+        const template = Template.fromHtml(
+            '<button data-tpl-attr-append="attrs"></button><div data-tpl-attr-append="empty"></div>',
+            modules,
+            data,
+        );
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<button disabled="true" title="hello"></button><div></div>');
     });
@@ -387,11 +419,14 @@ describe('Template', () => {
 
     it('toggles boolean data attributes as explicit flags', () => {
         const data = { flagTrue: true, flagFalse: false };
-        const template = Template.fromHtml('<div data-tpl-disabled="flagTrue" data-tpl-hidden="flagFalse"></div>', modules, data);
+        const template = Template.fromHtml(
+            '<div data-tpl-disabled="flagTrue" data-tpl-hidden="flagFalse"></div>',
+            modules,
+            data,
+        );
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div disabled=""></div>');
     });
-
 
     it('can instantiate templates via alternative static factory methods', () => {
         const tplEl = document.createElement('template');
@@ -424,7 +459,6 @@ describe('Template', () => {
         badEl.remove();
     });
 
-
     it('supports context mutations and updates fluently', () => {
         const base = Template.fromHtml('<div>{{val}} {{ #extra:go() }}</div>', {}, []);
 
@@ -438,7 +472,8 @@ describe('Template', () => {
         const altFrag = document.createDocumentFragment();
         altFrag.appendChild(document.createTextNode('{{val}}'));
 
-        const t3 = base.withFragment(altFrag)
+        const t3 = base
+            .withFragment(altFrag)
             .withModules({})
             .withModule('extra', { go: () => 'alone' })
             .withData([{ val: 'hello' }]);
@@ -477,7 +512,11 @@ describe('Template', () => {
     });
     it('gracefully handles empty arrays in *-class-append', () => {
         const data = { emptyArray: [], emptyStrings: [' ', ''] };
-        const template = Template.fromHtml('<div class="base" data-tpl-class-append="emptyArray"></div><span data-tpl-class-append="emptyStrings"></span>', modules, data);
+        const template = Template.fromHtml(
+            '<div class="base" data-tpl-class-append="emptyArray"></div><span data-tpl-class-append="emptyStrings"></span>',
+            modules,
+            data,
+        );
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div class="base"></div><span></span>');
     });
