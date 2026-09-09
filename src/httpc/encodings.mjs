@@ -27,7 +27,7 @@ class Base64 {
             --end;
         }
         const unpadded = str.substring(0, end);
-        if (str.length - end > 2 || unpadded.includes('=')) {
+        if (str.length - end > 2 || unpadded.includes('=') || (unpadded.length === 0 && str.length > 0)) {
             throw new Error('invalid padding');
         }
         if (unpadded.length % 4 === 1) {

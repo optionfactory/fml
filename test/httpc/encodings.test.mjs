@@ -57,6 +57,8 @@ describe('Encodings', () => {
             expect(() => Base64.decode('SGVsbG8+', Base64.URL_SAFE)).to.throw('invalid character');
             expect(() => Base64.decode('SGVs bG8', Base64.STANDARD)).to.throw('invalid character');
             expect(() => Base64.decode('====', Base64.STANDARD)).to.throw('invalid padding');
+            expect(() => Base64.decode('=', Base64.STANDARD)).to.throw('invalid padding');
+            expect(() => Base64.decode('==', Base64.STANDARD)).to.throw('invalid padding');
             expect(() => Base64.decode('QU=JD', Base64.STANDARD)).to.throw('invalid padding');
             expect(() => Base64.decode('QUJDQ', Base64.STANDARD)).to.throw('invalid length');
             expect(() => Hex.decode('zz')).to.throw('invalid character');
