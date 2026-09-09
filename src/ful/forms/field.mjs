@@ -6,8 +6,14 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
  * the label chrome and the disabled/readonly/required claim protocols. A
  * subclass owns its template, its value semantics and its change events, and
  * hands its rendered pieces over through _adopt/_wireLabel once its render
- * queried them. The base references no ful vocabulary, only what its
- * subclasses pass it.
+ * queried them. _adopt is the contract, not a courtesy: the claim setters,
+ * the validity protocol and the aria wiring reach through the adopted pair,
+ * so a field with no native control adopts a focusable piece of its chrome
+ * or overrides the claim pairs itself (as ful-radio-group does). The getters
+ * and focus() alone tolerate the not-yet-rendered element, where page code
+ * may still read a claim or ask for the focus: the properties are the
+ * post-render live door alone, as ParsedElement documents. The base
+ * references no ful vocabulary, only what its subclasses pass it.
  */
 class Field extends ParsedElement {
     static formAssociated = true;
