@@ -46,7 +46,7 @@ ful.AsyncEvents.asyncOn(wizard, 'section:requested:dettagli', async (e) => {
     if (!e.detail.first) {
         return;                                          // load once, refresh() re-fires
     }
-    e.detail.section.prepend(...(await httpc.get(`/steps/${e.detail.name}`).fetchHtml()).body.childNodes);
+    e.detail.section.prepend(ftl.Fragments.fromHtml(await httpc.get(`/steps/${e.detail.name}`).fetchText()));
 });
 ```
 
