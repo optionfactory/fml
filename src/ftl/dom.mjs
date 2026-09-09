@@ -123,12 +123,19 @@ class LightSlots {
      * @returns the slots
      */
     static from(el) {
+        //the platform reads slot="" as the default slot: such children stay in
+        //the document order of the default content, their claim stripped like any named one
+        for (const child of el.children) {
+            if (child.matches('[slot=""]')) {
+                child.removeAttribute('slot');
+            }
+        }
         /** @type [string, Element|DocumentFragment][] */
         const namedSlots = Array.from(el.children)
             .filter((el) => el.matches('[slot]'))
             .map((el) => {
                 el.remove();
-                const slot = el.getAttribute('slot') || 'unnamed';
+                const slot = /** @type {string} */ (el.getAttribute('slot'));
                 el.removeAttribute('slot');
                 return [slot, LightSlots.slotFromNode(el)];
             });

@@ -103,6 +103,25 @@ describe('dom.mjs', () => {
             expect(el.childNodes.length, 'The original element should be empty after extraction').to.equal(0);
         });
 
+        it('reads slot="" as the default slot, keeping the document order', () => {
+            const el = document.createElement('div');
+            el.innerHTML = `
+                <p>first</p>
+                <div slot="">an empty claim</div>
+                <span slot="named">named</span>
+            `;
+
+            const slots = LightSlots.from(el);
+
+            expect(slots.unnamed, 'no phantom slot is born from the empty claim').to.be.undefined;
+            expect(slots.named).to.be.instanceOf(DocumentFragment);
+            const children = Array.from(slots.default.childNodes).filter((n) => n.nodeType === n.ELEMENT_NODE);
+            expect(children.length).to.equal(2);
+            expect(children[0].textContent).to.equal('first');
+            expect(children[1].textContent).to.equal('an empty claim');
+            expect(children[1].hasAttribute('slot'), 'the empty claim is stripped like any named one').to.be.false;
+        });
+
         it('parses a text/html script slot as markup', () => {
             const el = document.createElement('div');
             el.innerHTML = `<script type="text/html" slot="tpl"><p>mark<u>up</u></p></${'script'}>`;
