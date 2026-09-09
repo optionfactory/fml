@@ -36,7 +36,9 @@ class RemoteLoader {
     }
     async load(needle) {
         const data = await this.#ensureFetched();
-        return data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase()));
+        //includes would coerce a nullish needle to the string "undefined": no
+        //needle means no filter, as the empty search the combobox opens with
+        return data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
     }
     async reconfigureUrl(url) {
         //the generation detaches any fetch still in flight: its outcome belongs
@@ -127,7 +129,8 @@ class InMemoryLoader {
         return this.#data.filter(([k, v]) => keys.some((r) => r == k));
     }
     load(needle) {
-        return this.#data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase()));
+        //no needle means no filter, as in RemoteLoader
+        return this.#data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
     }
 }
 

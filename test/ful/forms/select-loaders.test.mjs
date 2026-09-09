@@ -91,6 +91,15 @@ describe('SelectLoader', () => {
         container.remove();
     });
 
+    it('treats a needleless load as no filter, not as the string "undefined"', async () => {
+        const [selectEl, container] = await mount('', INLINE_OPTIONS);
+
+        const all = await selectEl.withLoader((l) => l.load(undefined));
+
+        assert.deepStrictEqual(all.map(([, label]) => label), ['One', 'Two', 'Three']);
+        container.remove();
+    });
+
     it('labels an assigned value by looking it up in the slotted options', async () => {
         const [selectEl, container] = await mount('value="k2"', INLINE_OPTIONS);
 
