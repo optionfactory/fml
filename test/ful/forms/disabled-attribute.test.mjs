@@ -1,6 +1,6 @@
 import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
-import { registry, Rendering, Attributes } from '../../../src/ftl/index.mjs';
+import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin, Field, Bindings } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
@@ -218,7 +218,7 @@ describe('The disabled attribute after the upgrade', () => {
             }
             set disabled(d) {
                 super.disabled = d;
-                Attributes.toggle(this.#input, 'disabled', d);
+                this.#input.toggleAttribute('disabled', d);
             }
         }
         registry.defineElement('x-test-field', TestField);

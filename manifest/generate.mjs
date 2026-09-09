@@ -43,20 +43,24 @@ const TYPES = {
 
 const registered = () => {
     const found = [];
-    const recorder = new Proxy({}, {
-        get: (_target, key) => (...args) => {
-            if (key === 'defineElement') {
-                found.push({ tag: args[0], klass: args[1] });
-            }
-            return recorder;
+    const recorder = new Proxy(
+        {},
+        {
+            get:
+                (_target, key) =>
+                (...args) => {
+                    if (key === 'defineElement') {
+                        found.push({ tag: args[0], klass: args[1] });
+                    }
+                    return recorder;
+                },
         },
-    });
+    );
     new Plugin().configure(recorder);
     return found;
 };
 
-const describe = (tag, kind, name) =>
-    metadata.elements[tag]?.[kind]?.[name] ?? metadata.common[kind]?.[name] ?? '';
+const describe = (tag, kind, name) => metadata.elements[tag]?.[kind]?.[name] ?? metadata.common[kind]?.[name] ?? '';
 
 //the registry composes observed attributes along the inheritance chain with the
 //leaf winning for a shared name, so the metadata must read the same list
@@ -116,7 +120,11 @@ const customElements = {
                 })),
                 //the default slot is the unnamed one in the manifest schema
                 slots: e.slots.map((s) => ({ name: s.name === 'default' ? '' : s.name, description: s.description })),
-                events: e.events.map((v) => ({ name: v.name, description: v.description, type: { text: 'CustomEvent' } })),
+                events: e.events.map((v) => ({
+                    name: v.name,
+                    description: v.description,
+                    type: { text: 'CustomEvent' },
+                })),
             })),
             exports: model.map((e) => ({
                 kind: 'custom-element-definition',
@@ -165,4 +173,6 @@ const emit = (file, content) => {
 emit('custom-elements.json', customElements);
 emit('web-types.json', webTypes);
 emit('vscode.html-custom-data.json', vscode);
-console.log(`  ${model.length} elements, ${model.reduce((n, e) => n + e.attributes.length, 0)} attributes, ${model.reduce((n, e) => n + e.events.length, 0)} events`);
+console.log(
+    `  ${model.length} elements, ${model.reduce((n, e) => n + e.attributes.length, 0)} attributes, ${model.reduce((n, e) => n + e.events.length, 0)} events`,
+);

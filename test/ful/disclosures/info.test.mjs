@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
-import { Plugin, Tooltip, Dialog } from '../../../src/ful/index.mjs';
+import { AsyncEvents, Plugin, Tooltip, Dialog } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -198,6 +198,50 @@ describe('subclass reuse', () => {
         assert.isTrue(dialog.querySelector('dialog').open);
         dialog.close('done');
         assert.strictEqual(await asked, 'done');
+        container.remove();
+    });
+});
+
+describe('Dialog, the section:requested door', () => {
+    it('fires on the body on open, first only the first time', async () => {
+        const [dialog, container] = await mount('<ful-dialog header="h">the body</ful-dialog>');
+        const seen = [];
+        AsyncEvents.asyncOn(dialog, 'section:requested', (e) => {
+            seen.push(e.detail.first);
+            e.detail.section.append('delivered');
+        });
+
+        dialog.ask();
+        await settle();
+        assert.deepStrictEqual(seen, [true], 'ask() opens, the door fires');
+        assert.include(dialog.querySelector('[data-ref=body]').textContent, 'delivered');
+
+        dialog.close();
+        await settle();
+        dialog.ask();
+        await settle();
+        assert.deepStrictEqual(seen, [true, false]);
+        dialog.close();
+        container.remove();
+    });
+});
+
+describe('Dialog, the refresh door', () => {
+    it('re-fires the body door, its failures painted and swallowed', async () => {
+        const [dialog, container] = await mount('<ful-dialog header="h">the body</ful-dialog>');
+        let fail = true;
+        AsyncEvents.asyncOn(dialog, 'section:requested', () => {
+            if (fail) {
+                throw new Error('boom');
+            }
+        });
+
+        await dialog.refresh();
+        assert.isNotNull(dialog.querySelector('[data-ref=body] > .ful-section-error'));
+
+        fail = false;
+        await dialog.refresh();
+        assert.strictEqual(dialog.querySelector('[data-ref=body] > .ful-section-error'), null);
         container.remove();
     });
 });

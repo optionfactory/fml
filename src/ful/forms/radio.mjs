@@ -107,7 +107,7 @@ class RadioGroup extends Field {
     set readonly(v) {
         this.#fieldset.inert = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'readonly', v);
+            this.toggleAttribute('readonly', v);
         });
     }
     get disabled() {
@@ -131,7 +131,7 @@ class RadioGroup extends Field {
     set required(d) {
         Attributes.set(this.#fieldset, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
-            Attributes.toggle(this, 'required', d);
+            this.toggleAttribute('required', d);
         });
     }
 }

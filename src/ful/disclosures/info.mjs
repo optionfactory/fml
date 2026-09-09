@@ -1,4 +1,5 @@
 import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { SectionRequests } from '../events/sections.mjs';
 import { wireTargets } from './targets.mjs';
 
 class Tooltip extends ParsedElement {
@@ -45,12 +46,15 @@ class Dialog extends ParsedElement {
         </dialog>
     `;
     #dialog;
+    #body;
+    #requests = new SectionRequests();
     #resolvers = [];
     render({ slots }) {
         const fragment = this.template()
             .withOverlay({ slots, header: this.getAttribute('header') ?? '' })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
+        this.#body = fragment.querySelector('[data-ref=body]');
         this.#dialog.addEventListener('close', () => {
             this.dispatchEvent(
                 new CustomEvent('close', {
@@ -84,16 +88,29 @@ class Dialog extends ParsedElement {
     open() {
         if (!this.#dialog.open) {
             this.#dialog.showModal();
+            this.#request();
         }
         return this.ask();
     }
     ask() {
         if (!this.#dialog.open) {
             this.#dialog.showModal();
+            this.#request();
         }
         return new Promise((resolve) => {
             this.#resolvers.push(resolve);
         });
+    }
+    #request() {
+        this.#requests.request(this, this.#body, null, null)?.catch(() => undefined);
+    }
+    /**
+     * Re-fires section:requested on the body, open or closed: the explicit
+     * door for a body that wants refreshing. A failed refresh paints its
+     * problems, nothing rejects — there is no caller to reject towards.
+     */
+    refresh() {
+        return this.#requests.request(this, this.#body, null, null)?.then(undefined, () => undefined);
     }
     close(result) {
         this.#dialog.close(result ?? '');

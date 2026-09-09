@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
-import { Plugin } from '../../../src/ful/index.mjs';
+import { AsyncEvents, Plugin } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -91,6 +91,133 @@ describe('Tabs', () => {
         const [tabs, container] = await mount(markup.replace('<ful-tabs>', '<ful-tabs active="9">'));
 
         assert.strictEqual(tabs.active, 2);
+        container.remove();
+    });
+});
+
+describe('Tabs, async panels', () => {
+    const markup = `
+        <ful-tabs>
+            <template slot="tabs"><tab>One</tab><tab>Two</tab></template>
+            <section id="p1">first</section>
+            <section id="p2"></section>
+        </ful-tabs>`;
+    const frames = async () => {
+        for (let i = 0; i !== 3; ++i) {
+            await new Promise((r) => requestAnimationFrame(() => r()));
+        }
+    };
+
+    it('fires the generic and index events on the activated panel, the initial one included', async () => {
+        const [tabs, container] = await mount(markup);
+        const seen = [];
+        AsyncEvents.asyncOn(tabs, 'section:requested', (e) =>
+            seen.push(['generic', e.detail.index, e.detail.first, e.detail.name]),
+        );
+        AsyncEvents.asyncOn(tabs, 'section:requested:#1', (e) => seen.push(['index', e.detail.index]));
+
+        tabs.active = 1;
+        await settle();
+        tabs.refresh(1);
+        await settle();
+
+        assert.deepStrictEqual(seen, [
+            ['generic', 1, true, null],
+            ['index', 1],
+            ['generic', 1, false, null],
+            ['index', 1],
+        ]);
+        container.remove();
+    });
+
+    it('delivers the panel through an async answer, the loading chrome covering the wait', async () => {
+        const [tabs, container] = await mount(markup);
+        let land;
+        AsyncEvents.asyncOn(tabs, 'section:requested:#1', (e) => {
+            return new Promise((r) => {
+                land = () => {
+                    e.detail.section.append('delivered');
+                    r();
+                };
+            });
+        });
+
+        tabs.querySelectorAll('ful-tablist button')[1].click();
+        await frames();
+
+        const panel = tabs.querySelector('#p2');
+        assert.isTrue(panel.hasAttribute('loading'));
+        land();
+        await settle();
+
+        assert.isFalse(panel.hasAttribute('loading'));
+        assert.include(panel.textContent, 'delivered');
+        container.remove();
+    });
+
+    it('paints the problems of a failed delivery without rejecting anywhere', async () => {
+        const [tabs, container] = await mount(markup);
+        AsyncEvents.asyncOn(tabs, 'section:requested:#1', () => {
+            throw new Error('unreachable (demo)');
+        });
+
+        tabs.active = 1;
+        await settle();
+
+        assert.include(tabs.querySelector('#p2 > .ful-section-error')?.textContent ?? '', 'unreachable');
+        container.remove();
+    });
+});
+
+describe('Tabs, the refresh door', () => {
+    const markup = `
+        <ful-tabs>
+            <template slot="tabs"><tab>One</tab><tab>Two</tab></template>
+            <section id="p1">first</section>
+            <section id="p2">second</section>
+        </ful-tabs>`;
+
+    it('answers null and unknown indices with a warning, not with panel 0', async () => {
+        const [tabs, container] = await mount(markup);
+        const seen = [];
+        AsyncEvents.asyncOn(tabs, 'section:requested', (e) => seen.push(e.detail.index));
+
+        assert.isUndefined(tabs.refresh(null));
+        assert.isUndefined(tabs.refresh(7));
+        await settle();
+
+        assert.deepStrictEqual(seen, []);
+        container.remove();
+    });
+
+    it('swallows a failed refresh, the problems painted in the panel', async () => {
+        const [tabs, container] = await mount(markup);
+        AsyncEvents.asyncOn(tabs, 'section:requested:#1', () => {
+            throw new Error('boom');
+        });
+
+        await tabs.refresh(1);
+
+        assert.include(tabs.querySelector('#p2 > .ful-section-error').textContent, 'boom');
+        container.remove();
+    });
+});
+
+describe('Tabs, the event target', () => {
+    it('targets the component, not the panel', async () => {
+        const [tabs, container] = await mount(`
+            <ful-tabs>
+                <template slot="tabs"><tab>One</tab><tab>Two</tab></template>
+                <section>first</section>
+                <section>second</section>
+            </ful-tabs>`);
+        const targets = [];
+        AsyncEvents.asyncOn(tabs, 'section:requested', (e) => targets.push(e.target));
+
+        tabs.active = 1;
+        await settle();
+
+        assert.deepStrictEqual(targets, [tabs]);
         container.remove();
     });
 });

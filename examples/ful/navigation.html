@@ -10,7 +10,7 @@
     <link href="../base.css" rel="stylesheet">
     <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-        </head>
+</head>
 
 <body>
     <h1>ful navigation</h1>
@@ -37,6 +37,20 @@
                 <p>No open claims.</p>
             </section>
         </ful-tabs>
+    </fieldset>
+
+    <h2>tabs, async panel</h2>
+    <p>Entering a panel fires the <code>section:requested</code> family on the tabs — the generic type, the panel's <code>#index</code> — and the component awaits the answers, the loading chrome covering the wait: a panel can deliver itself. Nobody listening is a plain activation, panels rendered on the server never know the event exists. The event's target is the component, so a host's own panels are told from a nested component's by <code>e.target === e.currentTarget</code>.</p>
+    <fieldset>
+        <legend>the second panel delivered on every entry, refreshable on demand</legend>
+        <ful-tabs id="async-tabs">
+            <template slot="tabs"><tab>Summary</tab><tab>Details</tab></template>
+            <section>
+                <p>The summary is server-rendered: its activation resolves at once.</p>
+            </section>
+            <section></section>
+        </ful-tabs>
+        <button type="button" class="ful-button ghost small" id="async-tabs-reload">Reload the details</button>
     </fieldset>
 
     <h2>accordion</h2>
@@ -152,6 +166,86 @@
         <output id="form-wizard-output">the forms answer here</output>
     </fieldset>
 
+    <h2>wizard, async steps</h2>
+    <p>Entering a step fires the <code>section:requested</code> family on the wizard: the generic type, its <code>#index</code>, and its <code>data-step</code> name. The component awaits the answers — <code>move()</code> resolves when the entered step is painted, the loading chrome covering the wait — and a failed delivery paints the section's problems and rejects the move. Register through one door per section: the name here, the index or the generic type elsewhere.</p>
+    <fieldset>
+        <legend>one step delivered on entry, one failing its round trip</legend>
+        <ful-wizard id="async-wizard">
+            <template slot="steps"><step>Static</step><step>Delivered</step><step>Broken</step></template>
+            <section data-step="static">
+                <p>Server-rendered: nobody answers, the activation resolves at once.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button" data-next>Continue</button>
+                </div>
+            </section>
+            <section data-step="delivered">
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-prev>Back</button>
+                    <button type="button" class="ful-button" data-next>Continue</button>
+                </div>
+            </section>
+            <section data-step="broken">
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-prev>Back</button>
+                    <button type="button" class="ful-button ghost" id="async-retry">Retry</button>
+                </div>
+            </section>
+        </ful-wizard>
+    </fieldset>
+
+    <h2>wizard, minimal progress</h2>
+    <p>The progress chrome picks its shape through the <code>progress</code> attribute over the same claims: <code>counter</code> shows the current step and its position, <code>dots</code> a dot strip, <code>none</code> leaves the chrome to the page. <code>move()</code>, the focus and the <code>change</code> events are the same in every shape.</p>
+    <fieldset>
+        <legend>counter: the current step and 2 of 3</legend>
+        <ful-wizard progress="counter" id="counter-wizard">
+            <template slot="steps"><step>Anagrafica</step><step>Contatti</step><step>Conferma</step></template>
+            <section data-step="anagrafica">
+                <p>Il primo passo.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button" data-next>Continue</button>
+                </div>
+            </section>
+            <section data-step="contatti">
+                <p>Il secondo passo.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-prev>Back</button>
+                    <button type="button" class="ful-button" data-next>Continue</button>
+                </div>
+            </section>
+            <section data-step="conferma">
+                <p>L'ultimo passo.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-prev>Back</button>
+                </div>
+            </section>
+        </ful-wizard>
+    </fieldset>
+    <fieldset>
+        <legend>dots: done, current, to come</legend>
+        <ful-wizard progress="dots">
+            <template slot="steps"><step>Verify</step><step>Edit</step><step>Confirm</step></template>
+            <section>
+                <p>The first step.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button" data-dots-next>Continue</button>
+                </div>
+            </section>
+            <section>
+                <p>The second step.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-dots-prev>Back</button>
+                    <button type="button" class="ful-button" data-dots-next>Continue</button>
+                </div>
+            </section>
+            <section>
+                <p>The last step.</p>
+                <div class="actions">
+                    <button type="button" class="ful-button ghost" data-dots-prev>Back</button>
+                </div>
+            </section>
+        </ful-wizard>
+    </fieldset>
+
     <script src="../markup.js"></script>
     <script>
         /**
@@ -204,6 +298,62 @@
         byId('tabs').addEventListener('change', (e) => {
             byId('wizard-output').textContent = `tabs change: active ${e.detail.active}, previous ${e.detail.previous}`;
         });
+
+        ful.AsyncEvents.asyncOn(byId('async-tabs'), 'section:requested:#1', async (e) => {
+            await new Promise((resolve) => setTimeout(resolve, 900));
+            e.detail.section.replaceChildren();
+            const details = document.createElement('p');
+            details.textContent = `Delivered at ${new Date().toLocaleTimeString()}: every entry re-fires the family, the timestamp moves with it.`;
+            e.detail.section.append(details);
+        });
+        byId('async-tabs-reload').addEventListener('click', () => byId('async-tabs').refresh(1));
+
+        const asyncWizard = byId('async-wizard');
+        let brokenOnce = true;
+        ful.AsyncEvents.asyncOn(asyncWizard, 'section:requested:delivered', async (e) => {
+            if (!e.detail.first) {
+                return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 900));
+            const delivered = document.createElement('ul');
+            delivered.innerHTML = '<li>the answer of a simulated round trip</li><li>delivered on first entry, above the section\'s own buttons</li>';
+            e.detail.section.prepend(delivered);
+        });
+        ful.AsyncEvents.asyncOn(asyncWizard, 'section:requested:broken', async (e) => {
+            if (!brokenOnce) {
+                const fixed = document.createElement('p');
+                fixed.textContent = 'The endpoint answered this time.';
+                e.detail.section.prepend(fixed);
+                return;
+            }
+            throw { problems: [{ reason: 'the endpoint is unreachable (demo)' }] };
+        });
+        for (const button of asyncWizard.querySelectorAll('[data-next]')) {
+            button.addEventListener('click', () => asyncWizard.next()?.catch(() => undefined));
+        }
+        for (const button of asyncWizard.querySelectorAll('[data-prev]')) {
+            button.addEventListener('click', () => asyncWizard.prev());
+        }
+        byId('async-retry').addEventListener('click', () => {
+            brokenOnce = false;
+            asyncWizard.refresh('broken')?.catch(() => undefined);
+        });
+
+        const counterWizard = byId('counter-wizard');
+        for (const button of counterWizard.querySelectorAll('[data-next]')) {
+            button.addEventListener('click', () => counterWizard.next());
+        }
+        for (const button of counterWizard.querySelectorAll('[data-prev]')) {
+            button.addEventListener('click', () => counterWizard.prev());
+        }
+
+        const dotsWizard = document.querySelector('ful-wizard[progress="dots"]');
+        for (const button of dotsWizard.querySelectorAll('[data-dots-next]')) {
+            button.addEventListener('click', () => dotsWizard.next());
+        }
+        for (const button of dotsWizard.querySelectorAll('[data-dots-prev]')) {
+            button.addEventListener('click', () => dotsWizard.prev());
+        }
 
         //the form-driven wizard: the response chooses the step, the form pins the failures
         const formWizard = byId('form-wizard');

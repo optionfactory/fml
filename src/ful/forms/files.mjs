@@ -139,7 +139,7 @@ class InputFile extends Input {
     set readonly(v) {
         this.#group.inert = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'readonly', v);
+            this.toggleAttribute('readonly', v);
         });
     }
     #update() {
@@ -247,7 +247,7 @@ class InputFile extends Input {
     set multiple(v) {
         this._input.multiple = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'multiple', v);
+            this.toggleAttribute('multiple', v);
         });
     }
     get files() {
@@ -322,7 +322,7 @@ class InputFile extends Input {
     set itemlist(v) {
         this.#useItemlist = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'itemlist', v);
+            this.toggleAttribute('itemlist', v);
         });
     }
     #useDropzone;
@@ -332,7 +332,7 @@ class InputFile extends Input {
     set dropzone(v) {
         this.#useDropzone = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'dropzone', v);
+            this.toggleAttribute('dropzone', v);
         });
     }
 }

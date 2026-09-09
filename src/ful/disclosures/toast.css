@@ -1,3 +1,7 @@
+ful-toasts:not(:has(> ful-toast)) {
+    display: none;
+}
+
 *:has(> ful-toast):not(body, html) {
     --ful-toasts-max-width: min(90vw, 24rem);
 

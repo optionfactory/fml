@@ -1,5 +1,5 @@
 import { nodes } from './ast.mjs';
-import { Attributes, Fragments } from './dom.mjs';
+import { Fragments } from './dom.mjs';
 import { Expressions, ExpressionEvaluator } from './expressions.mjs';
 
 class NodeOperations {
@@ -375,7 +375,7 @@ class Template {
                         const expression = ops.popData(el, dataSetKey);
                         const evaluated = Expressions.interpret(this.#modules, this.#dataStack, expression);
                         if (typeof evaluated === 'boolean') {
-                            Attributes.toggle(el, attributeName, evaluated);
+                            el.toggleAttribute(attributeName, evaluated);
                             continue;
                         }
                         if (evaluated !== null && evaluated !== undefined) {

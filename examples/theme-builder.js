@@ -24,7 +24,10 @@
     const toHex = (value) => {
         const rgb = value.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
         if (rgb) {
-            return `#${rgb.slice(1).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`;
+            return `#${rgb
+                .slice(1)
+                .map((n) => Number(n).toString(16).padStart(2, '0'))
+                .join('')}`;
         }
         return /^#[0-9a-f]{6}$/i.test(value) ? value : null;
     };
@@ -65,7 +68,8 @@
         return;
     }
 
-    const overrides = () => rows.filter((r) => r.input.value.trim() !== r.declared).map((r) => [r.name, r.input.value.trim()]);
+    const overrides = () =>
+        rows.filter((r) => r.input.value.trim() !== r.declared).map((r) => [r.name, r.input.value.trim()]);
 
     const css = () => {
         const vars = overrides();
@@ -83,7 +87,10 @@
             r.row.classList.toggle('changed', r.input.value.trim() !== r.declared);
         }
         try {
-            localStorage.setItem(KEY, JSON.stringify({ vars: Object.fromEntries(overrides()), custom: custom?.value ?? '' }));
+            localStorage.setItem(
+                KEY,
+                JSON.stringify({ vars: Object.fromEntries(overrides()), custom: custom?.value ?? '' }),
+            );
         } catch {
             return;
         }

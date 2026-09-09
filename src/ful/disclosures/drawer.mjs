@@ -1,4 +1,6 @@
 import { ParsedElement } from '../../ftl/index.mjs';
+import { SectionRequests } from '../events/sections.mjs';
+import { Failure } from '../../httpc/index.mjs';
 import { wireTargets } from './targets.mjs';
 
 class Drawer extends ParsedElement {
@@ -19,6 +21,9 @@ class Drawer extends ParsedElement {
     #loading;
     #error;
     #content;
+    #requests = new SectionRequests();
+    /** @type {number|null} */
+    #quietOpen = null;
     #updateToken = 0;
     render({ slots }) {
         const fragment = this.template()
@@ -51,12 +56,18 @@ class Drawer extends ParsedElement {
         //an abandoned opening and must neither be painted nor own the drawer
         const token = ++this.#updateToken;
         this.title = title;
-        this.#error.replaceChildren();
         this.#content.replaceChildren();
+        this.#restChrome();
         this.#loading.removeAttribute('hidden');
         this.#content.setAttribute('hidden', '');
-        this.#error.setAttribute('hidden', '');
-        this.open();
+        //update owns its own open-answer-deliver cycle: only the open it makes
+        //itself stays quiet, a user reopen during the wait is a real open
+        this.#quietOpen = token;
+        try {
+            this.open();
+        } finally {
+            this.#quietOpen = null;
+        }
         try {
             const delivered = await cb();
             if (token !== this.#updateToken) {
@@ -68,9 +79,7 @@ class Drawer extends ParsedElement {
             return this.#content;
         } catch (/** @type any */ e) {
             if (token === this.#updateToken) {
-                this.#error.textContent = e?.problems
-                    ? e.problems.map((p) => `${p.reason}`).join('\n')
-                    : `${e?.message ?? e}`;
+                this.#error.textContent = Failure.problemsText(e);
                 this.#error.removeAttribute('hidden');
                 this.#loading.setAttribute('hidden', '');
                 this.#content.setAttribute('hidden', '');
@@ -78,13 +87,31 @@ class Drawer extends ParsedElement {
             throw e;
         }
     }
+    /**
+     * Re-fires section:requested on the content, open or closed: the explicit
+     * door for a body that wants refreshing. A failed refresh paints its
+     * problems, nothing rejects — update() stays the rejecting door.
+     */
+    refresh() {
+        return this.#requests.request(this, this.#content, null, null)?.then(undefined, () => undefined);
+    }
     open() {
         if (!this.#dialog.open) {
             this.#dialog.showModal();
+            if (this.#quietOpen === null) {
+                this.#restChrome();
+                this.#requests.request(this, this.#content, null, null)?.catch(() => undefined);
+            }
         }
     }
     close() {
         this.#dialog.close();
+    }
+    #restChrome() {
+        this.#error.replaceChildren();
+        this.#error.setAttribute('hidden', '');
+        this.#loading.setAttribute('hidden', '');
+        this.#content.removeAttribute('hidden');
     }
 }
 

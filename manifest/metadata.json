@@ -251,7 +251,8 @@
                 "buttons": "Buttons closing the dialog; each carries a data-result that ask() resolves with. Without this slot a localized acknowledge button is shown."
             },
             "events": {
-                "close": "Fired when the dialog closes, carrying the data-result of the button that closed it, or null on Escape; ask() and open() resolve with the same answer, and a dialog leaving the document while open answers its waiters with null."
+                "close": "Fired when the dialog closes, carrying the data-result of the button that closed it, or null on Escape; ask() and open() resolve with the same answer, and a dialog leaving the document while open answers its waiters with null.",
+                "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems."
             }
         },
         "ful-drawer": {
@@ -261,7 +262,8 @@
                 "default": "The drawer body, shown when update() never replaced it."
             },
             "events": {
-                "close": "Fired when the drawer closes, by its close button or Escape."
+                "close": "Fired when the drawer closes, by its close button or Escape.",
+                "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems."
             }
         },
         "ful-toasts": {
@@ -280,7 +282,8 @@
                 "default": "The panels, one element per declared tab, paired in order: each becomes a tabpanel announced by its tab."
             },
             "events": {
-                "change": "Fired with the active index and the previous one whenever the visible panel moves."
+                "change": "Fired with the active index and the previous one whenever the visible panel moves.",
+                "section:requested": "Fired by the component when one of its sections is entered (bubbling): the generic type of the family, joined by section:requested:#index and by section:requested:name when the section carries a data-step. Answer through AsyncEvents.asyncOn with the section's delivery; the component awaits the answers under its loading chrome, and a failed delivery paints the section's problems."
             }
         },
         "ful-accordion": {
@@ -294,14 +297,17 @@
             "events": []
         },
         "ful-wizard": {
-            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section — the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
-            "attributes": {},
+            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section \u2014 the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
+            "attributes": {
+                "progress": "picks the progress chrome's shape over the same claims: timeline (default), counter (the current step and its position), dots (a done/current/future strip), none (the page owns the chrome)."
+            },
             "slots": {
                 "steps": "The step declarations, one step element per section, carrying the step's label.",
                 "default": "The sections, one per declared step: only the current one is shown, and each may carry a data-step name for move()."
             },
             "events": {
-                "change": "Fired with the index and the data-step name after next(), prev() or move() land on a different step."
+                "change": "Fired with the index and the data-step name after next(), prev() or move() land on a different step.",
+                "section:requested": "Fired by the component when one of its sections is entered (bubbling): the generic type of the family, joined by section:requested:#index and by section:requested:name when the section carries a data-step. Answer through AsyncEvents.asyncOn with the section's delivery; the component awaits the answers under its loading chrome, and a failed delivery paints the section's problems."
             }
         }
     }

@@ -125,7 +125,7 @@ class Input extends Field {
         //the inner control carries the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches the inner control
         //as a descendant of the fieldset and re-enables it on its own
-        Attributes.toggle(this._input, 'disabled', d);
+        this._input.toggleAttribute('disabled', d);
     }
     get placeholder() {
         const v = this._input.getAttribute('placeholder');

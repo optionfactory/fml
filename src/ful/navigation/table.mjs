@@ -1,4 +1,5 @@
 import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from '../../ftl/index.mjs';
+import { Failure } from '../../httpc/index.mjs';
 
 class SortButton extends ParsedElement {
     static observed = ['order'];
@@ -446,9 +447,10 @@ class Table extends ParsedElement {
             }
             this.#loading.setAttribute('hidden', '');
             this.#feedback.removeAttribute('hidden');
-            this.#feedback.querySelector('[data-ref=feedback-error]').textContent = error?.problems
-                ? error.problems.map((p) => `${p.reason}`).join('\n')
-                : `${error}`;
+            this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Failure.problemsText(
+                error,
+                `${error}`,
+            );
             throw error;
         }
     }

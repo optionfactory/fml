@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Failure } from '../../../src/httpc/index.mjs';
-import { Plugin, Drawer } from '../../../src/ful/index.mjs';
+import { AsyncEvents, Plugin, Drawer } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -179,6 +179,114 @@ describe('Drawer subclass reuse', () => {
         const content = await panel.update('the panel', () => document.createElement('p'));
         assert.strictEqual(content.querySelector('p').localName, 'p');
         panel.close();
+        container.remove();
+    });
+});
+
+describe('Drawer, the section:requested door', () => {
+    it('fires on the content when opened, not when update() owns the cycle', async () => {
+        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const seen = [];
+        AsyncEvents.asyncOn(drawer, 'section:requested', (e) => {
+            seen.push(e.detail.first);
+            e.detail.section.append('delivered');
+        });
+
+        drawer.open();
+        await settle();
+
+        assert.deepStrictEqual(seen, [true]);
+        assert.include(drawer.querySelector('[data-ref=content]').textContent, 'delivered');
+
+        drawer.close();
+        await settle();
+        await drawer.update('title', async () => document.createElement('p'));
+        drawer.open();
+        await settle();
+
+        assert.deepStrictEqual(seen, [true], 'update() owns its cycle, its open fires nothing');
+        drawer.close();
+        await settle();
+
+        drawer.open();
+        await settle();
+        assert.deepStrictEqual(seen, [true, false], 'a later declarative open asks again');
+        drawer.close();
+        container.remove();
+    });
+});
+
+describe('Drawer, the declarative door against update()', () => {
+    const frames = async () => {
+        for (let i = 0; i !== 3; ++i) {
+            await new Promise((r) => requestAnimationFrame(() => r()));
+        }
+    };
+
+    it('rests the chrome update() left behind, the delivery landing on a visible content', async () => {
+        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+        await drawer
+            .update('title', async () => {
+                throw new Failure('invalid', [{ type: 'GENERIC', context: null, reason: 'nope' }]);
+            })
+            .then(
+                () => assert.fail('update rejects'),
+                () => undefined,
+            );
+        drawer.close();
+        await settle();
+
+        AsyncEvents.asyncOn(drawer, 'section:requested', async (e) => {
+            await new Promise((r) => setTimeout(r, 100));
+            e.detail.section.append('delivered');
+        });
+        drawer.open();
+        await frames();
+
+        const content = drawer.querySelector('[data-ref=content]');
+        const error = drawer.querySelector('[data-ref=error]');
+        assert.isFalse(content.hasAttribute('hidden'), 'the content update() hid is visible again');
+        assert.isTrue(content.hasAttribute('loading'), 'the ring owns the visible wait');
+        assert.isTrue(error.hasAttribute('hidden'), 'the stale update error left with the open');
+        await new Promise((r) => setTimeout(r, 300));
+
+        assert.include(content.textContent, 'delivered');
+        drawer.close();
+        container.remove();
+    });
+
+    it("a user reopen during an update's wait is a real open", async () => {
+        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const fired = [];
+        AsyncEvents.asyncOn(drawer, 'section:requested', (e) => fired.push(e.detail.first));
+        const waiting = drawer.update('title', () => new Promise(() => {}));
+
+        drawer.close();
+        await settle();
+        drawer.open();
+        await settle();
+
+        assert.deepStrictEqual(fired, [true], "the update's own open stays quiet, the user's reopen fires");
+        drawer.close();
+        container.remove();
+        void waiting;
+    });
+
+    it('refresh re-fires the content door, its failures painted and swallowed', async () => {
+        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+        let fail = true;
+        AsyncEvents.asyncOn(drawer, 'section:requested', () => {
+            if (fail) {
+                throw new Error('boom');
+            }
+        });
+
+        await drawer.refresh();
+        assert.isNotNull(drawer.querySelector('[data-ref=content] > .ful-section-error'));
+
+        fail = false;
+        await drawer.refresh();
+        assert.strictEqual(drawer.querySelector('[data-ref=content] > .ful-section-error'), null);
         container.remove();
     });
 });

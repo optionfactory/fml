@@ -135,7 +135,7 @@ class Field extends ParsedElement {
         //reflection guard keeps the attribute observer out of the property's own
         //write, as the readonly and required claims already do
         this.reflect(() => {
-            Attributes.toggle(this, 'disabled', d);
+            this.toggleAttribute('disabled', d);
         });
     }
     /**
@@ -151,7 +151,7 @@ class Field extends ParsedElement {
     set readonly(v) {
         this.#control.readOnly = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'readonly', v);
+            this.toggleAttribute('readonly', v);
         });
     }
     /**
@@ -164,7 +164,7 @@ class Field extends ParsedElement {
     set required(d) {
         Attributes.set(this.#control, 'aria-required', d ? 'true' : null);
         this.reflect(() => {
-            Attributes.toggle(this, 'required', d);
+            this.toggleAttribute('required', d);
         });
     }
 }

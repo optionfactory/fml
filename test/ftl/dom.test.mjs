@@ -69,24 +69,6 @@ describe('dom.mjs', () => {
             expect(to.hasAttribute('other')).to.be.false;
         });
 
-        it('toggles attributes based on a boolean value', () => {
-            const div = document.createElement('div');
-            Attributes.toggle(div, 'hidden', true);
-            expect(div.hasAttribute('hidden')).to.be.true;
-
-            Attributes.toggle(div, 'hidden', false);
-            expect(div.hasAttribute('hidden')).to.be.false;
-        });
-
-        it('flips attribute presence', () => {
-            const div = document.createElement('div');
-            Attributes.flip(div, 'active');
-            expect(div.hasAttribute('active')).to.be.true;
-
-            Attributes.flip(div, 'active');
-            expect(div.hasAttribute('active')).to.be.false;
-        });
-
         it('sets attributes or removes them if nullish', () => {
             const div = document.createElement('div');
             Attributes.set(div, 'test', 'value');

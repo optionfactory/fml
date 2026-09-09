@@ -22,16 +22,11 @@ h1 {
     margin: 0 0 0.5rem;
 }
 
-h2 {
+body > h2 {
     font-size: 1.15rem;
     margin: 3rem 0 0.75rem;
     padding-block-end: 0.5rem;
     border-block-end: 1px solid var(--ful-border-color, light-dark(#dee2e6, #495057));
-}
-
-h3 {
-    font-size: 1rem;
-    margin: 1.75rem 0 0.5rem;
 }
 
 p {
@@ -65,7 +60,9 @@ body > fieldset > legend {
     color: color-mix(in srgb, currentColor 55%, transparent);
 }
 
-body > fieldset :is(ful-form, ful-select, ful-input-file, ful-tabs, ful-accordion, ful-wizard, ful-table, ful-pagination) {
+body
+    > fieldset
+    :is(ful-form, ful-select, ful-input-file, ful-tabs, ful-accordion, ful-wizard, ful-table, ful-pagination) {
     display: block;
     align-self: stretch;
 }

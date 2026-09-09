@@ -72,7 +72,7 @@ const whitelisted = (declared, vocabulary) => {
  */
 const syncOperatorControl = (operator, allowed, claimed = false) => {
     const pinned = allowed.length < 2;
-    Attributes.toggle(operator, 'disabled', pinned || claimed);
+    operator.toggleAttribute('disabled', pinned || claimed);
     Attributes.set(operator, 'aria-haspopup', pinned ? null : 'true');
     Attributes.set(operator, 'aria-expanded', pinned ? null : 'false');
     const menu = operator.nextElementSibling;
@@ -319,7 +319,7 @@ class CompareFilter extends Input {
         //menu is where the localized words live
         this._operator.textContent = GLYPHS[operator] ?? operator;
         Attributes.set(this._operator, 'aria-label', operatorLabel(operator));
-        Attributes.toggle(this._value2, 'hidden', operator !== 'BETWEEN');
+        this._value2.toggleAttribute('hidden', operator !== 'BETWEEN');
     }
     _notifyChange() {
         this.dispatchEvent(
@@ -352,7 +352,7 @@ class CompareFilter extends Input {
         if (!this._value2) {
             return;
         }
-        Attributes.toggle(this._value2, 'disabled', d);
+        this._value2.toggleAttribute('disabled', d);
         //so do the chrome buttons, frozen by a pin, disabled by the claim, or both
         if (this._allowed) {
             syncOperatorControl(this._operator, this._allowed, d);
@@ -631,7 +631,7 @@ class BooleanFilter extends Field {
     set readonly(v) {
         this._container.inert = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'readonly', v);
+            this.toggleAttribute('readonly', v);
         });
     }
     get disabled() {
@@ -642,7 +642,7 @@ class BooleanFilter extends Field {
         if (!this._value) {
             return;
         }
-        Attributes.toggle(this._value, 'disabled', d);
+        this._value.toggleAttribute('disabled', d);
         //the operator button is frozen by a pin, disabled by the claim, or both
         if (this._allowed) {
             syncOperatorControl(this._operator, this._allowed, d);

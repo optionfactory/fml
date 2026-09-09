@@ -47,6 +47,14 @@
         --ful-button-hover-bg: var(--ful-active-bg);
     }
 
+    &.soft {
+        --ful-button-color: var(--ful-color);
+        --ful-button-bg: var(--ful-selected-bg);
+        --ful-button-border-color: var(--ful-controls-border-color);
+        --ful-button-hover-color: var(--ful-active-color);
+        --ful-button-hover-bg: var(--ful-active-bg);
+    }
+
     &.small {
         --ful-button-height: calc(1.25em + 0.5rem + 2px);
         padding: 0.25rem 0.5rem;

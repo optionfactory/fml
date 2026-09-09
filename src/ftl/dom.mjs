@@ -100,31 +100,6 @@ class Attributes {
             });
     }
     /**
-     * Changes the presence of an attribute.
-     * @param {Element} el
-     * @param {string} attr
-     * @param {boolean} value
-     */
-    static toggle(el, attr, value) {
-        if (value) {
-            el.setAttribute(attr, '');
-        } else {
-            el.removeAttribute(attr);
-        }
-    }
-    /**
-     * Changes the presence of an attribute based on its current state.
-     * @param {Element} el
-     * @param {string} attr
-     */
-    static flip(el, attr) {
-        if (el.hasAttribute(attr)) {
-            el.removeAttribute(attr);
-        } else {
-            el.setAttribute(attr, '');
-        }
-    }
-    /**
      * Sets the value of an attribute. nullish values remove the attribute.
      * @param {Element} el
      * @param {string} attr

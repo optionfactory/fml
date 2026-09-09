@@ -833,7 +833,7 @@ class Select extends Field {
         //the inner control carries the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches the inner control
         //as a descendant of the fieldset and re-enables it on its own
-        Attributes.toggle(this.#input, 'disabled', d);
+        this.#input.toggleAttribute('disabled', d);
     }
     #useItemlist;
     get itemlist() {
@@ -842,7 +842,7 @@ class Select extends Field {
     set itemlist(v) {
         this.#useItemlist = v;
         this.reflect(() => {
-            Attributes.toggle(this, 'itemlist', v);
+            this.toggleAttribute('itemlist', v);
         });
     }
 }

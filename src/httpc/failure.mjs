@@ -22,6 +22,21 @@ class Failure extends Error {
             return { type, context: nctx, reason, details };
         });
     }
+    /**
+     * The one reading of a failure: its problems' reasons, one per line, or
+     * the fallback when the value carries none. An empty problems array
+     * carries nothing: the failure's own message reads instead.
+     *
+     * @param {any} cause
+     * @param {string|null} [fallback]
+     * @returns {string}
+     */
+    static problemsText(cause, fallback = null) {
+        if (cause?.problems?.length) {
+            return cause.problems.map((p) => `${p.reason}`).join('\n');
+        }
+        return fallback ?? `${cause?.message ?? cause}`;
+    }
 }
 
 export { Failure };

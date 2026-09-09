@@ -37,3 +37,19 @@ describe('Failure', () => {
         expect(failure.dropping('a.').cause).to.equal(failure);
     });
 });
+
+describe('Failure.problemsText', () => {
+    it("reads the problems' reasons, one per line", () => {
+        const failure = new Failure('invalid', [
+            { type: 'FIELD_ERROR', context: 'name', reason: 'blank' },
+            { type: 'GENERIC', context: null, reason: 'server said no' },
+        ]);
+        expect(Failure.problemsText(failure)).to.equal('blank\nserver said no');
+    });
+
+    it('falls back to the message when nothing is carried, an empty array included', () => {
+        expect(Failure.problemsText(new Failure('boom', []))).to.equal('boom');
+        expect(Failure.problemsText(new Error('bang'), 'fallback')).to.equal('fallback');
+        expect(Failure.problemsText(null, 'nothing')).to.equal('nothing');
+    });
+});

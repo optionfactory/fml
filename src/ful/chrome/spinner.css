@@ -1,11 +1,4 @@
 ful-spinner {
-    --ful-spinner-icon-width: 1rem;
-    --ful-spinner-icon-height: 1rem;
-    --ful-spinner-icon-border-width: 0.2em;
-    --ful-spinner-icon-animation-speed: 0.75s;
-    --ful-spinner-icon-animation-name: spinner-border;
-    --ful-spinner-icon-color: currentcolor;
-
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
@@ -20,6 +13,12 @@ ful-spinner {
         border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
         border-right-color: transparent;
         animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &::after {
+            animation: none;
+        }
     }
 
     &.centered {

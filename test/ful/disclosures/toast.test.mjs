@@ -22,6 +22,18 @@ const mount = async (html) => {
 const retire = (item) => item.dispatchEvent(new AnimationEvent('animationend', { bubbles: true }));
 
 describe('Toasts', () => {
+    it('takes no space until its first toast, so nothing reflows on it', async () => {
+        const [region, container] = await mount('<ful-toasts></ful-toasts>');
+
+        assert.strictEqual(getComputedStyle(region).display, 'none');
+
+        region.show('a toast');
+
+        assert.strictEqual(getComputedStyle(region).display, 'flex');
+        assert.strictEqual(getComputedStyle(region).position, 'fixed');
+        container.remove();
+    });
+
     it('announces itself as the notifications region', async () => {
         const [toasts, container] = await mount('<ful-toasts></ful-toasts>');
 

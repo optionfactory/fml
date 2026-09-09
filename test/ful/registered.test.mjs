@@ -61,7 +61,7 @@ const ELEMENTS = [
     {
         tag: 'ful-wizard',
         html: `<ful-wizard><template slot="steps"><step>One</step><step>Two</step></template><section data-step="one">a</section><section data-step="two">b</section></ful-wizard>`,
-        observed: {},
+        observed: { progress: ['counter', 'counter'] },
     },
     {
         tag: 'ful-form',

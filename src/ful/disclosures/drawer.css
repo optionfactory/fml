@@ -1,7 +1,6 @@
 dialog.ful-drawer {
     --ful-drawer-width: min(90vw, 28rem);
 
-    /*a phone's drawer is the whole screen: no floating panel on a six-inch viewport*/
     @media (max-width: 30rem) {
         --ful-drawer-width: 100vw;
         border-radius: 0;
@@ -86,8 +85,12 @@ dialog.ful-drawer {
         }
 
         &[data-ref="error"] {
+            padding: 1rem;
             white-space: pre-line;
-            color: var(--ful-invalid-color, var(--ful-color));
+            color: var(--ful-error-color);
+            background-color: var(--ful-error-bg);
+            border: var(--ful-border-width) solid var(--ful-error-border-color);
+            border-radius: var(--ful-border-radius);
         }
     }
 

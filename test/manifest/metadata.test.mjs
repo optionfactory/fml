@@ -129,9 +129,19 @@ describe('Element metadata', function () {
         });
     }
 
+    //the async section family is dispatched by the shared SectionRequests helper
+    //under dynamic type strings, invisible to the literal grep: what each host
+    //emits beyond its own literals is declared here
+    const EMITS = {
+        'ful-tabs': ['section:requested'],
+        'ful-wizard': ['section:requested'],
+        'ful-dialog': ['section:requested'],
+        'ful-drawer': ['section:requested'],
+    };
+
     it('documents exactly the events each element emits', () => {
         for (const { tag, klass } of registered()) {
-            const emitted = new Set();
+            const emitted = new Set(EMITS[tag] ?? []);
             for (let c = klass; c?.name; c = Object.getPrototypeOf(c)) {
                 for (const found of (sources.get(c.name) ?? '').matchAll(/new CustomEvent\(\s*'([^']+)'/g)) {
                     emitted.add(found[1]);

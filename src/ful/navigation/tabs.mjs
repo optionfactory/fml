@@ -1,10 +1,13 @@
 import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { SectionRequests } from '../events/sections.mjs';
 
 /**
  * A tab panel: one visible panel at a time, announced through the tab pattern
  * (a tablist of tab buttons, each panel a tabpanel named by its tab). The tabs
  * are declared as <tab> elements in the tabs slot, the panels as the slotless
- * children, paired in order.
+ * children, paired in order. Entering a panel fires the section:requested
+ * family on it (generic and #index, panels being nameless) and awaits the
+ * answers, so a panel can deliver itself asynchronously.
  */
 class Tabs extends ParsedElement {
     static slots = true;
@@ -16,6 +19,7 @@ class Tabs extends ParsedElement {
     #tablist;
     #tabs = [];
     #panels = [];
+    #requests = new SectionRequests();
     #active = 0;
     #ready = false;
     render({ slots, observed }) {
@@ -80,6 +84,21 @@ class Tabs extends ParsedElement {
     get active() {
         return this.#active;
     }
+    /**
+     * Re-fires the section:requested family on the panel (by index or the
+     * panel element itself), whether active or not: the explicit door for a
+     * content that wants refreshing. A failed refresh paints its problems,
+     * nothing rejects — there is no caller to reject towards.
+     */
+    refresh(ref) {
+        const index = ref instanceof Element ? this.#panels.indexOf(ref) : Number.isInteger(ref) ? ref : NaN;
+        const panel = this.#panels[index];
+        if (!panel) {
+            console.warn(`ful-tabs: no panel answers to "${ref}"`);
+            return undefined;
+        }
+        return this.#requests.request(this, panel, null, index)?.then(undefined, () => undefined);
+    }
     set active(v) {
         const index = Math.min(Math.max(0, Number(v) || 0), Math.max(0, this.#tabs.length - 1));
         const previous = this.#active;
@@ -92,6 +111,11 @@ class Tabs extends ParsedElement {
         this.reflectTo('active', index);
         if (this.#ready && index !== previous) {
             this.dispatchEvent(new CustomEvent('change', { detail: { active: index, previous } }));
+        }
+        if (index !== previous || !this.#ready) {
+            //the activation is the reader's own gesture: the chrome reports a
+            //failed delivery, there is no caller to reject towards
+            this.#requests.request(this, this.#panels[index], null, index)?.catch(() => undefined);
         }
     }
 }
