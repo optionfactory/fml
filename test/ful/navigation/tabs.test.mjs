@@ -167,6 +167,20 @@ describe('Tabs, async panels', () => {
         assert.include(tabs.querySelector('#p2 > .ful-section-error')?.textContent ?? '', 'unreachable');
         container.remove();
     });
+
+    it('fires no section request when no panel is declared', async () => {
+        const seen = [];
+        const host = document.createElement('div');
+        AsyncEvents.asyncOn(host, 'section:requested', (e) => seen.push(e.detail));
+        host.innerHTML = '<ful-tabs></ful-tabs>';
+        document.body.appendChild(host);
+
+        await Rendering.waitFor(host);
+        await settle();
+
+        assert.isEmpty(seen, 'a panel-less activation must not ask for a delivery');
+        host.remove();
+    });
 });
 
 describe('Tabs, the refresh door', () => {

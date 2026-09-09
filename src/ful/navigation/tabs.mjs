@@ -112,7 +112,7 @@ class Tabs extends ParsedElement {
         if (this.#ready && index !== previous) {
             this.dispatchEvent(new CustomEvent('change', { detail: { active: index, previous } }));
         }
-        if (index !== previous || !this.#ready) {
+        if (this.#panels.length > 0 && (index !== previous || !this.#ready)) {
             //the activation is the reader's own gesture: the chrome reports a
             //failed delivery, there is no caller to reject towards
             this.#requests.request(this, this.#panels[index], null, index)?.catch(() => undefined);
