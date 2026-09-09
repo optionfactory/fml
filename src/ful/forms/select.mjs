@@ -266,7 +266,7 @@ class Dropdown extends ParsedElement {
         this.#empty.toggleAttribute('hidden', values.length !== 0);
         this.#menu.toggleAttribute('hidden', values.length === 0);
         const current = values.findIndex(([k]) => keys.some((r) => r == k));
-        this.#highlight(current > 0 ? this.#menu.children[current] : this.#selected());
+        this.#highlight(current >= 0 ? this.#menu.children[current] : this.#selected());
     }
     #change(target) {
         const index = target.getAttribute('value');

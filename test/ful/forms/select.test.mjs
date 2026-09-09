@@ -387,6 +387,37 @@ describe('Select & Dropdown keyboard interaction', () => {
         container.remove();
     });
 
+    it('opens highlighting a first-entry selection over a custom template default', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+                load: async () => [
+                    ['k1', 'Label 1'],
+                    ['k2', 'Label 2'],
+                ],
+            }),
+        });
+        //the custom template carries its own default highlight, as the stock one
+        //marks index 0: the picked key must beat it wherever it sits, index 0 included
+        const [selectEl, container] = mount(`<ful-select value="k1">
+            <template slot="dropdown">
+                <li data-tpl-each="self" data-tpl-selected="index == 1" data-tpl-value="index" role="option" data-tpl-aria-selected="index == 1 ? 'true' : 'false'">{{ label }}</li>
+            </template>
+        </ful-select>`);
+        await settle();
+        const input = selectEl.querySelector('input');
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+
+        assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 1');
+
+        keydown(input, 'Enter');
+        assert.strictEqual(selectEl.value, 'k1', 're-accepting the highlighted selection keeps it');
+        container.remove();
+    });
+
     it('jumps to the last option on End and back on Home', async () => {
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
