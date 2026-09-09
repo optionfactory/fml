@@ -10,7 +10,9 @@ class Fragments {
         return document.adoptNode(el.content);
     }
     /**
-     * Creates a string representation (HTML) of a DocumentFragment.
+     * Creates a string representation (HTML) of a DocumentFragment, consuming it:
+     * the nodes are moved out, not copied, and the fragment is left empty. Pass
+     * `fragment.cloneNode(true)` to keep the original usable.
      * @param {DocumentFragment} fragment
      * @returns {string} the html
      */
