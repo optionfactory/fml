@@ -193,12 +193,13 @@ class Nodes {
             return Promise.resolve();
         }
         return new Promise((resolve) => {
-            let done = () => {
-                done = () => {};
+            const done = () => {
+                win.removeEventListener('DOMContentLoaded', done);
+                win.removeEventListener('load', done);
                 resolve(undefined);
             };
-            win.addEventListener('DOMContentLoaded', done, { once: true });
-            win.addEventListener('load', done, { once: true });
+            win.addEventListener('DOMContentLoaded', done);
+            win.addEventListener('load', done);
         });
     }
 

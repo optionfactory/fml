@@ -292,11 +292,15 @@ describe('dom.mjs', () => {
 
         it('resolves in the interactive gap through load, where the event will never come', async () => {
             const handlers = {};
+            const detached = [];
             const doc = {
                 readyState: 'interactive',
                 defaultView: {
                     addEventListener: (type, cb) => {
                         handlers[type] = cb;
+                    },
+                    removeEventListener: (type) => {
+                        detached.push(type);
                     },
                 },
             };
@@ -313,15 +317,20 @@ describe('dom.mjs', () => {
                 setTimeout(resolve);
             });
             expect(settled).to.be.true;
+            expect(detached, 'the losing listener is detached too').to.include.members(['DOMContentLoaded', 'load']);
         });
 
         it('prefers DOMContentLoaded while it is still coming, however late', async () => {
             const handlers = {};
+            const detached = [];
             const doc = {
                 readyState: 'interactive',
                 defaultView: {
                     addEventListener: (type, cb) => {
                         handlers[type] = cb;
+                    },
+                    removeEventListener: (type) => {
+                        detached.push(type);
                     },
                 },
             };
@@ -330,6 +339,7 @@ describe('dom.mjs', () => {
                 settled = true;
             });
             handlers.DOMContentLoaded();
+            expect(detached, 'both listeners leave with the winner').to.include.members(['DOMContentLoaded', 'load']);
             handlers.load();
             await new Promise((resolve) => {
                 setTimeout(resolve);
