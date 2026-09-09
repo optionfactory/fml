@@ -92,12 +92,20 @@ class Form extends ParsedElement {
         }
         this.replaceChildren(form);
     }
+    #submitting = false;
     /**
-     *
+     * Submits once: a submit while one is in flight is dropped before the
+     * values are even extracted, so nothing fires and nothing travels; the
+     * settled exchange re-arms the form. A write must not double behind a
+     * second Enter or a programmatic call racing the first.
      * @param {HTMLElement} [submitter]
      * @returns
      */
     async submit(submitter) {
+        if (this.#submitting) {
+            return;
+        }
+        this.#submitting = true;
         this.spinner(true);
         //one try: building the loader and preparing the request are as much part of a
         //submit as sending it, and a mapper that throws is how a caller reports a
@@ -147,6 +155,7 @@ class Form extends ParsedElement {
             }
             console.warn('failed to submit form', this, 'reason:', e);
         } finally {
+            this.#submitting = false;
             this.spinner(false);
         }
     }
@@ -155,9 +164,10 @@ class Form extends ParsedElement {
         this.form.reset();
     }
     #spinning = 0;
-    /** Shows the spinners and disables the submit buttons, overlapping submits sharing one claim. */
+    /** Shows the spinners and disables the submit buttons, overlapping spins sharing one claim. */
     spinner(spin) {
-        //submits can overlap: only the outermost one saves and restores the button states
+        //spins can overlap (a caller's own spin may wrap a submit): only the
+        //outermost one saves and restores the button states
         if (spin) {
             ++this.#spinning;
             if (this.#spinning !== 1) {

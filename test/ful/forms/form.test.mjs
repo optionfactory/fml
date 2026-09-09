@@ -65,7 +65,7 @@ describe('Form Spinner Button States', () => {
     });
 });
 describe('Form Spinner Button States across overlapping submits', () => {
-    it('saves and restores the button states only once', async () => {
+    it('drops a submit while one is in flight, re-arming once it settles', async () => {
         const releases = [];
         registry.defineComponent('loaders:form', {
             create: () => ({
@@ -96,24 +96,30 @@ describe('Form Spinner Button States across overlapping submits', () => {
         assert.strictEqual(btnEnabled.disabled, true);
         assert.strictEqual(btnDisabled.disabled, true);
 
-        //both submits have to reach the loader before they can be released
+        //the first submit reaches the loader, the re-entrant one is dropped
+        //before extraction: a write must not double behind a racing gesture
         for (let i = 0; i !== 20; ++i) {
             await tick();
         }
-        assert.strictEqual(releases.length, 2, 'both submits are in flight');
+        assert.strictEqual(releases.length, 1, 'one exchange at a time');
+        await second;
+        assert.strictEqual(spinner.hidden, false, 'the dropped submit owns no chrome');
 
         releases[0]();
         await first;
-        assert.strictEqual(spinner.hidden, false, 'the spinner stays shown until the last submit ends');
-        assert.strictEqual(btnEnabled.disabled, true, 'buttons stay disabled until the last submit ends');
-
-        releases[1]();
-        await second;
         assert.strictEqual(spinner.hidden, true);
         assert.strictEqual(btnEnabled.disabled, false);
         assert.strictEqual(btnDisabled.disabled, true, 'an intentionally disabled button stays disabled');
         assert.isUndefined(btnEnabled.dataset.wd);
         assert.isUndefined(btnDisabled.dataset.wd);
+
+        //the settled exchange re-arms the form: a later submit travels again
+        fulForm.submit();
+        for (let i = 0; i !== 20; ++i) {
+            await tick();
+        }
+        assert.strictEqual(releases.length, 2, 'the form submits again once settled');
+        releases[1]();
         container.remove();
     });
 });
