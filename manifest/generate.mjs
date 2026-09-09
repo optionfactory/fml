@@ -15,7 +15,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 //the element classes extend DOM types when the module is evaluated, and the plugin
 //builds an http client that looks for the csrf meta tags: enough of a page to load
 globalThis.HTMLElement = class {};
-globalThis.Storage = class {};
 globalThis.document = {
     querySelector: () => null,
     addEventListener: () => {},

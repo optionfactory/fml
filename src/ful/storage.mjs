@@ -1,17 +1,23 @@
 /**
- * Json values in localStorage: unreachable storage is a miss, never a failure,
- * and a value another writer corrupted is dropped on read.
+ * Builds a json-encoding wrapper over one of the page's storages. The backing
+ * is deferred (an accessor, not the storage itself): where storage is denied
+ * (blocked cookies, some embedded or private contexts) the accessor itself
+ * throws, and must do so per call, never at module load. The methods are bound
+ * to nothing: destructuring keeps them working.
+ * @param {() => globalThis.Storage} backing
  */
-class LocalStorage extends Storage {
-    /** @param {string} k @param {*} v */
-    static save(k, v) {
-        localStorage.setItem(k, JSON.stringify(v));
-    }
-    /** @param {string} k @returns {*|undefined} */
-    static load(k) {
+const storage = (backing) => {
+    const remove = (k) => {
+        try {
+            backing().removeItem(k);
+        } catch {
+            //nothing to remove where storage is unreachable
+        }
+    };
+    const load = (k) => {
         let got;
         try {
-            got = localStorage.getItem(k);
+            got = backing().getItem(k);
         } catch {
             //storage can be unreachable altogether (blocked cookies, embedded or
             //private contexts): a read that cannot reach it is a miss, not a failure
@@ -24,111 +30,43 @@ class LocalStorage extends Storage {
             return JSON.parse(got);
         } catch {
             //not what save wrote: drop it, otherwise every later read fails the same way
-            LocalStorage.remove(k);
+            remove(k);
             return undefined;
         }
-    }
-    /** @param {string} k */
-    static remove(k) {
-        try {
-            localStorage.removeItem(k);
-        } catch {
-            //nothing to remove where storage is unreachable
-        }
-    }
-    /** @param {string} k @returns {*|undefined} */
-    static pop(k) {
-        const decoded = LocalStorage.load(k);
-        LocalStorage.remove(k);
+    };
+    const save = (k, v) => {
+        backing().setItem(k, JSON.stringify(v));
+    };
+    const pop = (k) => {
+        const decoded = load(k);
+        remove(k);
         return decoded;
-    }
-}
+    };
+    return { save, load, remove, pop };
+};
 
 /**
- * Json values in sessionStorage, with the same tolerances as LocalStorage.
+ * Builds a revision-guarded view over a storage wrapper: a load under a
+ * revision other than the stored one is a miss that also evicts the entry.
+ * @param {ReturnType<typeof storage>} store
  */
-class SessionStorage extends Storage {
-    /** @param {string} k @param {*} v */
-    static save(k, v) {
-        sessionStorage.setItem(k, JSON.stringify(v));
-    }
-    /** @param {string} k @returns {*|undefined} */
-    static load(k) {
-        let got;
-        try {
-            got = sessionStorage.getItem(k);
-        } catch {
-            //storage can be unreachable altogether (blocked cookies, embedded or
-            //private contexts): a read that cannot reach it is a miss, not a failure
-            return undefined;
-        }
-        if (got === null) {
-            return undefined;
-        }
-        try {
-            return JSON.parse(got);
-        } catch {
-            //not what save wrote: drop it, otherwise every later read fails the same way
-            SessionStorage.remove(k);
-            return undefined;
-        }
-    }
-    /** @param {string} k */
-    static remove(k) {
-        try {
-            sessionStorage.removeItem(k);
-        } catch {
-            //nothing to remove where storage is unreachable
-        }
-    }
-    /** @param {string} k @returns {*|undefined} */
-    static pop(k) {
-        const decoded = SessionStorage.load(k);
-        SessionStorage.remove(k);
-        return decoded;
-    }
-}
-
-/**
- * A revisioned cache over localStorage: the key holds the data together with
- * the revision it was written under, and a load under any other revision is a
- * miss that also clears the stale entry.
- */
-class VersionedLocalStorage {
-    /** @param {string} key @param {string|number} revision @param {*} data */
-    static save(key, revision, data) {
-        LocalStorage.save(key, { revision, data });
-    }
-    /** @param {string} key @param {string|number} revision @returns {*|undefined} */
-    static load(key, revision) {
-        const stored = LocalStorage.load(key);
+const versioned = (store) => ({
+    save(key, revision, data) {
+        store.save(key, { revision, data });
+    },
+    load(key, revision) {
+        const stored = store.load(key);
         if (stored == null || typeof stored !== 'object' || stored.revision !== revision) {
-            LocalStorage.remove(key);
+            store.remove(key);
             return undefined;
         }
         return stored.data;
-    }
-}
+    },
+});
 
-/**
- * A revisioned cache over sessionStorage: the key holds the data together with
- * the revision it was written under, and a load under any other revision is a
- * miss that also clears the stale entry.
- */
-class VersionedSessionStorage {
-    /** @param {string} key @param {string|number} revision @param {*} data */
-    static save(key, revision, data) {
-        SessionStorage.save(key, { revision, data });
-    }
-    /** @param {string} key @param {string|number} revision @returns {*|undefined} */
-    static load(key, revision) {
-        const stored = SessionStorage.load(key);
-        if (stored == null || typeof stored !== 'object' || stored.revision !== revision) {
-            SessionStorage.remove(key);
-            return undefined;
-        }
-        return stored.data;
-    }
-}
+const LocalStorage = storage(() => localStorage);
+const SessionStorage = storage(() => sessionStorage);
+const VersionedLocalStorage = versioned(LocalStorage);
+const VersionedSessionStorage = versioned(SessionStorage);
 
 export { LocalStorage, VersionedLocalStorage, SessionStorage, VersionedSessionStorage };
