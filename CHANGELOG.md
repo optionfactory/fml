@@ -73,6 +73,13 @@
   - the `--ful-inputs-*` variables are renamed to `--ful-controls-*`, joined by `--ful-controls-height` sizing every control uniformly: it defaults to the native date/time widgets' height (`calc(1.5em + 0.75rem + 2px)`, ~38px), so text inputs grew 2px to match the dates instead of the dates being shrunk. The focus and invalid rings derive from the theme accents through `color-mix`, so retuning `--ful-active-bg`/`--ful-invalid-color` retunes them too. Base theme values are self-contained (and dark-mode aware through `light-dark()` when the page opts into a dark `color-scheme`)
   - item remove buttons are real focusable `<button>`s with a localized `aria-label` instead of icon-font glyphs
   - `ful-input-file`'s default dropzone is themed like the rest of the library (dashed border, theme radius, hover ring, filled drag-over state; was a `5px solid blue` placeholder), and the native `choose file` picker button is restyled as an affix-like leading control of the group. A slotted custom dropzone keeps rendering as plain user content: its wrapper stays unstyled, with a `dragover` attribute toggled on `ful-input-file` as the opt-in styling hook
+- [BUG] ftl: a lone `{` in a templated text node renders as itself: the parser's negative lookahead leaked into the joined parts, so a text carrying interpolations plus a single brace (`cost {{x}} is {high}`) rendered a stray comma (`is {,high}`)
+- [ENH] l10n: `bytes` gained the GiB tier, and a size exactly on a threshold takes the larger unit (1024 is `1KiB`, where it read `1024B`)
+- [ENH] httpc: `fetchJson()` yields `null` on a 204 instead of failing to decode the body the status declares absent
+- [BUG] `ful-local-date` and `ful-instant` render the `default` attribute's text for content that does not parse, like blank content, instead of failing their upgrade on an invalid date
+- [BUG] storage: an unreachable backing (blocked cookies, and the embedded or private contexts where the accessor itself throws) reads as a miss and removes as a no-op instead of failing the caller, so a revisioned `ful-select` still loads its options from the network there; writes keep reporting to their caller
+- [ENH] `ful-input-file`: drops and item removals report through `change` as a picker selection does; programmatic `files`/`value` assignments and the form's reset stay silent, like a native input's
+- [BRK] `ful-form` submits one exchange at a time: a submit while one is in flight is dropped before the values are even extracted, nothing fires and nothing travels, so a second Enter or a programmatic call racing the first cannot double the write; `spinner()` still nests for a caller's own wraps
 
 ### version 8.0.2
 
