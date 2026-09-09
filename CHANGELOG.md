@@ -81,6 +81,7 @@
 - [ENH] `ful-input-file`: drops and item removals report through `change` as a picker selection does; programmatic `files`/`value` assignments and the form's reset stay silent, like a native input's
 - [BRK] `ful-form` submits one exchange at a time: a submit while one is in flight is dropped before the values are even extracted, nothing fires and nothing travels, so a second Enter or a programmatic call racing the first cannot double the write; `spinner()` still nests for a caller's own wraps
 - [ENH] form error mapping: a field error pins on the most specific name its context reaches (deep contexts still catch onto the composite field owning the subtree, which now receives the remaining path as setCustomValidity's second argument to route the problem internally), and a context naming no field reads in the banner instead of vanishing
+- [ENH] `ful-input` decodes its value to a number under `v-type="number"`, an explicit opt in like the select's `k-type`: blank stays null, a value that does not decode is kept as it is, the change detail and the form extraction carry the number, and an undeclared `type` defaults to `number` so the numeric widget rides along (a declared one wins)
 
 ### version 8.0.2
 

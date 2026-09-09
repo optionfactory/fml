@@ -51,6 +51,59 @@ describe('Input placeholder and :placeholder-shown', () => {
         container.remove();
     });
 
+    it('decodes the value to a number under v-type, an explicit opt in', async () => {
+        const [el, container] = await mount(`<ful-input name="a" type="number" v-type="number" value="42">l</ful-input>`);
+
+        assert.strictEqual(el.value, 42);
+
+        el.value = 6.5;
+        assert.strictEqual(el.value, 6.5);
+        assert.strictEqual(el.querySelector('input').value, '6.5');
+
+        el.value = null;
+        assert.isNull(el.value, 'blank stays null, never NaN');
+        container.remove();
+    });
+
+    it('keeps a v-type value that does not decode as it is, like the select keys', async () => {
+        //an explicit text type: the defaulted number widget would sanitize the
+        //garbage away before the getter ever saw it
+        const [el, container] = await mount(`<ful-input name="a" type="text" v-type="number" value="abc">l</ful-input>`);
+
+        assert.strictEqual(el.value, 'abc');
+        container.remove();
+    });
+
+    it('defaults the native type to number under v-type, a declared type winning', async () => {
+        const [defaulted, c1] = await mount(`<ful-input name="a" v-type="number">l</ful-input>`);
+        assert.strictEqual(defaulted.querySelector('input').type, 'number');
+        c1.remove();
+
+        const [declared, c2] = await mount(`<ful-input name="a" type="range" v-type="number">l</ful-input>`);
+        assert.strictEqual(declared.querySelector('input').type, 'range');
+        c2.remove();
+    });
+
+    it('announces the decoded number through change', async () => {
+        const [el, container] = await mount(`<ful-input name="a" type="number" v-type="number">l</ful-input>`);
+        const seen = [];
+        el.addEventListener('change', (evt) => seen.push(evt.detail.value));
+
+        const input = el.querySelector('input');
+        input.value = '7';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+        assert.deepStrictEqual(seen, [7]);
+        container.remove();
+    });
+
+    it('leaves the value a string without the opt in', async () => {
+        const [el, container] = await mount(`<ful-input name="a" type="number" value="42">l</ful-input>`);
+
+        assert.strictEqual(el.value, '42');
+        container.remove();
+    });
+
     //:placeholder-shown only matches on input types that take a placeholder at all,
     //so date, time and file inputs carry the blank one without ever matching
     for (const tag of ['ful-input', 'ful-filter-text']) {

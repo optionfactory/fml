@@ -30,7 +30,9 @@ class Input extends Field {
     `;
     _input;
     _type() {
-        return this.getAttribute('type') ?? 'text';
+        //a numeric value wants the numeric widget (decimal normalization, the
+        //right keyboard): v-type=number defaults the type, a declared one wins
+        return this.getAttribute('type') ?? (this.getAttribute('v-type') === 'number' ? 'number' : 'text');
     }
     _fragment(type, slots) {
         return this.template().withOverlay({ type, slots }).render();
@@ -98,7 +100,16 @@ class Input extends Field {
         const v = this._input.value;
         const uppercased = uppercase ? v.toUpperCase() : v;
         const trimmed = trim ? uppercased.trim() : uppercased;
-        return trimmed === '' ? null : trimmed;
+        if (trimmed === '') {
+            return null;
+        }
+        if (this.getAttribute('v-type') === 'number') {
+            //typed values are an explicit opt in, as the select's k-type: blank
+            //stays null, and a value that does not decode is kept as it is
+            const n = Number(trimmed);
+            return Number.isNaN(n) ? trimmed : n;
+        }
+        return trimmed;
     }
     set value(value) {
         this._input.value = value === '' || value === undefined ? null : value;
