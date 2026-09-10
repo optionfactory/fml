@@ -1,5 +1,6 @@
 import { Attributes, Fragments, ParsedElement, registry, Templates } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
+import { wireAnchoredPopover } from '../disclosures/anchors.mjs';
 import { Field } from './field.mjs';
 import { VersionedLocalStorage } from '../storage.mjs';
 import { Timing } from '../timing.mjs';
@@ -291,19 +292,23 @@ class Dropdown extends ParsedElement {
         //hiding ends the current claim: a search still in flight must neither
         //repopulate the list nor point the combobox at an option of a hidden dropdown
         this.#shows.invalidate();
-        this.setAttribute('hidden', '');
+        if (this.matches(':popover-open')) {
+            this.hidePopover();
+        }
         this.combobox?.removeAttribute('aria-activedescendant');
         this.combobox?.setAttribute('aria-expanded', 'false');
     }
     get shown() {
-        return !this.hasAttribute('hidden');
+        return this.matches(':popover-open');
     }
     async show(loader, keys = []) {
         //each show claims the dropdown: a search resolving after a newer show has
         //started, or after the dropdown was hidden again, is stale, and neither
         //renders nor highlights, whichever order the searches resolve in
         const claim = this.#shows.take();
-        this.removeAttribute('hidden');
+        if (!this.matches(':popover-open')) {
+            this.showPopover();
+        }
         this.#menu.setAttribute('hidden', '');
         this.#spinner.removeAttribute('hidden');
         try {
@@ -366,11 +371,9 @@ class Dropdown extends ParsedElement {
 class Select extends Field {
     static observed = ['value:csvm', 'itemlist:presence'];
     static slots = true;
-    //the dropdown's popover attribute is a selector hook alone (form.css scopes
-    //its focus chrome through [popover]), never shown through showPopover(): the
-    //dropdown's own display:block overrides the UA's closed-popover display:none,
-    //and it deliberately stays out of the top layer, anchored to its control
-    //group at the cost of clipping inside overflow containers
+    //a manual popover: the combobox keeps the focus on its input and owns
+    //the whole lifecycle (typing, arrows, blur, Escape, Tab), so no light
+    //dismiss and no popovertarget invoker; it anchors on its control group
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
@@ -380,7 +383,7 @@ class Select extends Field {
                 <input type="text" form="" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
             </ful-control>
             <ful-affix data-tpl-if="slots.after">{{{{ slots.after }}}}</ful-affix>
-            <ful-dropdown hidden popover="manual">{{{{ slots.dropdown }}}}</ful-dropdown>
+            <ful-dropdown popover="manual">{{{{ slots.dropdown }}}}</ful-dropdown>
         </ful-control-group>
         <ful-item-list></ful-item-list>
         <ful-field-error></ful-field-error>
@@ -433,6 +436,12 @@ class Select extends Field {
 
         this.#ddmenu = fragment.querySelector('ful-dropdown');
         this.#ddmenu.combobox = this.#input;
+        //each pair carries its own anchor: two selects on a page must not share one
+        const group = fragment.querySelector('ful-control-group');
+        const anchor = `--${Attributes.uid('ful-select')}`;
+        group.style.anchorName = anchor;
+        this.#ddmenu.style.positionAnchor = anchor;
+        wireAnchoredPopover(group, this.#ddmenu, { stretch: true });
         this._wireLabel(fragment.querySelector('label'));
         [this.#dload, this.#abortdload] = Timing.throttle(400, () => this.#open());
         this.#wireChrome();

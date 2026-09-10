@@ -71,6 +71,95 @@ describe('Tooltip', () => {
     });
 });
 
+describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
+    //the engine under test carries the anchor css: the supports probe is
+    //stubbed out and the note's position-area neutralized
+    let supports;
+    let area;
+    before(() => {
+        supports = CSS.supports;
+        CSS.supports = () => false;
+        area = document.createElement('style');
+        area.textContent = 'ful-note, .ful-note { position-area: none !important; }';
+        document.head.append(area);
+    });
+    after(() => {
+        CSS.supports = supports;
+        area.remove();
+    });
+
+    it('places the note below the trigger, centered on it', async () => {
+        const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        container.style.marginLeft = '200px';
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+        const b = button.getBoundingClientRect();
+        const n = note.getBoundingClientRect();
+        assert.isAtLeast(Math.round(n.top), Math.round(b.bottom) - 1, 'the note sits below the trigger');
+        assert.closeTo(n.left + n.width / 2, b.left + b.width / 2, 1, 'the note is centered on the trigger');
+
+        button.click();
+        container.remove();
+    });
+
+    it('places the note above the trigger when the placement picks top', async () => {
+        const [tooltip, container] = await mount('<ful-tooltip placement="top">side note</ful-tooltip>');
+        container.style.margin = '200px 0 0 200px';
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+        const b = button.getBoundingClientRect();
+        const n = note.getBoundingClientRect();
+        assert.isAtMost(Math.round(n.bottom), Math.round(b.top) + 1, 'the note sits above the trigger');
+        assert.closeTo(n.left + n.width / 2, b.left + b.width / 2, 1, 'the note is centered on the trigger');
+        container.remove();
+    });
+
+    it("keeps an edge-hugging trigger's note clear of the viewport edge", async () => {
+        const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        container.style.marginLeft = 'calc(100vw - 3rem)';
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+        const n = note.getBoundingClientRect();
+        assert.isAtMost(
+            Math.round(n.right),
+            document.documentElement.clientWidth - 7,
+            'the note stays inside the viewport',
+        );
+        container.remove();
+    });
+
+    it('follows the trigger while the page scrolls', async () => {
+        const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        container.style.marginTop = '300px';
+        const spacer = document.createElement('div');
+        spacer.style.height = '200vh';
+        container.append(spacer);
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+        const before = note.getBoundingClientRect().top;
+        window.scrollBy(0, 100);
+        await settle();
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        assert.closeTo(note.getBoundingClientRect().top, before - 100, 2, 'the note follows its trigger');
+
+        window.scrollTo(0, 0);
+        button.click();
+        container.remove();
+    });
+});
+
 describe('Dialog', () => {
     it('shows the header, the body and the localized acknowledge button', async () => {
         const [dialog, container] = await mount('<ful-dialog header="the header">the body</ful-dialog>');

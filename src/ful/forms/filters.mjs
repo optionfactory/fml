@@ -1,4 +1,5 @@
 import { Attributes, Localization } from '../../ftl/index.mjs';
+import { wireAnchoredPopover } from '../disclosures/anchors.mjs';
 import { Field } from './field.mjs';
 import { Instant } from './temporals.mjs';
 import { Input } from './input.mjs';
@@ -95,6 +96,7 @@ const wireOperatorMenu = (operator) => {
     const anchor = `--${id}`;
     operator.style.anchorName = anchor;
     menu.style.positionAnchor = anchor;
+    wireAnchoredPopover(operator, menu);
     menu.addEventListener('toggle', (evt) => {
         const open = /** @type any */ (evt).newState === 'open';
         operator.setAttribute('aria-expanded', String(open));

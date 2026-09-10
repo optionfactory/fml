@@ -1,5 +1,6 @@
 import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 import { SectionRequests } from '../events/sections.mjs';
+import { wireAnchoredPopover } from './anchors.mjs';
 import { wireTargets } from './targets.mjs';
 
 /** An info icon button toggling a popover with a short explanation. */
@@ -23,6 +24,7 @@ class Tooltip extends ParsedElement {
         const anchor = `--${id}`;
         trigger.style.anchorName = anchor;
         content.style.positionAnchor = anchor;
+        wireAnchoredPopover(trigger, content);
         const placement = this.getAttribute('placement');
         if (placement) {
             content.setAttribute('placement', placement);

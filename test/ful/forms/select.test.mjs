@@ -2093,3 +2093,68 @@ describe('Select attributes during the async render window', () => {
         container.remove();
     });
 });
+
+describe('Select dropdown anchoring', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 20; ++i) {
+            await tick();
+        }
+    };
+    const mount = async () => {
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select></ful-select>`;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+    const open = async (selectEl) => {
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        for (let i = 0; i !== 10; ++i) {
+            await tick();
+        }
+    };
+    const assertAnchored = (selectEl) => {
+        const dd = selectEl.querySelector('ful-dropdown').getBoundingClientRect();
+        const group = selectEl.querySelector('ful-control-group').getBoundingClientRect();
+        assert.isAtLeast(dd.top, group.bottom, 'the dropdown sits below the control group');
+        assert.closeTo(dd.left, group.left, 2, 'the dropdown follows the control group');
+        assert.closeTo(dd.width, group.width, 2, 'the dropdown matches the control group width');
+    };
+
+    beforeEach(() => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async () => [],
+                load: async () => [
+                    ['k1', 'Alpha'],
+                    ['k2', 'Beta'],
+                ],
+            }),
+        });
+    });
+
+    it('anchors on its control group, stretched to its width', async () => {
+        const [selectEl, container] = await mount();
+        await open(selectEl);
+
+        assertAnchored(selectEl);
+        container.remove();
+    });
+
+    it('keeps the same geometry where the platform lacks the anchor css', async () => {
+        const supports = CSS.supports;
+        CSS.supports = () => false;
+        try {
+            const [selectEl, container] = await mount();
+            await open(selectEl);
+
+            assertAnchored(selectEl);
+            container.remove();
+        } finally {
+            CSS.supports = supports;
+        }
+    });
+});

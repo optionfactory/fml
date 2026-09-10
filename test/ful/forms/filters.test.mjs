@@ -1117,3 +1117,48 @@ describe('BooleanFilter interactions', () => {
         container.remove();
     });
 });
+
+describe('Filter menus, where the platform lacks CSS anchor positioning', () => {
+    //the engine under test carries the anchor css: the supports probe is stubbed out
+    let supports;
+    before(() => {
+        supports = CSS.supports;
+        CSS.supports = () => false;
+    });
+    after(() => {
+        CSS.supports = supports;
+    });
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await tick();
+        }
+    };
+
+    it('places the operator menu under its invoker, start-aligned', async () => {
+        const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+
+        button.click();
+        await settle();
+
+        const m = el.querySelector('ul[popover]').getBoundingClientRect();
+        const b = button.getBoundingClientRect();
+        assert.closeTo(m.left, b.left, 1, 'the menu follows its invoker horizontally');
+        assert.isAtLeast(m.top, b.bottom, 'the menu sits below its invoker');
+        container.remove();
+    });
+
+    it('places the boolean value menu under the value button', async () => {
+        const [el, container] = await mount(`<ful-filter-boolean>b</ful-filter-boolean>`);
+        const button = el.querySelector('[data-ref=value]');
+
+        button.click();
+        await settle();
+
+        const m = button.nextElementSibling.getBoundingClientRect();
+        const b = button.getBoundingClientRect();
+        assert.closeTo(m.left, b.left, 1, 'the menu follows its invoker horizontally');
+        assert.isAtLeast(m.top, b.bottom, 'the menu sits below its invoker');
+        container.remove();
+    });
+});

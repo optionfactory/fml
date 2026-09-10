@@ -60,12 +60,12 @@ See `examples/ful/kitchen-sink.html` for a page showing every component in its n
 
 fml targets evergreen browsers from spring 2024. The hard floor is Chrome/Edge 123 (March 2024), Firefox 125 (April 2024) and Safari 17.5 (May 2024), set by the newest platform features the library leans on everywhere: `light-dark()`, the Popover API, `Promise.withResolvers`, `:has()` and native CSS nesting. Below the floor, script or styling fail outright.
 
-Two features degrade instead of breaking, under newer floors of their own:
+One feature degrades instead of breaking under a newer floor of its own, and another carries its own fallback:
 
-- anchored popovers (the tooltip's note, the filter and boolean-value menus) need CSS anchor positioning: Chrome/Edge 129 (September 2024), Safari 26 (September 2025), Firefox 147 (January 2026; Firefox's support is partial against the full specification, but covers the subset fml uses, `anchor-name`, `position-anchor` and `position-area`, the last being Baseline since January 2026). Below these the popovers still open, toggle and light-dismiss, unanchored: the tooltip's note centers in the viewport, and floats as a bottom sheet on phones (below 30rem), lifted clear of the screen edge and the home indicator; the filter menus land at the viewport's top start corner
 - the fields' label and description wiring uses aria element reflection, Baseline since April 2025: an older browser keeps the visible layout intact while assistive technology silently loses the label and description associations
+- anchored popovers (the tooltip's note, the select's dropdown, the filter and boolean-value menus) need CSS anchor positioning: Chrome/Edge 129 (September 2024), Safari 26 (September 2025), Firefox 147 (January 2026; Firefox's support is partial against the full specification, but covers the subset fml uses, `anchor-name`, `position-anchor`, `position-area` — Baseline since January 2026 — `anchor()` and `anchor-size()`). Below these a hand-placed fallback keeps the popovers anchored beside their invoker, and never runs where the css works
 
-On iOS every browser runs the system WebKit, so the floor reads in iOS versions: iOS 17.5 (May 2024) or newer, which every iPhone from the XS/XR (2018) onward can reach; the anchored-popover tier is iOS 26 (September 2025), iPhone 11 (2019) onward, older devices keeping the centered fallback.
+On iOS every browser runs the system WebKit, so the floor reads in iOS versions: iOS 17.5 (May 2024) or newer, which every iPhone from the XS/XR (2018) onward can reach; the anchored popovers fall back to hand placing below iOS 26 (September 2025).
 
 The test suite runs on current Chromium, Firefox and WebKit on every `npm run verify`.
 

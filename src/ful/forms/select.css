@@ -1,6 +1,10 @@
 *:has(> ful-control-group > ful-dropdown) {
     cursor: pointer;
 
+    & > ful-control-group {
+        anchor-name: --ful-select;
+    }
+
     &:not([itemlist]) > ful-item-list {
         display: none;
     }
@@ -83,18 +87,21 @@ ful-dropdown {
     --ful-dropdown-scrollbar-bg: var(--ful-scrollbar-bg);
     --ful-dropdown-scrollbar-thumb-bg: var(--ful-scrollbar-thumb-bg);
 
-    display: block;
-    position: absolute;
-    z-index: 1000;
+    position-anchor: --ful-select;
     padding: 0.5rem 0;
-    top: 100%;
-    margin-top: 0.3rem;
+    margin: 0.3rem 0 0;
 
     background-color: var(--ful-dropdown-background-color);
     background-clip: padding-box;
     border: var(--ful-dropdown-border-width) solid var(--ful-dropdown-border-color);
     border-radius: var(--ful-dropdown-border-radius);
-    width: 100%;
+
+    &:popover-open {
+        display: block;
+        top: anchor(bottom);
+        left: anchor(left);
+        width: anchor-size(width);
+    }
 
     p[data-ref="empty"] {
         margin: 0;
