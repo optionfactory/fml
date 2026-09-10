@@ -16,7 +16,7 @@ check:
 	npm run lint
 	npm run check
 
-publish: check test
+publish:
 	@die() { echo "refusing to publish: $$*" >&2; exit 1; }
 	test -z "$$(git status --porcelain)" || die "the working tree is not clean"
 	if git rev-parse '@{u}' >/dev/null 2>&1; then

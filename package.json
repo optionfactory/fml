@@ -55,7 +55,7 @@
         "format": "biome format --write .",
         "clean": "rm -rf dist && npm prune",
         "clean:deps": "rm -rf node_modules && rm -rf coverage",
-        "test": "node -e \"fs.rmSync('coverage', { recursive: true, force: true })\" && wtr --config test/web-test-runner.config.mjs",
+        "test": "rm -rf coverage && wtr --config test/web-test-runner.config.mjs",
         "test:manual": "npm run test -- --manual",
         "test:watch": "npm run test -- --watch",
         "manifest": "node manifest/generate.mjs"
