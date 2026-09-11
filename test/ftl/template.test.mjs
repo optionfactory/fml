@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Template, Fragments, ExpressionEvaluator } from '../../src/ftl/index.mjs';
+import { Template, Fragments, ExpressionEvaluator, RenderError } from '../../src/ftl/index.mjs';
 
 const modules = {
     math: {
@@ -464,7 +464,7 @@ describe('Template', () => {
         assert.isDefined(caught, 'Should have thrown');
         assert.strictEqual(
             caught.message,
-            'Error rendering template in `<div id="container"><span>something ignored</span><div data-tpl-each="self">{{self.boom()}}</div></div>`',
+            'Error evaluating data-tpl-each="self" in `<div>`',
         );
     });
     it('can show error for text nodes', () => {
@@ -481,7 +481,7 @@ describe('Template', () => {
             caught = ex;
         }
         assert.isDefined(caught, 'Should have thrown');
-        assert.strictEqual(caught.message, 'Error rendering template in `{{self.boom()}}`');
+        assert.strictEqual(caught.message, 'Error evaluating text node in `{{self.boom()}}`');
     });
     it('can scope variables using *-with and *-var', () => {
         const data = { user: { name: 'Alice' } };
@@ -509,11 +509,77 @@ describe('Template', () => {
             template.render();
             assert.fail('Should have thrown an error');
         } catch (ex) {
-            assert.match(ex.message, /Error rendering template/);
-            assert.match(ex.cause.message, /Error evaluating command tplEach/);
-            assert.match(ex.cause.cause.message, /Expected an iterable/);
+            //one frame per nesting level, naming the directive and its expression
+            assert.strictEqual(ex.message, 'Error evaluating data-tpl-each="nonIterable" in `<div>`');
+            assert.match(ex.cause.message, /Expected an iterable/);
+            assert.isUndefined(ex.cause.cause, 'no frame wraps the root cause again');
         }
     });
+    it('frames the path from the outermost nesting down to the failure', () => {
+        const template = Template.fromHtml(
+            `<section data-tpl-with="outer">
+                <ul data-tpl-each="rows">
+                    <li data-tpl-if="self.boom()">x</li>
+                </ul>
+            </section>`,
+            modules,
+            { outer: { rows: [1] } },
+        );
+
+        try {
+            template.render();
+            assert.fail('Should have thrown');
+        } catch (ex) {
+            const chain = [];
+            for (let e = ex; e; e = e.cause) {
+                chain.push(e.message);
+            }
+            assert.deepStrictEqual(
+                chain.slice(0, 3),
+                [
+                    'Error evaluating data-tpl-with="outer" in `<section>`',
+                    'Error evaluating data-tpl-each="rows" in `<ul>`',
+                    'Error evaluating data-tpl-if="self.boom()" in `<li>`',
+                ],
+                'outer to inner, one frame per nesting level',
+            );
+            assert.match(chain[chain.length - 1], /Method missing|boom/);
+            assert.notInclude(ex.message, '<li', 'a frame names its node, it does not carry the subtree');
+        }
+    });
+
+    it('spends a frame budget rather than growing the chain with the nesting', () => {
+        const depth = RenderError.FRAMES + 3;
+        const open = Array.from({ length: depth }, () => '<div data-tpl-with="self">').join('');
+        const close = '</div>'.repeat(depth);
+        const template = Template.fromHtml(`${open}{{ self.boom() }}${close}`, modules, {});
+
+        try {
+            template.render();
+            assert.fail('Should have thrown');
+        } catch (ex) {
+            let frames = 0;
+            for (let e = ex; e instanceof RenderError; e = e.cause) {
+                frames++;
+            }
+            assert.strictEqual(frames, RenderError.FRAMES, 'the budget caps the frames');
+            assert.isTrue(ex.truncated, 'and says the outer context was dropped');
+        }
+    });
+
+    it('serializes the offending node only when asked', () => {
+        const template = Template.fromHtml('<div id="host" data-tpl-each="nope">deep</div>', modules, { nope: 1 });
+
+        try {
+            template.render();
+            assert.fail('Should have thrown');
+        } catch (ex) {
+            assert.strictEqual(ex.message, 'Error evaluating data-tpl-each="nope" in `<div id="host">`');
+            assert.include(ex.html, 'deep', 'the markup is there for whoever wants it');
+            assert.strictEqual(ex.node.id, 'host', 'and the live node, not a clone');
+        }
+    });
+
     it('can filter rendering with *-when directives', () => {
         const data = { ok: true };
         const template = Template.fromHtml(
@@ -688,8 +754,7 @@ describe('Template', () => {
             template.render();
             assert.fail('Should have thrown an error');
         } catch (ex) {
-            assert.match(ex.message, /Error rendering template/);
-            assert.match(ex.cause.message, /Error evaluating command tplCustom/);
+            assert.strictEqual(ex.message, 'Error evaluating data-tpl-custom="boom()" in `<div>`');
         }
     });
 

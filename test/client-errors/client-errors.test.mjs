@@ -64,6 +64,44 @@ describe('client errors reporting', () => {
         expect(body.stack).to.be.an('array');
     });
 
+    it('reports the cause chain, which neither the message nor the stack carries', async () => {
+        //a framed error says where it surfaced; the context is on `cause`, and a
+        //stack does not include it, so without walking it the report is useless
+        const root = new Error('Method missing "boom"');
+        const inner = new Error('Error evaluating data-tpl-if="self.boom()" in `<li>`', { cause: root });
+        const outer = new Error('Error evaluating data-tpl-each="rows" in `<ul>`', { cause: inner });
+        reject(outer);
+        await settle();
+
+        const body = JSON.parse(calls[0].init.body);
+        expect(body.message.split('\n')).to.deep.equal([
+            'Error evaluating data-tpl-each="rows" in `<ul>`',
+            'Caused by: Error evaluating data-tpl-if="self.boom()" in `<li>`',
+            'Caused by: Method missing "boom"',
+        ]);
+    });
+
+    it('says so when a chain dropped its outer frames', async () => {
+        const truncated = new Error('Error evaluating data-tpl-if="x" in `<li>`');
+        /** @type any */ (truncated).truncated = true;
+        reject(truncated);
+        await settle();
+
+        const body = JSON.parse(calls[0].init.body);
+        expect(body.message).to.contain('outer frames omitted');
+    });
+
+    it('stops at a cause cycle instead of looping', async () => {
+        const a = new Error('a');
+        const b = new Error('b', { cause: a });
+        /** @type any */ (a).cause = b;
+        reject(b);
+        await settle();
+
+        const body = JSON.parse(calls[0].init.body);
+        expect(body.message.split('\n').length).to.be.at.most(6);
+    });
+
     it('does not report the failure of its own report', async () => {
         reject(new Error('nope'));
         await settle();

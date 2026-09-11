@@ -55,13 +55,26 @@ function ful_report_error(evt) {
         if (evt.message) {
             return evt.message;
         }
-        if (evt.reason?.message) {
-            return evt.reason.message;
+        const thrown = evt.reason ?? evt.error;
+        if (!thrown?.message) {
+            return undefined;
         }
-        if (evt.error?.message) {
-            return evt.error.message;
+        // a thrown error carries its context on `cause`, which neither the message
+        // nor the stack includes: without walking it the report says where the
+        // failure surfaced and never what caused it
+        const parts = [];
+        const seen = [];
+        for (let e = thrown; e && parts.length < 6 && seen.indexOf(e) === -1; e = e.cause) {
+            seen.push(e);
+            if (!e.message) {
+                break;
+            }
+            parts.push(parts.length === 0 ? e.message : `Caused by: ${e.message}`);
         }
-        return undefined;
+        if (thrown.truncated) {
+            parts.push('Caused by: … outer frames omitted');
+        }
+        return parts.join('\n');
     }
 
     var uri = configured_report_uri();

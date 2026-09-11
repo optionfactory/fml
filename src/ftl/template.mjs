@@ -375,7 +375,7 @@ class Template {
                     try {
                         CommandsHandler.textNode(node, node.nodeValue, ops, this.#evaluator);
                     } catch (ex) {
-                        throw new RenderError('Error evaluating text node', node, ex);
+                        throw RenderError.wrap('Error evaluating text node', node, ex);
                     }
                     continue;
                 }
@@ -388,7 +388,9 @@ class Template {
                     try {
                         CommandsHandler[command](el, value, ops, this.#evaluator);
                     } catch (ex) {
-                        throw new RenderError(`Error evaluating command ${command}`, el, ex);
+                        //the directive is popped before it runs, so the open tag no
+                        //longer carries it: the frame names it and its expression
+                        throw RenderError.wrap(`Error evaluating data-tpl-${toAttr(command)}="${value}"`, el, ex);
                     }
                     if (ops.removed(el)) {
                         break;
@@ -399,8 +401,8 @@ class Template {
                         continue;
                     }
                     const attributeName = toAttr(dataSetKey);
+                    const expression = ops.popData(el, dataSetKey);
                     try {
-                        const expression = ops.popData(el, dataSetKey);
                         const evaluated = this.#evaluator.evaluateExpression(expression);
                         if (typeof evaluated === 'boolean') {
                             el.toggleAttribute(attributeName, evaluated);
@@ -410,13 +412,21 @@ class Template {
                             el.setAttribute(attributeName, evaluated);
                         }
                     } catch (ex) {
-                        throw new RenderError(`Error evaluating command ${dataSetKey}`, el, ex);
+                        throw RenderError.wrap(`Error evaluating data-tpl-${toAttr(dataSetKey)}="${expression}"`, el, ex);
                     }
                 }
             }
             ops.cleanup();
             return fragment;
         } catch (ex) {
+            //a command, a text node or a nested render already named the node it
+            //failed on: wrapping again would add a frame for the fragment that
+            //contains it, one per level, serializing the whole template into the
+            //message that survives. Only a failure outside those doors is framed
+            //here
+            if (ex instanceof RenderError) {
+                throw ex;
+            }
             throw new RenderError('Error rendering template', this.#fragment, ex);
         }
     }
@@ -469,11 +479,77 @@ class Template {
     }
 }
 
+/**
+ * A render failure, one frame per nesting level. Each frame names the node it
+ * failed on and what was being evaluated there, so the chain reads as the path
+ * from the template's root down to the offending expression. The frame carries
+ * the node's identification only, an open tag rather than its whole subtree:
+ * the markup is serialized on demand through `html`, and the live node stays on
+ * `node`, so a failure costs no clone and a nested failure does not embed the
+ * page in its own message.
+ */
 class RenderError extends Error {
+    /**
+     * How many frames a chain keeps. The innermost are the specific ones, so a
+     * deeper nesting drops the outer context rather than the failure site: three
+     * frames name the offending node and the two levels that hold it, which is
+     * the path a reader follows without the page arriving with it.
+     */
+    static FRAMES = 3;
+    #node;
+    #depth;
+    /** true when the budget dropped the outer frames of this chain */
+    truncated = false;
+    /**
+     * Frames a failure, unless the chain already spent its budget: then the
+     * cause travels on, marked so a report can say the outer context was
+     * dropped.
+     */
+    static wrap(message, nodeOrFragment, cause) {
+        if (cause instanceof RenderError && cause.depth >= RenderError.FRAMES) {
+            cause.truncated = true;
+            return cause;
+        }
+        return new RenderError(message, nodeOrFragment, cause);
+    }
     constructor(message, nodeOrFragment, cause) {
-        super(`${message} in \`${RenderError.stringify(nodeOrFragment)}\``, { cause });
+        super(`${message} in \`${RenderError.describe(nodeOrFragment)}\``, { cause });
         this.name = 'RenderError';
-        this.node = nodeOrFragment.cloneNode(true);
+        this.#node = nodeOrFragment;
+        this.#depth = (cause instanceof RenderError ? cause.depth : 0) + 1;
+    }
+    /** How many frames this chain carries, this one included. */
+    get depth() {
+        return this.#depth;
+    }
+    /** The node the render failed on, live: it keeps its place in the fragment being built. */
+    get node() {
+        return this.#node;
+    }
+    /** The node's markup, serialized when asked for rather than on every failure. */
+    get html() {
+        return RenderError.stringify(this.#node);
+    }
+    /**
+     * What identifies a node in a frame: an element by its open tag, a text node
+     * by its source, a fragment by the open tags of the elements it holds.
+     */
+    static describe(nodeOrFragment) {
+        if (nodeOrFragment.nodeType === Node.TEXT_NODE) {
+            return RenderError.#ellipsize(String(nodeOrFragment.nodeValue).trim());
+        }
+        if (nodeOrFragment.nodeType === Node.ELEMENT_NODE) {
+            const el = /** @type Element */ (nodeOrFragment);
+            const attrs = Array.from(el.attributes, (a) => ` ${a.name}="${a.value}"`).join('');
+            return RenderError.#ellipsize(`<${el.localName}${attrs}>`);
+        }
+        const children = Array.from(nodeOrFragment.childNodes)
+            .filter((n) => n.nodeType === Node.ELEMENT_NODE || String(n.nodeValue ?? '').trim().length > 0)
+            .map((n) => RenderError.describe(n));
+        return RenderError.#ellipsize(children.join(''));
+    }
+    static #ellipsize(text) {
+        return text.length > 120 ? `${text.slice(0, 120)}…` : text;
     }
     static stringify(nodeOrFragment) {
         const t = document.createElement('template');
