@@ -6,6 +6,8 @@
  * the work alone.
  */
 
+import { Attributes } from '../../ftl/index.mjs';
+
 /** the viewport's breathing room when clamping, in pixels */
 const PAD = 8;
 const open = new Map();
@@ -98,7 +100,28 @@ const schedule = () => {
  * asked, and cleaned up when it closes. Where the css works the call
  * is a no-op.
  */
-const wireAnchoredPopover = (invoker, popover, { stretch = false } = {}) => {
+const wireAnchoredPopover = (
+    invoker,
+    popover,
+    { prefix = 'ful-anchor', invoke = false, expanded = false, stretch = false } = {},
+) => {
+    const uid = Attributes.uid(prefix);
+    if (invoke) {
+        //popovertarget needs a target that can be named
+        popover.id = popover.id || uid;
+        invoker.setAttribute('popovertarget', popover.id);
+    }
+    const anchor = `--${uid}`;
+    invoker.style.anchorName = anchor;
+    popover.style.positionAnchor = anchor;
+    if (expanded) {
+        invoker.setAttribute('aria-expanded', 'false');
+        popover.addEventListener('toggle', (/** @type any */ evt) => {
+            invoker.setAttribute('aria-expanded', evt.newState === 'open' ? 'true' : 'false');
+        });
+    }
+    //the naming above is what the stylesheet reads, so it happens either way:
+    //only the hand placement below is the fallback
     if (platformAnchors()) {
         return;
     }

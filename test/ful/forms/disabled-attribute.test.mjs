@@ -197,28 +197,16 @@ describe('The disabled attribute after the upgrade', () => {
             static slots = true;
             static template = '<label>{{{{ slots.default }}}}</label><input form="">';
             #input;
-            render({ slots, observed }) {
+            _build({ slots }) {
                 const fragment = this.template().withOverlay({ slots }).render();
                 this.#input = fragment.querySelector('input');
-                this._adopt(this.#input, null);
-                this.disabled = observed.disabled;
-                this.readonly = observed.readonly;
-                this.required = observed.required;
-                this.value = observed.value;
-                this.replaceChildren(fragment);
+                return { fragment, control: this.#input, error: null };
             }
             get value() {
                 return this.#input.value === '' ? null : this.#input.value;
             }
             set value(v) {
                 this.#input.value = v ?? '';
-            }
-            get disabled() {
-                return super.disabled;
-            }
-            set disabled(d) {
-                super.disabled = d;
-                this.#input.toggleAttribute('disabled', d);
             }
         }
         registry.defineElement('x-test-field', TestField);
@@ -254,10 +242,9 @@ describe('The disabled attribute after the upgrade', () => {
         class BareField extends Field {
             static slots = true;
             static template = '<label>{{{{ slots.default }}}}</label><input form="">';
-            render({ slots }) {
+            _build({ slots }) {
                 const fragment = this.template().withOverlay({ slots }).render();
-                this._adopt(fragment.querySelector('input'), null);
-                this.replaceChildren(fragment);
+                return { fragment, control: fragment.querySelector('input'), error: null };
             }
         }
         registry.defineElement('x-bare-field', BareField);

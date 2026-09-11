@@ -407,7 +407,7 @@ class Select extends Field {
     #editing = false;
     #dload;
     #abortdload;
-    async render({ slots, observed }) {
+    async _build({ slots }) {
         const name = this.getAttribute('name');
         this.#loader = registry
             .component(this.getAttribute('loader') ?? 'loaders:select')
@@ -425,30 +425,24 @@ class Select extends Field {
         this.#itemstemplate =
             slots.items && !Fragments.isBlank(slots.items) ? Templates.fromFragment(slots.items) : null;
         Attributes.forward('input-', this, this.#input);
-        this._adopt(this.#input, fragment.querySelector('ful-field-error'));
         this.#control = fragment.querySelector('ful-control');
-
-        this.value = observed.value;
-        this.disabled = observed.disabled;
-        this.readonly = observed.readonly;
-        this.required = observed.required;
-        this.itemlist = observed.itemlist;
 
         this.#ddmenu = fragment.querySelector('ful-dropdown');
         this.#ddmenu.combobox = this.#input;
         //each pair carries its own anchor: two selects on a page must not share one
         const group = fragment.querySelector('ful-control-group');
-        const anchor = `--${Attributes.uid('ful-select')}`;
-        group.style.anchorName = anchor;
-        this.#ddmenu.style.positionAnchor = anchor;
-        wireAnchoredPopover(group, this.#ddmenu, { stretch: true });
-        this._wireLabel(fragment.querySelector('label'));
+        wireAnchoredPopover(group, this.#ddmenu, { prefix: 'ful-select', stretch: true });
         [this.#dload, this.#abortdload] = Timing.throttle(400, () => this.#open());
         this.#wireChrome();
         this.#wireChips();
         this.#wireInput();
         this.#wireSelection();
-        this.replaceChildren(fragment);
+        return {
+            fragment,
+            control: this.#input,
+            error: fragment.querySelector('ful-field-error'),
+            label: fragment.querySelector('label'),
+        };
     }
     /**
      * Pointer interaction: the element toggles the dropdown, the item list's
@@ -847,16 +841,6 @@ class Select extends Field {
             return selection;
         }
         return selection[0] ?? null;
-    }
-    get disabled() {
-        return super.disabled;
-    }
-    set disabled(d) {
-        super.disabled = d;
-        //the inner control carries the claim as a native input would: a disabled
-        //fieldset ancestry is left to the browser, which reaches the inner control
-        //as a descendant of the fieldset and re-enables it on its own
-        this.#input.toggleAttribute('disabled', d);
     }
     #useItemlist;
     get itemlist() {

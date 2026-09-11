@@ -5,7 +5,6 @@ ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) {
 
     & > button[data-ref="operator"],
     & > button[data-ref="sensitivity"] {
-        anchor-name: --ful-filter-operator;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -73,7 +72,6 @@ ful-control-group > ful-control > input:focus {
 }
 
 ful-control-group > button[data-ref="value"] {
-    anchor-name: --ful-filter-operator;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -108,7 +106,6 @@ ful-control-group > button[data-ref="value"]:disabled {
 
 ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) > ul[popover],
 ful-control-group > button[data-ref="value"] + ul[popover] {
-    position-anchor: --ful-filter-operator;
     top: anchor(bottom);
     left: anchor(left);
     margin: 0.3rem 0 0;

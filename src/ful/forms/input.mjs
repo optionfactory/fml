@@ -34,17 +34,12 @@ class Input extends Field {
         //right keyboard): v-type=number defaults the type, a declared one wins
         return this.getAttribute('type') ?? (this.getAttribute('v-type') === 'number' ? 'number' : 'text');
     }
-    _fragment(type, slots) {
-        return this.template().withOverlay({ type, slots }).render();
-    }
-    render({ slots, observed, skipObservedSetup }) {
+    _build({ slots }) {
         const type = this._type();
-        const fragment = this._fragment(type, slots);
+        const fragment = this.template().withOverlay({ type, slots }).render();
         this._input = fragment.querySelector('input,textarea');
 
         Attributes.forward('input-', this, this._input);
-        this._adopt(this._input, fragment.querySelector('ful-field-error'));
-        this._wireLabel(fragment.querySelector('label'));
         this._input.addEventListener('keydown', (evt) => {
             //a file field's Enter opens the picker, as a native file input's would,
             //and never submits
@@ -83,16 +78,12 @@ class Input extends Field {
             evt.stopPropagation();
             this._notifyChange();
         });
-        this.replaceChildren(fragment);
-        if (!skipObservedSetup) {
-            // biome-ignore lint/complexity/noUselessThisAlias: keeps checkJs from seeing these as class fields
-            const el = this;
-            el.disabled = observed.disabled;
-            el.readonly = observed.readonly;
-            el.required = observed.required;
-            el.placeholder = observed.placeholder;
-            el.value = observed.value;
-        }
+        return {
+            fragment,
+            control: this._input,
+            error: fragment.querySelector('ful-field-error'),
+            label: fragment.querySelector('label'),
+        };
     }
     get value() {
         const uppercase = this.hasAttribute('uppercase');
@@ -113,19 +104,6 @@ class Input extends Field {
     }
     set value(value) {
         this._input.value = value === '' || value === undefined ? null : value;
-    }
-    get disabled() {
-        return super.disabled;
-    }
-    set disabled(d) {
-        super.disabled = d;
-        if (!this._input) {
-            return;
-        }
-        //the inner control carries the claim as a native input would: a disabled
-        //fieldset ancestry is left to the browser, which reaches the inner control
-        //as a descendant of the fieldset and re-enables it on its own
-        this._input.toggleAttribute('disabled', d);
     }
     get placeholder() {
         const v = this._input.getAttribute('placeholder');

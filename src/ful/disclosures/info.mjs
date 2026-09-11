@@ -1,4 +1,4 @@
-import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { ParsedElement } from '../../ftl/index.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 import { wireAnchoredPopover } from './anchors.mjs';
 import { wireTargets } from './targets.mjs';
@@ -17,21 +17,11 @@ class Tooltip extends ParsedElement {
         const fragment = this.template().withOverlay({ slots }).render();
         const trigger = fragment.querySelector('[data-ref=trigger]');
         const content = fragment.querySelector('[data-ref=content]');
-        const id = Attributes.uid('ful-tooltip');
-        trigger.setAttribute('popovertarget', id);
-        trigger.setAttribute('aria-expanded', 'false');
-        content.id = id;
-        const anchor = `--${id}`;
-        trigger.style.anchorName = anchor;
-        content.style.positionAnchor = anchor;
-        wireAnchoredPopover(trigger, content);
+        wireAnchoredPopover(trigger, content, { prefix: 'ful-tooltip', invoke: true, expanded: true });
         const placement = this.getAttribute('placement');
         if (placement) {
             content.setAttribute('placement', placement);
         }
-        content.addEventListener('toggle', (/** @type any */ e) => {
-            trigger.setAttribute('aria-expanded', e.newState === 'open' ? 'true' : 'false');
-        });
         this.replaceChildren(fragment);
     }
 }

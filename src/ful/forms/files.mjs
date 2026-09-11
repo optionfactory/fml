@@ -47,26 +47,13 @@ class InputFile extends Input {
         `,
         warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`,
     };
-    render(conf) {
-        const { observed } = conf;
-        super.render({ ...conf, skipObservedSetup: true });
-        this.#items = this.querySelector('ful-item-list');
-        this.#dropzone = this.querySelector('[data-ref=dropzone]');
-        this.#warnings = this.querySelector('ful-field-warnings');
-        this.#group = this.querySelector('ful-control-group');
-        this.accept = observed.accept;
-        this.multiple = observed.multiple;
-        this.itemlist = observed.itemlist;
-        this.dropzone = observed.dropzone;
-        this.maxfiles = observed.maxfiles;
-        this.maxfilesize = observed.maxfilesize;
-        this.maxtotalsize = observed.maxtotalsize;
-
-        this.disabled = conf.observed.disabled;
-        this.readonly = observed.readonly;
-        this.required = observed.required;
-        this.placeholder = observed.placeholder;
-        this.value = observed.value;
+    _build(conf) {
+        const pieces = super._build(conf);
+        const fragment = pieces.fragment;
+        this.#items = fragment.querySelector('ful-item-list');
+        this.#dropzone = fragment.querySelector('[data-ref=dropzone]');
+        this.#warnings = fragment.querySelector('ful-field-warnings');
+        this.#group = fragment.querySelector('ful-control-group');
         this.#warnings.addEventListener('animationend', (e) => {
             e.target.remove();
         });
@@ -131,21 +118,15 @@ class InputFile extends Input {
         this._input.addEventListener('change', (e) => {
             this.#update();
         });
+        //a file input has no native freeze: readOnly does nothing to it, so the
+        //control group goes inert, the only way to keep the picker shut
+        return { ...pieces, freeze: this.#group };
     }
     /**
      * A file input has no native freeze: readOnly does nothing to it, so the
      * control group goes inert, the only way to keep the picker shut. The
      * dropzone and the item removals are guarded on their own handlers.
      */
-    get readonly() {
-        return this.#group.inert;
-    }
-    set readonly(v) {
-        this.#group.inert = v;
-        this.reflect(() => {
-            this.toggleAttribute('readonly', v);
-        });
-    }
     #update() {
         this.setCustomValidity();
         this.#warnings.replaceChildren();

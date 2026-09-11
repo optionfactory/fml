@@ -15,63 +15,41 @@ class Checkbox extends Field {
     `;
     #container;
     #input;
-    render({ slots, observed }) {
+    _build({ slots, observed }) {
         const isSwitch = this.getAttribute('type') === 'switch';
         const fragment = this.template().withOverlay({ slots, isSwitch }).render();
         this.#container = fragment.firstElementChild;
         this.#input = fragment.querySelector('input');
         Attributes.forward('input-', this, this.#input);
-        this._adopt(this.#input, fragment.querySelector('ful-field-error'));
-        this.disabled = observed.disabled;
-        this.readonly = observed.readonly;
-        this.required = observed.required;
-        this.value = observed.value;
         this.#input.addEventListener('change', (evt) => {
             evt.stopPropagation();
             this._notifyChange();
         });
         const label = fragment.querySelector('label');
-        this._wireA11y(label);
+        //the label neither wraps the input nor targets it, so the toggle is the
+        //field's; the base adds the focus
         label.addEventListener('click', () => {
-            this.focus();
             if (!this._interactive()) {
                 return;
             }
             this.value = !this.value;
             this._notifyChange();
         });
-        this.replaceChildren(fragment);
+        //a checkbox has no editable text to preserve: readonly freezes the whole
+        //choice, label click included, so the container inerts
+        return {
+            fragment,
+            control: this.#input,
+            error: fragment.querySelector('ful-field-error'),
+            label,
+            freeze: this.#container,
+        };
     }
     get value() {
         return this.#input.checked;
     }
     set value(value) {
         this.#input.checked = value;
-    }
-    //a checkbox has no editable text to preserve: readonly freezes the whole
-    //choice, label click included, so the container inerts instead of the base's
-    //native readOnly
-    get readonly() {
-        return this.#container.inert;
-    }
-    set readonly(v) {
-        this.#container.inert = v;
-        this.reflect(() => {
-            this.toggleAttribute('readonly', v);
-        });
-    }
-    get disabled() {
-        return super.disabled;
-    }
-    set disabled(d) {
-        super.disabled = d;
-        if (!this.#input) {
-            return;
-        }
-        //the inner control carries the claim as a native input would: a disabled
-        //fieldset ancestry is left to the browser, which reaches the inner control
-        //as a descendant of the fieldset and re-enables it on its own
-        this.#input.toggleAttribute('disabled', d);
     }
 }
 

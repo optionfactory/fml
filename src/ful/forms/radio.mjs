@@ -30,7 +30,11 @@ class RadioGroup extends Field {
     #fieldset;
     #firstRadio;
     #booleanType;
-    render({ slots, observed }) {
+    /**
+     * @param {{slots: any, observed: Record<string, any>}} conf
+     * @returns {any}
+     */
+    _build({ slots, observed }) {
         const name = this.getAttribute('name') ?? Attributes.uid('ful-radiogroup');
         const radioEls = Array.from(slots.default.querySelectorAll('ful-radio'));
         const inputsAndLabels = radioEls.map((el) => {
@@ -51,19 +55,23 @@ class RadioGroup extends Field {
         radioEls.forEach((el) => {
             el.remove();
         });
-        this.template().withOverlay({ name, slots, inputsAndLabels }).renderTo(this);
-        this.#fieldset = this.firstElementChild;
-        this.disabled = observed.disabled;
-        this.readonly = observed.readonly;
-        this.required = observed.required;
-        this.value = observed.value;
-        //the host itself is described: there is no single control to name, the
-        //legend is a fieldset's own label
-        const fieldError = /** @type HTMLElement */ (this.querySelector('ful-field-error'));
-        this.ariaDescribedByElements = [fieldError];
-        this.#firstRadio = this.querySelector('input[type=radio]');
-        this._adopt(this.#firstRadio, fieldError);
+        const fragment = this.template().withOverlay({ name, slots, inputsAndLabels }).render();
+        this.#fieldset = /** @type HTMLElement */ (fragment.firstElementChild);
+        this.#firstRadio = fragment.querySelector('input[type=radio]');
         this.#booleanType = this.getAttribute('type') === 'boolean';
+        //the group claims through its own fieldset, which carries disabled like a
+        //native control, inerts for readonly (radios have no editable text to
+        //preserve) and announces the requirement; focus stays on the first radio,
+        //and the host itself is described, there being no single control to name
+        //and the legend being a fieldset's own label
+        return {
+            fragment,
+            control: this.#firstRadio,
+            error: fragment.querySelector('ful-field-error'),
+            described: this,
+            claims: this.#fieldset,
+            freeze: this.#fieldset,
+        };
     }
     get value() {
         /** @type {HTMLInputElement|null} */
@@ -90,41 +98,6 @@ class RadioGroup extends Field {
             return;
         }
         el.checked = true;
-    }
-    //radios have no editable text to preserve: readonly freezes the whole group,
-    //so the fieldset inerts instead of the base's native readOnly
-    get readonly() {
-        return this.#fieldset.inert;
-    }
-    set readonly(v) {
-        this.#fieldset.inert = v;
-        this.reflect(() => {
-            this.toggleAttribute('readonly', v);
-        });
-    }
-    get disabled() {
-        return super.disabled;
-    }
-    set disabled(d) {
-        super.disabled = d;
-        if (!this.#fieldset) {
-            return;
-        }
-        //the group disables through its own fieldset, which carries the claim like
-        //a native input would: a disabled outer ancestry is left to the browser,
-        //which reaches the radios as descendants and re-enables them on its own
-        this.#fieldset.disabled = d;
-    }
-    //the announcement lives on the group's fieldset, not on the first radio the
-    //base would reach
-    get required() {
-        return this.#fieldset.getAttribute('aria-required') === 'true';
-    }
-    set required(d) {
-        Attributes.set(this.#fieldset, 'aria-required', d ? 'true' : null);
-        this.reflect(() => {
-            this.toggleAttribute('required', d);
-        });
     }
 }
 

@@ -62,17 +62,11 @@ class Instant extends ParsedElement {
 
 /** A date input whose bounds accept a date, now, or an offset such as +1d. */
 class InputLocalDate extends Input {
-    static observed = ['min', 'max', 'step'];
+    //declaration order is the application order: step first, since on a time
+    //input min and max are snapped to its grid
+    static observed = ['step', 'min', 'max'];
     _type() {
         return 'date';
-    }
-    render(conf) {
-        const { observed } = conf;
-        super.render(conf);
-        //step first: on a time input min and max are snapped to its grid
-        this.step = observed.step;
-        this.min = observed.min;
-        this.max = observed.max;
     }
     get min() {
         const v = this._input.min;
@@ -195,16 +189,11 @@ class InputLocalTime extends InputLocalDate {
 
 /** A datetime input whose value is read and written as an ISO instant. */
 class InputInstant extends Input {
-    static observed = ['min', 'max', 'step'];
+    //declaration order is the application order: step first, since on a time
+    //input min and max are snapped to its grid
+    static observed = ['step', 'min', 'max'];
     _type() {
         return 'datetime-local';
-    }
-    render(conf) {
-        const { observed } = conf;
-        super.render(conf);
-        this.min = observed.min;
-        this.max = observed.max;
-        this.step = observed.step;
     }
     get value() {
         return Instant.localToIso(this._input.value);
