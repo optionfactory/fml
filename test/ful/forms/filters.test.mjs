@@ -910,6 +910,24 @@ describe('Filter readonly and disabled', () => {
         container.remove();
     });
 
+    it('a readonly filter refuses to open its menu at all, without leaving the accessibility tree', async () => {
+        const [el, container] = await mount(`<ful-filter-text name="f">t</ful-filter-text>`);
+        const operator = el.querySelector('[data-ref=operator]');
+        const menu = operator.nextElementSibling;
+        el.setAttribute('readonly', '');
+
+        //the invoker's popover activation is cancelable, so the one refusal the
+        //claim installs covers it: nothing opens, and nothing is inert
+        operator.click();
+        assert.isFalse(menu.matches(':popover-open'), 'the menu stays shut');
+        assert.isFalse(el.querySelector('ful-control-group').inert, 'and the filter stays readable');
+
+        el.removeAttribute('readonly');
+        operator.click();
+        assert.isTrue(menu.matches(':popover-open'), 'and it opens again once the claim is lifted');
+        container.remove();
+    });
+
     it('a readonly filter freezes the sensitivity menu too', async () => {
         const [el, container] = await mount(`<ful-filter-text name="f">t</ful-filter-text>`);
         const input = el.querySelector('[data-ref=value1]');

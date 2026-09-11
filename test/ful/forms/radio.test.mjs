@@ -164,19 +164,26 @@ describe('RadioGroup value', () => {
 });
 
 describe('RadioGroup state', () => {
-    it('makes the fieldset inert while readonly, following the attribute both ways', async () => {
+    it('freezes the radios while readonly, following the attribute both ways', async () => {
         const container = await mount(GROUP.replace('name="a"', 'name="a" readonly'));
         const group = container.querySelector('ful-radio-group');
         const fieldset = group.querySelector('fieldset');
+        const first = group.querySelector('input[type=radio]');
         assert.isTrue(group.readonly);
-        assert.isTrue(fieldset.inert, 'inert is what stops the radios from being changed');
+        assert.isFalse(fieldset.inert, 'inert would take the whole group out of the accessibility tree');
+        assert.strictEqual(group.getAttribute('aria-readonly'), 'true', 'announced on the radiogroup host');
+
+        //the gesture is refused rather than the subtree removed
+        first.click();
+        assert.isFalse(first.checked, 'a click on a readonly group picks nothing');
 
         group.removeAttribute('readonly');
         assert.isFalse(group.readonly);
-        assert.isFalse(fieldset.inert);
+        assert.isNull(group.getAttribute('aria-readonly'));
+        first.click();
+        assert.isTrue(first.checked, 'and it picks again once the claim is lifted');
 
         group.readonly = true;
-        assert.isTrue(fieldset.inert);
         assert.isTrue(group.hasAttribute('readonly'), 'the property reflects back onto the attribute');
         container.remove();
     });
@@ -207,16 +214,18 @@ describe('RadioGroup state', () => {
         container.remove();
     });
 
-    it('announces a required group with aria-required on the fieldset', async () => {
+    it('announces a required group on the radiogroup host, the role that accepts it', async () => {
         const container = await mount(GROUP.replace('name="a"', 'name="a" required'));
         const group = container.querySelector('ful-radio-group');
         const fieldset = group.querySelector('fieldset');
         assert.isTrue(group.required);
-        assert.strictEqual(fieldset.getAttribute('aria-required'), 'true');
+        //a fieldset is a group, which accepts neither aria-required nor aria-readonly
+        assert.isFalse(fieldset.hasAttribute('aria-required'));
+        assert.strictEqual(group.getAttribute('aria-required'), 'true');
 
         group.required = false;
         assert.isFalse(group.required);
-        assert.isFalse(fieldset.hasAttribute('aria-required'), 'aria-required is removed, not set to false');
+        assert.isFalse(group.hasAttribute('aria-required'), 'aria-required is removed, not set to false');
         assert.isFalse(group.hasAttribute('required'));
         container.remove();
     });

@@ -112,18 +112,25 @@ describe('Checkbox value', () => {
 });
 
 describe('Checkbox states', () => {
-    it('makes readonly inert rather than disabled, so the value still reaches the form', async () => {
+    it('freezes readonly without leaving the accessibility tree, so the value stays readable', async () => {
         const [el, container] = await mount(`<ful-checkbox name="a" readonly value="true">label</ful-checkbox>`);
         const box = el.firstElementChild;
         const input = el.querySelector('input');
 
-        assert.isTrue(box.inert, 'the whole control is inert');
+        assert.isFalse(box.inert, 'inert would take the whole choice out of the accessibility tree');
+        assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the claim is announced instead');
         assert.isTrue(el.readonly);
         assert.isFalse(input.hasAttribute('disabled'), 'a disabled input would drop the value on submit');
 
+        //the gesture is refused, so the box keeps the value it was given
+        input.click();
+        assert.isTrue(el.value, 'a click on a readonly checkbox does not toggle it');
+
         el.removeAttribute('readonly');
-        assert.isFalse(box.inert, 'and it becomes interactive again');
         assert.isFalse(el.readonly);
+        assert.isNull(input.getAttribute('aria-readonly'));
+        input.click();
+        assert.isFalse(el.value, 'and it toggles again once the claim is lifted');
         container.remove();
     });
 

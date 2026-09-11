@@ -70,6 +70,10 @@ class RadioGroup extends Field {
             error: fragment.querySelector('ful-field-error'),
             described: this,
             claims: this.#fieldset,
+            //the radiogroup role is the host's, so the claims announce there: a
+            //fieldset is a group, which accepts neither aria-readonly nor
+            //aria-required
+            announces: this,
             freeze: this.#fieldset,
         };
     }

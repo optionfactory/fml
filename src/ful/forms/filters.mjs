@@ -370,6 +370,8 @@ class BooleanFilter extends Field {
             control: valueButton,
             error: fragment.querySelector('ful-field-error'),
             label: fragment.querySelector('label'),
+            //a button accepts neither aria-readonly nor aria-required
+            announces: null,
             freeze: this._container,
         };
     }

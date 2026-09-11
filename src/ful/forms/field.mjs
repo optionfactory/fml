@@ -33,7 +33,7 @@ class Field extends ParsedElement {
     #control;
     #fieldError;
     #claims;
-    #freeze;
+    #announces;
     #also = [];
     constructor() {
         super();
@@ -48,14 +48,40 @@ class Field extends ParsedElement {
      * Takes what the build produced: keeps the pieces the base drives, wires the
      * aria and the label, and mounts the fragment.
      * @param {{fragment: any, control: any, error?: any, label?: any, described?: any,
-     *          claims?: any, freeze?: any, also?: any[]}} pieces
+     *          claims?: any, announces?: any, freeze?: any, also?: any[]}} pieces
      */
-    #wire({ fragment, control, error, label = null, described = null, claims = null, freeze = null, also = [] }) {
+    #wire({
+        fragment,
+        control,
+        error,
+        label = null,
+        described = null,
+        claims = null,
+        announces = control,
+        freeze = null,
+        also = [],
+    }) {
         this.#control = control;
         this.#fieldError = error;
         this.#claims = claims;
-        this.#freeze = freeze;
+        this.#announces = announces;
         this.#also = also;
+        if (freeze) {
+            //a field with no usable native readOnly freezes by refusing the
+            //gesture, not by inerting its subtree: inert takes the whole thing out
+            //of the accessibility tree, so a readonly checkbox, radio group, filter
+            //or file list was on screen and unreadable. Capturing, so it lands
+            //before the control's own handlers and the platform's activation
+            freeze.addEventListener(
+                'click',
+                (evt) => {
+                    if (this.readonly) {
+                        evt.preventDefault();
+                    }
+                },
+                true,
+            );
+        }
         //the error region describes the control, or the host where there is no
         //single control to describe (a radio group's legend names its fieldset)
         if (error) {
@@ -203,17 +229,18 @@ class Field extends ParsedElement {
      * reflects on the host either way.
      */
     get readonly() {
-        if (this.#freeze) {
-            return this.#freeze.inert;
-        }
-        return this.#control?.readOnly ?? false;
+        //the host attribute is the claim, as it is for disabled: every setter
+        //reflects it, so one read answers however the field freezes
+        return this.hasAttribute('readonly');
     }
     set readonly(v) {
         for (const el of this.#mirrors()) {
             el.readOnly = v;
         }
-        if (this.#freeze) {
-            this.#freeze.inert = v;
+        //announced on the element whose role accepts it, not on whatever the
+        //claims happen to ride: aria-readonly on a fieldset is dropped as invalid
+        if (this.#announces) {
+            Attributes.set(this.#announces, 'aria-readonly', v ? 'true' : null);
         }
         this.reflect(() => {
             this.toggleAttribute('readonly', v);
@@ -224,10 +251,14 @@ class Field extends ParsedElement {
      * announcement lives on the adopted control.
      */
     get required() {
-        return (this.#claims ?? this.#control)?.getAttribute('aria-required') === 'true';
+        //the claim, like disabled and readonly: the host attribute rather than
+        //the projection, which a field with no role to announce on never carries
+        return this.hasAttribute('required');
     }
     set required(d) {
-        Attributes.set(this.#claims ?? this.#control, 'aria-required', d ? 'true' : null);
+        if (this.#announces) {
+            Attributes.set(this.#announces, 'aria-required', d ? 'true' : null);
+        }
         this.reflect(() => {
             this.toggleAttribute('required', d);
         });
@@ -265,8 +296,11 @@ class Field extends ParsedElement {
      *   another element, the host where no single control can carry it
      * - `claims` moves the three claims onto a wrapper the field disables as a
      *   whole, leaving focus and aria on the control
+     * - `announces` is the element whose role carries `aria-readonly` and
+     *   `aria-required`, the host where the widget role lives there; `null` for a
+     *   field whose control has no role that accepts them
      * - `freeze` is for a field with no usable native readOnly: the readonly
-     *   claim inerts it as well, and answers the getter from it
+     *   claim refuses the gestures inside it, leaving it focusable and readable
      * - `also` are further controls mirroring disabled and readOnly beside the
      *   first
      *

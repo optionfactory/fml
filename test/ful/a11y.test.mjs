@@ -36,6 +36,9 @@ describe('Accessibility audit', () => {
         ['ful-input-local-date', `<ful-input-local-date name="d">date</ful-input-local-date>`],
         ['ful-input-file', `<ful-input-file name="f">file</ful-input-file>`],
         ['ful-checkbox', `<ful-checkbox name="c" value="true">check</ful-checkbox>`],
+        ['ful-checkbox readonly', `<ful-checkbox name="cr" readonly value="true">check</ful-checkbox>`],
+        ['ful-radio-group readonly', `<ful-radio-group name="rr" readonly><ful-radio value="a">A</ful-radio></ful-radio-group>`],
+        ['ful-input-file readonly', `<ful-input-file name="fr" readonly>file</ful-input-file>`],
         ['ful-checkbox switch', `<ful-checkbox name="s" type="switch" value="true">switch</ful-checkbox>`],
         [
             'ful-radio-group',

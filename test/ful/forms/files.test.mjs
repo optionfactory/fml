@@ -31,7 +31,8 @@ describe('InputFile', () => {
         const input = el.querySelector('input[type=file]');
         assert.strictEqual(input.getAttribute('aria-required'), 'true');
         assert.isTrue(el.readonly);
-        assert.isTrue(el.querySelector('ful-control-group').inert, 'a readonly file input freezes its chrome');
+        assert.isFalse(el.querySelector('ful-control-group').inert, 'inert would hide the list from a reader');
+        assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the claim is announced instead');
 
         container.remove();
     });
@@ -569,7 +570,7 @@ describe('InputFile disabled and readonly claims', () => {
             if (claim === 'disabled') {
                 assert.isTrue(input.matches(':disabled'), 'the inner control carries the claim');
             } else {
-                assert.isTrue(el.querySelector('ful-control-group').inert, 'the chrome is frozen');
+                assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the chrome is frozen');
             }
             container.remove();
         });
