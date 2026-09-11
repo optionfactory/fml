@@ -1,4 +1,4 @@
-import { Attributes, ParsedElement, registry } from '../../ftl/index.mjs';
+import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 import { Failure } from '../../httpc/index.mjs';
 import { Bindings } from './bindings.mjs';
 import { AsyncEvents } from '../events/async.mjs';
@@ -48,12 +48,12 @@ class LocalFormLoader {
 /** Builds the form's loader from its attributes: a local one when no action is declared, a json post to it otherwise. */
 class FormLoader {
     static create(el, conf) {
-        const http = registry.component('http-client');
+        const http = el.component('http-client');
         const requestMapper = el.hasAttribute('request-mapper')
-            ? registry.component(el.getAttribute('request-mapper'))
+            ? el.component(el.getAttribute('request-mapper'))
             : (v) => v;
         const responseMapper = el.hasAttribute('response-mapper')
-            ? registry.component(el.getAttribute('response-mapper'))
+            ? el.component(el.getAttribute('response-mapper'))
             : (v) => v;
         const url = el.getAttribute('action');
         if (!url) {
@@ -113,7 +113,7 @@ class Form extends ParsedElement {
         let values;
         let request;
         try {
-            const loader = registry.component(this.getAttribute('loader') ?? 'loaders:form').create(this);
+            const loader = this.component(this.getAttribute('loader') ?? 'loaders:form').create(this);
             values = Bindings.extractFrom(this.form, submitter);
             request = await loader.prepare(values, this);
             const se = new CustomEvent('submit', {

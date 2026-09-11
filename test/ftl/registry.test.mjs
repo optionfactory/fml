@@ -157,13 +157,12 @@ describe('Registry', () => {
             QueueEl.BITS.enqueue(el);
             QueueEl.BITS.enqueue(el);
 
-            const upgradesList = Array.from(registry.upgrades);
-            expect(upgradesList.length).to.equal(1);
+            expect(registry.pending()).to.deep.equal([el]);
 
-            await upgradesList[0][1];
+            await registry.whenUpgraded(el);
 
             expect(upgraded).to.be.true;
-            expect(Array.from(registry.upgrades).length).to.equal(0);
+            expect(registry.pending().length).to.equal(0);
 
             el.remove();
         });

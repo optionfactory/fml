@@ -27,7 +27,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
 
         const el = document.createElement('configured-el');
         container.appendChild(el);
-        await registry.upgrades.next()?.value;
+        await registry.whenUpgraded(el);
 
         const tplInstance = el.template();
 
@@ -47,8 +47,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
 
         const el = document.createElement('multi-connected-el');
         container.appendChild(el);
-        const [, upgradePromise] = await registry.upgrades.next().value;
-        await upgradePromise;
+        await registry.whenUpgraded(el);
         expect(renderCount).to.equal(1);
 
         el.connectedCallback();
@@ -78,7 +77,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
 
         const el = document.createElement('attr-guard-el');
         container.appendChild(el);
-        await registry.upgrades.next()?.value;
+        await registry.whenUpgraded(el);
 
         unmarshalFired = false;
 
@@ -106,10 +105,9 @@ describe('ParsedElement Web Component Lifecycle', () => {
         const el = document.createElement('observed-el');
         el.setAttribute('disabled', '');
         container.appendChild(el);
-        const [upgraded, upgradePromise] = await registry.upgrades.next().value;
-        await upgradePromise;
+        expect(registry.pending()).to.include(el);
+        await registry.whenUpgraded(el);
 
-        expect(upgraded).to.equal(el);
         expect(renderArgs.observed.disabled).to.be.true;
         expect(el.hasAttribute('disabled')).to.be.true;
 
@@ -138,7 +136,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
         const el = document.createElement('mid-flight-el');
         el.setAttribute('value', 'stale');
         container.appendChild(el);
-        const [, upgradePromise] = await registry.upgrades.next().value;
+        const upgradePromise = registry.whenUpgraded(el);
         //let the upgrade reach the render's await, then write through the attribute
         for (let i = 0; i !== 5; ++i) {
             await tick();

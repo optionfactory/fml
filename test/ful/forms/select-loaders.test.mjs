@@ -339,10 +339,14 @@ describe('SelectLoader fetch discipline', () => {
         return { calls, pending };
     };
     const remoteLoader = (attributes) => {
-        const el = document.createElement('div');
+        const el = /** @type any */ (document.createElement('div'));
         for (const [k, v] of Object.entries(attributes)) {
             el.setAttribute(k, v);
         }
+        //the loader resolves its collaborators through the element's own registry,
+        //as a rendered ful-select does; the stub stands in for the element
+        el.component = (name) => registry.component(name);
+        el._registry = registry;
         return SelectLoader.create(el, {});
     };
 

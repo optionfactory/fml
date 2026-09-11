@@ -210,7 +210,7 @@ describe('Readiness when a component fails', () => {
         //free to reach the console and the error reporter. taking it here proves that and
         //keeps this test from producing an uncaught rejection of its own
         const broken = container.querySelector('broken-el');
-        const queued = Array.from(fresh.upgrades).find(([el]) => el === broken)?.[1];
+        const queued = fresh.whenUpgraded(broken);
         let caught = null;
         queued?.catch((e) => {
             caught = e;

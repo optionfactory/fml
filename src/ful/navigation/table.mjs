@@ -1,4 +1,4 @@
-import { Attributes, Fragments, Nodes, ParsedElement, registry, Rendering } from '../../ftl/index.mjs';
+import { Attributes, Fragments, Nodes, ParsedElement, Rendering } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { Failure } from '../../httpc/index.mjs';
 
@@ -270,7 +270,7 @@ class TableLoader {
     static create(el, conf) {
         const url = el.getAttribute('src');
         if (url) {
-            const http = registry.component('http-client');
+            const http = el.component('http-client');
             const method = el.getAttribute('method') ?? 'GET';
             return new RemoteTableLoader(http, url, method);
         }
@@ -354,7 +354,7 @@ class Table extends ParsedElement {
         const tableWrapper = /** @type HTMLTableElement */ (Nodes.queryChildren(fragment, 'ful-table-wrapper'));
         const table = /** @type HTMLTableElement */ (tableWrapper.querySelector('table'));
         Attributes.forward('table-', this, table);
-        this.#loader = registry.component(this.getAttribute('loader') ?? 'loaders:table').create(this);
+        this.#loader = this.component(this.getAttribute('loader') ?? 'loaders:table').create(this);
 
         this.#schema = schema;
         this.#body = table.querySelector(':scope > tbody');

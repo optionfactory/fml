@@ -25,21 +25,28 @@ const BUILTIN = { en, it, es, fr };
 class Plugin {
     #language;
     #translations;
+    #httpClient;
 
     /**
-     * @param {{ language?: string, translations?: Record<string, any> }} [options]
+     * @param {{ language?: string, translations?: Record<string, any>, httpClient?: any }} [options]
      * `language` is fixed for the page: a full BCP-47 tag or a primary subtag,
      * defaulting to the browser's language. `translations` is a flat
      * active-language map applied over the built-in translations: reword built-in
      * keys ('pagination.showing', …) or add your own ('checkout.total', …).
+     * `httpClient` is the client every ful component fetches through, registered
+     * as the `http-client` component: where an unauthorized session goes is an
+     * application decision, so a page that does not want the default's redirect
+     * to '/' builds its own.
      */
     constructor(options = {}) {
         this.#language = options.language ?? navigator?.language ?? 'en';
         this.#translations = options.translations ?? {};
+        this.#httpClient = options.httpClient ?? null;
     }
 
     configure(registry) {
-        const httpClient = HttpClient.builder().withCsrfToken().withRedirectOnUnauthorized('/').build();
+        const httpClient =
+            this.#httpClient ?? HttpClient.builder().withCsrfToken().withRedirectOnUnauthorized('/').build();
         //the fallback chain is baked here: en, the active language, the consumer's own strings
         const language = this.#language.split('-')[0];
         const l10n = { ...BUILTIN.en, ...BUILTIN[language], ...this.#translations };

@@ -27,7 +27,6 @@ class Wizard extends ParsedElement {
     #sections = [];
     #requests = new SectionRequests();
     #index = 0;
-    #ready = false;
     #progress;
     render({ slots, observed }) {
         const fragment = this.template().withOverlay({ slots }).render();
@@ -61,7 +60,6 @@ class Wizard extends ParsedElement {
             this.#apply(claimed === -1 ? 0 : Math.min(claimed, count - 1));
             this.#enter(this.#index)?.catch(() => undefined);
         }
-        this.#ready = true;
     }
     get index() {
         return this.#index;
@@ -127,7 +125,7 @@ class Wizard extends ParsedElement {
         //the moving control lived in the section that just hid: focus follows
         //the step, or the reader lands on the body knowing nothing happened
         this.#sections[this.#index].focus();
-        if (this.#ready) {
+        if (this.rendered) {
             this.dispatchEvent(new CustomEvent('change', { detail: { index: this.#index, step: this.step } }));
         }
         return this.#enter(clamped);

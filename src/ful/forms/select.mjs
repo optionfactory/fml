@@ -1,4 +1,4 @@
-import { Attributes, Fragments, ParsedElement, registry, Templates } from '../../ftl/index.mjs';
+import { Attributes, Fragments, ParsedElement, Templates } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { wireAnchoredPopover } from '../disclosures/anchors.mjs';
 import { Field } from './field.mjs';
@@ -147,7 +147,7 @@ class SelectLoader {
             });
             return new InMemoryLoader(data);
         }
-        const http = registry.component('http-client');
+        const http = el.component('http-client');
         const responseMapper = SelectLoader.#responseMapperFrom(el);
 
         if ('chunked' === el.getAttribute('mode')) {
@@ -170,12 +170,12 @@ class SelectLoader {
     static #responseMapperFrom(el) {
         if (el.hasAttribute('k-expr') && el.hasAttribute('l-expr')) {
             return (response) => {
-                const rows = registry
+                const rows = el._registry
                     .evaluator()
                     .withOverlay(response)
                     .evaluateExpression(el.getAttribute('d-expr') ?? 'self');
                 return rows.map((row) => {
-                    const evaluator = registry.evaluator().withOverlay(row);
+                    const evaluator = el._registry.evaluator().withOverlay(row);
                     return [
                         evaluator.evaluateExpression(el.getAttribute('k-expr')),
                         evaluator.evaluateExpression(el.getAttribute('l-expr')),
@@ -185,7 +185,7 @@ class SelectLoader {
             };
         }
         if (el.hasAttribute('response-mapper')) {
-            return registry.component(el.getAttribute('response-mapper'));
+            return el.component(el.getAttribute('response-mapper'));
         }
         return (response) => response;
     }
@@ -409,9 +409,9 @@ class Select extends Field {
     #abortdload;
     async _build({ slots }) {
         const name = this.getAttribute('name');
-        this.#loader = registry
-            .component(this.getAttribute('loader') ?? 'loaders:select')
-            .create(this, { options: slots.options });
+        this.#loader = this.component(this.getAttribute('loader') ?? 'loaders:select').create(this, {
+            options: slots.options,
+        });
 
         this.#multiple = this.hasAttribute('multiple');
         try {

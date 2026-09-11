@@ -11,10 +11,9 @@ let doorWired = false;
 /** A transient feedback region: each show() stacks a toast that retires on its own timer. */
 class Toasts extends ParsedElement {
     #timeout;
-    #rendered = false;
     connectedCallback() {
         super.connectedCallback();
-        if (this.#rendered) {
+        if (this.rendered) {
             REGIONS.add(this);
         }
     }
@@ -34,7 +33,6 @@ class Toasts extends ParsedElement {
             });
         }
         REGIONS.add(this);
-        this.#rendered = true;
     }
     /**
      * Appends a toast carrying the message (a Failure shows its problems'

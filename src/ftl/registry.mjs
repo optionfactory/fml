@@ -23,7 +23,7 @@ class UpgradeQueue {
         return this.#ready;
     }
     async #start() {
-        await this.settle();
+        await this.settled();
         document.dispatchEvent(
             new CustomEvent('ftl:ready', {
                 bubbles: false,
@@ -32,42 +32,61 @@ class UpgradeQueue {
         );
         this.#readyResolve();
     }
-    #finished = new Map();
     enqueue(el) {
         if (this.#q.has(el)) {
             //already upgrading, can happen when disconnecting an element
             //while it's already queued for upgrade (e.g.: ful-form)
             return;
         }
-        //settling waits on a signal that only ever resolves, so nothing here attaches a
-        //rejection handler to the upgrade itself: a component that fails is still
-        //reported the way it always was
+        //one entry, two signals: readiness waits on a signal that only ever
+        //resolves, so nothing here attaches a rejection handler to the upgrade
+        //itself and a component that fails is still reported the way it always was
         const { promise: finished, resolve: markFinished } = /** @type {PromiseWithResolvers<void>} */ (
             Promise.withResolvers()
         );
-        const promise = Nodes.waitParsed(el)
+        const upgrade = Nodes.waitParsed(el)
             .then(() => el.upgrade())
             .finally(() => {
                 this.#q.delete(el);
-                this.#finished.delete(el);
                 markFinished();
             });
-        this.#q.set(el, promise);
-        this.#finished.set(el, finished);
+        this.#q.set(el, { upgrade, finished });
     }
     /**
-     * Waits for every queued upgrade to settle, including the ones enqueued while
-     * waiting: a component is only queued once its parent connects it, so a single pass
-     * would miss everything nested. A component that fails to upgrade does not hold the
-     * others back, readiness means the queue drained rather than that everything worked.
+     * The one fixed-point loop: drains the accepted entries, including the ones
+     * enqueued while waiting, since a component is only queued once its parent
+     * connects it and a single pass would miss everything nested.
      */
-    async settle() {
-        while (this.#finished.size !== 0) {
-            await Promise.all(Array.from(this.#finished.values()));
+    async #drain(accept, pick) {
+        for (;;) {
+            const pending = Array.from(this.#q)
+                .filter(([el]) => accept(el))
+                .map(([, entry]) => pick(entry));
+            if (pending.length === 0) {
+                return;
+            }
+            await Promise.all(pending);
         }
     }
-    get entries() {
-        return this.#q.entries();
+    /**
+     * Waits for the whole queue to drain. Never rejects: a component that fails
+     * does not hold the others back, and readiness means the queue drained rather
+     * than that everything worked.
+     */
+    settled() {
+        return this.#drain(() => true, (entry) => entry.finished);
+    }
+    /** Waits for the accepted upgrades, rejecting with the first that failed. */
+    upgraded(accept) {
+        return this.#drain(accept, (entry) => entry.upgrade);
+    }
+    /** The pending upgrade of one element, undefined when it is not queued. */
+    whenUpgraded(el) {
+        return this.#q.get(el)?.upgrade;
+    }
+    /** The elements whose upgrade is still pending, in queue order. */
+    pending() {
+        return Array.from(this.#q.keys());
     }
 }
 
@@ -210,6 +229,10 @@ class Registry {
         const nameToTemplate = Object.fromEntries(namesAndTemplates);
 
         klass.BITS = {
+            //the defining registry travels with the definition: an element resolves
+            //its templates and its components through the registry that defined it,
+            //not through whichever one a module happened to import
+            registry: this,
             enqueue: (el) => this.#upgradeQueue.enqueue(el),
             SLOTS: slots,
             OBSERVED: observedNames,
@@ -294,9 +317,21 @@ class Registry {
         this.#configured = true;
         return this;
     }
+    /**
+     * Waits for the queued upgrades the filter accepts, rejecting with the first
+     * that failed: the rejecting barrier Rendering is a facade over.
+     * @param {(el: Element) => boolean} accept
+     */
+    settle(accept) {
+        return this.#upgradeQueue.upgraded(accept);
+    }
+    /** The pending upgrade of one element, undefined when it is not queued. */
+    whenUpgraded(el) {
+        return this.#upgradeQueue.whenUpgraded(el);
+    }
     /** The elements whose upgrade is still pending, in queue order. */
-    get upgrades() {
-        return this.#upgradeQueue.entries;
+    pending() {
+        return this.#upgradeQueue.pending();
     }
     /**
      * Waits for the page's readiness: the same moment the ftl:ready event is

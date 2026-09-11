@@ -21,7 +21,6 @@ class Tabs extends ParsedElement {
     #panels = [];
     #requests = new SectionRequests();
     #active = 0;
-    #ready = false;
     render({ slots, observed }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this.#tablist = fragment.querySelector('ful-tablist');
@@ -79,7 +78,6 @@ class Tabs extends ParsedElement {
         });
         this.replaceChildren(fragment);
         this.active = observed.active ?? 0;
-        this.#ready = true;
     }
     get active() {
         return this.#active;
@@ -109,10 +107,10 @@ class Tabs extends ParsedElement {
         }
         this.#active = index;
         this.reflectTo('active', index);
-        if (this.#ready && index !== previous) {
+        if (this.rendered && index !== previous) {
             this.dispatchEvent(new CustomEvent('change', { detail: { active: index, previous } }));
         }
-        if (this.#panels.length > 0 && (index !== previous || !this.#ready)) {
+        if (this.#panels.length > 0 && (index !== previous || !this.rendered)) {
             //the activation is the reader's own gesture: the chrome reports a
             //failed delivery, there is no caller to reject towards
             this.#requests.request(this, this.#panels[index], null, index)?.catch(() => undefined);

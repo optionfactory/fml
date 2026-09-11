@@ -11,6 +11,8 @@ import { registry } from './registry.mjs';
 
 class ParsedElement extends HTMLElement {
     static BITS = {
+        //an element the registry never defined still answers the page's own
+        registry,
         enqueue: (el) => {},
         SLOTS: false,
         OBSERVED: [],
@@ -38,8 +40,20 @@ class ParsedElement extends HTMLElement {
     /**
      * @param {string} [name] - The name of the template target, defaults to 'default'
      */
+    /** The registry that defined this element, the page's own for an undefined one. */
+    get _registry() {
+        return this.#bits().registry;
+    }
+    /**
+     * The component registered under the name on this element's registry, the
+     * door every ful loader and mapper resolves through.
+     * @param {string} name
+     */
+    component(name) {
+        return this.#bits().registry.component(name);
+    }
     template(name) {
-        const { modules, data } = registry.context();
+        const { modules, data } = this.#bits().registry.context();
         const target = this.#bits().TEMPLATES[name ?? 'default'];
         if (!target) {
             throw new Error(`no template named '${name ?? 'default'}' on ${this.constructor.name}`);
@@ -97,11 +111,13 @@ class ParsedElement extends HTMLElement {
         this.#pending = observed;
         try {
             await this.render({ slots, observed });
+            //the live door opens once the render is done: from here on, an
+            //attribute write forwards to the property. A render that threw
+            //leaves it shut, so a later attribute write cannot reach setters
+            //that assume pieces the failed render never adopted
+            this.#parsed = true;
         } finally {
             this.#pending = null;
-            //the live door opens once the render is done: from here on, an
-            //attribute write forwards to the property
-            this.#parsed = true;
         }
     }
     /**
@@ -115,6 +131,10 @@ class ParsedElement extends HTMLElement {
      * @param {{ slots: any, observed: { [k: string]: any } }} c
      */
     render(c) {}
+    /** Whether the element's render completed: the moment its properties became the live door. */
+    get rendered() {
+        return this.#parsed;
+    }
     reflect(fn) {
         ++this.#reflecting;
         try {
