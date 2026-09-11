@@ -434,6 +434,36 @@ describe('Bindings', () => {
         });
     });
 });
+describe('Bindings.providePath prototype safety', () => {
+    it('refuses a segment that would reach the prototype chain', () => {
+        for (const path of ['__proto__.polluted', 'a.__proto__.polluted', 'constructor.prototype.polluted', 'prototype.polluted']) {
+            assert.throws(() => Bindings.providePath({}, path, 'yes'), /unsupported name segment/, path);
+        }
+        assert.isUndefined(/** @type any */ ({}).polluted, 'nothing reached Object.prototype');
+    });
+
+    it('refuses before writing anything, leaving the result untouched', () => {
+        const result = { kept: 'value' };
+        assert.throws(() => Bindings.providePath(result, 'a.__proto__.x', 'boom'), /unsupported name segment/);
+        assert.deepEqual(result, { kept: 'value' });
+    });
+
+    it('does not refuse a name that merely contains a forbidden word', () => {
+        const result = Bindings.providePath({}, 'prototypes.my__proto__key', 'fine');
+        assert.deepEqual(result, { prototypes: { my__proto__key: 'fine' } });
+    });
+
+    it('refuses through the form extraction door too', () => {
+        const form = document.createElement('form');
+        const input = document.createElement('input');
+        input.setAttribute('name', '__proto__.polluted');
+        input.value = 'yes';
+        form.appendChild(input);
+        assert.throws(() => Bindings.extractFrom(form), /unsupported name segment/);
+        assert.isUndefined(/** @type any */ ({}).polluted, 'nothing reached Object.prototype');
+    });
+});
+
 describe('Bindings.providePath array segments', () => {
     it('builds arrays out of numeric segments', () => {
         const result = Bindings.providePath({}, 'rows.0.name', 'first');

@@ -19,12 +19,27 @@ class Bindings {
     }
 
     /**
+     * Walking a dotted name would otherwise descend into `Object.prototype`:
+     * `__proto__` passes the `typeof === 'object'` test below and becomes the
+     * walk's target, so `providePath({}, '__proto__.x', v)` would write on every
+     * object in the page. A field name reaching here is author markup, but it can
+     * be bound from data through `data-tpl-name` and `providePath` is public, so
+     * the segments that can reach the prototype chain are refused outright rather
+     * than left to the caller to prove unreachable.
+     */
+    static #FORBIDDEN = new Set(['__proto__', 'prototype', 'constructor']);
+    /**
      * @param {any} result
      * @param {string} path
      * @param {any} value
      */
     static providePath(result, path, value) {
         const keys = path.split('.').map((k) => (/^[0-9]+$/.test(k) ? +k : k));
+        for (const key of keys) {
+            if (Bindings.#FORBIDDEN.has(/** @type any */ (key))) {
+                throw new Error(`unsupported name segment '${key}' in '${path}'`);
+            }
+        }
         let current = result ?? {};
         let previous = /** @type {any} */ (null);
         for (let i = 0; ; ++i) {
