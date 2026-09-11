@@ -102,7 +102,7 @@ describe('Registry', () => {
 
     describe('Core Configuration & API', () => {
         it('allows defining modules, data, components, mappers, and plugins', () => {
-            registry.defineModules({ mod1: {} });
+            registry.defineModules({ mod1: { fn: () => 'called' } });
             registry.defineData({ baseData: true });
             registry.defineOverlay({ overlayData: true });
             registry.defineComponent('myComp', { config: true });
@@ -117,10 +117,11 @@ describe('Registry', () => {
 
             expect(pluginConfigured).to.be.true;
 
-            const ctx = registry.context();
-            expect(ctx.modules).to.have.property('mod1');
-            expect(ctx.data[0]).to.have.property('baseData');
-            expect(ctx.data[1]).to.have.property('overlayData');
+            //the scope is the observable form of the modules and the data stack
+            const scope = registry.evaluator();
+            expect(scope.evaluateExpression('#mod1:fn()')).to.equal('called');
+            expect(scope.resolve('baseData')).to.be.true;
+            expect(scope.resolve('overlayData')).to.be.true;
             expect(registry.component('myComp')).to.deep.equal({ config: true });
 
             const evalInst = registry.evaluator();

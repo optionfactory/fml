@@ -1,7 +1,7 @@
 import { nodes } from './ast.mjs';
 import { BoundedCache } from './cache.mjs';
 import { Fragments } from './dom.mjs';
-import { Expressions, ExpressionEvaluator } from './expressions.mjs';
+import { ExpressionEvaluator } from './expressions.mjs';
 
 class NodeOperations {
     #forRemoval = new Set();
@@ -56,25 +56,25 @@ class CommandsHandler {
     ];
     //same body as tplWhen: the two differ only in ORDERED_COMMANDS position,
     //if evaluates in the outer scope, before with/each
-    static tplIf(node, expression, ops, modules, dataStack) {
-        const accept = Expressions.interpret(modules, dataStack, expression);
+    static tplIf(node, expression, ops, evaluator) {
+        const accept = evaluator.evaluateExpression(expression);
         if (!accept) {
             ops.remove(node);
         }
     }
-    static tplWith(node, expression, ops, modules, dataStack) {
-        const evaluated = Expressions.interpret(modules, dataStack, expression);
+    static tplWith(node, expression, ops, evaluator) {
+        const evaluated = evaluator.evaluateExpression(expression);
         const varName = ops.popData(node, 'tplVar');
-        const newNode = new Template(node, modules, dataStack)
+        const newNode = new Template(node, evaluator)
             .withOverlay(varName ? { [varName]: evaluated } : evaluated)
             .render();
         ops.replace(node, newNode);
     }
-    static tplEach(node, expression, ops, modules, dataStack) {
+    static tplEach(node, expression, ops, evaluator) {
         const varName = ops.popData(node, 'tplVar');
         const statName = ops.popData(node, 'tplStat');
-        const template = new Template(node, modules, dataStack);
-        const evaluated = Expressions.interpret(modules, dataStack, expression);
+        const template = new Template(node, evaluator);
+        const evaluated = evaluator.evaluateExpression(expression);
         //keyed collections iterate as {key, value} entries: a Map in its own
         //order, a non-iterable plain dict in Object.entries order. Plain alone:
         //a class instance or a response wrapper standing where an array was
@@ -132,17 +132,17 @@ class CommandsHandler {
     }
     //same body as tplIf: the two differ only in ORDERED_COMMANDS position,
     //when evaluates after with/each, in the scope their overlay opened
-    static tplWhen(node, expression, ops, modules, dataStack) {
-        const accept = Expressions.interpret(modules, dataStack, expression);
+    static tplWhen(node, expression, ops, evaluator) {
+        const accept = evaluator.evaluateExpression(expression);
         if (!accept) {
             ops.remove(node);
         }
     }
-    static tplVerbatim(node, expression, ops, modules, dataStack) {
+    static tplVerbatim(node, expression, ops, evaluator) {
         const newNode = node.cloneNode(true);
         ops.replace(node, newNode);
     }
-    static tplRemove(node, value, ops, modules, dataStack) {
+    static tplRemove(node, value, ops, evaluator) {
         switch (value.toLowerCase()) {
             case 'tag': {
                 const fragment = new DocumentFragment();
@@ -167,8 +167,8 @@ class CommandsHandler {
                 break;
         }
     }
-    static tplClassAppend(node, expression, ops, modules, dataStack) {
-        const classes = Expressions.interpret(modules, dataStack, expression);
+    static tplClassAppend(node, expression, ops, evaluator) {
+        const classes = evaluator.evaluateExpression(expression);
         if (!classes) {
             return;
         }
@@ -179,8 +179,8 @@ class CommandsHandler {
         }
         node.classList.add(...cleanClasses);
     }
-    static tplAttrAppend(node, expression, ops, modules, dataStack) {
-        const attributesAndValues = Expressions.interpret(modules, dataStack, expression);
+    static tplAttrAppend(node, expression, ops, evaluator) {
+        const attributesAndValues = evaluator.evaluateExpression(expression);
         if (!attributesAndValues || attributesAndValues.length === 0) {
             return;
         }
@@ -189,8 +189,8 @@ class CommandsHandler {
             node.setAttribute(k, v);
         });
     }
-    static textNode(node, expression, ops, modules, dataStack) {
-        for (const v of Expressions.interpret(modules, dataStack, expression, Expressions.MODE_TEMPLATED)) {
+    static textNode(node, expression, ops, evaluator) {
+        for (const v of evaluator.evaluateTemplated(expression)) {
             if (v.value == null) {
                 continue;
             }
@@ -241,7 +241,7 @@ class Template {
      * @returns the template
      */
     static fromHtml(html, modules, ...data) {
-        return new Template(Fragments.fromHtml(html), modules, data);
+        return new Template(Fragments.fromHtml(html), new ExpressionEvaluator(modules, data));
     }
 
     /**
@@ -257,7 +257,7 @@ class Template {
             throw new Error('template selector does not match any template tag');
         }
         const fragment = document.adoptNode(templateEl.content);
-        return new Template(fragment, modules, data);
+        return new Template(fragment, new ExpressionEvaluator(modules, data));
     }
 
     /**
@@ -269,7 +269,7 @@ class Template {
      */
     static fromTemplate(templateEl, modules, ...data) {
         const fragment = document.adoptNode(templateEl.content);
-        return new Template(fragment, modules, data);
+        return new Template(fragment, new ExpressionEvaluator(modules, data));
     }
 
     /**
@@ -280,42 +280,33 @@ class Template {
      * @returns the template
      */
     static fromFragment(fragment, modules, ...data) {
-        return new Template(fragment, modules, data);
+        return new Template(fragment, new ExpressionEvaluator(modules, data));
     }
     #fragment;
-    #modules;
-    #dataStack;
+    #evaluator;
     /**
-     * Creates a template.
+     * Creates a template: a fragment plus the scope it renders in.
      * @param {DocumentFragment} fragment
-     * @param {{ [x: string]: any; } | null | undefined} modules
-     * @param {any[]} dataStack
+     * @param {ExpressionEvaluator} evaluator the modules and data stack the expressions resolve against
      */
-    constructor(fragment, modules, dataStack) {
+    constructor(fragment, evaluator) {
         this.#fragment = fragment;
-        this.#modules = modules;
-        this.#dataStack = dataStack;
+        this.#evaluator = evaluator;
     }
     /**
-     * Creates a new Template replacing the modules and dataStack from a context.
-     * @param {{modules: { [x: string]: any; } | null | undefined, data: any[]}} context
+     * Creates a new Template rendering in another scope: the one door for
+     * rebinding a compiled template to a registry's modules and data.
+     * @param {ExpressionEvaluator} evaluator
      */
-    withContext({ modules, data }) {
-        return new Template(this.#fragment, modules, data);
-    }
-    /**
-     * Creates a new Template replacing the modules and dataStack from a registry.
-     * @param {any} registry
-     */
-    withContextFrom(registry) {
-        return this.withContext(registry.context());
+    withEvaluator(evaluator) {
+        return new Template(this.#fragment, evaluator);
     }
     /**
      * Creates a new Template replacing the fragment.
      * @param {DocumentFragment} fragment
      */
     withFragment(fragment) {
-        return new Template(fragment, this.#modules, this.#dataStack);
+        return new Template(fragment, this.#evaluator);
     }
     /**
      * Creates a new Template with a new module added.
@@ -323,49 +314,38 @@ class Template {
      * @param {{[k: string]: any}} value
      */
     withModule(name, value) {
-        const module = name ? { [name]: value } : value;
-        return new Template(this.#fragment, { ...this.#modules, ...module }, this.#dataStack);
-    }
-    /**
-     * Creates a new Template replacing the modules.
-     * @param {{ [x: string]: any; }?} modules
-     */
-    withModules(modules) {
-        return new Template(this.#fragment, modules, this.#dataStack);
-    }
-    /**
-     * Creates a new Template replacing the data stack.
-     * @param {any[]} dataStack the dataStack
-     */
-    withData(dataStack) {
-        return new Template(this.#fragment, this.#modules, dataStack);
+        return new Template(this.#fragment, this.#evaluator.withModule(name, value));
     }
     /**
      * Creates a new Template with new a data overlay added to the stack.
      * @param {...*} data
      */
     withOverlay(...data) {
-        return new Template(
-            this.#fragment,
-            this.#modules,
-            data.length === 0 ? this.#dataStack : [...this.#dataStack, ...data],
-        );
+        return new Template(this.#fragment, this.#evaluator.withOverlay(...data));
     }
     /**
-     * Evaluates an expression using the configured modules and data.
+     * Evaluates an expression in this template's scope, widened by the overlays.
      * @param {string} expression
-     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
      * @param {...*} data
      * @returns the evaluated expression result
      */
-    evaluate(expression, mode, ...data) {
-        return new ExpressionEvaluator(this.#modules, this.#dataStack).withOverlay(...data).evaluate(expression, mode);
+    evaluateExpression(expression, ...data) {
+        return this.#evaluator.withOverlay(...data).evaluateExpression(expression);
+    }
+    /**
+     * Evaluates a templated text, the `{{ }}` form, in this template's scope.
+     * @param {string} text
+     * @param {...*} data
+     * @returns the parts the text evaluates to
+     */
+    evaluateTemplated(text, ...data) {
+        return this.#evaluator.withOverlay(...data).evaluateTemplated(text);
     }
     /**
      * Returns an expression evaluator with bound modules and dataStack.
      */
     evaluator() {
-        return new ExpressionEvaluator(this.#modules, this.#dataStack);
+        return this.#evaluator;
     }
     /**
      * Renders the template.
@@ -393,7 +373,7 @@ class Template {
                 ops.cleanup();
                 if (node.nodeType === Node.TEXT_NODE) {
                     try {
-                        CommandsHandler.textNode(node, node.nodeValue, ops, this.#modules, this.#dataStack);
+                        CommandsHandler.textNode(node, node.nodeValue, ops, this.#evaluator);
                     } catch (ex) {
                         throw new RenderError('Error evaluating text node', node, ex);
                     }
@@ -406,7 +386,7 @@ class Template {
                     }
                     const value = ops.popData(el, command);
                     try {
-                        CommandsHandler[command](el, value, ops, this.#modules, this.#dataStack);
+                        CommandsHandler[command](el, value, ops, this.#evaluator);
                     } catch (ex) {
                         throw new RenderError(`Error evaluating command ${command}`, el, ex);
                     }
@@ -421,7 +401,7 @@ class Template {
                     const attributeName = toAttr(dataSetKey);
                     try {
                         const expression = ops.popData(el, dataSetKey);
-                        const evaluated = Expressions.interpret(this.#modules, this.#dataStack, expression);
+                        const evaluated = this.#evaluator.evaluateExpression(expression);
                         if (typeof evaluated === 'boolean') {
                             el.toggleAttribute(attributeName, evaluated);
                             continue;

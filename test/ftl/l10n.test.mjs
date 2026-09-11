@@ -120,6 +120,22 @@ describe('Localization.of', () => {
     it('lets an explicit locale override the registry one', () => {
         assert.strictEqual(Localization.of({ locale: 'en' }).number(15000), '15,000');
     });
+
+    it('resolves through the same lookup a template makes, function overlays included', () => {
+        //a function overlay is a legal one: the evaluator resolves names off it,
+        //and the imperative facade used to walk a copy of the lookup that skipped
+        //them, so the same page answered two different translations
+        const overlay = () => undefined;
+        overlay.l10n = { 'app.fn': 'Da una funzione' };
+        registry.defineOverlay(overlay);
+
+        assert.strictEqual(
+            Localization.of().t('app.fn'),
+            registry.evaluator().evaluateExpression("#l10n:t('app.fn')"),
+            'the imperative facade and the template agree',
+        );
+        assert.strictEqual(Localization.of().t('app.fn'), 'Da una funzione');
+    });
 });
 
 describe('Localization edge contracts', () => {

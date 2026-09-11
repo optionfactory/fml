@@ -155,16 +155,10 @@ class Localization {
      * @param {{ locale?: string }} [overrides] an explicit locale, winning over the registry one
      */
     static of(overrides = {}) {
-        const resolve = (prop) => {
-            const { data } = registry.context();
-            for (let i = data.length - 1; i >= 0; i--) {
-                const overlay = data[i];
-                if (overlay != null && typeof overlay === 'object' && prop in overlay) {
-                    return overlay[prop];
-                }
-            }
-            return undefined;
-        };
+        //resolved per call, not per facade: a module-scope `Localization.of()` is
+        //bound before the plugin configures. The registry's own evaluator does the
+        //lookup, so this cannot drift from what a template sees
+        const resolve = (prop) => registry.evaluator().resolve(prop);
         /** @param {any} fn */
         const bind =
             (fn) =>

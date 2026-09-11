@@ -178,6 +178,7 @@ class Registry {
     #components = {};
     #modules;
     #data = [];
+    #evaluator = new ExpressionEvaluator(undefined, []);
     #upgradeQueue = new UpgradeQueue();
     /**
      * Registers a custom element under its tag: the class is augmented with its
@@ -251,6 +252,7 @@ class Registry {
     defineModule(name, value) {
         const module = name ? { [name]: value } : value;
         this.#modules = { ...this.#modules, ...module };
+        this.#rebind();
         return this;
     }
     /**
@@ -259,6 +261,7 @@ class Registry {
      */
     defineModules(ms) {
         this.#modules = ms;
+        this.#rebind();
         return this;
     }
     /**
@@ -277,6 +280,7 @@ class Registry {
      */
     defineData(...data) {
         this.#data = data;
+        this.#rebind();
         return this;
     }
     /**
@@ -285,6 +289,7 @@ class Registry {
      */
     defineOverlay(...data) {
         this.#data = [...this.#data, ...data];
+        this.#rebind();
         return this;
     }
     /**
@@ -341,13 +346,16 @@ class Registry {
     ready() {
         return this.#upgradeQueue.ready();
     }
-    /** The modules and data stack a template renders with. */
-    context() {
-        return { modules: this.#modules, data: this.#data };
+    #rebind() {
+        this.#evaluator = new ExpressionEvaluator(this.#modules, this.#data);
     }
-    /** A fresh evaluator over the current modules and data stack. */
+    /**
+     * The scope every template on this registry renders in: the modules and the
+     * data stack, as one value. Replaced whenever either is defined, so a holder
+     * of an older one keeps rendering against what it was handed.
+     */
     evaluator() {
-        return new ExpressionEvaluator(this.#modules, this.#data);
+        return this.#evaluator;
     }
     /** The component registered under the name, undefined when none is. */
     component(name) {

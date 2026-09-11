@@ -2,6 +2,29 @@ import { parse } from './expressions-parser.peggy';
 import { nodes } from './ast.mjs';
 import { BoundedCache } from './cache.mjs';
 
+/**
+ * The one lookup against a data stack: the innermost overlay carrying the name
+ * wins, `self` is the innermost overlay itself, and a function overlay counts
+ * like an object one. Every door that resolves a name goes through this, so the
+ * imperative facades cannot drift from what a template sees.
+ * @param {any[]} dataStack
+ * @param {string|symbol} prop
+ */
+const resolveInStack = (dataStack, prop) => {
+    if (prop === 'self') {
+        return dataStack[dataStack.length - 1];
+    }
+    for (let i = dataStack.length - 1; i >= 0; i--) {
+        const overlay = dataStack[i];
+        if (overlay != null && (typeof overlay === 'object' || typeof overlay === 'function')) {
+            if (prop in overlay) {
+                return overlay[prop];
+            }
+        }
+    }
+    return undefined;
+};
+
 class EvaluatingVisitor {
     #modules;
     #dataStack;
@@ -10,18 +33,7 @@ class EvaluatingVisitor {
         this.#dataStack = dataStack;
     }
     #resolve(prop) {
-        if (prop === 'self') {
-            return this.#dataStack[this.#dataStack.length - 1];
-        }
-        for (let i = this.#dataStack.length - 1; i >= 0; i--) {
-            const overlay = this.#dataStack[i];
-            if (overlay != null && (typeof overlay === 'object' || typeof overlay === 'function')) {
-                if (prop in overlay) {
-                    return overlay[prop];
-                }
-            }
-        }
-        return undefined;
+        return resolveInStack(this.#dataStack, prop);
     }
     /**
      * The name a missing-method report can carry: the called symbol for a bare
@@ -243,14 +255,21 @@ class ExpressionEvaluator {
             data.length === 0 ? this.#dataStack : [...this.#dataStack, ...data],
         );
     }
-    evaluate(expression, mode) {
-        return Expressions.interpret(this.#modules, this.#dataStack, expression, mode);
+    /**
+     * Resolves a name against the data stack, with no parse round trip: the
+     * lookup a template's bare identifier makes, for an imperative caller.
+     * @param {string} name
+     */
+    resolve(name) {
+        return resolveInStack(this.#dataStack, name);
     }
+    /** Evaluates an expression against this scope. */
     evaluateExpression(expression) {
-        return this.evaluate(expression, Expressions.MODE_EXPRESSION);
+        return Expressions.interpret(this.#modules, this.#dataStack, expression, Expressions.MODE_EXPRESSION);
     }
-    evaluateTemplated(expression) {
-        return this.evaluate(expression, Expressions.MODE_TEMPLATED);
+    /** Evaluates a templated text, the `{{ }}` form, against this scope. */
+    evaluateTemplated(text) {
+        return Expressions.interpret(this.#modules, this.#dataStack, text, Expressions.MODE_TEMPLATED);
     }
 }
 

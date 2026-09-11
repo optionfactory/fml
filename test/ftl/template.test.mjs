@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Template, Fragments } from '../../src/ftl/index.mjs';
+import { Template, Fragments, ExpressionEvaluator } from '../../src/ftl/index.mjs';
 
 const modules = {
     math: {
@@ -457,7 +457,7 @@ describe('Template', () => {
                 </div>`);
         let caught = null;
         try {
-            template.withModules(modules).withData(data).render();
+            template.withEvaluator(new ExpressionEvaluator(modules, data)).render();
         } catch (ex) {
             caught = ex;
         }
@@ -476,7 +476,7 @@ describe('Template', () => {
         `);
         let caught = null;
         try {
-            template.withModules(modules).withData(data).render();
+            template.withEvaluator(new ExpressionEvaluator(modules, data)).render();
         } catch (ex) {
             caught = ex;
         }
@@ -608,14 +608,17 @@ describe('Template', () => {
         badEl.remove();
     });
 
-    it('supports context mutations and updates fluently', () => {
+    it('rebinds the scope and the fragment fluently', () => {
         const base = Template.fromHtml('<div>{{val}} {{ #extra:go() }}</div>', {}, []);
 
-        const t1 = base.withContext({ modules: { extra: { go: () => 'yes' } }, data: [{ val: 'ok' }] });
+        const t1 = base.withEvaluator(new ExpressionEvaluator({ extra: { go: () => 'yes' } }, [{ val: 'ok' }]));
         assert.strictEqual(Fragments.toHtml(t1.render()), '<div>ok yes</div>');
 
-        const mockRegistry = { context: () => ({ modules: { extra: { go: () => 'reg' } }, data: [{ val: 'hi' }] }) };
-        const t2 = base.withContextFrom(mockRegistry);
+        //a registry rebinds a compiled template through the scope it exposes
+        const mockRegistry = {
+            evaluator: () => new ExpressionEvaluator({ extra: { go: () => 'reg' } }, [{ val: 'hi' }]),
+        };
+        const t2 = base.withEvaluator(mockRegistry.evaluator());
         assert.strictEqual(Fragments.toHtml(t2.render()), '<div>hi reg</div>');
 
         const altFrag = document.createDocumentFragment();
@@ -623,14 +626,14 @@ describe('Template', () => {
 
         const t3 = base
             .withFragment(altFrag)
-            .withModules({})
+            .withEvaluator(new ExpressionEvaluator({}, []))
             .withModule('extra', { go: () => 'alone' })
-            .withData([{ val: 'hello' }]);
+            .withOverlay({ val: 'hello' });
 
         assert.strictEqual(Fragments.toHtml(t3.render()), 'hello');
 
-        assert.strictEqual(t3.evaluate('val'), 'hello');
-        assert.strictEqual(t3.evaluate('other', undefined, { other: 42 }), 42);
+        assert.strictEqual(t3.evaluateExpression('val'), 'hello');
+        assert.strictEqual(t3.evaluateExpression('other', { other: 42 }), 42);
         assert.isDefined(t3.evaluator());
     });
 

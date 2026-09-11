@@ -1,22 +1,19 @@
 import { registry } from './registry.mjs';
 import { Template } from './template.mjs';
 
+/** The Template factories, each bound to the page registry's scope. */
 class Templates {
     static fromHtml(html) {
-        const { modules, data } = registry.context();
-        return Template.fromHtml(html, modules, ...data);
+        return Template.fromHtml(html).withEvaluator(registry.evaluator());
     }
     static fromSelector(selector) {
-        const { modules, data } = registry.context();
-        return Template.fromSelector(selector, modules, ...data);
+        return Template.fromSelector(selector).withEvaluator(registry.evaluator());
     }
     static fromTemplate(templateEl) {
-        const { modules, data } = registry.context();
-        return Template.fromTemplate(templateEl, modules, ...data);
+        return Template.fromTemplate(templateEl).withEvaluator(registry.evaluator());
     }
     static fromFragment(fragment) {
-        const { modules, data } = registry.context();
-        return Template.fromFragment(fragment, modules, ...data);
+        return Template.fromFragment(fragment).withEvaluator(registry.evaluator());
     }
 }
 
