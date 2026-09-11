@@ -115,6 +115,46 @@ export class RollupTypeGenerator {
     };
 }
 
+/**
+ * The sub-libraries a bundle can resolve to instead of inlining. One page must
+ * hold one Registry, one ParsedElement and one Failure however a consumer
+ * reaches them, so every es bundle that depends on a sibling imports it rather
+ * than carrying a second copy. The iife bundles are the exception on purpose:
+ * a script tag wants one file, and they resolve through the globals instead.
+ */
+/**
+ * Fails the build if the module entry ever carries a second copy of a sibling
+ * again. A static check rather than an identity assertion, because importing
+ * the bundle in node needs a stubbed dom: it asserts what the shape of the file
+ * makes true, that every sibling arrives by import and none is declared inline.
+ */
+const oneModuleGraph = () => ({
+    name: 'one-module-graph',
+    closeBundle() {
+        const bundle = fs.readFileSync('dist/fml.mjs', 'utf8');
+        for (const name of SIBLINGS) {
+            if (!bundle.includes(`from './${name}.mjs'`)) {
+                this.error(`dist/fml.mjs does not import ./${name}.mjs: the module entry inlined a sibling`);
+            }
+        }
+        for (const declared of ['class Registry', 'class ParsedElement', 'class Failure']) {
+            if (bundle.includes(declared)) {
+                this.error(`dist/fml.mjs declares its own ${declared}: a consumer mixing entry points gets two`);
+            }
+        }
+    },
+});
+
+const SIBLINGS = ['ftl', 'httpc', 'ful'];
+const siblingOf = (id) => SIBLINGS.find((name) => id.includes(`/${name}/`));
+const dependsOn = (...names) => (id) => names.includes(siblingOf(id));
+const siblingPaths =
+    (min) =>
+    (id) => {
+        const name = siblingOf(id);
+        return name ? `./${name}${min ? '.min' : ''}.mjs` : undefined;
+    };
+
 export default [
     {
         input: 'src/ftl/index.mjs',
@@ -149,46 +189,34 @@ export default [
     },
     {
         input: 'src/ful/index.mjs',
-        external: (id) => id.includes('/ftl/') || id.includes('/httpc/'),
+        external: dependsOn('ftl', 'httpc'),
         output: [
             {
                 sourcemap: true,
                 file: 'dist/ful.mjs',
                 format: 'es',
-                paths: (id) => {
-                    if (id.includes('/ftl/')) return './ftl.mjs';
-                    if (id.includes('/httpc/')) return './httpc.mjs';
-                },
+                paths: siblingPaths(false),
             },
             {
                 sourcemap: true,
                 file: 'dist/ful.min.mjs',
                 format: 'es',
                 plugins: [terser(terserOptions)],
-                paths: (id) => {
-                    if (id.includes('/ftl/')) return './ftl.min.mjs';
-                    if (id.includes('/httpc/')) return './httpc.min.mjs';
-                },
+                paths: siblingPaths(true),
             },
             {
                 sourcemap: true,
                 file: 'dist/ful.iife.js',
                 name: 'ful',
                 format: 'iife',
-                globals: (id) => {
-                    if (id.includes('/ftl/')) return 'ftl';
-                    if (id.includes('/httpc/')) return 'httpc';
-                },
+                globals: siblingOf,
             },
             {
                 sourcemap: true,
                 file: 'dist/ful.iife.min.js',
                 name: 'ful',
                 format: 'iife',
-                globals: (id) => {
-                    if (id.includes('/ftl/')) return 'ftl';
-                    if (id.includes('/httpc/')) return 'httpc';
-                },
+                globals: siblingOf,
                 plugins: [terser(terserOptions)],
             },
         ],
@@ -200,19 +228,34 @@ export default [
         ],
     },
     {
+        //the module entry re-exports its siblings instead of inlining them: a page
+        //mixing `@optionfactory/fml` with `@optionfactory/fml/ful` used to get two
+        //Registries and two Failures, so `instanceof Failure` was false across the
+        //two copies and a form showed no field errors
+        input: 'src/index.mjs',
+        external: dependsOn('ftl', 'httpc', 'ful'),
+        output: [
+            { sourcemap: true, file: 'dist/fml.mjs', format: 'es', paths: siblingPaths(false) },
+            {
+                sourcemap: true,
+                file: 'dist/fml.min.mjs',
+                format: 'es',
+                plugins: [terser(terserOptions)],
+                paths: siblingPaths(true),
+            },
+        ],
+        treeshake: true,
+        plugins: [resolve(), new RollupTypeGenerator('fml'), oneModuleGraph()],
+    },
+    {
+        //the single file a script tag wants: it carries everything and answers the
+        //ftl/httpc/ful globals itself, so nothing has to be loaded before it
         input: 'src/index.mjs',
         output: [
-            { sourcemap: true, file: 'dist/fml.mjs', format: 'es' },
-            { sourcemap: true, file: 'dist/fml.min.mjs', format: 'es', plugins: [terser(terserOptions)] },
             { sourcemap: true, file: 'dist/fml.iife.js', name: 'fml', format: 'iife' },
             { sourcemap: true, file: 'dist/fml.iife.min.js', name: 'fml', format: 'iife', plugins: [terser(terserOptions)] },
         ],
         treeshake: true,
-        plugins: [
-            new RollupPeggyWithSourceMap(),
-            resolve(),
-            css('fml.css'),
-            new RollupTypeGenerator('fml'),
-        ],
+        plugins: [new RollupPeggyWithSourceMap(), resolve(), css('fml.css')],
     },
 ];
