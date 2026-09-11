@@ -463,7 +463,7 @@ describe('Form reset and validity', () => {
                 create: () => ({
                     prefetch: async () => {},
                     load: async () => [],
-                    exact: async (...k) => k.map((v) => [v, v]),
+                    exact: async (...k) => k.map((v) => ({ key: v, label: v })),
                 }),
             });
         });
@@ -530,7 +530,7 @@ describe('Form reset and validity', () => {
 
             form.reset();
 
-            assert.strictEqual(field.value, undefined, 'the operands are empty again');
+            assert.isNull(field.value, 'the operands are empty again');
             assert.strictEqual(
                 field.querySelector('[data-ref=operator]').getAttribute('value'),
                 'CONTAINS',
@@ -647,7 +647,7 @@ describe('Disabled fields and submitted values', () => {
             create: () => ({
                 prefetch: async () => {},
                 load: async () => [],
-                exact: async (...k) => k.map((v) => [v, v]),
+                exact: async (...k) => k.map((v) => ({ key: v, label: v })),
             }),
         });
         const container = document.createElement('div');

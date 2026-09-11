@@ -19,7 +19,7 @@ describe('Accessibility audit', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
-                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
                 load: async () => [],
             }),
         });

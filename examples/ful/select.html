@@ -147,15 +147,17 @@
          * A mock of the remote select options: the loader contract the select
          * drives — prefetch on preload, load on open and search, exact for the
          * values that must resolve — answered with a simulated round trip.
+         * Every door answers `{ key, label, metadata }` entries, the one shape the
+         * element speaks.
          */
         class DemoOptionsLoader {
             #data = [
-                ['quoted', 'Quoted'],
-                ['issued', 'Issued'],
-                ['suspended', 'Suspended'],
-                ['renewed', 'Renewed'],
-                ['cancelled', 'Cancelled'],
-                ['expired', 'Expired'],
+                { key: 'quoted', label: 'Quoted' },
+                { key: 'issued', label: 'Issued' },
+                { key: 'suspended', label: 'Suspended' },
+                { key: 'renewed', label: 'Renewed' },
+                { key: 'cancelled', label: 'Cancelled' },
+                { key: 'expired', label: 'Expired' },
             ];
             #roundtrip() {
                 return new Promise((resolve) => setTimeout(resolve, 500));
@@ -165,11 +167,13 @@
             }
             async exact(...keys) {
                 await this.#roundtrip();
-                return this.#data.filter(([k]) => keys.some((r) => r === k));
+                return this.#data.filter(({ key }) => keys.some((r) => r === key));
             }
             async load(needle) {
                 await this.#roundtrip();
-                return this.#data.filter(([, v]) => (v ?? '').toLowerCase().includes((needle ?? '').toLowerCase()));
+                return this.#data.filter(({ label }) =>
+                    (label ?? '').toLowerCase().includes((needle ?? '').toLowerCase()),
+                );
             }
             static create() {
                 return new DemoOptionsLoader();

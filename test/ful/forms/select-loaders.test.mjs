@@ -96,7 +96,10 @@ describe('SelectLoader', () => {
 
         const all = await selectEl.withLoader((l) => l.load(undefined));
 
-        assert.deepStrictEqual(all.map(([, label]) => label), ['One', 'Two', 'Three']);
+        assert.deepStrictEqual(
+            all.map(({ label }) => label),
+            ['One', 'Two', 'Three'],
+        );
         container.remove();
     });
 
@@ -229,7 +232,10 @@ describe('SelectLoader', () => {
     });
 
     it('resolves a named response-mapper component', async () => {
-        registry.defineComponent('mappers:demo', (response) => response.options);
+        //a consumer's response-mapper answers entries, as every loader now does
+        registry.defineComponent('mappers:demo', (/** @type any */ response) =>
+            response.options.map(([key, label]) => ({ key, label })),
+        );
         stubHttp({ '/mapped': { options: [['k1', 'One']] } });
 
         const [selectEl, container] = await mount('src="/mapped" response-mapper="mappers:demo"');
@@ -320,7 +326,7 @@ describe('SelectLoader runtime updates', () => {
     it('serves the options an in-memory loader was updated with', async () => {
         const [selectEl, container] = await mount('', INLINE_OPTIONS);
 
-        await selectEl.withLoader((loader) => loader.update([['k9', 'Nine']]));
+        await selectEl.withLoader((loader) => loader.update([{ key: 'k9', label: 'Nine', metadata: undefined }]));
         assert.deepStrictEqual(options(await open(selectEl)), ['Nine']);
         container.remove();
     });
@@ -386,8 +392,8 @@ describe('SelectLoader fetch discipline', () => {
         pending[0].resolve([['k1', 'One']]);
         await Promise.all(concurrent);
 
-        assert.deepStrictEqual(await loader.load('one'), [['k1', 'One']]);
-        assert.deepStrictEqual(await loader.exact('k1'), [['k1', 'One']]);
+        assert.deepStrictEqual(await loader.load('one'), [{ key: 'k1', label: 'One', metadata: undefined }]);
+        assert.deepStrictEqual(await loader.exact('k1'), [{ key: 'k1', label: 'One', metadata: undefined }]);
         assert.lengthOf(calls, 1, 'the served answers never hit the network again');
     });
 
@@ -407,7 +413,7 @@ describe('SelectLoader fetch discipline', () => {
         assert.lengthOf(calls, 2);
         pending[1].resolve([['k2', 'New']]);
         await fresh;
-        assert.deepStrictEqual(await loader.load('new'), [['k2', 'New']]);
+        assert.deepStrictEqual(await loader.load('new'), [{ key: 'k2', label: 'New', metadata: undefined }]);
         assert.deepStrictEqual(await loader.exact('k1'), [], 'the old url answer was never stored');
         assert.lengthOf(calls, 2);
     });
@@ -426,7 +432,7 @@ describe('SelectLoader fetch discipline', () => {
 
         const next = loader.exact('k1');
         pending[1].resolve([['k1', 'New']]);
-        assert.deepStrictEqual(await next, [['k1', 'New']], 'the next caller is served from the new url');
+        assert.deepStrictEqual(await next, [{ key: 'k1', label: 'New', metadata: undefined }], 'the next caller is served from the new url');
         assert.deepStrictEqual(calls.map((c) => c.url), ['/old', '/new']);
     });
 

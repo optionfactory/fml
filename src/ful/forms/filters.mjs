@@ -144,7 +144,7 @@ class CompareFilter extends Input {
     _tuple() {
         const operator = this._operator.value;
         const values = operator === 'BETWEEN' ? [this._value1.value, this._value2.value] : [this._value1.value];
-        return values.some((v) => v === '') ? undefined : [operator, ...values.map((v) => this._serialize(v))];
+        return values.some((v) => v === '') ? null : [operator, ...values.map((v) => this._serialize(v))];
     }
     _applyTuple(v) {
         if (v == null) {
@@ -287,7 +287,7 @@ class TextFilter extends CompareFilter {
     }
     get value() {
         const tuple = this._tuple();
-        return tuple == null ? undefined : [tuple[0], this._sensitivity, ...tuple.slice(1)];
+        return tuple == null ? null : [tuple[0], this._sensitivity, ...tuple.slice(1)];
     }
     set value(v) {
         if (v == null) {
@@ -390,7 +390,7 @@ class BooleanFilter extends Field {
         return BooleanFilter.OPERATORS;
     }
     get value() {
-        return this._value.value === '' ? undefined : [this._operator.value, this._value.value];
+        return this._value.value === '' ? null : [this._operator.value, this._value.value];
     }
     set value(v) {
         if (v == null) {

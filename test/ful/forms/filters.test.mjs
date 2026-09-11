@@ -55,14 +55,14 @@ describe('Filter value tuples', () => {
 
         assert.strictEqual(el.querySelector('[data-ref=value1]').value, '');
         assert.strictEqual(el.querySelector('[data-ref=value2]').value, '');
-        assert.isUndefined(el.value, 'an emptied filter contributes no criteria');
+        assert.isNull(el.value, 'an emptied filter contributes no criteria');
         container.remove();
     });
 
     it('reports undefined instead of a tuple with an empty operand', async () => {
         const [el, container] = await mount(`<ful-filter-text>t</ful-filter-text>`);
 
-        assert.isUndefined(el.value, 'an unfilled filter contributes no criteria');
+        assert.isNull(el.value, 'an unfilled filter contributes no criteria');
         container.remove();
     });
 
@@ -74,7 +74,7 @@ describe('Filter value tuples', () => {
 
         el.querySelector('a[value=BETWEEN]').click();
 
-        assert.isUndefined(el.value, 'half a range is never reported as a partial tuple');
+        assert.isNull(el.value, 'half a range is never reported as a partial tuple');
         container.remove();
     });
 
@@ -88,7 +88,7 @@ describe('Filter value tuples', () => {
         el.querySelector('a[value=BETWEEN]').click();
 
         assert.strictEqual(el.querySelector('[data-ref=value2]').value, '');
-        assert.isUndefined(el.value, 'half a range is never reported as a partial tuple');
+        assert.isNull(el.value, 'half a range is never reported as a partial tuple');
         container.remove();
     });
 
@@ -708,7 +708,7 @@ describe('NumberFilter tuples', () => {
 
     it('contributes nothing until an operand is given', async () => {
         const [el, container] = await mount('');
-        assert.isUndefined(el.value);
+        assert.isNull(el.value);
         assert.strictEqual(el.querySelector('[data-ref=value1]').type, 'number');
         container.remove();
     });
@@ -754,7 +754,7 @@ describe('BooleanFilter tuples', () => {
 
     it('contributes nothing until a value is picked', async () => {
         const [el, container] = await mount('');
-        assert.isUndefined(el.value);
+        assert.isNull(el.value);
         assert.strictEqual(el.querySelector('[data-ref=operator]').getAttribute('value'), 'EQ');
         assert.strictEqual(el.querySelector('[data-ref=value]').tagName, 'BUTTON');
         container.remove();
@@ -783,8 +783,8 @@ describe('BooleanFilter tuples', () => {
 
         el.querySelector('[data-ref=value]').nextElementSibling.querySelector('a[value=""]').click();
 
-        assert.isUndefined(el.value, 'any contributes nothing');
-        assert.deepStrictEqual(changes, [undefined]);
+        assert.isNull(el.value, 'any contributes nothing');
+        assert.deepStrictEqual(changes, [null]);
         assert.strictEqual(el.querySelector('[data-ref=value]').innerText, 'Any');
         container.remove();
     });
@@ -811,7 +811,7 @@ describe('Filters and selects together', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
-                exact: async (...keys) => keys.map((k) => [k, `Label ${k}`]),
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
                 load: async () => [],
             }),
         });
@@ -893,7 +893,7 @@ describe('Filter readonly and disabled', () => {
             'CONTAINS',
             'the menu picks nothing',
         );
-        assert.strictEqual(el.value, undefined);
+        assert.isNull(el.value);
         container.remove();
     });
 
@@ -991,7 +991,7 @@ describe('Filter change notifications', () => {
 
         el.querySelector('a[value=BETWEEN]').click();
 
-        assert.deepEqual(seen, [{ value: undefined }], 'a listening form must learn the filter stopped applying');
+        assert.deepEqual(seen, [{ value: null }], 'a listening form must learn the filter stopped applying');
         container.remove();
     });
 });

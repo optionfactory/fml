@@ -144,7 +144,7 @@
             },
             "slots": {},
             "events": {
-                "page-requested": "Fired with the zero based index of the page the user asked for."
+                "page:requested": "Fired with the zero based index of the page the user asked for."
             }
         },
         "ful-sorter": {
@@ -154,7 +154,7 @@
             },
             "slots": {},
             "events": {
-                "sort-requested": "Fired with the sorter and the next order when activated."
+                "sort:requested": "Fired with the sorter and the next order when activated."
             }
         },
         "ful-filter-instant": {

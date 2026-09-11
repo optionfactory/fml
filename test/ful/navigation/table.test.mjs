@@ -608,7 +608,7 @@ describe('Pagination links', () => {
     it('does not request a page when a disabled link is clicked', async () => {
         const [el, container] = await mountPagination(`current="0" total="5"`);
         const requested = [];
-        el.addEventListener('page-requested', (e) => requested.push(e.detail.value));
+        el.addEventListener('page:requested', (e) => requested.push(e.detail.value));
 
         click(el.querySelector('li[data-ref=prev] button'));
         el.current = 4;
@@ -632,7 +632,7 @@ describe('Pagination links', () => {
     it('requests the zero based index of the clicked page', async () => {
         const [el, container] = await mountPagination(`current="0" total="10"`);
         const requested = [];
-        el.addEventListener('page-requested', (e) => requested.push(e.detail.value));
+        el.addEventListener('page:requested', (e) => requested.push(e.detail.value));
 
         click(pageLink(el, '3'));
         click(el.querySelector('li[data-ref=next] button'));
@@ -772,6 +772,47 @@ describe('In memory table loader', () => {
         click(pageLink(tableEl.querySelector('ful-pagination'), '3'));
         await settle();
         assert.deepStrictEqual(rowTexts(tableEl), ['5'], 'the last page holds what is left');
+        container.remove();
+    });
+
+    it('sorts the rows the header offers to sort', async () => {
+        //the schema renders a sorter per sortable column whatever the loader is:
+        //the local one answers it rather than leaving the header inert
+        const container = document.createElement('div');
+        container.innerHTML = `
+            <ful-table page-size="10">
+                <template slot="schema">
+                    <schema><column title="A" sorter="a">{{ a }}</column></schema>
+                </template>
+            </ful-table>`;
+        document.body.appendChild(container);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        await tableEl.withLoader((loader) => loader.update([{ a: 'pear' }, { a: 'apple' }, { a: 'fig' }]));
+        await tableEl.reload();
+        assert.deepStrictEqual(rowTexts(tableEl), ['pear', 'apple', 'fig'], 'unsorted keeps the given order');
+
+        const sorter = tableEl.querySelector('ful-sorter');
+        click(sorter.querySelector('button') ?? sorter);
+        await settle();
+        assert.deepStrictEqual(rowTexts(tableEl), ['apple', 'fig', 'pear'], 'ascending');
+
+        click(sorter.querySelector('button') ?? sorter);
+        await settle();
+        assert.deepStrictEqual(rowTexts(tableEl), ['pear', 'fig', 'apple'], 'descending');
+        container.remove();
+    });
+
+    it('sorts rows missing the value last, whichever way the column points', async () => {
+        const [tableEl, container] = await mountTable();
+        await tableEl.withLoader((loader) => loader.update([{ a: 'b' }, {}, { a: 'a' }]));
+        await tableEl.reload();
+        const loaded = await tableEl.withLoader((loader) => loader.load({ page: 0, size: 10 }, { sorter: 'a', order: 'asc' }, {}));
+        assert.deepStrictEqual(
+            loaded.data.map((row) => row.a),
+            ['a', 'b', undefined],
+        );
         container.remove();
     });
 

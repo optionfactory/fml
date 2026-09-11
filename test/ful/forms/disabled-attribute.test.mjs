@@ -5,7 +5,7 @@ import { Plugin, Field, Bindings } from '../../../src/ful/index.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 registry.defineComponent('loaders:select', {
-    create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => [v, v]) }),
+    create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => ({ key: v, label: v })) }),
 });
 
 const settle = async () => {
@@ -169,7 +169,7 @@ describe('The disabled attribute after the upgrade', () => {
                         release = resolve;
                     }),
                 load: async () => [],
-                exact: async (...k) => k.map((v) => [v, v]),
+                exact: async (...k) => k.map((v) => ({ key: v, label: v })),
             }),
         });
         const container = document.createElement('div');

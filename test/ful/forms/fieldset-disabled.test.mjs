@@ -7,7 +7,7 @@ registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const mount = async (fieldsetAttr, inner) => {
     registry.defineComponent('loaders:select', {
-        create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => [v, v]) }),
+        create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => ({ key: v, label: v })) }),
     });
     const container = document.createElement('div');
     container.innerHTML = `<fieldset ${fieldsetAttr}>${inner}</fieldset>`;

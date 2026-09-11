@@ -33,13 +33,13 @@ class RemoteLoader {
     }
     async exact(...keys) {
         const data = await this.#ensureFetched();
-        return data.filter(([k, v]) => keys.some((r) => r == k));
+        return data.filter(({ key }) => keys.some((r) => r == key));
     }
     async load(needle) {
         const data = await this.#ensureFetched();
         //includes would coerce a nullish needle to the string "undefined": no
         //needle means no filter, as the empty search the combobox opens with
-        return data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
+        return data.filter(({ label }) => (label ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
     }
     async reconfigureUrl(url) {
         //invalidating detaches any fetch still in flight: its outcome belongs
@@ -129,11 +129,11 @@ class InMemoryLoader {
         this.#data = data;
     }
     exact(...keys) {
-        return this.#data.filter(([k, v]) => keys.some((r) => r == k));
+        return this.#data.filter(({ key }) => keys.some((r) => r == key));
     }
     load(needle) {
         //no needle means no filter, as in RemoteLoader
-        return this.#data.filter(([k, v]) => (v ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
+        return this.#data.filter(({ label }) => (label ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
     }
 }
 
@@ -142,9 +142,11 @@ class SelectLoader {
     static create(el, conf) {
         if (!el.hasAttribute('src')) {
             const els = Array.from(conf.options?.querySelectorAll('option') ?? []);
-            const data = els.map((e) => {
-                return [e.getAttribute('value') ?? e.innerText.trim(), e.innerText.trim()];
-            });
+            const data = els.map((e) => ({
+                key: e.getAttribute('value') ?? e.innerText.trim(),
+                label: e.innerText.trim(),
+                metadata: undefined,
+            }));
             return new InMemoryLoader(data);
         }
         const http = el.component('http-client');
@@ -176,18 +178,21 @@ class SelectLoader {
                     .evaluateExpression(el.getAttribute('d-expr') ?? 'self');
                 return rows.map((row) => {
                     const evaluator = el._registry.evaluator().withOverlay(row);
-                    return [
-                        evaluator.evaluateExpression(el.getAttribute('k-expr')),
-                        evaluator.evaluateExpression(el.getAttribute('l-expr')),
-                        evaluator.evaluateExpression(el.getAttribute('m-expr') ?? 'self'),
-                    ];
+                    return {
+                        key: evaluator.evaluateExpression(el.getAttribute('k-expr')),
+                        label: evaluator.evaluateExpression(el.getAttribute('l-expr')),
+                        metadata: evaluator.evaluateExpression(el.getAttribute('m-expr') ?? 'self'),
+                    };
                 });
             };
         }
         if (el.hasAttribute('response-mapper')) {
             return el.component(el.getAttribute('response-mapper'));
         }
-        return (response) => response;
+        //the wire format servers send is the positional row: the default mapper
+        //is what turns it into the entry the element speaks everywhere else
+        return (/** @type any[] */ response) =>
+            response.map(([key, label, metadata]) => ({ key, label, metadata }));
     }
 }
 
@@ -263,28 +268,28 @@ class Dropdown extends ParsedElement {
             throw new Error('null data');
         }
         this.#options = new Map(values.map((v, i) => [String(i), v]));
-        const data = values.map(([key, label, metadata], index) => ({ index, key, label, metadata }));
+        const data = values.map((entry, index) => ({ index, ...entry }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
         for (const [index, li] of [...this.#menu.children].entries()) {
             li.toggleAttribute(
                 'picked',
-                keys.some((r) => r == values[index]?.[0]),
+                keys.some((r) => r == values[index]?.key),
             );
         }
         this.#empty.toggleAttribute('hidden', values.length !== 0);
         this.#menu.toggleAttribute('hidden', values.length === 0);
-        const current = values.findIndex(([k]) => keys.some((r) => r == k));
+        const current = values.findIndex(({ key }) => keys.some((r) => r == key));
         this.#highlight(current >= 0 ? this.#menu.children[current] : this.#selected());
     }
     #change(target) {
         const index = target.getAttribute('value');
-        const data = this.#options.get(index);
+        const entry = this.#options.get(index);
         this.hide();
         this.dispatchEvent(
             new CustomEvent('change', {
                 bubbles: true,
                 cancelable: false,
-                detail: { index, data },
+                detail: { index, entry },
             }),
         );
     }
@@ -551,7 +556,7 @@ class Select extends Field {
                 this.#values.clear();
             }
             this.#editing = false;
-            this.#values.set(this.#coerceKey(e.detail.data[0]), e.detail.data.slice(1));
+            this.#values.set(this.#coerceKey(e.detail.entry.key), e.detail.entry);
             this.#changed();
             this.#syncBadges();
             this.#input.focus();
@@ -722,30 +727,25 @@ class Select extends Field {
     }
     #display() {
         const entry = this.#values.values().next().value;
-        this.#input.value = this.#multiple ? '' : (entry?.[0] ?? '');
+        this.#input.value = this.#multiple ? '' : (entry?.label ?? '');
     }
     /** The selection in its one vocabulary: the change detail and the items overlay both speak it. */
     #selection() {
-        return [...this.#values.entries()].map((e) => ({
-            key: e[0],
-            label: e[1][0],
-            metadata: e[1].slice(1),
-        }));
+        return [...this.#values.values()];
     }
     #changed() {
-        const selection = this.#selection();
-        //the announced value is the labeled selection, not the bare keys the
-        //value property answers with
-        this._notifyChange(this.#multiple ? selection : (selection[0] ?? null));
+        //the detail carries the keys the value property answers with, as every
+        //other field's does, and the labeled selection beside them
+        this._notifyChange({ entry: this.entry });
     }
     #syncBadges() {
         const badges = this.#multiple
-            ? Array.from(this.#values.entries()).map(([k, v]) => {
+            ? Array.from(this.#values.entries()).map(([k, entry]) => {
                   const b = document.createElement('ful-badge');
                   b.setAttribute('role', 'button');
                   b.setAttribute('tabindex', '-1');
                   b.setAttribute('value', k);
-                  b.innerText = v[0];
+                  b.innerText = entry.label;
                   return b;
               })
             : [];
@@ -793,7 +793,7 @@ class Select extends Field {
         const keys = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
         //the keys are known synchronously and are all `value` reads, so they are applied
         //now: only the labels need the loader, until then a key stands in for its own
-        this.#values = new Map(keys.map((k) => [k, [k]]));
+        this.#values = new Map(keys.map((k) => [k, { key: k, label: k, metadata: undefined }]));
         const claim = this.#assignments.take();
         if (!this.#control) {
             return;
@@ -817,7 +817,7 @@ class Select extends Field {
         //label the keys that are still selected: a removal made while the lookup was in
         //flight must not be undone by it, and a key the loader does not know is dropped
         //the loader keys are coerced too, so they line up with the assigned ones
-        const resolved = new Map(entries.map((e) => [this.#coerceKey(e[0]), e.slice(1)]));
+        const resolved = new Map(entries.map((e) => [this.#coerceKey(e.key), e]));
         for (const key of keys) {
             if (!this.#values.has(key)) {
                 continue;

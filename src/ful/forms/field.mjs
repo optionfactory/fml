@@ -105,16 +105,18 @@ class Field extends ParsedElement {
     }
     /**
      * Dispatches the field's change event: bubbling, not cancelable, the value
-     * in the detail. Every field announces through this one door; a field whose
-     * announced value is not its own `value` (the select's labeled selection)
-     * passes it explicitly.
+     * in the detail. Every field announces through this one door, and the detail
+     * always carries the field's own `value`, so a listener can rely on
+     * `el.value === evt.detail.value` whatever the field is. A field with more to
+     * say adds keys beside it; none can replace it.
+     * @param {Record<string, any>} [extras]
      */
-    _notifyChange(value = this.value) {
+    _notifyChange(extras = {}) {
         this.dispatchEvent(
             new CustomEvent('change', {
                 bubbles: true,
                 cancelable: false,
-                detail: { value },
+                detail: { value: this.value, ...extras },
             }),
         );
     }

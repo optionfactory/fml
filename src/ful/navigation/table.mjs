@@ -15,7 +15,7 @@ class SortButton extends ParsedElement {
         this.addEventListener('click', () => {
             const nextOrder = orders[(orders.indexOf(this.order) + 1) % 3];
             this.dispatchEvent(
-                new CustomEvent('sort-requested', {
+                new CustomEvent('sort:requested', {
                     bubbles: true,
                     cancelable: true,
                     detail: {
@@ -101,7 +101,7 @@ class Pagination extends ParsedElement {
                 return;
             }
             this.dispatchEvent(
-                new CustomEvent('page-requested', {
+                new CustomEvent('page:requested', {
                     bubbles: true,
                     cancelable: true,
                     detail: {
@@ -230,14 +230,39 @@ class InMemoryTableLoader {
         this.#data = data;
     }
     async load(pageRequest, sortRequest, filterRequest) {
+        //the header renders a sorter per sortable column whatever the loader is,
+        //so the local one answers it rather than leaving it inert
+        const rows = this.#sorted(sortRequest);
         const begin = pageRequest.page * pageRequest.size;
         const end = begin + pageRequest.size;
-        const page = this.#data.slice(begin, end);
-        const totalElements = this.#data.length;
+        const page = rows.slice(begin, end);
+        const totalElements = rows.length;
         return {
             data: page,
             size: totalElements,
         };
+    }
+    #sorted(sortRequest) {
+        if (!sortRequest?.sorter) {
+            return this.#data;
+        }
+        const { sorter, order } = sortRequest;
+        const sign = order === 'desc' ? -1 : 1;
+        return [...this.#data].sort((l, r) => {
+            const a = l?.[sorter];
+            const b = r?.[sorter];
+            if (a === b) {
+                return 0;
+            }
+            //a missing value sorts last whichever way the column points
+            if (a == null) {
+                return 1;
+            }
+            if (b == null) {
+                return -1;
+            }
+            return (a < b ? -1 : 1) * sign;
+        });
     }
     update(data) {
         this.#data = data;
@@ -248,10 +273,12 @@ class RemoteTableLoader {
     #http;
     #url;
     #method;
-    constructor(http, url, method) {
+    #responseMapper;
+    constructor(http, url, method, responseMapper = (response) => response) {
         this.#http = http;
         this.#url = url;
         this.#method = method;
+        this.#responseMapper = responseMapper;
     }
     async load(pageRequest, sortRequest, filterRequest) {
         const filters = Object.entries(filterRequest).filter(([k, v]) => v);
@@ -261,7 +288,8 @@ class RemoteTableLoader {
             .param('size', pageRequest.size)
             .param('sort', sortRequest ? `${sortRequest.sorter},${sortRequest.order}` : null)
             .param('filters', filters.length > 0 ? JSON.stringify(Object.fromEntries(filters)) : null)
-            .fetchJson();
+            .fetchJson()
+            .then((response) => this.#responseMapper(response));
     }
 }
 
@@ -272,7 +300,10 @@ class TableLoader {
         if (url) {
             const http = el.component('http-client');
             const method = el.getAttribute('method') ?? 'GET';
-            return new RemoteTableLoader(http, url, method);
+            const responseMapper = el.hasAttribute('response-mapper')
+                ? el.component(el.getAttribute('response-mapper'))
+                : (/** @type any */ response) => response;
+            return new RemoteTableLoader(http, url, method, responseMapper);
         }
         return new InMemoryTableLoader([]);
     }
@@ -390,7 +421,7 @@ class Table extends ParsedElement {
                 evt.detail.request,
             );
         });
-        this.addEventListener('page-requested', async (/** @type any */ e) => {
+        this.addEventListener('page:requested', async (/** @type any */ e) => {
             await this.load(
                 {
                     page: e.detail.value,
@@ -400,7 +431,7 @@ class Table extends ParsedElement {
                 this.#latestRequest.filterRequest,
             );
         });
-        this.addEventListener('sort-requested', async (/** @type any */ e) => {
+        this.addEventListener('sort:requested', async (/** @type any */ e) => {
             const sortRequest = e.detail.value.order ? e.detail.value : null;
             await this.load(this.#latestRequest.pageRequest, sortRequest, this.#latestRequest.filterRequest);
             //only the load that still owns the table commits the header: a superseded
