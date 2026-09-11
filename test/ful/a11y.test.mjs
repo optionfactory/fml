@@ -111,3 +111,45 @@ describe('Accessibility audit', () => {
         });
     }
 });
+
+describe('Accessibility: async state is announced', () => {
+    it('gives every spinner text to announce', async () => {
+        //role=status on an empty element is a live region with nothing to read:
+        //the ring is a css pseudo-element, so the message is its own child
+        const container = document.createElement('section');
+        container.innerHTML = `<ful-table><template slot="schema"><schema><column title="A">{{ a }}</column></schema></template></ful-table>`;
+        document.body.appendChild(container);
+        await Rendering.waitForChildren(container);
+        await settle();
+
+        const spinner = container.querySelector('ful-spinner[role=status]');
+        assert.isNotNull(spinner, 'the table renders a spinner');
+        assert.strictEqual(spinner.textContent.trim(), 'Loading…');
+        container.remove();
+    });
+
+    it('declares the table busy only while the load it owns is in flight', async () => {
+        const pending = [];
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: () => {
+                    const resolvers = /** @type any */ (Promise.withResolvers());
+                    pending.push(resolvers);
+                    return resolvers.promise;
+                },
+            }),
+        });
+        const container = document.createElement('section');
+        container.innerHTML = `<ful-table autoload><template slot="schema"><schema><column title="A">{{ a }}</column></schema></template></ful-table>`;
+        document.body.appendChild(container);
+        const table = container.querySelector('ful-table');
+        await Rendering.waitForChildren(container);
+        await settle();
+
+        assert.strictEqual(table.getAttribute('aria-busy'), 'true', 'busy while loading');
+        pending[0].resolve({ data: [], size: 0 });
+        await settle();
+        assert.isNull(table.getAttribute('aria-busy'), 'the busy state is lifted when the load settles');
+        container.remove();
+    });
+});

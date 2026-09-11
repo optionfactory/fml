@@ -144,6 +144,33 @@ describe('SelectLoader', () => {
         container.remove();
     });
 
+    it('paints its own chrome without waiting on the prefetch', async () => {
+        //the field's label, combobox and error region are its own state; only the
+        //vocabulary is remote, so a slow endpoint degrades the options, not the field
+        const pending = [];
+        registry.defineComponent('http-client', {
+            request() {
+                const resolvers = /** @type any */ (Promise.withResolvers());
+                pending.push(resolvers);
+                return { fetchJson: () => resolvers.promise };
+            },
+        });
+        const container = document.createElement('div');
+        container.innerHTML = '<ful-select src="/never" preload name="s">a label</ful-select>';
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+
+        assert.lengthOf(pending, 1, 'the prefetch is in flight');
+        assert.isNotNull(selectEl.querySelector('input'), 'the combobox painted');
+        assert.isNotNull(selectEl.querySelector('label'), 'the label painted');
+        assert.isNotNull(selectEl.querySelector('ful-field-error'), 'the error region painted');
+        assert.isTrue(selectEl.rendered, 'the live door is open while the options are still loading');
+
+        pending[0].resolve([]);
+        container.remove();
+    });
+
     it('reuses a revisioned response across mounts through local storage', async () => {
         localStorage.removeItem('POST@/rev-opts');
         const calls = stubHttp({ '/rev-opts': [['k1', 'One']] });

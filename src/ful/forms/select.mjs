@@ -195,7 +195,7 @@ class SelectLoader {
 class Dropdown extends ParsedElement {
     static slots = true;
     static template = `
-        <ful-spinner class="centered" role="status" hidden></ful-spinner>
+        <ful-spinner class="centered" role="status" hidden><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
         <p data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('dropdown.empty') }}</p>
         <menu tabindex="-1" role="listbox" hidden></menu>
     `;
@@ -407,18 +407,20 @@ class Select extends Field {
     #editing = false;
     #dload;
     #abortdload;
-    async _build({ slots }) {
+    _build({ slots }) {
         const name = this.getAttribute('name');
         this.#loader = this.component(this.getAttribute('loader') ?? 'loaders:select').create(this, {
             options: slots.options,
         });
 
         this.#multiple = this.hasAttribute('multiple');
-        try {
-            await this.#loader.prefetch?.();
-        } catch (/** @type any */ e) {
+        //the prefetch is the vocabulary's concern, not the field's: the label, the
+        //combobox and the error region paint at once and the live door opens with
+        //them, where a slow endpoint used to hold up the whole upgrade. The loader
+        //shares one in-flight fetch, so a first open during the prefetch joins it
+        this.#loader.prefetch?.()?.catch((/** @type any */ e) => {
             console.warn('failed to prefetch select options', this, 'reason:', e);
-        }
+        });
         const fragment = this.template().withOverlay({ slots, name }).render();
         this.#input = fragment.querySelector('input');
         this.#items = fragment.querySelector('ful-item-list');

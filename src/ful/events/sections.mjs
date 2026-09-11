@@ -1,4 +1,5 @@
 import { Failure } from '../../httpc/index.mjs';
+import { Claims } from '../claims.mjs';
 
 /**
  * The async section machinery shared by ful-tabs, ful-wizard, ful-dialog and
@@ -18,7 +19,8 @@ import { Failure } from '../../httpc/index.mjs';
  */
 class SectionRequests {
     #entered = new WeakSet();
-    #tokens = new WeakMap();
+    /** one generation of claims per section: the sections contend separately */
+    #claims = new WeakMap();
 
     /**
      * @param {Element} host
@@ -47,9 +49,13 @@ class SectionRequests {
             return undefined;
         }
         this.#entered.add(section);
-        const token = (this.#tokens.get(section) ?? 0) + 1;
-        this.#tokens.set(section, token);
-        const owned = () => token === this.#tokens.get(section);
+        let claims = this.#claims.get(section);
+        if (!claims) {
+            claims = new Claims();
+            this.#claims.set(section, claims);
+        }
+        const claim = claims.take();
+        const owned = () => !claim.stale;
         section.querySelector(':scope > .ful-section-error')?.remove();
         const frame = requestAnimationFrame(() => {
             if (owned()) {

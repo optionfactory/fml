@@ -33,6 +33,7 @@ export default {
     'info.tooltip': 'Maggiori informazioni',
     'dialog.acknowledge': 'Ho capito',
     'drawer.close': 'Chiudi',
+    'spinner.loading': 'Caricamento…',
     'toast.region': 'Notifiche',
     'toast.dismiss': 'Chiudi',
     'wizard.progress': 'Avanzamento',

@@ -306,14 +306,14 @@ class Table extends ParsedElement {
                 <tbody data-ref="loading" hidden>
                     <tr>
                         <td data-tpl-colspan="schema.length">
-                            <ful-spinner class="big" role="status"></ful-spinner>
+                            <ful-spinner class="big" role="status"><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
                         </td>
                     </tr>
                 </tbody>
                 <tbody data-ref="feedback" hidden>
                     <tr>
                         <td data-tpl-colspan="schema.length">
-                            <div>
+                            <div role="alert">
                                 <p>{{ #l10n:t('table.error') }}</p>
                                 <div data-ref="feedback-error"></div>
                             </div>
@@ -438,6 +438,7 @@ class Table extends ParsedElement {
         this.#loading.removeAttribute('hidden');
         this.#feedback.setAttribute('hidden', '');
         this.#noAutoload.setAttribute('hidden', '');
+        this.setAttribute('aria-busy', 'true');
         try {
             const pageResponse = await this.#loader.load(pageRequest, sortRequest, filterRequest);
             if (claim.stale) {
@@ -458,6 +459,11 @@ class Table extends ParsedElement {
                 `${error}`,
             );
             throw error;
+        } finally {
+            //a superseded load owns nothing, the newer one's busy state included
+            if (!claim.stale) {
+                this.removeAttribute('aria-busy');
+            }
         }
     }
     /** Hands the loader to the callback, for runtime reconfigurations. */

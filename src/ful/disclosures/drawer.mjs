@@ -13,7 +13,7 @@ class Drawer extends ParsedElement {
                 <h2 data-ref="title">{{ title }}</h2>
                 <button type="button" data-ref="close" data-tpl-aria-label="#l10n:t('drawer.close')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </header>
-            <section data-ref="loading" hidden><ful-spinner class="centered" role="status"></ful-spinner></section>
+            <section data-ref="loading" hidden><ful-spinner class="centered" role="status"><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner></section>
             <section data-ref="error" role="alert" hidden></section>
             <section data-ref="content">{{{{ slots.default }}}}</section>
         </dialog>
@@ -24,8 +24,6 @@ class Drawer extends ParsedElement {
     #error;
     #content;
     #requests = new SectionRequests();
-    /** @type {import('../claims.mjs').Claim | null} */
-    #quietOpen = null;
     #updates = new Claims();
     render({ slots }) {
         const fragment = this.template()
@@ -68,14 +66,10 @@ class Drawer extends ParsedElement {
         this.#restChrome();
         this.#loading.removeAttribute('hidden');
         this.#content.setAttribute('hidden', '');
-        //update owns its own open-answer-deliver cycle: only the open it makes
-        //itself stays quiet, a user reopen during the wait is a real open
-        this.#quietOpen = claim;
-        try {
-            this.open();
-        } finally {
-            this.#quietOpen = null;
-        }
+        //update owns its own open-answer-deliver cycle, so it shows the dialog
+        //without asking the section door: a user reopen during the wait is a
+        //real open and goes through open()
+        this.#show();
         try {
             const delivered = await cb();
             if (claim.stale) {
@@ -104,16 +98,22 @@ class Drawer extends ParsedElement {
         return this.#requests.request(this, this.#content, null, null)?.then(undefined, () => undefined);
     }
     open() {
-        if (!this.#dialog.open) {
-            this.#dialog.showModal();
-            if (this.#quietOpen === null) {
-                this.#restChrome();
-                this.#requests.request(this, this.#content, null, null)?.catch(() => undefined);
-            }
+        if (!this.#show()) {
+            return;
         }
+        this.#restChrome();
+        this.#requests.request(this, this.#content, null, null)?.catch(() => undefined);
     }
     close() {
         this.#dialog.close();
+    }
+    /** Shows the modal, answering whether this call is the one that opened it. */
+    #show() {
+        if (this.#dialog.open) {
+            return false;
+        }
+        this.#dialog.showModal();
+        return true;
     }
     #restChrome() {
         this.#error.replaceChildren();
