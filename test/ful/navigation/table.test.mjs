@@ -568,13 +568,16 @@ describe('Pagination links', () => {
         container.remove();
     });
 
-    it('disables the link to the page already being shown', async () => {
+    it('marks the page already being shown as current, keeping it reachable', async () => {
         const [el, container] = await mountPagination(`current="1" total="3"`);
 
-        const disabled = pageLinks(el)
-            .filter((a) => a.hasAttribute('disabled'))
+        //disabling it would say "not actionable" and never "this is where you are",
+        //and would drop it out of the tab order with nothing announced in its place
+        const current = pageLinks(el)
+            .filter((a) => a.getAttribute('aria-current') === 'page')
             .map((a) => a.textContent.trim());
-        assert.deepStrictEqual(disabled, ['2']);
+        assert.deepStrictEqual(current, ['2']);
+        assert.isFalse(pageLinks(el).some((a) => a.hasAttribute('disabled')), 'no page link is disabled');
         container.remove();
     });
 
@@ -599,9 +602,9 @@ describe('Pagination links', () => {
             assert.strictEqual(button.tagName, 'BUTTON');
             assert.strictEqual(button.type, 'button', 'no button submits the surrounding form');
         }
-        const current = el.querySelector('li[data-ref=page] button[disabled]');
-        assert.isNotNull(current, 'the page being shown is disabled');
-        assert.isTrue(current.matches(':disabled'), 'a disabled page button is not a tab stop');
+        const current = el.querySelector('li[data-ref=page] button[aria-current=page]');
+        assert.isNotNull(current, 'the page being shown is marked current');
+        assert.isFalse(current.matches(':disabled'), 'and stays a tab stop, so the reader can find it');
         container.remove();
     });
 

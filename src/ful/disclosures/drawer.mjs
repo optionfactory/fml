@@ -81,8 +81,10 @@ class Drawer extends ParsedElement {
             return this.#content;
         } catch (/** @type any */ e) {
             if (!claim.stale) {
-                this.#error.textContent = Failure.problemsText(e);
+                //revealed before it is filled, so the live region announces the
+                //change rather than being revealed already holding it
                 this.#error.removeAttribute('hidden');
+                this.#error.textContent = Failure.problemsText(e);
                 this.#loading.setAttribute('hidden', '');
                 this.#content.setAttribute('hidden', '');
             }

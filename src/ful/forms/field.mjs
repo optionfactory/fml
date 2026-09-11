@@ -110,6 +110,10 @@ class Field extends ParsedElement {
      * @param {string} [context] the path below this field's name, '' when exact
      */
     setCustomValidity(error, context) {
+        //the state rides the control the reader focuses, not only the element
+        //internals: the host's role is presentation for most fields, so a
+        //validity set there announces nothing where the caret actually is
+        Attributes.set(this.#announces ?? this.#control, 'aria-invalid', error ? 'true' : null);
         if (!error) {
             this.internals.setValidity({});
             this.#fieldError.innerText = '';

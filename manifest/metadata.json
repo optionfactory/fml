@@ -231,6 +231,7 @@
             "attributes": {},
             "slots": {},
             "events": {
+                "activechange": "Fired with the id of the option the reader is on, for the combobox that controls the listbox.",
                 "change": "Fired with the option that was picked."
             }
         },

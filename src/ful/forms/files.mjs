@@ -3,6 +3,8 @@ import { Input } from './input.mjs';
 
 /** A file input with an optional dropzone and item list, enforcing the size and count limits it declares. */
 class InputFile extends Input {
+    /** how long a warning stands before the field retires it, matching the css fade */
+    static WARNING_TIMEOUT = 5000;
     static observed = [
         'placeholder',
         'accept:csv',
@@ -36,7 +38,7 @@ class InputFile extends Input {
             {{ #l10n:t('files.dropzonelabel') }}
         </div>
         <ful-item-list></ful-item-list>
-        <ful-field-warnings></ful-field-warnings>
+        <ful-field-warnings role="status" aria-live="polite"></ful-field-warnings>
         <ful-field-error></ful-field-error>
     `;
     static templates = {
@@ -138,6 +140,11 @@ class InputFile extends Input {
     }
     warning(key, args) {
         this.template('warning').withOverlay({ key, args }).appendTo(this.#warnings);
+        //the field retires its own warnings: the css fade is decoration, and a
+        //theme that drops the keyframe, or a host stylesheet disabling animations,
+        //used to leave them on screen until the next selection
+        const warning = /** @type HTMLElement */ (this.#warnings.lastElementChild);
+        setTimeout(() => warning.remove(), InputFile.WARNING_TIMEOUT);
     }
     /**
      * The native accept vocabulary: a dot-prefixed extension matches the file

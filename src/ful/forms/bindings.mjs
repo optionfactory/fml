@@ -198,10 +198,15 @@ class Bindings {
         const bannered = [...globalErrors, ...unmatched];
         form.querySelectorAll('ful-errors').forEach((el) => {
             const hel = /** @type HTMLElement} */ (el);
-            hel.innerText = bannered.map((e) => e.reason).join('\n');
-            if (bannered.length !== 0) {
-                el.removeAttribute('hidden');
+            if (bannered.length === 0) {
+                hel.innerText = '';
+                return;
             }
+            //revealed before it is filled: a live region mutated while hidden and
+            //shown afterwards is announced unreliably, the change having happened
+            //where nothing was watching
+            el.removeAttribute('hidden');
+            hel.innerText = bannered.map((e) => e.reason).join('\n');
         });
         if (es.length === 0 || !scrollOnError) {
             return;

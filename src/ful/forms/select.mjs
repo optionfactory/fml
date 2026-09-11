@@ -206,7 +206,7 @@ class Dropdown extends ParsedElement {
     `;
     static templates = {
         options: `
-            <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index" role="option" data-tpl-aria-selected="index == 0 ? 'true' : 'false'">
+            <li data-tpl-each="self" data-tpl-selected="index == 0" data-tpl-value="index" role="option">
                 {{ label }}
             </li>
         `,
@@ -217,7 +217,6 @@ class Dropdown extends ParsedElement {
     #optionstemplate;
     #options = new Map();
     #shows = new Claims();
-    combobox;
     render({ slots }) {
         const fragment = this.template().render();
         this.#optionstemplate = Fragments.isBlank(slots.default)
@@ -226,6 +225,12 @@ class Dropdown extends ParsedElement {
         this.#spinner = fragment.querySelector('ful-spinner');
         this.#empty = fragment.querySelector('p[data-ref=empty]');
         this.#menu = fragment.querySelector('menu');
+        //the listbox is named so a combobox can point aria-controls and
+        //aria-activedescendant at it: a reference to an unnamed element resolves
+        //to nothing, and the active option is announced to no one. The name comes
+        //from the host when it gave one, since it has to set aria-controls before
+        //this element upgrades
+        this.#menu.id = this.getAttribute('listbox') || Attributes.uid('ful-listbox');
         this.#menu.addEventListener('click', (evt) => {
             evt.stopPropagation();
             const li = evt.target.closest('li');
@@ -242,15 +247,14 @@ class Dropdown extends ParsedElement {
     }
     #highlight(li) {
         if (!li) {
-            this.combobox?.removeAttribute('aria-activedescendant');
+            this.#activated(null);
             return;
         }
         for (const el of this.#menu.querySelectorAll('li')) {
             el.toggleAttribute('selected', el === li);
-            el.setAttribute('aria-selected', el === li ? 'true' : 'false');
         }
         li.id ||= Attributes.uid('ful-option');
-        this.combobox?.setAttribute('aria-activedescendant', li.id);
+        this.#activated(li.id);
         li.scrollIntoView({
             block: 'nearest',
             behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
@@ -271,10 +275,11 @@ class Dropdown extends ParsedElement {
         const data = values.map((entry, index) => ({ index, ...entry }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
         for (const [index, li] of [...this.#menu.children].entries()) {
-            li.toggleAttribute(
-                'picked',
-                keys.some((r) => r == values[index]?.key),
-            );
+            const picked = keys.some((r) => r == values[index]?.key);
+            li.toggleAttribute('picked', picked);
+            //what is picked is what aria-selected means for a listbox: a tint alone
+            //says it to whoever can see it and to no one else
+            li.setAttribute('aria-selected', picked ? 'true' : 'false');
         }
         this.#empty.toggleAttribute('hidden', values.length !== 0);
         this.#menu.toggleAttribute('hidden', values.length === 0);
@@ -300,9 +305,17 @@ class Dropdown extends ParsedElement {
         if (this.matches(':popover-open')) {
             this.hidePopover();
         }
-        this.combobox?.removeAttribute('aria-activedescendant');
-        this.combobox?.setAttribute('aria-expanded', 'false');
+        this.#activated(null);
     }
+    /**
+     * The option the reader is on, announced for whoever owns the combobox: the
+     * dropdown is a view, so it names its active option and never reaches into
+     * another element's aria to say so.
+     */
+    #activated(id) {
+        this.dispatchEvent(new CustomEvent('activechange', { bubbles: false, cancelable: false, detail: { id } }));
+    }
+
     get shown() {
         return this.matches(':popover-open');
     }
@@ -435,7 +448,22 @@ class Select extends Field {
         this.#control = fragment.querySelector('ful-control');
 
         this.#ddmenu = fragment.querySelector('ful-dropdown');
-        this.#ddmenu.combobox = this.#input;
+        //named before it upgrades, so the combobox can control it from the start
+        const listbox = Attributes.uid('ful-listbox');
+        this.#ddmenu.setAttribute('listbox', listbox);
+        this.#input.setAttribute('aria-controls', listbox);
+        //one writer for the combobox's state: the dropdown says when it opens and
+        //which option is active, the input's aria is the select's to keep
+        this.#ddmenu.addEventListener('beforetoggle', (/** @type any */ e) => {
+            const open = e.newState === 'open';
+            this.#input.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (!open) {
+                this.#input.removeAttribute('aria-activedescendant');
+            }
+        });
+        this.#ddmenu.addEventListener('activechange', (/** @type any */ e) => {
+            Attributes.set(this.#input, 'aria-activedescendant', e.detail.id);
+        });
         //each pair carries its own anchor: two selects on a page must not share one
         const group = fragment.querySelector('ful-control-group');
         wireAnchoredPopover(group, this.#ddmenu, { prefix: 'ful-select', stretch: true });
@@ -560,7 +588,6 @@ class Select extends Field {
             this.#changed();
             this.#syncBadges();
             this.#input.focus();
-            this.#input.setAttribute('aria-expanded', 'false');
             this.#ddmenu.hide();
             if (!this.#multiple) {
                 this.#input.select();
@@ -700,11 +727,9 @@ class Select extends Field {
             return;
         }
         this.#browse();
-        this.#input.setAttribute('aria-expanded', 'true');
         this.#ddmenu.moveOrShow(forward, () => this.#loader.load(this.#input.value), [...this.#values.keys()]);
     }
     #close() {
-        this.#input.setAttribute('aria-expanded', 'false');
         this.#ddmenu.hide();
         this.#editing = false;
         this.#display();
@@ -716,7 +741,6 @@ class Select extends Field {
      */
     #open() {
         this.#browse();
-        this.#input.setAttribute('aria-expanded', 'true');
         return this.#ddmenu.show(() => this.#loader.load(this.#input.value), [...this.#values.keys()]);
     }
     #browse() {
@@ -740,10 +764,12 @@ class Select extends Field {
     }
     #syncBadges() {
         const badges = this.#multiple
-            ? Array.from(this.#values.entries()).map(([k, entry]) => {
+            ? Array.from(this.#values.entries()).map(([k, entry], index) => {
                   const b = document.createElement('ful-badge');
                   b.setAttribute('role', 'button');
-                  b.setAttribute('tabindex', '-1');
+                  //a roving tab stop: without one the chips are reachable only from
+                  //the input's caret, so Tab never finds them
+                  b.setAttribute('tabindex', index === 0 ? '0' : '-1');
                   b.setAttribute('value', k);
                   b.innerText = entry.label;
                   return b;

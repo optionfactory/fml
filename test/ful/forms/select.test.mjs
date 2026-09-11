@@ -316,6 +316,28 @@ describe('Select & Dropdown keyboard interaction', () => {
         container.remove();
     });
 
+    it('points the combobox at a listbox the announcement can resolve in', async () => {
+        //aria-activedescendant names an option; without aria-controls and a named
+        //listbox the name resolves to nothing and the active option reaches no one
+        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        await Rendering.waitFor(selectEl);
+        await settle();
+        const input = selectEl.querySelector('input');
+        const controls = input.getAttribute('aria-controls');
+
+        assert.isNotNull(controls, 'the combobox names what it controls');
+        const listbox = selectEl.querySelector(`#${controls}`);
+        assert.isNotNull(listbox, 'and that name resolves');
+        assert.strictEqual(listbox.getAttribute('role'), 'listbox');
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        const active = input.getAttribute('aria-activedescendant');
+        assert.isNotNull(active);
+        assert.isNotNull(listbox.querySelector(`#${active}`), 'the active option lives inside the listbox');
+        container.remove();
+    });
+
     it('announces the highlighted option through aria-activedescendant', async () => {
         const [selectEl, container] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
@@ -1063,6 +1085,61 @@ describe('Select selection removal', () => {
         assert.deepStrictEqual(changes, [null], 'a single select reports no selection as null');
         assert.deepStrictEqual(badges(selectEl), []);
         assert.strictEqual(input.value, '');
+        container.remove();
+    });
+});
+
+describe('Select chips and picked options', () => {
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await tick();
+        }
+    };
+    const mount = async (html) => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                load: async () => [{ key: 'k1', label: 'Label k1' }],
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+            }),
+        });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        return [selectEl, container];
+    };
+
+    it('marks the picked options selected, leaving the highlight to activedescendant', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1"></ful-select>`);
+        selectEl.querySelector('input').dispatchEvent(
+            new KeyboardEvent('keydown', { code: 'ArrowDown', altKey: true, bubbles: true }),
+        );
+        await settle();
+
+        const picked = [...selectEl.querySelectorAll('menu li')].filter(
+            (li) => li.getAttribute('aria-selected') === 'true',
+        );
+        assert.deepStrictEqual(
+            picked.map((li) => li.textContent.trim()),
+            ['Label k1'],
+            'aria-selected says what is picked; the active option is named by aria-activedescendant',
+        );
+        container.remove();
+    });
+
+    it('puts one chip in the tab order, so the group is reachable', async () => {
+        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+
+        const chips = [...selectEl.querySelectorAll('ful-badge')];
+        assert.lengthOf(chips, 2);
+        assert.deepStrictEqual(
+            chips.map((c) => c.getAttribute('tabindex')),
+            ['0', '-1'],
+            'a roving tab stop, not a group Tab skips entirely',
+        );
         container.remove();
     });
 });

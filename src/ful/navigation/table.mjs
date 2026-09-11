@@ -77,7 +77,7 @@ class Pagination extends ParsedElement {
                     </button>
                 </li>
                 <li data-ref="page" data-tpl-each="pages" data-tpl-var="page">
-                    <button type="button" data-tpl-disabled="curr.index != page.index ? false : true" data-tpl-data-page="page.index" >
+                    <button type="button" data-tpl-aria-current="curr.index == page.index ? 'page' : false" data-tpl-data-page="page.index" >
                         {{ page.label }}
                     </button>
                 </li>
@@ -98,6 +98,11 @@ class Pagination extends ParsedElement {
             const el = evt.target.closest('button');
             if (!el || el.hasAttribute('disabled')) {
                 //a disabled button leads nowhere: the page it would ask for does not exist
+                return;
+            }
+            if (el.getAttribute('aria-current') === 'page') {
+                //the page already shown stays focusable and announced, so it is a
+                //real control: it just has nothing to ask for
                 return;
             }
             this.dispatchEvent(
@@ -130,7 +135,21 @@ class Pagination extends ParsedElement {
             index: first + offset,
             label: first + offset + 1,
         }));
+        //the whole bar is replaced, so the control the reader activated is gone
+        //by the time the new one paints: the focus follows it to its equivalent
+        const focused = this.contains(document.activeElement)
+            ? /** @type HTMLElement */ (document.activeElement).closest('li')?.getAttribute('data-ref')
+            : null;
+        const page = focused === 'page' ? /** @type any */ (document.activeElement).dataset.page : null;
         this.template().withOverlay({ total: pageCount, prev, curr, next, pages }).renderTo(this);
+        if (!focused) {
+            return;
+        }
+        const back =
+            (page === null ? null : this.querySelector(`li[data-ref=page] button[data-page="${page}"]`)) ??
+            this.querySelector(`li[data-ref=${focused}] button:not(:disabled)`) ??
+            this.querySelector('li[data-ref=page] button[aria-current=page]');
+        /** @type HTMLElement */ (back)?.focus();
     }
     get total() {
         return this.#total;

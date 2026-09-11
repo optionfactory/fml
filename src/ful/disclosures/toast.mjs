@@ -23,6 +23,8 @@ class Toasts extends ParsedElement {
     render() {
         this.#timeout = Number(this.getAttribute('timeout')) || 5000;
         this.setAttribute('role', 'region');
+        //focusable only programmatically, so a retiring toast can hand its focus back
+        this.setAttribute('tabindex', '-1');
         this.setAttribute('aria-label', Localization.of().t('toast.region'));
         if (!doorWired) {
             doorWired = true;
@@ -63,6 +65,11 @@ class Toasts extends ParsedElement {
             }
         });
         const retire = () => {
+            //the toast may hold the focus, on its own dismiss button: handing it
+            //back to the region keeps the reader somewhere rather than on <body>
+            if (item.contains(document.activeElement)) {
+                /** @type HTMLElement */ (this).focus();
+            }
             if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 item.remove();
                 return;
