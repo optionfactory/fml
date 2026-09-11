@@ -39,6 +39,13 @@ class RollupPeggyWithSourceMap {
  * Each stylesheet is processed on its own so that postcss knows its `from`, then the
  * results are concatenated and their maps merged by shifting generated lines and source
  * indices. Processing the concatenation in one go would lose the original file names.
+ *
+ * They are concatenated in the order the modules evaluate, not the order they happened
+ * to be transformed in: rollup loads in parallel, so the transform order is arbitrary,
+ * and the cascade — which layer is declared first above all — would be decided by a
+ * race. The stylesheets are emitted here in the same sequence the browser adopts them
+ * when the source modules are loaded one by one, so the built file and the source tree
+ * cascade alike.
  */
 const css = (fileName) => {
     const sources = new Map();
@@ -55,11 +62,40 @@ const css = (fileName) => {
             if (sources.size === 0) {
                 return;
             }
+            //post-order depth first from the entries: a module's imports evaluate
+            //before it, and rollup keeps importedIds in source order
+            const evaluated = [];
+            const visited = new Set();
+            const visit = (id) => {
+                if (visited.has(id)) {
+                    return;
+                }
+                visited.add(id);
+                const info = this.getModuleInfo(id);
+                if (!info) {
+                    return;
+                }
+                for (const imported of info.importedIds) {
+                    visit(imported);
+                }
+                evaluated.push(id);
+            };
+            for (const id of this.getModuleIds()) {
+                if (this.getModuleInfo(id)?.isEntry) {
+                    visit(id);
+                }
+            }
+            //anything the walk could not reach keeps its load order, after the rest
+            const ordered = [
+                ...evaluated.filter((id) => sources.has(id)),
+                ...[...sources.keys()].filter((id) => !visited.has(id)),
+            ];
             const dir = options.dir ?? path.dirname(options.file);
             const chunks = [];
             const merged = { version: 3, file: fileName, sources: [], sourcesContent: [], names: [], mappings: '' };
             const lines = [];
-            for (const [id, code] of sources) {
+            for (const id of ordered) {
+                const code = sources.get(id);
                 const result = await postcss([cssnano({ preset: 'default' })]).process(code, {
                     from: id,
                     to: path.join(dir, fileName),
@@ -85,10 +121,23 @@ const css = (fileName) => {
                 chunks.push(result.css);
             }
             merged.mappings = encode(lines);
+            const source = chunks.join('\n');
+            //a layer's position in the cascade is fixed where its name is first
+            //seen, so a `@layer a, b, c;` statement only decides the order while it
+            //precedes every layered block. Reaching the first block first means the
+            //concatenation put a stylesheet before the one declaring the order, and
+            //the cascade silently inverted
+            const block = source.indexOf('@layer') === -1 ? -1 : source.search(/@layer[^;{]*\{/);
+            const statement = source.search(/@layer[^;{]*;/);
+            if (block !== -1 && (statement === -1 || statement > block)) {
+                this.error(
+                    `${fileName} opens a @layer block before declaring the layer order; the cascade would be decided by the concatenation order`,
+                );
+            }
             this.emitFile({
                 type: 'asset',
                 fileName,
-                source: `${chunks.join('\n')}\n/*# sourceMappingURL=${fileName}.map */`,
+                source: `${source}\n/*# sourceMappingURL=${fileName}.map */`,
             });
             this.emitFile({ type: 'asset', fileName: `${fileName}.map`, source: JSON.stringify(merged) });
         },

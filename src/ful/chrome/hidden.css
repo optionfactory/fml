@@ -1,0 +1,11 @@
+/**
+ * Hiding wins over the chrome. `[hidden]` is the platform's own way of saying an
+ * element is not rendered, and the library lays several of its parts out with
+ * `display:`, which would otherwise beat it. The last layer settles that without
+ * an `!important`, so a consuming page can still override it with a plain rule.
+ */
+@layer ful.hidden {
+    [hidden] {
+        display: none;
+    }
+}

@@ -191,8 +191,7 @@ class SelectLoader {
         }
         //the wire format servers send is the positional row: the default mapper
         //is what turns it into the entry the element speaks everywhere else
-        return (/** @type any[] */ response) =>
-            response.map(([key, label, metadata]) => ({ key, label, metadata }));
+        return (/** @type any[] */ response) => response.map(([key, label, metadata]) => ({ key, label, metadata }));
     }
 }
 

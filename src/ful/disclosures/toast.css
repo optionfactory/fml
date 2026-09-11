@@ -1,99 +1,101 @@
-ful-toasts:not(:has(> ful-toast)) {
-    display: none;
-}
+@layer ful.components {
+    ful-toasts:not(:has(> ful-toast)) {
+        display: none;
+    }
 
-*:has(> ful-toast):not(body, html) {
-    --ful-toasts-max-width: min(90vw, 24rem);
+    *:has(> ful-toast):not(body, html) {
+        --ful-toasts-max-width: min(90vw, 24rem);
 
-    position: fixed;
-    top: 1rem;
-    inset-inline-end: 1rem;
-    z-index: 1200;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.5rem;
-    max-width: var(--ful-toasts-max-width);
-
-    & > ful-toast {
+        position: fixed;
+        top: 1rem;
+        inset-inline-end: 1rem;
+        z-index: 1200;
         display: flex;
-        align-items: flex-start;
+        flex-direction: column;
+        align-items: flex-end;
         gap: 0.5rem;
-        padding: 0.625rem 0.75rem;
-        border: var(--ful-controls-border-width) solid var(--ful-border-color);
-        border-radius: var(--ful-controls-border-radius);
-        background-color: var(--ful-bg);
-        color: var(--ful-color);
-        white-space: pre-line;
-        animation: ful-toast-in 0.2s ease-out;
+        max-width: var(--ful-toasts-max-width);
 
-        & > div:first-child {
-            flex-grow: 1;
-        }
+        & > ful-toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.625rem 0.75rem;
+            border: var(--ful-controls-border-width) solid var(--ful-border-color);
+            border-radius: var(--ful-controls-border-radius);
+            background-color: var(--ful-bg);
+            color: var(--ful-color);
+            white-space: pre-line;
+            animation: ful-toast-in 0.2s ease-out;
 
-        & > button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-            width: 1.25rem;
-            height: 1.25rem;
-            padding: 0;
-            border: 0;
-            border-radius: var(--ful-border-radius);
-            background: none;
-            color: inherit;
-            cursor: pointer;
-
-            & ful-icon {
-                width: 1em;
-                height: 1em;
+            & > div:first-child {
+                flex-grow: 1;
             }
 
-            &:hover {
-                color: var(--ful-active-color);
-                background-color: var(--ful-active-bg);
+            & > button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex: 0 0 auto;
+                width: 1.25rem;
+                height: 1.25rem;
+                padding: 0;
+                border: 0;
+                border-radius: var(--ful-border-radius);
+                background: none;
+                color: inherit;
+                cursor: pointer;
+
+                & ful-icon {
+                    width: 1em;
+                    height: 1em;
+                }
+
+                &:hover {
+                    color: var(--ful-active-color);
+                    background-color: var(--ful-active-bg);
+                }
+
+                &:focus-visible {
+                    outline: 0;
+                    box-shadow: var(--ful-focus-box-shadow);
+                }
             }
 
-            &:focus-visible {
-                outline: 0;
-                box-shadow: var(--ful-focus-box-shadow);
+            &.success {
+                border-color: var(--ful-accent-ink);
+                color: var(--ful-accent-ink);
             }
-        }
 
-        &.success {
-            border-color: var(--ful-accent-ink);
-            color: var(--ful-accent-ink);
-        }
+            &.warning {
+                border-color: var(--ful-warning-border-color);
+                background-color: var(--ful-warning-bg);
+                color: var(--ful-warning-color);
+            }
 
-        &.warning {
-            border-color: var(--ful-warning-border-color);
-            background-color: var(--ful-warning-bg);
-            color: var(--ful-warning-color);
-        }
+            &.error {
+                border-color: var(--ful-error-border-color);
+                background-color: var(--ful-error-bg);
+                color: var(--ful-error-color);
+            }
 
-        &.error {
-            border-color: var(--ful-error-border-color);
-            background-color: var(--ful-error-bg);
-            color: var(--ful-error-color);
-        }
-
-        &.ful-toast-out {
-            animation: ful-toast-out 0.2s ease-in forwards;
+            &.ful-toast-out {
+                animation: ful-toast-out 0.2s ease-in forwards;
+            }
         }
     }
-}
 
-@keyframes ful-toast-in {
-    from {
-        transform: translateY(-0.5rem);
-        opacity: 0;
+    @keyframes ful-toast-in {
+        from {
+            transform: translateY(-0.5rem);
+            opacity: 0;
+        }
     }
-}
 
-@keyframes ful-toast-out {
-    to {
-        transform: translateY(-0.5rem);
-        opacity: 0;
+    @keyframes ful-toast-out {
+        to {
+            transform: translateY(-0.5rem);
+            opacity: 0;
+        }
     }
 }

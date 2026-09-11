@@ -45,4 +45,5 @@ export { Accordion } from './disclosures/accordion.mjs';
 import './disclosures/accordion.css';
 export { Wizard } from './navigation/wizard.mjs';
 import './navigation/wizard.css';
+import './chrome/hidden.css';
 export { Plugin } from './plugin.mjs';

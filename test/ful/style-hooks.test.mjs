@@ -8,6 +8,62 @@ const attach = (html) => {
     return container;
 };
 
+describe('the cascade contract', () => {
+    const withSheet = (css, run) => {
+        const sheet = document.createElement('style');
+        sheet.textContent = css;
+        document.head.appendChild(sheet);
+        try {
+            run();
+        } finally {
+            sheet.remove();
+        }
+    };
+
+    it('lets an unlayered rule beat the library at any specificity', () => {
+        //every ful rule lives in a layer, so a page's own rule wins whatever it
+        //looks like: this is the whole of the override contract
+        const container = attach('<span class="ful-tip">?</span>');
+        assert.strictEqual(getComputedStyle(container.querySelector('.ful-tip')).display, 'inline-flex');
+
+        withSheet('.ful-tip { display: block }', () => {
+            assert.strictEqual(
+                getComputedStyle(container.querySelector('.ful-tip')).display,
+                'block',
+                'one unlayered class beats the library',
+            );
+        });
+        container.remove();
+    });
+
+    it('hides with the last layer rather than with an important, so a page can still show', () => {
+        //the rule used to carry !important, which layers invert: in a layer an
+        //important declaration gets stronger, not weaker, and a page could not
+        //have overridden it at all
+        const container = attach('<ful-spinner hidden>x</ful-spinner>');
+        assert.strictEqual(getComputedStyle(container.firstElementChild).display, 'none');
+
+        withSheet('ful-spinner[hidden] { display: inline-flex }', () => {
+            assert.strictEqual(
+                getComputedStyle(container.firstElementChild).display,
+                'inline-flex',
+                'a plain rule is enough to show it again',
+            );
+        });
+        container.remove();
+    });
+
+    it('still hides a part the chrome lays out with a stronger selector', () => {
+        //what the important was for: `ful-spinner.centered` sets display and
+        //outranks a bare `[hidden]`, so the select's own hidden spinner showed.
+        //ful.hidden coming after ful.components settles it without one
+        const container = attach('<ful-spinner class="centered" hidden>x</ful-spinner>');
+
+        assert.strictEqual(getComputedStyle(container.firstElementChild).display, 'none');
+        container.remove();
+    });
+});
+
 describe('style hooks', () => {
     it('the tip chrome follows the class on any trigger, not the button tag', () => {
         const container = attach('<span class="ful-tip">?</span>');

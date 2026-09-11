@@ -37,6 +37,27 @@ Remote translations are the app's concern: `translations: await (await fetch(`/l
 
 `dist/ful.css` (bundled in `dist/fml.css`) is self-contained: no bootstrap, no icon fonts, no javascript dependencies. Every element is themed through the `--ful-*` custom properties (density included: `--ful-controls-height` sizes every control uniformly, defaulting to the native date/time widgets' height so no control is shrunk), and the structural styling hooks are the style-only tags `ful-control-group`, `ful-affix`, `ful-control`, `ful-icon`, `ful-choice`, `ful-badge`, `ful-note`, `ful-toast`, `ful-table-wrapper`, `ful-pagination-bar`, `ful-radio-list`, `ful-tablist`, `ful-accordion-group`, `ful-steps` (plus the pre-existing `ful-field-error`, `ful-field-warning(s)`, `ful-item-list`, `ful-item`). The chrome matches the rendered structure, never the host tag enumeration: a component's css anchors on whoever hosts its pieces (`*:has(> ful-control-group)`, `*:has(> ful-toast)`, the `ful-dialog`/`ful-drawer` classes on the native dialog), so a subclass under any tag keeps the look, and foreign markup built from the same tags picks it up too — only the pre-render flash guards stay tag-based. Icons are `ful-icon` elements (`<ful-icon name="search">`) carrying inline SVG masks, and glyph shapes come from [bootstrap-icons](https://icons.getbootstrap.com) 1.11.3, MIT licensed. Buttons are opt-in chrome: `.ful-button` and its `.ghost` and `.soft` mirrors theme any `button` or `a` through the `--ful-button-*` properties — the ghost an accent outline filling on hover, the soft a neutral fill turning accent on intent (the dialog's own answer buttons).
 
+Everything ful ships lives in a cascade layer, declared in that order:
+
+```css
+@layer ful.theme, ful.components, ful.hidden;
+```
+
+That is the whole override contract. A rule the page writes **outside** any layer wins over every rule ful ships, whatever its specificity, so overriding takes a plain selector rather than one built to out-specify the library:
+
+```css
+/* enough, on its own */
+.ful-tip { display: block }
+```
+
+A page that layers its own styles decides by declaration order instead: name your layer after `ful.hidden` and it wins, before `ful.theme` and it loses. `ful.hidden` is last so `[hidden]` beats the chrome that would otherwise lay an element out, which is what an `!important` used to do here; because it is a plain declaration in a layer, a page can still show such an element with an ordinary rule.
+
+Two page-wide defaults come with the stylesheet, deliberately. `box-sizing: border-box` applies to everything, on the assumption a page wants it and because a custom field extending `Field` should get the same box model as the built-in ones without naming its tag anywhere. `[hidden]` is hidden. Both are in layers, so one unlayered rule turns either off:
+
+```css
+*, *::before, *::after { box-sizing: content-box }
+```
+
 ### Async sections
 
 Every content surface can deliver itself: entering a panel of `ful-tabs`, a section of `ful-wizard` (its `progress` attribute picking the shape: the current step alone by default, `timeline` the full timeline, `dots`, `none`), or opening a `ful-dialog`/`ful-drawer` fires the `section:requested` family on the component — the generic type, its zero-based `#index`, and its `data-step` name when it has one — the event's target being the component itself, so a host's own sections are told from a nested component's by `e.target === e.currentTarget`. Answer through one door per section:

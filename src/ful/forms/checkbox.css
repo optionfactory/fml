@@ -1,7 +1,9 @@
-ful-checkbox:not(:defined) {
-    visibility: hidden;
-}
+@layer ful.components {
+    ful-checkbox:not(:defined) {
+        visibility: hidden;
+    }
 
-*:has(> ful-choice) {
-    display: block;
+    *:has(> ful-choice) {
+        display: block;
+    }
 }

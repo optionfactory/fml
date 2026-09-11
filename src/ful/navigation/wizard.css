@@ -1,88 +1,90 @@
-*:has(> ful-steps):not(body, html) {
-    display: flex;
-    flex-direction: column;
-
-    & > section:not([aria-current="step"]) {
-        display: none;
-    }
-}
-
-ful-steps {
-    display: block;
-
-    & ol {
+@layer ful.components {
+    *:has(> ful-steps) {
         display: flex;
-        flex-wrap: wrap;
-        margin: 0 0 1rem;
-        padding: 0;
-        list-style: none;
-    }
+        flex-direction: column;
 
-    & li:not([aria-current="step"]) {
-        display: none;
-    }
-
-    & li[aria-current="step"] {
-        display: flex;
-        align-items: center;
-        flex: 0 1 auto;
-        min-height: var(--ful-controls-height);
-        padding: 0.375rem 0.5rem;
-        font-weight: 700;
-        color: var(--ful-accent-ink);
-    }
-}
-
-ful-wizard {
-    &[progress="timeline"] {
-        & ful-steps li {
-            display: flex;
-            justify-content: center;
-            flex: 1 1 auto;
-            min-width: min(100%, 8rem);
-            text-align: center;
-            color: var(--ful-accent-ink);
-            border-block-end: calc(2 * var(--ful-border-width)) solid var(--ful-accent-ink);
-        }
-
-        & ful-steps li[aria-current="step"] ~ li {
-            color: color-mix(in srgb, var(--ful-color) 65%, var(--ful-bg));
-            border-block-end-color: var(--ful-border-color);
-        }
-    }
-
-    &[progress="dots"] {
-        & ful-steps ol {
-            gap: 0.375rem;
-            margin-block-end: 1rem;
-        }
-
-        & ful-steps li {
-            display: block;
-            flex: 0 0 auto;
-            min-width: 0;
-            min-height: 0;
-            width: 0.5rem;
-            height: 0.5rem;
-            padding: 0;
-            font-size: 0;
-            border-radius: 50%;
-            background-color: var(--ful-accent-ink);
-        }
-
-        & ful-steps li[aria-current="step"] {
-            background-color: var(--ful-active-bg);
-            box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--ful-active-bg) 35%, transparent);
-        }
-
-        & ful-steps li[aria-current="step"] ~ li {
-            background-color: var(--ful-border-color);
-        }
-    }
-
-    &[progress="none"] {
-        & ful-steps {
+        & > section:not([aria-current="step"]) {
             display: none;
+        }
+    }
+
+    ful-steps {
+        display: block;
+
+        & ol {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 0 1rem;
+            padding: 0;
+            list-style: none;
+        }
+
+        & li:not([aria-current="step"]) {
+            display: none;
+        }
+
+        & li[aria-current="step"] {
+            display: flex;
+            align-items: center;
+            flex: 0 1 auto;
+            min-height: var(--ful-controls-height);
+            padding: 0.375rem 0.5rem;
+            font-weight: 700;
+            color: var(--ful-accent-ink);
+        }
+    }
+
+    ful-wizard {
+        &[progress="timeline"] {
+            & ful-steps li {
+                display: flex;
+                justify-content: center;
+                flex: 1 1 auto;
+                min-width: min(100%, 8rem);
+                text-align: center;
+                color: var(--ful-accent-ink);
+                border-block-end: calc(2 * var(--ful-border-width)) solid var(--ful-accent-ink);
+            }
+
+            & ful-steps li[aria-current="step"] ~ li {
+                color: color-mix(in srgb, var(--ful-color) 65%, var(--ful-bg));
+                border-block-end-color: var(--ful-border-color);
+            }
+        }
+
+        &[progress="dots"] {
+            & ful-steps ol {
+                gap: 0.375rem;
+                margin-block-end: 1rem;
+            }
+
+            & ful-steps li {
+                display: block;
+                flex: 0 0 auto;
+                min-width: 0;
+                min-height: 0;
+                width: 0.5rem;
+                height: 0.5rem;
+                padding: 0;
+                font-size: 0;
+                border-radius: 50%;
+                background-color: var(--ful-accent-ink);
+            }
+
+            & ful-steps li[aria-current="step"] {
+                background-color: var(--ful-active-bg);
+                box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--ful-active-bg) 35%, transparent);
+            }
+
+            & ful-steps li[aria-current="step"] ~ li {
+                background-color: var(--ful-border-color);
+            }
+        }
+
+        &[progress="none"] {
+            & ful-steps {
+                display: none;
+            }
         }
     }
 }

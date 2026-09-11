@@ -1,32 +1,34 @@
-:is(ful-tabs, ful-wizard, ful-dialog, ful-drawer) {
-    & [loading=""] {
-        position: relative;
-    }
-
-    & [loading=""]::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        margin: auto;
-        width: var(--ful-spinner-icon-width);
-        height: var(--ful-spinner-icon-height);
-        border-radius: 50%;
-        border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
-        border-inline-end-color: transparent;
-        animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
-
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
+@layer ful.components {
+    :is(ful-tabs, ful-wizard, ful-dialog, ful-drawer) {
+        & [loading=""] {
+            position: relative;
         }
-    }
 
-    & .ful-section-error {
-        margin-bottom: 1rem;
-        padding: 1rem;
-        white-space: pre-line;
-        color: var(--ful-error-color);
-        background-color: var(--ful-error-bg);
-        border: var(--ful-border-width) solid var(--ful-error-border-color);
-        border-radius: var(--ful-border-radius);
+        & [loading=""]::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: var(--ful-spinner-icon-width);
+            height: var(--ful-spinner-icon-height);
+            border-radius: 50%;
+            border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
+            border-inline-end-color: transparent;
+            animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
+
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
+        }
+
+        & .ful-section-error {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            white-space: pre-line;
+            color: var(--ful-error-color);
+            background-color: var(--ful-error-bg);
+            border: var(--ful-border-width) solid var(--ful-error-border-color);
+            border-radius: var(--ful-border-radius);
+        }
     }
 }

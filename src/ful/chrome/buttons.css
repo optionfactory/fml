@@ -1,63 +1,65 @@
-.ful-button {
-    --ful-button-height: var(--ful-controls-height);
-    --ful-button-border-width: var(--ful-controls-border-width);
-    --ful-button-border-radius: var(--ful-controls-border-radius);
-    --ful-button-color: var(--ful-active-color);
-    --ful-button-bg: var(--ful-active-bg);
-    --ful-button-border-color: var(--ful-button-bg);
-    --ful-button-hover-bg: color-mix(in srgb, var(--ful-active-bg) 85%, black);
-    --ful-button-hover-color: var(--ful-button-color);
+@layer ful.components {
+    .ful-button {
+        --ful-button-height: var(--ful-controls-height);
+        --ful-button-border-width: var(--ful-controls-border-width);
+        --ful-button-border-radius: var(--ful-controls-border-radius);
+        --ful-button-color: var(--ful-active-color);
+        --ful-button-bg: var(--ful-active-bg);
+        --ful-button-border-color: var(--ful-button-bg);
+        --ful-button-hover-bg: color-mix(in srgb, var(--ful-active-bg) 85%, black);
+        --ful-button-hover-color: var(--ful-button-color);
 
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
-    min-height: var(--ful-button-height);
-    padding: 0.375rem 0.75rem;
-    font: inherit;
-    line-height: 1.5;
-    text-decoration: none;
-    color: var(--ful-button-color);
-    background-color: var(--ful-button-bg);
-    border: var(--ful-button-border-width) solid var(--ful-button-border-color);
-    border-radius: var(--ful-button-border-radius);
-    cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        min-height: var(--ful-button-height);
+        padding: 0.375rem 0.75rem;
+        font: inherit;
+        line-height: 1.5;
+        text-decoration: none;
+        color: var(--ful-button-color);
+        background-color: var(--ful-button-bg);
+        border: var(--ful-button-border-width) solid var(--ful-button-border-color);
+        border-radius: var(--ful-button-border-radius);
+        cursor: pointer;
 
-    &:hover {
-        color: var(--ful-button-hover-color);
-        background-color: var(--ful-button-hover-bg);
-    }
+        &:hover {
+            color: var(--ful-button-hover-color);
+            background-color: var(--ful-button-hover-bg);
+        }
 
-    &:focus-visible {
-        outline: 0;
-        box-shadow: var(--ful-focus-box-shadow);
-    }
+        &:focus-visible {
+            outline: 0;
+            box-shadow: var(--ful-focus-box-shadow);
+        }
 
-    &:disabled,
-    &[aria-disabled="true"] {
-        opacity: 0.5;
-        pointer-events: none;
-    }
+        &:disabled,
+        &[aria-disabled="true"] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
 
-    &.ghost {
-        --ful-button-color: var(--ful-accent-ink);
-        --ful-button-bg: transparent;
-        --ful-button-border-color: var(--ful-accent-ink);
-        --ful-button-hover-color: var(--ful-active-color);
-        --ful-button-hover-bg: var(--ful-active-bg);
-    }
+        &.ghost {
+            --ful-button-color: var(--ful-accent-ink);
+            --ful-button-bg: transparent;
+            --ful-button-border-color: var(--ful-accent-ink);
+            --ful-button-hover-color: var(--ful-active-color);
+            --ful-button-hover-bg: var(--ful-active-bg);
+        }
 
-    &.soft {
-        --ful-button-color: var(--ful-color);
-        --ful-button-bg: var(--ful-selected-bg);
-        --ful-button-border-color: var(--ful-controls-border-color);
-        --ful-button-hover-color: var(--ful-active-color);
-        --ful-button-hover-bg: var(--ful-active-bg);
-    }
+        &.soft {
+            --ful-button-color: var(--ful-color);
+            --ful-button-bg: var(--ful-selected-bg);
+            --ful-button-border-color: var(--ful-controls-border-color);
+            --ful-button-hover-color: var(--ful-active-color);
+            --ful-button-hover-bg: var(--ful-active-bg);
+        }
 
-    &.small {
-        --ful-button-height: calc(1.25em + 0.5rem + 2px);
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
+        &.small {
+            --ful-button-height: calc(1.25em + 0.5rem + 2px);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
     }
 }
