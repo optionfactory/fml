@@ -395,6 +395,60 @@ describe('InputFile programmatic selection', () => {
     });
 });
 
+describe('InputFile items template', () => {
+    it('renders a slotted items template instead of the stock one, over the same files', async () => {
+        const [el] = await mount(`
+            <ful-input-file multiple>files
+                <template slot="items">
+                    <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
+                        <span data-ref="kind">{{ file.type }}</span>
+                        <button type="button" data-tpl-aria-label="#l10n:t('files.remove')">x</button>
+                    </ful-item>
+                </template>
+            </ful-input-file>`);
+
+        el.files = transfer(file('a.txt', 4, 'text/plain'), file('b.png', 4, 'image/png')).files;
+
+        assert.deepStrictEqual(listed(el), ['a.txt', 'b.png'], 'the custom template still keys its items');
+        //the overlay is the real FileList, so a custom item reads whatever a File carries
+        assert.deepStrictEqual(
+            Array.from(el.querySelectorAll('ful-item [data-ref=kind]')).map((s) => s.textContent),
+            ['text/plain', 'image/png'],
+        );
+        assert.strictEqual(
+            el.querySelector('ful-item button').getAttribute('aria-label'),
+            'Remove',
+            'the localized modules resolve inside a slotted template',
+        );
+    });
+
+    it('keeps the remove button wired inside an authored item', async () => {
+        const [el] = await mount(`
+            <ful-input-file multiple>files
+                <template slot="items">
+                    <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
+                        <button type="button">drop</button>
+                    </ful-item>
+                </template>
+            </ful-input-file>`);
+        el.files = transfer(file('a.txt'), file('b.txt')).files;
+
+        el.querySelector('ful-item button').click();
+
+        assert.deepStrictEqual(selected(el), ['b.txt'], 'the click removed the first file');
+        assert.deepStrictEqual(listed(el), ['b.txt']);
+    });
+
+    it('falls back to the stock item when the slot is blank', async () => {
+        const [el] = await mount(`<ful-input-file multiple>files<template slot="items">   </template></ful-input-file>`);
+
+        el.files = transfer(file('a.txt')).files;
+
+        assert.deepStrictEqual(listed(el), ['a.txt']);
+        assert.isNotNull(el.querySelector('ful-item ful-icon'), 'the stock item carries the remove glyph');
+    });
+});
+
 describe('InputFile list and dropzone interactions', () => {
     const mount = async (html) => {
         const container = appended(html);

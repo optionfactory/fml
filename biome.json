@@ -44,7 +44,7 @@
     },
     "overrides": [
         {
-            "includes": ["examples/**"],
+            "includes": ["examples/**", "manifest/wiki-*.html"],
             "linter": {
                 "enabled": false
             }

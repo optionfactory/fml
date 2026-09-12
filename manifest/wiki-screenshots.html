@@ -7,6 +7,10 @@
  #shot-tooltip { padding: 20px; width: 300px; }
  #shot-toasts { width: 420px; }
  label.inline { display: flex; align-items: center; gap: .375rem; font-weight: 600; }
+ #shot-files ful-item .filerow { display: flex; align-items: center; gap: .6rem; width: 100%; }
+ #shot-files ful-item img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+ #shot-files ful-item .filemeta { display: flex; flex-direction: column; line-height: 1.2; }
+ #shot-files ful-item button { margin-inline-start: auto; background: none; border: 0; color: inherit; cursor: pointer; }
 </style></head>
 <body>
 
@@ -41,6 +45,22 @@
   <ful-toasts id="tst" timeout="600000"></ful-toasts>
 </div>
 
+<div class="shot" id="shot-files">
+  <ful-input-file name="att" multiple itemlist accept="image/*,.pdf">
+    Attachments
+    <template slot="items">
+      <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
+        <div class="filerow">
+          <img data-tpl-if="file.type.startsWith('image/')" data-tpl-src="#blob:url(file)" alt="">
+          <ful-icon data-tpl-if="!file.type.startsWith('image/')" name="inbox"></ful-icon>
+          <span class="filemeta"><span>{{ file.name }}</span><small>{{ #l10n:bytes(file.size) }}</small></span>
+          <button type="button" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+        </div>
+      </ful-item>
+    </template>
+  </ful-input-file>
+</div>
+
 <div class="shot" id="shot-tabs">
   <ful-tabs active="1">
     <template slot="tabs"><tab>Shipping</tab><tab>Invoices</tab><tab>History</tab></template>
@@ -71,6 +91,9 @@
 </div>
 
 <script>
-  ftl.registry.plugin(new ful.Plugin({ language: 'en' })).configure();
+  ftl.registry
+      .defineModule('blob', { url: (f) => URL.createObjectURL(f) })
+      .plugin(new ful.Plugin({ language: 'en' }))
+      .configure();
 </script>
 </body></html>

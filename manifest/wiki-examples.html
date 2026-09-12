@@ -184,6 +184,41 @@ const mount = async (html) => {
     ok('13 empty value is null-ish', ff.value === null || (Array.isArray(ff.value) && ff.value.length === 0), JSON.stringify(ff.value));
     ok('13 info slot rendered', d.textContent.includes('pdf or png'));
 
+    // ===== 13: the items template documented on the files page
+    ftl.registry.defineModule('blob', { url: (f) => URL.createObjectURL(f) });
+    d = await mount(`
+      <ful-input-file name="att" multiple itemlist accept="image/*,.pdf">Attachments
+        <template slot="items">
+          <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
+            <img data-tpl-if="file.type.startsWith('image/')" data-tpl-src="#blob:url(file)" alt="">
+            <ful-icon data-tpl-if="!file.type.startsWith('image/')" name="inbox"></ful-icon>
+            <span>{{ file.name }}</span>
+            <small>{{ #l10n:bytes(file.size) }}</small>
+            <button type="button" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+          </ful-item>
+        </template>
+      </ful-input-file>`);
+    const ffield = d.querySelector('ful-input-file');
+    const dt = new DataTransfer();
+    dt.items.add(new File([new Uint8Array([1, 2, 3])], 'shot.png', { type: 'image/png' }));
+    dt.items.add(new File(['x'], 'terms.pdf', { type: 'application/pdf' }));
+    ffield.files = dt.files;
+    await new Promise((r) => setTimeout(r, 150));
+    const fitems = [...ffield.querySelectorAll('ful-item')];
+    ok('13 items template renders per file', fitems.length === 2 && fitems[0].dataset.name === 'shot.png',
+       fitems.map((i) => i.dataset.name).join(','));
+    ok('13 the image gets a blob thumbnail', (fitems[0].querySelector('img')?.getAttribute('src') ?? '').startsWith('blob:'),
+       fitems[0].querySelector('img')?.getAttribute('src')?.slice(0, 12));
+    ok('13 the non-image falls back to an icon', fitems[1].querySelector('ful-icon[name=inbox]') !== null);
+    ok('13 the localized modules resolve in the slotted template',
+       fitems[0].querySelector('button')?.getAttribute('aria-label') === 'Remove' && /\dB/.test(fitems[0].textContent),
+       fitems[0].textContent.replace(/\s+/g, ' ').trim());
+    fitems[0].querySelector('button').click();
+    await new Promise((r) => setTimeout(r, 120));
+    ok('13 the remove button stays wired in an authored item',
+       [...ffield.files].map((f) => f.name).join(',') === 'terms.pdf',
+       [...ffield.files].map((f) => f.name).join(','));
+
     // ===== 14: display elements
     d = await mount(`<p>shipped on <ful-local-date>2030-12-10</ful-local-date>, at <ful-instant>2030-12-10T11:12:13.456Z</ful-instant></p>`);
     const ld = d.querySelector('ful-local-date').textContent.trim();

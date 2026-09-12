@@ -1,4 +1,4 @@
-import { Localization } from '../../ftl/index.mjs';
+import { Fragments, Localization, Templates } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
 /** A file input with an optional dropzone and item list, enforcing the size and count limits it declares. */
@@ -65,10 +65,15 @@ class InputFile extends Input {
         `,
         warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`,
     };
+    #itemstemplate;
     _build(conf) {
         const pieces = super._build(conf);
         const fragment = pieces.fragment;
         this.#items = fragment.querySelector('ful-item-list');
+        //a slotted template replaces the stock item, the way a select's does: the
+        //overlay is the same, so a custom item still reads the File it renders
+        this.#itemstemplate =
+            conf.slots?.items && !Fragments.isBlank(conf.slots.items) ? Templates.fromFragment(conf.slots.items) : null;
         this.#dropzone = fragment.querySelector('[data-ref=dropzone]');
         this.#warnings = fragment.querySelector('ful-field-warnings');
         this.#group = fragment.querySelector('ful-control-group');
@@ -144,7 +149,7 @@ class InputFile extends Input {
         this.#ensureFileSizes();
         this.#ensureTotalSize();
         this.#ensureFilesCount();
-        this.template('items').withOverlay({ files: this.files }).renderTo(this.#items);
+        (this.#itemstemplate ?? this.template('items')).withOverlay({ files: this.files }).renderTo(this.#items);
     }
     warning(key, args) {
         this.template('warning').withOverlay({ key, args }).appendTo(this.#warnings);

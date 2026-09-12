@@ -69,6 +69,17 @@ await p.evaluate(() => {
 await p.waitForTimeout(500);
 await shot('#tst', 'toasts.png');
 
+// the files field with an authored item template
+await p.evaluate(() => {
+    const dt = new DataTransfer();
+    const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVQIW2P8z8DwnwEJMKIL0F8BABKcA/9tPCWyAAAAAElFTkSuQmCC'), (c) => c.charCodeAt(0));
+    dt.items.add(new File([png], 'receipt.png', { type: 'image/png' }));
+    dt.items.add(new File(['terms'], 'terms.pdf', { type: 'application/pdf' }));
+    document.querySelector('#shot-files ful-input-file').files = dt.files;
+});
+await p.waitForTimeout(300);
+await shot('#shot-files', 'files-items.png');
+
 await shot('#shot-tabs', 'tabs.png');
 await shot('#shot-accordion', 'accordion.png');
 await shot('#shot-wizard', 'wizard.png');
