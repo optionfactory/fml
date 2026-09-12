@@ -37,11 +37,24 @@ class ParsedElement extends HTMLElement {
     #bits() {
         return /** @type {typeof ParsedElement} */ (this.constructor).BITS;
     }
+    #mapper(attr) {
+        const mapper = this.#bits().ATTR_TO_MAPPER[attr];
+        if (!mapper) {
+            //an attribute the class never declared has no type to read it as:
+            //say so rather than dying on the missing mapper. Content this
+            //element does not own — a custom loader's own configuration, say —
+            //is read with getAttribute, the platform's own answer
+            throw new Error(
+                `${this.constructor.name} declares no attribute '${attr}': declare it in static observed or static attributes, or read it with getAttribute`,
+            );
+        }
+        return mapper;
+    }
     unmarshal(attr, str) {
-        return this.#bits().ATTR_TO_MAPPER[attr].unmarshal(str, attr, this);
+        return this.#mapper(attr).unmarshal(str, attr, this);
     }
     marshal(attr, value) {
-        return this.#bits().ATTR_TO_MAPPER[attr].marshal(value, attr, this);
+        return this.#mapper(attr).marshal(value, attr, this);
     }
     /**
      * @param {string} [name] - The name of the template target, defaults to 'default'

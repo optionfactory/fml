@@ -223,11 +223,21 @@
         "ful-select": {
             "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
+                "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
                 "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
+                "k-expr": "The expression yielding an option's key, evaluated against each row of the response. Set it together with l-expr to shape a response without a mapper component.",
                 "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or bool.",
+                "l-expr": "The expression yielding an option's label, evaluated against each row of the response.",
                 "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
+                "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
+                "method": "The method the vocabulary is fetched with; POST when absent.",
+                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
                 "multiple": "Selects any number of options rather than one: the value is a comma separated list of keys and the selection renders as ful-badge chips.",
                 "name": "The field name the surrounding form submits the selection under.",
+                "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
+                "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
+                "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it.",
+                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
                 "value": "The selected key, or a comma separated list of keys when multiple."
             },
             "slots": {

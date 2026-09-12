@@ -139,55 +139,63 @@ class InMemoryLoader {
 
 /** Builds the select's loader from its attributes: the slotted options in memory, or a remote or chunked loader over src. */
 class SelectLoader {
-    static create(el, conf) {
-        if (!el.hasAttribute('src')) {
-            const els = Array.from(conf.options?.querySelectorAll('option') ?? []);
-            const data = els.map((e) => ({
-                key: e.getAttribute('value') ?? e.innerText.trim(),
-                label: e.innerText.trim(),
-                metadata: undefined,
-            }));
-            return new InMemoryLoader(data);
+    /**
+     * Builds a loader from a plain configuration, reading no dom: `data` alone
+     * is the in-memory vocabulary, a `url` is fetched whole or, under
+     * `mode: 'chunked'`, per query. It is the door a test or a caller with its
+     * own configuration comes through; `create` is the same thing with an
+     * element's attributes parsed first.
+     * @param {{ data?: any[], http?: any, url?: string, method?: string, mode?: string, prefetch?: boolean, revision?: string|null, responseMapper?: any }} conf
+     */
+    static from({ data, http, url, method = 'POST', mode, prefetch = false, revision = null, responseMapper }) {
+        if (!url) {
+            return new InMemoryLoader(data ?? []);
         }
-        const http = el.component('http-client');
-        const responseMapper = SelectLoader.#responseMapperFrom(el);
-
-        if ('chunked' === el.getAttribute('mode')) {
-            return new PartialRemoteLoader({
-                http,
-                url: el.getAttribute('src'),
-                method: el.getAttribute('method') ?? 'POST',
-                responseMapper,
+        if ('chunked' === mode) {
+            return new PartialRemoteLoader({ http, url, method, responseMapper });
+        }
+        return new RemoteLoader({ http, url, method, responseMapper, prefetch, revision });
+    }
+    static create(el, conf) {
+        if (!el.declared('src')) {
+            const els = Array.from(conf.options?.querySelectorAll('option') ?? []);
+            return SelectLoader.from({
+                data: els.map((e) => ({
+                    key: e.getAttribute('value') ?? e.innerText.trim(),
+                    label: e.innerText.trim(),
+                    metadata: undefined,
+                })),
             });
         }
-        return new RemoteLoader({
-            http,
-            url: el.getAttribute('src'),
-            method: el.getAttribute('method') ?? 'POST',
-            responseMapper,
-            prefetch: el.hasAttribute('preload'),
-            revision: el.getAttribute('revision'),
+        return SelectLoader.from({
+            http: el.component('http-client'),
+            url: el.declared('src'),
+            method: el.declared('method') ?? 'POST',
+            mode: el.declared('mode'),
+            prefetch: el.declared('preload'),
+            revision: el.declared('revision'),
+            responseMapper: SelectLoader.#responseMapperFrom(el),
         });
     }
     static #responseMapperFrom(el) {
-        if (el.hasAttribute('k-expr') && el.hasAttribute('l-expr')) {
+        if (el.declared('k-expr') && el.declared('l-expr')) {
             return (response) => {
                 const rows = el._registry
                     .evaluator()
                     .withOverlay(response)
-                    .evaluateExpression(el.getAttribute('d-expr') ?? 'self');
+                    .evaluateExpression(el.declared('d-expr') ?? 'self');
                 return rows.map((row) => {
                     const evaluator = el._registry.evaluator().withOverlay(row);
                     return {
-                        key: evaluator.evaluateExpression(el.getAttribute('k-expr')),
-                        label: evaluator.evaluateExpression(el.getAttribute('l-expr')),
-                        metadata: evaluator.evaluateExpression(el.getAttribute('m-expr') ?? 'self'),
+                        key: evaluator.evaluateExpression(el.declared('k-expr')),
+                        label: evaluator.evaluateExpression(el.declared('l-expr')),
+                        metadata: evaluator.evaluateExpression(el.declared('m-expr') ?? 'self'),
                     };
                 });
             };
         }
-        if (el.hasAttribute('response-mapper')) {
-            return el.component(el.getAttribute('response-mapper'));
+        if (el.declared('response-mapper')) {
+            return el.component(el.declared('response-mapper'));
         }
         //the wire format servers send is the positional row: the default mapper
         //is what turns it into the entry the element speaks everywhere else
@@ -387,7 +395,24 @@ class Dropdown extends ParsedElement {
 
 /** A combobox acting like a select over a loader's vocabulary, single or multiple. */
 class Select extends Field {
-    static attributes = ['name', 'loader', 'k-type'];
+    //the loader's whole vocabulary is configuration, read once at the upgrade:
+    //nothing here is a live door, and declaring it is what lets the loader be
+    //built from a plain object rather than from an element
+    static attributes = [
+        'name',
+        'loader',
+        'k-type',
+        'src',
+        'method',
+        'mode',
+        'preload:presence',
+        'revision',
+        'k-expr',
+        'l-expr',
+        'd-expr',
+        'm-expr',
+        'response-mapper',
+    ];
     //multiple is declared before value: the csvm mapper reads it to decide
     //whether a value parses as a list or a scalar, so the two cannot disagree
     static observed = ['multiple:presence', 'itemlist:presence', 'value:csvm'];

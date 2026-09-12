@@ -371,21 +371,19 @@ describe('SelectLoader fetch discipline', () => {
         });
         return { calls, pending };
     };
-    const remoteLoader = (attributes) => {
-        const el = /** @type any */ (document.createElement('div'));
-        for (const [k, v] of Object.entries(attributes)) {
-            el.setAttribute(k, v);
-        }
-        //the loader resolves its collaborators through the element's own registry,
-        //as a rendered ful-select does; the stub stands in for the element
-        el.component = (name) => registry.component(name);
-        el._registry = registry;
-        return SelectLoader.create(el, {});
-    };
+    //a loader is built from a plain configuration, so nothing here has to stand
+    //in for an element to exercise the fetch discipline
+    const remoteLoader = (conf) =>
+        SelectLoader.from({
+            http: registry.component('http-client'),
+            responseMapper: (/** @type any[] */ rows) =>
+                rows.map(([key, label, metadata]) => ({ key, label, metadata })),
+            ...conf,
+        });
 
     it('shares one in-flight fetch across concurrent prefetch, search and lookup', async () => {
         const { calls, pending } = deferredHttp();
-        const loader = remoteLoader({ src: '/slow', preload: '' });
+        const loader = remoteLoader({ url: '/slow', prefetch: true });
 
         const concurrent = [loader.prefetch(), loader.load('one'), loader.exact('k1')];
         assert.lengthOf(calls, 1, 'the concurrent callers ride one request');
@@ -399,7 +397,7 @@ describe('SelectLoader fetch discipline', () => {
 
     it('discards the outcome of a fetch superseded by a reconfiguration', async () => {
         const { calls, pending } = deferredHttp();
-        const loader = remoteLoader({ src: '/old', preload: '' });
+        const loader = remoteLoader({ url: '/old', prefetch: true });
 
         const stale = loader.prefetch().then(
             () => assert.fail('the superseded prefetch rejects'),
@@ -420,7 +418,7 @@ describe('SelectLoader fetch discipline', () => {
 
     it('rejects a caller whose fetch a reconfiguration superseded, instead of crashing', async () => {
         const { calls, pending } = deferredHttp();
-        const loader = remoteLoader({ src: '/old' });
+        const loader = remoteLoader({ url: '/old' });
 
         const superseded = loader.exact('k1').then(
             () => assert.fail('the superseded lookup rejects'),

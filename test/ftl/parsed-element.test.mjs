@@ -143,6 +143,25 @@ describe('ParsedElement Web Component Lifecycle', () => {
         ]);
     });
 
+    it('says so when asked for an attribute the class never declared', async () => {
+        class UndeclaredEl extends ParsedElement {
+            static attributes = ['known'];
+        }
+
+        registry.defineElement('undeclared-el', UndeclaredEl);
+        registry.configure();
+
+        const el = document.createElement('undeclared-el');
+        container.appendChild(el);
+        await registry.whenUpgraded(el);
+
+        expect(() => el.declared('mine')).to.throw(/declares no attribute 'mine'/);
+        //content the element does not own is read the platform's own way, which
+        //is how a custom loader reads its own configuration off a host
+        el.setAttribute('mine', '/endpoint');
+        expect(el.getAttribute('mine')).to.equal('/endpoint');
+    });
+
     it('answers a configuration attribute as declared, whatever happens to it afterwards', async () => {
         let duringRender = null;
         class FrozenEl extends ParsedElement {
