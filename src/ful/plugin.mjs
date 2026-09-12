@@ -83,9 +83,12 @@ class Plugin {
             .defineComponent('loaders:select', SelectLoader)
             .defineComponent('loaders:form', FormLoader)
             .defineComponent('loaders:table', TableLoader)
+            //the two names a template and the l10n facade resolve: the messages,
+            //and the locale every formatter needs. The primary subtag is not a
+            //third — it exists to pick the built-in bundle above, and publishing
+            //it put a bare name nothing reads into the scope of every template
             .defineOverlay({
                 l10n,
-                language,
                 locale: this.#language,
             });
     }
