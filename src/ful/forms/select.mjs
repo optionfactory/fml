@@ -879,18 +879,14 @@ class Select extends Field {
     }
     set multiple(v) {
         this.#multiple = v;
-        this.reflect(() => {
-            this.toggleAttribute('multiple', v);
-        });
+        this.reflectTo('multiple', v);
     }
     get itemlist() {
         return this.#useItemlist;
     }
     set itemlist(v) {
         this.#useItemlist = v;
-        this.reflect(() => {
-            this.toggleAttribute('itemlist', v);
-        });
+        this.reflectTo('itemlist', v);
     }
 }
 

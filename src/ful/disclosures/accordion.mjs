@@ -24,9 +24,7 @@ class Accordion extends ParsedElement {
     }
     set exclusive(v) {
         this.#exclusive = v === true;
-        this.reflect(() => {
-            this.toggleAttribute('exclusive', this.#exclusive);
-        });
+        this.reflectTo('exclusive', this.#exclusive);
         const name = this.#exclusive ? Attributes.uid('ful-accordion') : null;
         for (const details of this.#group.querySelectorAll(':scope > details')) {
             if (name === null) {

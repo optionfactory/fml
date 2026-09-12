@@ -84,9 +84,23 @@ describe('ParsedElement Web Component Lifecycle', () => {
         el.attributeChangedCallback('test-attr', 'same', 'same');
         expect(unmarshalFired).to.be.false;
 
-        el.reflect(() => {
-            el.attributeChangedCallback('test-attr', 'old', 'new');
-        });
+        //a reflection is the property's own write: it reaches the dom without
+        //coming back through the observer
+        el.reflectTo('test-attr', 'new');
+        expect(el.getAttribute('test-attr')).to.equal('new');
+        expect(unmarshalFired).to.be.false;
+
+        //and a value the attribute already carries is not written at all
+        el.setAttribute('test-attr', 'settled');
+        unmarshalFired = false;
+        let written = 0;
+        const setAttribute = el.setAttribute.bind(el);
+        el.setAttribute = (...args) => {
+            ++written;
+            setAttribute(...args);
+        };
+        el.reflectTo('test-attr', 'settled');
+        expect(written).to.equal(0);
         expect(unmarshalFired).to.be.false;
     });
 
@@ -188,27 +202,35 @@ describe('ParsedElement Web Component Lifecycle', () => {
         expect(applied).to.equal('current');
     });
 
-    it('leverages atomic reflection context locks safely', () => {
+    it('marshals a reflection through the mapper the attribute was declared with', async () => {
         class ReflectiveEl extends ParsedElement {
-            static observed = ['my-prop'];
-            static mappers = {
-                string: { unmarshal: (v) => v, marshal: (v) => v },
-            };
+            static observed = ['flag:presence', 'size:number', 'tags:csv'];
+            set flag(v) {}
+            set size(v) {}
+            set tags(v) {}
         }
 
         registry.defineElement('reflective-el', ReflectiveEl);
         registry.configure();
 
         const el = document.createElement('reflective-el');
+        container.appendChild(el);
+        await registry.whenUpgraded(el);
 
-        let blocksExecuted = false;
-        el.reflect(() => {
-            blocksExecuted = true;
-        });
-        expect(blocksExecuted).to.be.true;
+        //a setter hands over its own value and never encodes it: the presence
+        //toggle, the number and the csv join belong to the declared mapper
+        el.reflectTo('flag', true);
+        expect(el.getAttribute('flag')).to.equal('');
+        el.reflectTo('flag', false);
+        expect(el.hasAttribute('flag')).to.be.false;
 
-        el.reflectTo('my-prop', 'active-state');
-        expect(el.getAttribute('my-prop')).to.equal('active-state');
+        el.reflectTo('size', 3);
+        expect(el.getAttribute('size')).to.equal('3');
+        el.reflectTo('size', null);
+        expect(el.hasAttribute('size')).to.be.false;
+
+        el.reflectTo('tags', ['a', 'b']);
+        expect(el.getAttribute('tags')).to.equal('a,b');
     });
 
     it('unmarshals and assigns property values on valid attribute changes', async () => {

@@ -113,9 +113,7 @@ class Input extends Field {
         //without a placeholder :placeholder-shown never matches, and floating labels
         //rely on it, so a blank one stands in for none
         Attributes.set(this._input, 'placeholder', d ?? ' ');
-        this.reflect(() => {
-            Attributes.set(this, 'placeholder', d);
-        });
+        this.reflectTo('placeholder', d);
     }
 }
 

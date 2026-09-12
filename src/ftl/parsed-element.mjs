@@ -28,7 +28,8 @@ class ParsedElement extends HTMLElement {
     }
     #parsed = false;
     #started = false;
-    #reflecting = 0;
+    /** the attributes whose own reflection is in flight */
+    #reflecting = new Set();
     /** the observed snapshot between the upgrade's start and its render's end */
     #pending = /** @type {{ [k: string]: any } | null} */ (null);
     /** the configuration tier, read once at the upgrade and kept for the element's life */
@@ -81,7 +82,10 @@ class ParsedElement extends HTMLElement {
         if (oldValue === newValue) {
             return;
         }
-        if (this.#reflecting > 0) {
+        //the mute is the attribute being reflected, not the element: a component
+        //that legitimately changes another observed attribute while one reflects
+        //is a change like any other, and used to be swallowed
+        if (this.#reflecting.has(attr)) {
             return;
         }
         //the properties are the post-render live door alone: before the render,
@@ -173,20 +177,27 @@ class ParsedElement extends HTMLElement {
     get rendered() {
         return this.#parsed;
     }
-    reflect(fn) {
-        ++this.#reflecting;
-        try {
-            fn();
-        } finally {
-            --this.#reflecting;
-        }
-    }
+    /**
+     * Projects a property back onto its observed attribute, marshalled through
+     * the mapper the attribute was declared with: the one door back to the dom,
+     * so a setter never has to know how its own type serializes.
+     *
+     * A value the attribute already carries is not written at all, so reflecting
+     * what an attribute write just delivered ends there rather than looping, and
+     * only the attribute being written is muted while it happens.
+     * @param {string} attr
+     * @param {any} value
+     */
     reflectTo(attr, value) {
-        ++this.#reflecting;
+        const marshalled = this.marshal(attr, value);
+        if (marshalled === this.getAttribute(attr)) {
+            return;
+        }
+        this.#reflecting.add(attr);
         try {
-            Attributes.set(this, attr, this.marshal(attr, value));
+            Attributes.set(this, attr, marshalled);
         } finally {
-            --this.#reflecting;
+            this.#reflecting.delete(attr);
         }
     }
 }

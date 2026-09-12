@@ -1,4 +1,4 @@
-import { Attributes, Localization } from '../../ftl/index.mjs';
+import { Localization } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
 /** A file input with an optional dropzone and item list, enforcing the size and count limits it declares. */
@@ -232,18 +232,14 @@ class InputFile extends Input {
     set accept(vs) {
         this._input.accept = vs.join(',');
         this.#accept = vs;
-        this.reflect(() => {
-            this.setAttribute('accept', this._input.accept);
-        });
+        this.reflectTo('accept', vs);
     }
     get multiple() {
         return this._input.multiple;
     }
     set multiple(v) {
         this._input.multiple = v;
-        this.reflect(() => {
-            this.toggleAttribute('multiple', v);
-        });
+        this.reflectTo('multiple', v);
     }
     get files() {
         return this._input.files;
@@ -286,9 +282,7 @@ class InputFile extends Input {
     }
     set maxfiles(v) {
         this.#maxfiles = v;
-        this.reflect(() => {
-            Attributes.set(this, 'maxfiles', v);
-        });
+        this.reflectTo('maxfiles', v);
     }
     #maxfilesize;
     get maxfilesize() {
@@ -296,9 +290,7 @@ class InputFile extends Input {
     }
     set maxfilesize(v) {
         this.#maxfilesize = v;
-        this.reflect(() => {
-            Attributes.set(this, 'maxfilesize', v);
-        });
+        this.reflectTo('maxfilesize', v);
     }
     #maxtotalsize;
     get maxtotalsize() {
@@ -306,9 +298,7 @@ class InputFile extends Input {
     }
     set maxtotalsize(v) {
         this.#maxtotalsize = v;
-        this.reflect(() => {
-            Attributes.set(this, 'maxtotalsize', v);
-        });
+        this.reflectTo('maxtotalsize', v);
     }
     #useItemlist;
     get itemlist() {
@@ -316,9 +306,7 @@ class InputFile extends Input {
     }
     set itemlist(v) {
         this.#useItemlist = v;
-        this.reflect(() => {
-            this.toggleAttribute('itemlist', v);
-        });
+        this.reflectTo('itemlist', v);
     }
     #useDropzone;
     get dropzone() {
@@ -326,9 +314,7 @@ class InputFile extends Input {
     }
     set dropzone(v) {
         this.#useDropzone = v;
-        this.reflect(() => {
-            this.toggleAttribute('dropzone', v);
-        });
+        this.reflectTo('dropzone', v);
     }
 }
 

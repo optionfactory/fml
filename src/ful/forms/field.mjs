@@ -212,12 +212,8 @@ class Field extends ParsedElement {
         return this.hasAttribute('disabled');
     }
     set disabled(d) {
-        //the claim belongs to the author alone, nothing else ever writes it: the
-        //reflection guard keeps the attribute observer out of the property's own
-        //write, as the readonly and required claims already do
-        this.reflect(() => {
-            this.toggleAttribute('disabled', d);
-        });
+        //the claim belongs to the author alone, nothing else ever writes it
+        this.reflectTo('disabled', d);
         //the adopted pieces mirror the claim as a native input would: a disabled
         //fieldset ancestry is left to the browser, which reaches them as
         //descendants of the fieldset and re-enables them on its own
@@ -246,9 +242,7 @@ class Field extends ParsedElement {
         if (this.#announces) {
             Attributes.set(this.#announces, 'aria-readonly', v ? 'true' : null);
         }
-        this.reflect(() => {
-            this.toggleAttribute('readonly', v);
-        });
+        this.reflectTo('readonly', v);
     }
     /**
      * A field is required through aria: the claim reflects on the host, the
@@ -263,9 +257,7 @@ class Field extends ParsedElement {
         if (this.#announces) {
             Attributes.set(this.#announces, 'aria-required', d ? 'true' : null);
         }
-        this.reflect(() => {
-            this.toggleAttribute('required', d);
-        });
+        this.reflectTo('required', d);
     }
     /**
      * The field's render is the base's: the subclass builds its dom in `_build`

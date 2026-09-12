@@ -39,22 +39,14 @@ class SortButton extends ParsedElement {
 
     set order(value) {
         this.#order = value || null;
-        this.reflect(() => {
-            if (this.#order) {
-                this.setAttribute('order', value);
-            } else {
-                this.removeAttribute('order');
-            }
-            const th = this.closest('th');
-            if (!th) {
-                return;
-            }
-            if (!this.#order) {
-                th.removeAttribute('aria-sort');
-            } else {
-                th.setAttribute('aria-sort', 'asc' === this.#order ? 'ascending' : 'descending');
-            }
-        });
+        this.reflectTo('order', this.#order);
+        //the column announces the sort, not this button: an attribute on another
+        //element is not a reflection and has no business inside the guard
+        const th = this.closest('th');
+        if (!th) {
+            return;
+        }
+        Attributes.set(th, 'aria-sort', this.#order ? ('asc' === this.#order ? 'ascending' : 'descending') : null);
     }
 }
 
@@ -156,20 +148,18 @@ class Pagination extends ParsedElement {
         //an absent attribute declares no pages, not a NaN one: the default
         //lives here now that the base applies the declared state as it found it
         this.#total = value ?? 0;
-        this.reflect(() => {
-            this.setAttribute('total', String(this.#total));
-            this.update(this.#current ?? 0, this.#total);
-        });
+        this.reflectTo('total', this.#total);
+        //the re-render is the setter's own projection, not a reflection: inside
+        //the guard it muted every attribute the render happened to touch
+        this.update(this.#current ?? 0, this.#total);
     }
     get current() {
         return this.#current;
     }
     set current(value) {
         this.#current = value ?? 0;
-        this.reflect(() => {
-            this.setAttribute('current', String(this.#current));
-            this.update(this.#current, this.#total ?? 0);
-        });
+        this.reflectTo('current', this.#current);
+        this.update(this.#current, this.#total ?? 0);
     }
 }
 
