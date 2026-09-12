@@ -46,12 +46,18 @@ class RemoteLoader {
         //needle means no filter, as the empty search the combobox opens with
         return data.filter(({ label }) => (label ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
     }
-    async reconfigureUrl(url) {
-        //invalidating detaches any fetch still in flight: its outcome belongs
-        //to the old url and must neither be served nor stored for the new one
+    /**
+     * Drops the cached vocabulary so the next question refetches it. Any fetch
+     * still in flight is detached: its outcome belongs to the configuration that
+     * started it and must neither be served nor stored for the new one.
+     */
+    async invalidate() {
         this.#configs.invalidate();
         this.#data = null;
         this.#inFlight = null;
+    }
+    async reconfigureUrl(url) {
+        await this.invalidate();
         this.#url = url;
     }
     async #ensureFetched() {
@@ -113,6 +119,14 @@ class PartialRemoteLoader {
         this.#method = method;
         this.#responseMapper = responseMapper;
     }
+    /**
+     * Nothing is held between queries, so there is no cache to drop: the method
+     * exists so a caller can invalidate any loader without knowing which it has.
+     */
+    async invalidate() {}
+    async reconfigureUrl(url) {
+        this.#url = url;
+    }
     async exact(...keys) {
         const response = await this.#http
             .request(this.#method, this.#url)
@@ -135,6 +149,8 @@ class InMemoryLoader {
     update(data) {
         this.#data = data;
     }
+    /** The vocabulary is the data itself: update replaces it, so there is nothing to drop. */
+    async invalidate() {}
     exact(...keys) {
         return this.#data.filter(({ key }) => keys.some((r) => r == key));
     }
@@ -646,6 +662,31 @@ class Select extends Field {
     /** Hands the loader to the callback, for runtime reconfigurations. */
     async withLoader(fn) {
         return await fn(this.#loader);
+    }
+    /**
+     * Drops whatever the loader is holding and asks it about the current selection
+     * again, which is what a select whose vocabulary depends on another control
+     * needs when that control changes. A key the loader no longer knows is dropped
+     * from the selection, so a value invalidated by the change does not survive it,
+     * and one it still knows keeps its place with a fresh label.
+     *
+     * Pass a url first where the vocabulary lives at a different address:
+     *
+     *     citta.addEventListener('change', async () => {
+     *         await cap.withLoader((l) => l.reconfigureUrl(`/api/cap?citta=${citta.value}`));
+     *         await cap.reload();
+     *     });
+     */
+    async reload() {
+        await this.#loader.invalidate?.();
+        //the prefetch is a warm-up: a select configured to preload warms the new
+        //vocabulary now rather than on the next open, as it did at the upgrade
+        await this.#loader.prefetch?.();
+        const keys = [...this.#values.keys()];
+        if (keys.length === 0) {
+            return;
+        }
+        await this.#resolve(keys, this.#assignments.take());
     }
     #badges() {
         return Array.from(this.#control.querySelectorAll(':scope > ful-badge'));

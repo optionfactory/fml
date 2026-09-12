@@ -492,3 +492,121 @@ describe('SelectLoader fetch discipline', () => {
         }
     });
 });
+
+/**
+ * A select whose vocabulary depends on another control: the linkage itself is the
+ * page's, one change listener, and what the library owes it is a way to drop what
+ * the loader holds and ask again without knowing which loader it got.
+ */
+describe('Select reload, for a vocabulary that depends on another control', () => {
+    const mount = async (attributes = '', body = '') => {
+        const container = appended(`<ful-select ${attributes}>${body}</ful-select>`);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        for (let i = 0; i !== 10; ++i) {
+            await tick();
+        }
+        return selectEl;
+    };
+    /**
+     * One client for the whole test: the loader captures it at the upgrade, so a
+     * second defineComponent would never reach the select. The endpoint changes its
+     * mind by mutating `bodies`, which is what the dependency changing looks like
+     */
+    const stub = (bodies) => {
+        const calls = [];
+        registry.defineComponent('http-client', {
+            request(method, url) {
+                calls.push(url);
+                return {
+                    param() {
+                        return this;
+                    },
+                    async fetchJson() {
+                        return bodies[url] ?? [];
+                    },
+                };
+            },
+        });
+        return calls;
+    };
+    const settle = async () => {
+        for (let i = 0; i !== 10; ++i) {
+            await tick();
+        }
+    };
+
+    it('refetches the vocabulary and relabels the selection', async () => {
+        const bodies = { '/v': [['k1', 'First label']] };
+        const calls = stub(bodies);
+        const selectEl = await mount('src="/v" value="k1"');
+        await settle();
+        assert.strictEqual(selectEl.entry.label, 'First label');
+
+        //the endpoint now answers differently for the same key, as it would after the
+        //control this one depends on changed
+        bodies['/v'] = [['k1', 'Second label']];
+        await selectEl.reload();
+        await settle();
+
+        assert.strictEqual(selectEl.entry.label, 'Second label', 'the cache was dropped, not served again');
+        assert.isAbove(calls.length, 0);
+    });
+
+    it('drops a selected key the new vocabulary no longer knows', async () => {
+        const bodies = { '/v': [['k1', 'One'], ['k2', 'Two']] };
+        stub(bodies);
+        const selectEl = await mount('src="/v" multiple value="k1,k2"');
+        await settle();
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+
+        bodies['/v'] = [['k2', 'Two']];
+        await selectEl.reload();
+        await settle();
+
+        //a value invalidated by the change must not survive it
+        assert.deepStrictEqual(selectEl.value, ['k2']);
+        assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 1, 'the chips follow the selection');
+    });
+
+    it('points a chunked loader at another url, which it had no way to be told before', async () => {
+        const calls = stub({ '/a': [['k1', 'From a']], '/b': [['k1', 'From b']] });
+        const selectEl = await mount('src="/a" mode="chunked" value="k1"');
+        await settle();
+        assert.strictEqual(selectEl.entry.label, 'From a');
+
+        await selectEl.withLoader((l) => l.reconfigureUrl('/b'));
+        await selectEl.reload();
+        await settle();
+
+        assert.strictEqual(selectEl.entry.label, 'From b');
+        assert.include(calls, '/b');
+    });
+
+    it('reloads a slotted vocabulary too, so a caller never asks which loader it has', async () => {
+        const selectEl = await mount(
+            'multiple value="k1,k2"',
+            `<select slot="options"><option value="k1">One</option><option value="k2">Two</option></select>`,
+        );
+        await settle();
+
+        await selectEl.withLoader((l) => l.update([{ key: 'k2', label: 'Two' }]));
+        await selectEl.reload();
+        await settle();
+
+        assert.deepStrictEqual(selectEl.value, ['k2'], 'the key the new data drops goes with it');
+    });
+
+    it('does nothing but invalidate when nothing is selected', async () => {
+        const calls = stub({ '/v': [['k1', 'One']] });
+        const selectEl = await mount('src="/v"');
+        await settle();
+        const before = calls.length;
+
+        await selectEl.reload();
+        await settle();
+
+        assert.strictEqual(selectEl.value, null);
+        assert.strictEqual(calls.length, before, 'an empty selection asks the endpoint nothing');
+    });
+});
