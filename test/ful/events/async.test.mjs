@@ -166,4 +166,19 @@ describe('AsyncEvents guarantees', () => {
         assert.deepStrictEqual(calls, []);
         assert.deepStrictEqual(got, []);
     });
+
+    it('gives a class the three methods, bound to the instance', async () => {
+        class Widget extends HTMLElement {}
+        AsyncEvents.mixInto(Widget);
+        customElements.define('mixed-widget', Widget);
+        const widget = document.createElement('mixed-widget');
+        document.body.appendChild(widget);
+
+        const listener = widget.asyncOn('save', async (e) => `saved ${e.detail}`);
+        assert.deepStrictEqual(await widget.fireAsync(new CustomEvent('save', { detail: 'a' })), ['saved a']);
+
+        widget.asyncOff('save', listener);
+        assert.deepStrictEqual(await widget.fireAsync(new CustomEvent('save')), []);
+        widget.remove();
+    });
 });

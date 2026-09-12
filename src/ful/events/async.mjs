@@ -72,6 +72,47 @@ class AsyncEvents {
     static asyncOff(el, type, listener, options) {
         el.removeEventListener(type, listener, options);
     }
+    /**
+     * Mixes the asynchronous execution engine extensions into target class prototypes.
+     * @param {...Function} classes - The target class constructors to decorate.
+     */
+    static mixInto(...classes) {
+        for (const k of classes) {
+            Object.assign(k.prototype, {
+                /**
+                 * @this {HTMLElement}
+                 * @param {AsyncEvent} evt
+                 * @param {{mode?: 'broadcast' | 'pipeline' | 'delegate'}} [options]
+                 * @returns {Promise<any>}
+                 */
+                async fireAsync(evt, options) {
+                    return await AsyncEvents.fireAsync(this, evt, options);
+                },
+
+                /**
+                 * @this {HTMLElement}
+                 * @param {string} type
+                 * @param {Function} fn
+                 * @param {AddEventListenerOptions} [options]
+                 * @returns {EventListener}
+                 */
+                asyncOn(type, fn, options) {
+                    return AsyncEvents.asyncOn(this, type, fn, options);
+                },
+
+                /**
+                 * @this {HTMLElement}
+                 * @param {string} type
+                 * @param {EventListener} listener
+                 * @param {EventListenerOptions} [options]
+                 * @returns {void}
+                 */
+                asyncOff(type, listener, options) {
+                    AsyncEvents.asyncOff(this, type, listener, options);
+                },
+            });
+        }
+    }
 }
 
 export { AsyncEvents };
