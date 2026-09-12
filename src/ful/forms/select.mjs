@@ -162,9 +162,9 @@ class SelectLoader {
     /**
      * Builds a loader from a plain configuration, reading no dom: `data` alone
      * is the in-memory vocabulary, a `url` is fetched whole or, under
-     * `mode: 'chunked'`, per query. It is the door a test or a caller with its
-     * own configuration comes through; `create` is the same thing with an
-     * element's attributes parsed first.
+     * `mode: 'chunked'`, per query. A test, or a caller holding its own
+     * configuration, builds a loader this way; `create` is the same thing with
+     * an element's attributes parsed first.
      * @param {{ data?: any[], http?: any, url?: string, method?: string, mode?: string, prefetch?: boolean, revision?: string|null, responseMapper?: any }} conf
      */
     static from({ data, http, url, method = 'POST', mode, prefetch = false, revision = null, responseMapper }) {
@@ -416,7 +416,7 @@ class Dropdown extends ParsedElement {
 /** A combobox acting like a select over a loader's vocabulary, single or multiple. */
 class Select extends Field {
     //the loader's whole vocabulary is configuration, read once at the upgrade:
-    //nothing here is a live door, and declaring it is what lets the loader be
+    //none of it is reactive, and declaring it here is what lets the loader be
     //built from a plain object rather than from an element
     static attributes = [
         'name',

@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="../dist/ful.css" rel="stylesheet">
+<script src="../dist/fml.iife.js"></script>
+<style>
+ body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; background: #fff; }
+ .shot { width: 520px; padding: 20px; }
+ #shot-tooltip { padding: 20px; width: 300px; }
+ #shot-toasts { width: 420px; }
+ label.inline { display: flex; align-items: center; gap: .375rem; font-weight: 600; }
+</style></head>
+<body>
+
+<div class="shot" id="shot-tooltip">
+  <ful-form>
+    <ful-input name="vat" value="IT01234567890">
+      VAT number
+      <ful-tooltip slot="info" placement="right">eleven digits, IT-prefixed.</ful-tooltip>
+    </ful-input>
+  </ful-form>
+</div>
+
+<div class="shot" id="shot-dialog">
+  <ful-dialog id="dlg" header="Publish the ledger?">
+    Once published, the entries become immutable and the period closes.
+    <template slot="buttons">
+      <button type="button" class="ful-button" data-result="published">Publish</button>
+      <button type="button" class="ful-button soft" data-result="cancelled">Cancel</button>
+    </template>
+  </ful-dialog>
+</div>
+
+<div class="shot" id="shot-drawer">
+  <ful-drawer id="drw" title="Counterpart">
+    <p><b>Officine Ferrari s.r.l.</b></p>
+    <p>VAT IT01234567890<br>Via Emilia 42, Modena</p>
+    <p>Last invoice: 2030-11-03</p>
+  </ful-drawer>
+</div>
+
+<div class="shot" id="shot-toasts">
+  <ful-toasts id="tst" timeout="600000"></ful-toasts>
+</div>
+
+<div class="shot" id="shot-tabs">
+  <ful-tabs active="1">
+    <template slot="tabs"><tab>Shipping</tab><tab>Invoices</tab><tab>History</tab></template>
+    <section><p>Shipping address and carrier.</p></section>
+    <section><p>Six invoices, two of them still open.</p></section>
+    <section><p>Every change, newest first.</p></section>
+  </ful-tabs>
+</div>
+
+<div class="shot" id="shot-accordion">
+  <ful-accordion exclusive>
+    <details open><summary>What is covered</summary><p>Damage in transit, up to the declared value.</p></details>
+    <details><summary>What is not</summary><p>Wear, misuse, and anything undeclared.</p></details>
+    <details><summary>How to claim</summary><p>Open a ticket within fourteen days.</p></details>
+  </ful-accordion>
+</div>
+
+<div class="shot" id="shot-wizard">
+  <ful-wizard progress="timeline">
+    <template slot="steps"><step>Verify</step><step>Edit</step><step>Confirm</step></template>
+    <section data-step="verify"><p>Checked.</p></section>
+    <section data-step="edit" aria-current="step">
+      <ful-input name="label" value="November ledger">Label</ful-input>
+      <p style="margin-top:1rem"><button type="button" class="ful-button">Continue</button></p>
+    </section>
+    <section data-step="confirm"><p>Done.</p></section>
+  </ful-wizard>
+</div>
+
+<script>
+  ftl.registry.plugin(new ful.Plugin({ language: 'en' })).configure();
+</script>
+</body></html>

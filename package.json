@@ -58,7 +58,8 @@
         "test": "rm -rf coverage && wtr --config test/web-test-runner.config.mjs",
         "test:manual": "npm run test -- --manual",
         "test:watch": "npm run test -- --watch",
-        "manifest": "node manifest/generate.mjs"
+        "manifest": "node manifest/generate.mjs",
+        "wiki": "node manifest/wiki-reference.mjs && node manifest/wiki-screenshots.mjs"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.11",

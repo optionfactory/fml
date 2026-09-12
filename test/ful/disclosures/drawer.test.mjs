@@ -46,6 +46,28 @@ describe('Drawer', () => {
         drawer.close();
     });
 
+    it('opens on the inline end side by default, and on the start side when asked', async () => {
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [side] = await mount('<ful-drawer title="t" placement="start">body</ful-drawer>');
+
+        drawer.open();
+        side.open();
+
+        //the ua sheet pins both inline insets to 0: without an explicit
+        //inset-inline-start: auto the definite width is over-constrained and the
+        //drawer lands against the start edge, the opposite side from the default
+        const end = drawer.querySelector('dialog').getBoundingClientRect();
+        const start = side.querySelector('dialog').getBoundingClientRect();
+        assert.isAbove(
+            end.left - start.left,
+            end.width / 2,
+            'the two placements sit on opposite edges, not both against the start one',
+        );
+
+        drawer.close();
+        side.close();
+    });
+
     it('update() shows the loading state, then the delivered content', async () => {
         const [drawer] = await mount('<ful-drawer title="t">old</ful-drawer>');
         let deliver;
