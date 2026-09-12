@@ -267,9 +267,31 @@ describe('httpc client', () => {
                 await throwing.get('/test').fetch();
                 expect.fail('the fetch must reject');
             } catch (e) {
+                //fetch() answers a Failure whatever was thrown, so a caller
+                //reading problems never has to test the shape first
                 expect(e).to.be.instanceOf(Failure);
-                expect(e.problems[0].type).to.equal('CONNECTION_PROBLEM');
+                expect(e.problems[0].type).to.equal('UNEXPECTED_PROBLEM');
                 expect(e.problems[0].reason).to.equal('unknown failure');
+            }
+        });
+
+        it('tells a bug in the chain apart from the connection failing', async () => {
+            const buggy = HttpClient.builder()
+                .withInterceptors({
+                    intercept: async () => {
+                        /** @type any */ (undefined).boom();
+                    },
+                })
+                .build();
+
+            try {
+                await buggy.get('/test').fetch();
+                expect.fail('the fetch must reject');
+            } catch (e) {
+                //the transport was never reached, so calling it a connection
+                //problem sends the reader looking at the network for a TypeError
+                expect(e.problems[0].type).to.equal('UNEXPECTED_PROBLEM');
+                expect(e.cause).to.be.instanceOf(TypeError);
             }
         });
 
@@ -392,6 +414,21 @@ describe('httpc client', () => {
                 await client.get('/test').fetch();
                 expect.fail('Should have thrown CONNECTION_PROBLEM');
             } catch (err) {
+                expect(err.problems[0].type).to.equal('CONNECTION_PROBLEM');
+            }
+        });
+
+        it('labels the connection failing the same way through exchange', async () => {
+            globalThis.fetch = async () => {
+                throw new TypeError('Failed to fetch');
+            };
+            try {
+                await client.exchange('/test');
+                expect.fail('the exchange must reject');
+            } catch (err) {
+                //the transport labels its own failure below the chain, so the
+                //same fact reads the same way whichever call the caller made
+                expect(err).to.be.instanceOf(Failure);
                 expect(err.problems[0].type).to.equal('CONNECTION_PROBLEM');
             }
         });

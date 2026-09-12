@@ -64,6 +64,15 @@ class HttpClientError extends Failure {
         return new HttpClientError(this.message, this.status, Failure.dropProblemsContext(this.problems, prefix), this);
     }
     /**
+     * One problem of the client's own making: the four the client mints are the
+     * same shape, and the server's arrive already shaped from the wire.
+     * @param {string} type
+     * @param {string} reason
+     */
+    static problem(type, reason) {
+        return { type, context: null, reason, details: null };
+    }
+    /**
      * Creates a client failure carrying no status, wrapping the cause and its message.
      * @param {string} type
      * @param {any} cause
@@ -71,19 +80,7 @@ class HttpClientError extends Failure {
      */
     static of(type, cause) {
         const reason = String(cause?.message ?? cause ?? 'unknown failure');
-        return new HttpClientError(
-            reason,
-            0,
-            [
-                {
-                    type,
-                    context: null,
-                    reason,
-                    details: null,
-                },
-            ],
-            cause,
-        );
+        return new HttpClientError(reason, 0, [HttpClientError.problem(type, reason)], cause);
     }
     /**
      * Creates an HttpClientError from a Response.
@@ -115,14 +112,7 @@ class HttpClientError extends Failure {
                 return new HttpClientError(
                     message,
                     response.status,
-                    data.problems || [
-                        {
-                            type: 'GENERIC_PROBLEM',
-                            context: null,
-                            reason: message,
-                            details: null,
-                        },
-                    ],
+                    data.problems || [HttpClientError.problem('GENERIC_PROBLEM', message)],
                 );
             }
             default: {
@@ -142,14 +132,7 @@ class HttpClientError extends Failure {
     static #undecodable(response, as = 'as json') {
         const mediaType = MediaType.parse(response.headers.get('Content-Type')).normalized;
         const message = `${response.status} ${response.statusText}: the ${mediaType} body does not decode ${as}`;
-        return new HttpClientError(message, response.status, [
-            {
-                type: 'GENERIC_PROBLEM',
-                context: null,
-                reason: message,
-                details: null,
-            },
-        ]);
+        return new HttpClientError(message, response.status, [HttpClientError.problem('GENERIC_PROBLEM', message)]);
     }
     static async #generic(response) {
         //a body that cannot be read (the connection cut mid-body) must not
@@ -160,14 +143,7 @@ class HttpClientError extends Failure {
             text === null
                 ? `${response.status} ${response.statusText}: the body could not be read`
                 : `${response.status} ${response.statusText}: ${text}`;
-        return new HttpClientError(message, response.status, [
-            {
-                type: 'GENERIC_PROBLEM',
-                context: null,
-                reason: message,
-                details: null,
-            },
-        ]);
+        return new HttpClientError(message, response.status, [HttpClientError.problem('GENERIC_PROBLEM', message)]);
     }
 }
 
@@ -251,7 +227,14 @@ class HttpClientBuilder {
  */
 class HttpCall {
     async intercept(url, request, chain) {
-        return await fetch(url, request);
+        try {
+            return await fetch(url, request);
+        } catch (ex) {
+            //the one place a connection problem is a connection problem: the
+            //transport itself refused to deliver. Everything above this is code,
+            //and code that throws has a different story to tell
+            throw HttpClientError.of('CONNECTION_PROBLEM', ex);
+        }
     }
 }
 
@@ -637,7 +620,11 @@ class HttpRequestBuilder {
             if (ex instanceof Failure) {
                 throw ex;
             }
-            throw HttpClientError.of('CONNECTION_PROBLEM', ex);
+            //fetch() answers a Failure whatever happened, so a caller reading
+            //`problems` never has to test the shape first. What reaches here is
+            //not the transport, which labels its own failure below the chain: it
+            //is a throw from the chain's own code, carried as the cause
+            throw HttpClientError.of('UNEXPECTED_PROBLEM', ex);
         }
     }
     /**
