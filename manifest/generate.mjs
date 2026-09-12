@@ -38,7 +38,6 @@ const TYPES = {
     bool: 'boolean',
     number: 'number',
     csv: 'string',
-    csvm: 'string',
     json: 'string',
 };
 

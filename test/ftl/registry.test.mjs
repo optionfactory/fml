@@ -11,13 +11,12 @@ describe('Registry', () => {
     describe('Attribute mappers', () => {
         it('correctly marshals and unmarshals all built-in types', () => {
             class DummyEl extends HTMLElement {
-                static attributes = ['s:string', 'n:number', 'p:presence', 'b:bool', 'j:json', 'c:csv', 'cm:csvm'];
+                static attributes = ['s:string', 'n:number', 'p:presence', 'b:bool', 'j:json', 'c:csv'];
             }
             registry.defineElement('dummy-mappers', DummyEl);
             registry.configure();
 
             const mappers = DummyEl.BITS.ATTR_TO_MAPPER;
-            const el = document.createElement('dummy-mappers');
 
             //string
             expect(mappers.s.unmarshal('hello')).to.equal('hello');
@@ -54,21 +53,6 @@ describe('Registry', () => {
             expect(mappers.c.unmarshal(null)).to.deep.equal([]);
             expect(mappers.c.marshal(['a', 'b'])).to.equal('a,b');
             expect(mappers.c.marshal(null)).to.be.null;
-
-            //csvm reads the element: a scalar without `multiple`
-            expect(mappers.cm.unmarshal('a', 'cm', el)).to.equal('a');
-            expect(mappers.cm.unmarshal('', 'cm', el)).to.be.null;
-            expect(mappers.cm.unmarshal(null, 'cm', el)).to.be.null;
-            expect(mappers.cm.marshal('a', 'cm', el)).to.equal('a');
-            expect(mappers.cm.marshal(null, 'cm', el)).to.be.null;
-
-            //and a list with it
-            el.setAttribute('multiple', '');
-            expect(mappers.cm.unmarshal('a, b', 'cm', el)).to.deep.equal(['a', 'b']);
-            expect(mappers.cm.unmarshal(null, 'cm', el)).to.deep.equal([]);
-            expect(mappers.cm.marshal(['a', 'b'], 'cm', el)).to.equal('a,b');
-            expect(mappers.cm.marshal(null, 'cm', el)).to.be.null;
-            expect(mappers.cm.marshal(undefined, 'cm', el)).to.be.null;
         });
 
         it('throws an error if an unsupported mapper is requested', () => {

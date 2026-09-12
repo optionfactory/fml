@@ -29,7 +29,7 @@ class Field extends ParsedElement {
      * property,
      * exactly as a native input's. The value defaults to the string mapper and
      * every field with its own vocabulary overrides it (`value:bool`,
-     * `value:csvm`, `value:json`).
+     * `value:csv`, `value:json`).
      */
     static observed = ['disabled:presence', 'readonly:presence', 'required:presence', 'value'];
     /** the role the element internals carry, 'presentation' unless the control is its own */

@@ -47,9 +47,9 @@ describe('Select and dropdown combobox ARIA compliance', () => {
         const el = container.querySelector('ful-select');
         await Rendering.waitFor(el);
 
-        //the csvm mapper reads the multiple attribute to decide whether a value
-        //parses as a list or a scalar, while the element used to freeze its own
-        //copy at render: the two could disagree for the life of the page
+        //multiple is observed, so toggling it after the render reaches the property.
+        //The element used to freeze its own copy at render, so the attribute and the
+        //property could disagree for the life of the page
         assert.isFalse(el.multiple);
         el.setAttribute('multiple', '');
         assert.isTrue(el.multiple);
@@ -539,6 +539,34 @@ describe('Select value resolution', () => {
                 },
             }),
         });
+    });
+
+    it('reads the value attribute as a comma separated list whether or not multiple is set', async () => {
+        const [single] = await mount(`<ful-select value="it"></ful-select>`);
+        const [multi] = await mount(`<ful-select multiple value="it,fr"></ful-select>`);
+
+        //one mapper for both: the single select normalizes its one-key list back to a
+        //scalar on the way out, so only the getter knows which kind it is
+        assert.strictEqual(single.value, 'it');
+        assert.deepEqual(multi.value, ['it', 'fr']);
+    });
+
+    it('splits a single select value on commas, so a key may not contain one', async () => {
+        const [selectEl] = await mount(`<ful-select value="a,b"></ful-select>`);
+
+        //the documented cost of reading every value as a list: before 9.0 a single
+        //select took "a,b" as one key. A key carrying a comma has to be assigned
+        //through the property, which never goes through the mapper
+        assert.strictEqual(selectEl.value, 'a', 'the attribute splits');
+        selectEl.value = 'a,b';
+        await settle();
+        assert.strictEqual(selectEl.value, 'a,b', 'the property does not');
+    });
+
+    it('trims the keys it reads from the attribute', async () => {
+        const [selectEl] = await mount(`<ful-select value=" it "></ful-select>`);
+
+        assert.strictEqual(selectEl.value, 'it');
     });
 
     it('does not query the loader when there is no value', async () => {

@@ -433,9 +433,10 @@ class Select extends Field {
         'm-expr',
         'response-mapper',
     ];
-    //multiple is declared before value: the csvm mapper reads it to decide
-    //whether a value parses as a list or a scalar, so the two cannot disagree
-    static observed = ['multiple:presence', 'itemlist:presence', 'value:csvm'];
+    //the value attribute is a list of keys whether or not the select is multiple:
+    //`set value` normalizes a list of one to a single key, and the getter answers a
+    //scalar for a single select, so nothing downstream has to know which it was
+    static observed = ['multiple:presence', 'itemlist:presence', 'value:csv'];
     static slots = true;
     //a manual popover: the combobox keeps the focus on its input and owns
     //the whole lifecycle (typing, arrows, blur, Escape, Tab), so no light
@@ -863,8 +864,8 @@ class Select extends Field {
     }
 
     set value(vs) {
-        //the csvm mapper yields [] for a missing multiple value, an empty string is
-        //left alone: it is a usable key for an <option value="">
+        //the csv mapper yields [] for an absent attribute; an empty string assigned
+        //through the property is left alone, being a usable key for an <option value="">
         const keys = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
         //the keys are known synchronously and are all `value` reads, so they are applied
         //now: only the labels need the loader, until then a key stands in for its own

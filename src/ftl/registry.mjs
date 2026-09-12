@@ -160,25 +160,6 @@ class Registry {
                 return value == null ? null : value.join(',');
             },
         },
-        csvm: {
-            unmarshal(str, name, el) {
-                if (el.hasAttribute('multiple')) {
-                    return str === null
-                        ? []
-                        : str
-                              .split(',')
-                              .map((e) => e.trim())
-                              .filter((e) => e);
-                }
-                return str === null || str === '' ? null : str;
-            },
-            marshal(value, name, el) {
-                if (el.hasAttribute('multiple')) {
-                    return value == null ? null : value.join(',');
-                }
-                return value == null ? null : String(value);
-            },
-        },
     };
     #components = {};
     #modules;

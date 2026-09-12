@@ -34,7 +34,7 @@ const introspect = ({ Plugin, Registry }) => ({
         return found;
     },
     /**
-     * Every attribute declaration the class composes, verbatim (`value:csvm`),
+     * Every attribute declaration the class composes, verbatim (`value:csv`),
      * both tiers together: the live doors and the configuration read once.
      */
     attributesOf(klass) {
