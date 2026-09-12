@@ -5,6 +5,7 @@ import en from '../../src/ful/l10n/en.mjs';
 import itTranslations from '../../src/ful/l10n/it.mjs';
 import es from '../../src/ful/l10n/es.mjs';
 import fr from '../../src/ful/l10n/fr.mjs';
+import { appended } from '../harness.mjs';
 
 registry
     .plugin(
@@ -114,9 +115,7 @@ describe('built-in translations', () => {
 
 describe('Plugin translations', () => {
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const el = container.firstElementChild;
         await Rendering.waitFor(el);
         return [el, container];
@@ -133,7 +132,7 @@ describe('Plugin translations', () => {
     const file = (name, size = 10) => new File(['x'.repeat(size)], name, { lastModified: 1 });
 
     it('overrides a built-in message at configure time', async () => {
-        const [el, container] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
+        const [el] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
 
         pick(el, file('a.txt'));
 
@@ -142,11 +141,10 @@ describe('Plugin translations', () => {
             'we only take .pdf around here',
         );
 
-        container.remove();
     });
 
     it('leaves the messages it does not override intact', async () => {
-        const [el, container] = await mount(`<ful-input-file multiple maxfiles="2">files</ful-input-file>`);
+        const [el] = await mount(`<ful-input-file multiple maxfiles="2">files</ful-input-file>`);
 
         pick(el, file('a.txt'), file('b.txt'), file('c.txt'));
 
@@ -155,7 +153,6 @@ describe('Plugin translations', () => {
             'Maximum of 2 files exceeded',
         );
 
-        container.remove();
     });
 });
 
@@ -173,6 +170,5 @@ describe('Built-in messages are data, not markup', () => {
         assert.include(cell.textContent, '<b id="l10n-escape">start searching</b>');
         assert.isNull(document.getElementById('l10n-escape'), 'the markup must not have become an element');
 
-        container.remove();
     });
 });

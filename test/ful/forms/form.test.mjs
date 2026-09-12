@@ -3,6 +3,7 @@ import { assert } from 'chai';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, FormLoader, Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -35,7 +36,6 @@ describe('Form Spinner Button States', () => {
         assert.strictEqual(btnEnabled.dataset.wasDisabled, undefined);
         assert.strictEqual(btnDisabled.dataset.wasDisabled, undefined);
 
-        container.remove();
     });
 
     it('leaves a button that joined mid-spin on its authored state', async () => {
@@ -61,7 +61,6 @@ describe('Form Spinner Button States', () => {
         assert.isFalse(fulForm.querySelector('#btn-enabled').disabled, 'the saved one restores');
         assert.isTrue(latecomer.disabled, 'the latecomer keeps its authored state');
 
-        container.remove();
     });
 });
 describe('Form Spinner Button States across overlapping submits', () => {
@@ -120,14 +119,11 @@ describe('Form Spinner Button States across overlapping submits', () => {
         }
         assert.strictEqual(releases.length, 2, 'the form submits again once settled');
         releases[1]();
-        container.remove();
     });
 });
 
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     await Rendering.waitFor(container);
     return [container.querySelector('ful-form'), container];
 };
@@ -162,7 +158,7 @@ describe('Form submit outcome events', () => {
             submit: async () => ({ id: 7 }),
             transform: async (r) => ({ ...r, transformed: true }),
         });
-        const [form, container] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
+        const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         const events = recording(form, 'submit:success', 'submit:failure');
 
         await form.submit();
@@ -173,7 +169,6 @@ describe('Form submit outcome events', () => {
         );
         assert.deepStrictEqual(events[0].detail.values, { name: 'ann' });
         assert.deepStrictEqual(events[0].detail.response, { id: 7, transformed: true });
-        container.remove();
     });
 
     it('reports a failed submit as an event instead of rejecting the caller', async () => {
@@ -185,7 +180,7 @@ describe('Form submit outcome events', () => {
             },
             transform: async (r) => r,
         });
-        const [form, container] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
+        const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         const events = recording(form, 'submit:success', 'submit:failure');
 
         await form.submit();
@@ -197,7 +192,6 @@ describe('Form submit outcome events', () => {
         assert.strictEqual(events[0].detail.exception, boom);
         assert.deepStrictEqual(events[0].detail.values, { name: 'ann' });
         assert.isTrue(warns.some((args) => String(args[0]).includes('failed to submit form')));
-        container.remove();
     });
 
     it('shows a Failure problem on the field it names and the rest in ful-errors', async () => {
@@ -211,7 +205,7 @@ describe('Form submit outcome events', () => {
             },
             transform: async (r) => r,
         });
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form>
                 <ful-errors hidden></ful-errors>
                 <input name="name">
@@ -224,7 +218,6 @@ describe('Form submit outcome events', () => {
         assert.strictEqual(input.validationMessage, 'must not be blank');
         assert.strictEqual(errors.textContent, 'the whole thing is wrong');
         assert.isFalse(errors.hasAttribute('hidden'));
-        container.remove();
     });
 
     it('shows a field problem carrying no context in the banner instead of crashing', async () => {
@@ -238,7 +231,7 @@ describe('Form submit outcome events', () => {
             },
             transform: async (r) => r,
         });
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form>
                 <ful-errors hidden></ful-errors>
                 <input name="name">
@@ -254,7 +247,6 @@ describe('Form submit outcome events', () => {
         const errors = form.querySelector('ful-errors');
         assert.strictEqual(errors.textContent, 'an unnamed problem');
         assert.isFalse(errors.hasAttribute('hidden'));
-        container.remove();
     });
 
     it('shows a field problem with an empty context in the banner, as a null one', async () => {
@@ -265,7 +257,7 @@ describe('Form submit outcome events', () => {
             },
             transform: async (r) => r,
         });
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form>
                 <ful-errors hidden></ful-errors>
                 <input name="name">
@@ -276,7 +268,6 @@ describe('Form submit outcome events', () => {
         const errors = form.querySelector('ful-errors');
         assert.strictEqual(errors.textContent, 'an unnamed problem');
         assert.isFalse(errors.hasAttribute('hidden'));
-        container.remove();
     });
 
     it('clears the problems of the previous attempt when submitting again', async () => {
@@ -294,7 +285,7 @@ describe('Form submit outcome events', () => {
             },
             transform: async (r) => r,
         });
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form>
                 <ful-errors hidden></ful-errors>
                 <input name="name">
@@ -308,7 +299,6 @@ describe('Form submit outcome events', () => {
         assert.strictEqual(form.querySelector('input[name=name]').validationMessage, '');
         assert.strictEqual(form.querySelector('ful-errors').textContent, '');
         assert.isTrue(form.querySelector('ful-errors').hasAttribute('hidden'));
-        container.remove();
     });
 
     it('does not reach the loader nor announce an outcome when the submit event is cancelled', async () => {
@@ -321,7 +311,7 @@ describe('Form submit outcome events', () => {
             },
             transform: async (r) => r,
         });
-        const [form, container] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
+        const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         const events = recording(form, 'submit:success', 'submit:failure', 'submit:requested');
         form.addEventListener('submit', (e) => e.preventDefault());
 
@@ -329,7 +319,6 @@ describe('Form submit outcome events', () => {
 
         assert.deepStrictEqual(submitted, []);
         assert.deepStrictEqual(events, []);
-        container.remove();
     });
 });
 
@@ -344,7 +333,7 @@ describe('Form submitted values', () => {
             },
             transform: async (r) => r,
         });
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form>
                 <input name="name" value="ann">
                 <button type="submit" name="action" value="save" id="save">save</button>
@@ -356,11 +345,10 @@ describe('Form submitted values', () => {
         await done;
 
         assert.deepStrictEqual(submitted, [{ name: 'ann', action: 'save' }]);
-        container.remove();
     });
 
     it('round-trips nested values through the values property, empty fields reading back as null', async () => {
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form>
                 <input name="user.name">
                 <input name="user.age">
@@ -370,7 +358,6 @@ describe('Form submitted values', () => {
         form.values = { user: { name: 'ann', age: '7' } };
 
         assert.deepStrictEqual(form.values, { user: { name: 'ann', age: '7' }, note: null });
-        container.remove();
     });
 });
 
@@ -399,7 +386,7 @@ describe('Form loader selection', () => {
     });
 
     it('answers a form without an action with whatever the submit:requested listener resolves', async () => {
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form request-mapper="mappers:request" response-mapper="mappers:response">
                 <input name="name" value="ann">
             </ful-form>`);
@@ -414,11 +401,10 @@ describe('Form loader selection', () => {
             ['submit:success'],
         );
         assert.deepStrictEqual(events[0].detail.response, { mapped: { echoed: { wrapped: { name: 'ann' } } } });
-        container.remove();
     });
 
     it('posts the mapped request to the action and maps the response back', async () => {
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form action="/api/save" request-mapper="mappers:request" response-mapper="mappers:response">
                 <input name="name" value="ann">
             </ful-form>`);
@@ -432,29 +418,26 @@ describe('Form loader selection', () => {
             ['submit:success'],
         );
         assert.deepStrictEqual(events[0].detail.response, { mapped: { id: 7 } });
-        container.remove();
     });
 
     it('honours the method attribute of a remote form', async () => {
-        const [form, container] = await mount(`<ful-form action="/api/save" method="PUT"></ful-form>`);
+        const [form] = await mount(`<ful-form action="/api/save" method="PUT"></ful-form>`);
 
         await form.submit();
 
         assert.deepStrictEqual(http, [{ method: 'PUT', url: '/api/save', body: {} }]);
-        container.remove();
     });
 });
 
 describe('Form reset and validity', () => {
     it('restores the fields to the values they were rendered with', async () => {
-        const [form, container] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
+        const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         form.values = { name: 'bob' };
         assert.deepStrictEqual(form.values, { name: 'bob' });
 
         form.reset();
 
         assert.deepStrictEqual(form.values, { name: 'ann' });
-        container.remove();
     });
 
     describe('restores every field kind through its own value semantics', () => {
@@ -511,7 +494,7 @@ describe('Form reset and validity', () => {
         ];
         for (const [name, markup, changed, initial] of cases) {
             it(`restores a ${name}`, async () => {
-                const [form, container] = await mountFields(markup);
+                const [form] = await mountFields(markup);
                 const field = form.querySelector('[name=a]');
                 field.value = changed;
                 assert.deepStrictEqual(field.value, changed, 'the change took');
@@ -519,11 +502,10 @@ describe('Form reset and validity', () => {
                 form.reset();
 
                 assert.deepStrictEqual(field.value, initial);
-                container.remove();
             });
         }
         it('restores a ful-filter-text without a declared value to empty operands and the default operator', async () => {
-            const [form, container] = await mountFields(`<ful-filter-text name="a">l</ful-filter-text>`);
+            const [form] = await mountFields(`<ful-filter-text name="a">l</ful-filter-text>`);
             const field = form.querySelector('[name=a]');
             field.value = ['GTE', 'CASE_SENSITIVE', '5'];
             assert.deepStrictEqual(field.value, ['GTE', 'CASE_SENSITIVE', '5']);
@@ -541,10 +523,9 @@ describe('Form reset and validity', () => {
                 'IGNORE_CASE',
                 'the sensitivity is the rendered default',
             );
-            container.remove();
         });
         it('clears a ful-input-file selection', async () => {
-            const [form, container] = await mountFields(`<ful-input-file name="a">l</ful-input-file>`);
+            const [form] = await mountFields(`<ful-input-file name="a">l</ful-input-file>`);
             const field = form.querySelector('[name=a]');
             const dt = new DataTransfer();
             dt.items.add(new File(['x'], 'picked.txt'));
@@ -554,12 +535,11 @@ describe('Form reset and validity', () => {
             form.reset();
 
             assert.strictEqual(field.value, null);
-            container.remove();
         });
     });
 
     it('clears a field custom validity when it changes, with clear-invalid-on-change', async () => {
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form clear-invalid-on-change><input name="name"></ful-form>`);
         const input = form.querySelector('input[name=name]');
         input.setCustomValidity('must not be blank');
@@ -567,18 +547,16 @@ describe('Form reset and validity', () => {
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
         assert.strictEqual(input.validationMessage, '');
-        container.remove();
     });
 
     it('keeps a field custom validity on change when clear-invalid-on-change is absent', async () => {
-        const [form, container] = await mount(`<ful-form><input name="name"></ful-form>`);
+        const [form] = await mount(`<ful-form><input name="name"></ful-form>`);
         const input = form.querySelector('input[name=name]');
         input.setCustomValidity('must not be blank');
 
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
         assert.strictEqual(input.validationMessage, 'must not be blank');
-        container.remove();
     });
 });
 
@@ -594,9 +572,7 @@ describe('Form submit failures before the request is sent', () => {
         console.warn = originalWarn;
     });
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const form = container.querySelector('ful-form');
         await Rendering.waitFor(form);
         return [form, container];
@@ -608,7 +584,7 @@ describe('Form submit failures before the request is sent', () => {
         registry.defineComponent('rejecting-mapper', () => {
             throw new Error('values are not acceptable');
         });
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form request-mapper="rejecting-mapper">
                 <input name="a" value="1">
                 <button type="submit">go</button>
@@ -621,11 +597,10 @@ describe('Form submit failures before the request is sent', () => {
         assert.strictEqual(failures.length, 1, 'the failure is announced');
         assert.strictEqual(failures[0].message, 'values are not acceptable');
         assert.isTrue(warns.some((args) => String(args[0]).includes('failed to submit form')));
-        container.remove();
     });
 
     it('reports a missing loader component the same way', async () => {
-        const [form, container] = await mount(`
+        const [form] = await mount(`
             <ful-form loader="loaders:nowhere">
                 <input name="a" value="1">
             </ful-form>`);
@@ -635,7 +610,6 @@ describe('Form submit failures before the request is sent', () => {
         await form.submit();
 
         assert.strictEqual(failures.length, 1);
-        container.remove();
     });
 });
 
@@ -650,9 +624,7 @@ describe('Disabled fields and submitted values', () => {
                 exact: async (...k) => k.map((v) => ({ key: v, label: v })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-form>${inner}<input name="keep" value="kept"></ful-form>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-form>${inner}<input name="keep" value="kept"></ful-form>`);
         const form = container.querySelector('ful-form');
         await Rendering.waitFor(form);
         for (let i = 0; i !== 20; ++i) {
@@ -673,7 +645,7 @@ describe('Disabled fields and submitted values', () => {
 
     for (const [tag, markup] of cases) {
         it(`leaves a disabled ${tag} out of the submitted values`, async () => {
-            const [form, container] = await mount(markup);
+            const [form] = await mount(markup);
             const field = form.querySelector(tag);
             assert.property(form.values, 'a', 'the field contributes while enabled');
 
@@ -682,11 +654,10 @@ describe('Disabled fields and submitted values', () => {
             assert.isTrue(field.matches(':disabled'), 'the host itself is disabled');
             assert.notProperty(form.values, 'a');
             assert.strictEqual(form.values.keep, 'kept', 'the other fields still contribute');
-            container.remove();
         });
 
         it(`puts a re-enabled ${tag} back into the submitted values`, async () => {
-            const [form, container] = await mount(markup);
+            const [form] = await mount(markup);
             const field = form.querySelector(tag);
 
             field.disabled = true;
@@ -694,7 +665,6 @@ describe('Disabled fields and submitted values', () => {
 
             assert.isFalse(field.matches(':disabled'));
             assert.property(form.values, 'a');
-            container.remove();
         });
     }
 });

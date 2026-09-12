@@ -124,7 +124,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
             render(c) {
                 renderArgs = c;
                 //the dom the setters drive is not built yet: a render reads a
-                //declared value through the door rather than being handed a bag
+                //declared value through `declared()` rather than being handed a bag
                 duringRender = [this.declared('disabled'), this.declared('label'), applied.length];
             }
         }
@@ -187,7 +187,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
 
         expect(duringRender).to.eql(['first', 3]);
         //the configuration tier is not observed, so it has no property forward
-        //and no live door: what the author declared is what it answers
+        //and no forward to a property: what the author declared is what it answers
         expect(FrozenEl.observedAttributes).to.not.include('loader');
         el.setAttribute('loader', 'second');
         expect(el.declared('loader')).to.equal('first');

@@ -176,7 +176,7 @@ describe('Tabs, async panels', () => {
     });
 });
 
-describe('Tabs, the refresh door', () => {
+describe('Tabs, refresh', () => {
     const markup = `
         <ful-tabs>
             <template slot="tabs"><tab>One</tab><tab>Two</tab></template>

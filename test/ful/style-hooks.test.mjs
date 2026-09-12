@@ -1,10 +1,9 @@
 import { assert } from 'chai';
 import '../../../src/ful/index.mjs';
+import { appended } from '../harness.mjs';
 
 const attach = (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     return container;
 };
 
@@ -33,7 +32,6 @@ describe('the cascade contract', () => {
                 'one unlayered class beats the library',
             );
         });
-        container.remove();
     });
 
     it('hides with the last layer rather than with an important, so a page can still show', () => {
@@ -50,7 +48,6 @@ describe('the cascade contract', () => {
                 'a plain rule is enough to show it again',
             );
         });
-        container.remove();
     });
 
     it('still hides a part the chrome lays out with a stronger selector', () => {
@@ -60,7 +57,6 @@ describe('the cascade contract', () => {
         const container = attach('<ful-spinner class="centered" hidden>x</ful-spinner>');
 
         assert.strictEqual(getComputedStyle(container.firstElementChild).display, 'none');
-        container.remove();
     });
 });
 
@@ -69,7 +65,6 @@ describe('style hooks', () => {
         const container = attach('<span class="ful-tip">?</span>');
 
         assert.strictEqual(getComputedStyle(container.querySelector('.ful-tip')).display, 'inline-flex');
-        container.remove();
     });
 
     it('the tip chrome also matches the structure: the button before a note', () => {
@@ -78,7 +73,6 @@ describe('style hooks', () => {
         );
 
         assert.strictEqual(getComputedStyle(container.querySelector('button')).display, 'inline-flex');
-        container.remove();
     });
 
     it('the note chrome answers to the ful-note tag and the .ful-note class alike', async () => {
@@ -93,7 +87,6 @@ describe('style hooks', () => {
         tagged.hidePopover();
         classed.showPopover();
         assert.strictEqual(getComputedStyle(classed).display, 'block', 'the class opens too');
-        container.remove();
     });
 
     it('the dialog and the drawer chrome follow their class onto a bare native dialog, geometry included', () => {
@@ -110,7 +103,6 @@ describe('style hooks', () => {
         assert.strictEqual(getComputedStyle(drawer).position, 'fixed', 'the drawer chrome applied');
         dialog.close();
         drawer.close();
-        container.remove();
     });
 
     it('the toasts region is whoever hosts the toasts, its width the custom property', () => {
@@ -124,7 +116,6 @@ describe('style hooks', () => {
             'ful-toast-in',
             'the item chrome anchors on the tag',
         );
-        container.remove();
     });
 
     it('every icon glyph the library names resolves its mask', () => {
@@ -152,7 +143,6 @@ describe('style hooks', () => {
                 `${icon.getAttribute('name')} carries its mask`,
             );
         }
-        container.remove();
     });
 
     it('the tablist, accordion group and steps chrome follow their style-only tags', () => {
@@ -172,7 +162,6 @@ describe('style hooks', () => {
             'the summary carries its chevron',
         );
         assert.strictEqual(getComputedStyle(container.querySelector('ful-steps ol')).display, 'flex');
-        container.remove();
     });
 
     it('the spinner spins: its keyframes exist, not just their name', () => {
@@ -184,7 +173,6 @@ describe('style hooks', () => {
             document.getAnimations().some((a) => a.effect?.target === spinner),
             'an unresolved keyframes name declares an animation that never runs',
         );
-        container.remove();
     });
 
     it('the backdrop spinner wears its card over the scrim', () => {
@@ -196,7 +184,6 @@ describe('style hooks', () => {
         const card = getComputedStyle(spinner, '::before');
         assert.strictEqual(card.backgroundColor, 'rgb(255, 255, 255)', 'the card is back');
         assert.strictEqual(card.width, '128px', 'the card pads the glyph');
-        container.remove();
     });
 
     it('the button classes carry the themed chrome, ghost included', () => {
@@ -213,7 +200,6 @@ describe('style hooks', () => {
         assert.strictEqual(getComputedStyle(primary).color, 'rgb(255, 255, 255)');
         assert.strictEqual(getComputedStyle(ghost).backgroundColor, 'rgba(0, 0, 0, 0)', 'the ghost rests on nothing');
         assert.strictEqual(getComputedStyle(ghost).borderColor, 'rgb(0, 115, 118)', 'the ghost outlines the accent');
-        container.remove();
     });
 
     it('an anchor can wear the button chrome, disabled through aria-disabled', () => {
@@ -226,7 +212,6 @@ describe('style hooks', () => {
         assert.strictEqual(getComputedStyle(link).textDecorationLine, 'none', 'no anchor underline');
         assert.strictEqual(getComputedStyle(link).backgroundColor, 'rgb(0, 115, 118)', 'the accent fill holds');
         assert.strictEqual(getComputedStyle(dimmed).opacity, '0.5', 'the anchor dims without :disabled');
-        container.remove();
     });
 
     it('the input chrome matches whoever presents a bare input in a control group', () => {
@@ -234,7 +219,6 @@ describe('style hooks', () => {
 
         assert.strictEqual(getComputedStyle(container.firstElementChild).display, 'block');
         assert.strictEqual(getComputedStyle(container.querySelector('input')).textTransform, 'uppercase');
-        container.remove();
     });
 
     it('the select chrome matches whoever opens a dropdown from its control group', () => {
@@ -249,14 +233,12 @@ describe('style hooks', () => {
 
         assert.notStrictEqual(getComputedStyle(control).backgroundImage, 'none', 'the chevron follows the structure');
         assert.strictEqual(getComputedStyle(control).cursor, 'pointer');
-        container.remove();
     });
 
     it('the file chrome matches whoever presents a file input in a control group', () => {
         const container = attach('<div><ful-control-group><input type="file"></ful-control-group></div>');
 
         assert.strictEqual(getComputedStyle(container.querySelector('input[type=file]')).paddingLeft, '0px');
-        container.remove();
     });
 
     it('the radio group chrome matches whoever hosts a fieldset of radio cards', () => {
@@ -270,14 +252,12 @@ describe('style hooks', () => {
 
         assert.strictEqual(getComputedStyle(container.querySelector('legend')).fontSize, '16px');
         assert.strictEqual(getComputedStyle(container.querySelector('ful-radio-list')).display, 'grid');
-        container.remove();
     });
 
     it('the checkbox required marker matches whoever hosts a choice row', () => {
         const container = attach('<div required><ful-choice><label>x</label></ful-choice></div>');
 
         assert.include(getComputedStyle(container.querySelector('label'), '::before').content, '*');
-        container.remove();
     });
 
     it('the table chrome follows the ful-table-wrapper, the pagination its bar', () => {
@@ -293,6 +273,5 @@ describe('style hooks', () => {
         );
         assert.strictEqual(getComputedStyle(container.querySelector('ful-pagination-bar > ul')).display, 'flex');
         assert.strictEqual(getComputedStyle(container.querySelector('ful-pagination-bar button')).minWidth, '36px');
-        container.remove();
     });
 });

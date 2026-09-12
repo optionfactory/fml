@@ -2,6 +2,7 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -9,9 +10,7 @@ const mount = async (fieldsetAttr, inner) => {
     registry.defineComponent('loaders:select', {
         create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => ({ key: v, label: v })) }),
     });
-    const container = document.createElement('div');
-    container.innerHTML = `<fieldset ${fieldsetAttr}>${inner}</fieldset>`;
-    document.body.appendChild(container);
+    const container = appended(`<fieldset ${fieldsetAttr}>${inner}</fieldset>`);
     await Rendering.waitFor(container);
     for (let i = 0; i !== 20; ++i) {
         await tick();
@@ -41,17 +40,16 @@ describe('Disabled fields and fieldsets', () => {
 
     for (const [tag, markup] of cases) {
         it(`${tag} stays enabled inside a fieldset without the disabled attribute`, async () => {
-            const [, field, container] = await mount('', markup);
+            const [, field] = await mount('', markup);
 
             assert.isFalse(field.disabled);
             assert.isFalse(field.hasAttribute('disabled'));
             assert.isFalse(field.matches(':disabled'));
             assert.isFalse(inner(field).matches(':disabled'));
-            container.remove();
         });
 
         it(`${tag} follows a disabled fieldset without claiming it, and follows it back`, async () => {
-            const [fieldset, field, container] = await mount('disabled', markup);
+            const [fieldset, field] = await mount('disabled', markup);
 
             assert.isFalse(field.disabled, 'the property reflects the claim only, like a native input');
             assert.isFalse(field.hasAttribute('disabled'), 'the ancestry is not claimed as its own');
@@ -63,11 +61,10 @@ describe('Disabled fields and fieldsets', () => {
             assert.isFalse(field.disabled);
             assert.isFalse(field.matches(':disabled'));
             assert.isFalse(inner(field).matches(':disabled'), 'the inner control follows the fieldset back');
-            container.remove();
         });
 
         it(`${tag} disabled before the fieldset is disabled stays disabled when it is re-enabled`, async () => {
-            const [fieldset, field, container] = await mount('', markup);
+            const [fieldset, field] = await mount('', markup);
 
             field.disabled = true;
             assert.isTrue(field.hasAttribute('disabled'), 'the element claims its own state');
@@ -81,22 +78,20 @@ describe('Disabled fields and fieldsets', () => {
             assert.isTrue(field.hasAttribute('disabled'));
             assert.isTrue(field.matches(':disabled'));
             assert.isTrue(inner(field).matches(':disabled'));
-            container.remove();
         });
 
         it(`${tag} disabled while the fieldset is disabled stays disabled when it is re-enabled`, async () => {
-            const [fieldset, field, container] = await mount('disabled', markup);
+            const [fieldset, field] = await mount('disabled', markup);
 
             field.disabled = true;
             fieldset.removeAttribute('disabled');
 
             assert.isTrue(field.disabled, 'the element stays on its own disabled state');
             assert.isTrue(field.matches(':disabled'));
-            container.remove();
         });
 
         it(`${tag} declared disabled in markup under a disabled fieldset keeps its claim`, async () => {
-            const [fieldset, field, container] = await mount('disabled', markup.replace(tag, `${tag} disabled`));
+            const [fieldset, field] = await mount('disabled', markup.replace(tag, `${tag} disabled`));
 
             assert.isTrue(field.disabled, 'the declared claim and the form state agree');
             assert.isTrue(field.hasAttribute('disabled'), 'the declared claim is not wiped by the ancestry');
@@ -106,11 +101,10 @@ describe('Disabled fields and fieldsets', () => {
             assert.isTrue(field.disabled, 'the element stays on its declared claim');
             assert.isTrue(field.hasAttribute('disabled'));
             assert.isTrue(field.matches(':disabled'));
-            container.remove();
         });
 
         it(`${tag} cannot be enabled out of a disabled fieldset by un-claiming`, async () => {
-            const [, field, container] = await mount('disabled', markup);
+            const [, field] = await mount('disabled', markup);
 
             field.disabled = true;
             field.disabled = false;
@@ -118,7 +112,6 @@ describe('Disabled fields and fieldsets', () => {
             assert.isFalse(field.disabled, 'the claim is gone');
             assert.isTrue(field.matches(':disabled'), 'the ancestry still disables it');
             assert.isTrue(inner(field).matches(':disabled'), 'the inner control stays disabled');
-            container.remove();
         });
     }
 });

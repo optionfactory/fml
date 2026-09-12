@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -10,9 +11,7 @@ const settle = async () => {
     }
 };
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     await Rendering.waitFor(container);
     await settle();
     return [container.firstElementChild, container];
@@ -28,7 +27,7 @@ describe('Wizard', () => {
         </ful-wizard>`;
 
     it('renders the localized progress and shows only the first section', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         const list = wizard.querySelector('ful-steps ol');
         const steps = [...list.children];
 
@@ -45,11 +44,10 @@ describe('Wizard', () => {
             'none',
             'the chrome hides the steps ahead',
         );
-        container.remove();
     });
 
     it('next, prev and move walk the steps, answering with change', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         const changes = [];
         wizard.addEventListener('change', (e) => changes.push(e.detail));
 
@@ -79,17 +77,15 @@ describe('Wizard', () => {
             { index: 1, step: 'modifica' },
             { index: 0, step: 'verifica' },
         ]);
-        container.remove();
     });
 
     it('a section already carrying the claim keeps it', async () => {
-        const [wizard, container] = await mount(
+        const [wizard] = await mount(
             markup.replace('<section data-step="modifica">', '<section data-step="modifica" aria-current="step">'),
         );
 
         assert.strictEqual(wizard.index, 1);
         assert.strictEqual(wizard.querySelector('ol').children[1].getAttribute('aria-current'), 'step');
-        container.remove();
     });
 });
 
@@ -108,7 +104,7 @@ describe('Wizard, async sections', () => {
     };
 
     it('fires the generic, named and index events on the entered section, first only once', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         const seen = [];
         AsyncEvents.asyncOn(wizard, 'section:requested', (e) => seen.push(['generic', e.detail.name, e.detail.first]));
         AsyncEvents.asyncOn(wizard, 'section:requested:two', (e) =>
@@ -127,11 +123,10 @@ describe('Wizard, async sections', () => {
             ['index', 'two'],
             ['named', 'two', 1],
         ]);
-        container.remove();
     });
 
     it('awaits the answers: the delivery is painted when move resolves', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         AsyncEvents.asyncOn(wizard, 'section:requested:two', async (e) => {
             await new Promise((r) => setTimeout(r, 20));
             e.detail.section.append('delivered');
@@ -140,22 +135,20 @@ describe('Wizard, async sections', () => {
         await wizard.move('two');
 
         assert.include(wizard.querySelector('[data-step=two]').textContent, 'delivered');
-        container.remove();
     });
 
     it('resolves without waiting when nobody listens, nothing painted', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
 
         await wizard.move('two');
 
         assert.isFalse(wizard.querySelector('[data-step=two]').hasAttribute('loading'));
         assert.strictEqual(wizard.querySelector('[data-step=two] > .ful-section-error'), null);
         assert.strictEqual(wizard.querySelector('[data-step=two]').textContent, '');
-        container.remove();
     });
 
     it('shows the loading chrome while an answer pends, and drops it when it lands', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         let land;
         AsyncEvents.asyncOn(wizard, 'section:requested:two', () => new Promise((r) => (land = r)));
         const moving = wizard.move('two');
@@ -166,11 +159,10 @@ describe('Wizard, async sections', () => {
         await moving;
 
         assert.isFalse(wizard.querySelector('[data-step=two]').hasAttribute('loading'));
-        container.remove();
     });
 
     it('paints the problems of a failed delivery and rejects the move', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         const failure = { problems: [{ reason: 'unreachable (demo)' }] };
         AsyncEvents.asyncOn(wizard, 'section:requested:two', () => {
             throw failure;
@@ -184,22 +176,20 @@ describe('Wizard, async sections', () => {
         const error = wizard.querySelector('[data-step=two] > .ful-section-error');
         assert.isNotNull(error);
         assert.include(error.textContent, 'unreachable (demo)');
-        container.remove();
     });
 
     it('shows only the current step by default, the counter hooks left to the page', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         const steps = [...wizard.querySelectorAll('ful-steps li')];
 
         assert.strictEqual(getComputedStyle(steps[0]).display, 'flex');
         assert.strictEqual(getComputedStyle(steps[1]).display, 'none');
         assert.strictEqual(getComputedStyle(steps[2]).display, 'none');
         assert.include(getComputedStyle(steps[0], '::after').content, 'none', 'no counter of its own');
-        container.remove();
     });
 
     it('linear progress restores the full timeline', async () => {
-        const [wizard, container] = await mount(markup.replace('<ful-wizard>', '<ful-wizard progress="timeline">'));
+        const [wizard] = await mount(markup.replace('<ful-wizard>', '<ful-wizard progress="timeline">'));
         const steps = [...wizard.querySelectorAll('ful-steps li')];
 
         assert.deepStrictEqual(
@@ -211,14 +201,13 @@ describe('Wizard, async sections', () => {
             getComputedStyle(steps[0]).borderBottomColor,
             'the future steps mute',
         );
-        container.remove();
     });
 
     it('renders the degenerate shapes without throwing or activating anything', async () => {
-        const [orphan, orphanContainer] = await mount(
+        const [orphan] = await mount(
             `<ful-wizard><template slot="steps"><step>Alone</step></template></ful-wizard>`,
         );
-        const [unstepped, unsteppedContainer] = await mount(
+        const [unstepped] = await mount(
             `<ful-wizard><template slot="steps"></template><section data-step="a">a</section></ful-wizard>`,
         );
         const seen = [];
@@ -230,12 +219,10 @@ describe('Wizard, async sections', () => {
         await settle();
 
         assert.deepStrictEqual(seen, [], 'a section with no step is never activated');
-        orphanContainer.remove();
-        unsteppedContainer.remove();
     });
 
     it('does not spend first when nobody listened', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         await wizard.move('two');
         const seen = [];
         AsyncEvents.asyncOn(wizard, 'section:requested', (e) => seen.push(e.detail.name));
@@ -243,11 +230,10 @@ describe('Wizard, async sections', () => {
         await wizard.prev();
 
         assert.deepStrictEqual(seen, ['one'], 'the unanswered activation of section one did not spend its first');
-        container.remove();
     });
 
     it('refresh paints and swallows a failure, the retry clearing the stale error under aria-busy', async () => {
-        const [wizard, container] = await mount(markup);
+        const [wizard] = await mount(markup);
         let fail = true;
         AsyncEvents.asyncOn(wizard, 'section:requested:two', () => {
             if (fail) {
@@ -270,7 +256,6 @@ describe('Wizard, async sections', () => {
         assert.strictEqual(wizard.querySelector('[data-step=two]').getAttribute('aria-busy'), 'true');
         await retrying;
         assert.strictEqual(wizard.querySelector('[data-step=two]').hasAttribute('aria-busy'), false);
-        container.remove();
     });
 });
 
@@ -289,7 +274,7 @@ describe('Wizard, the event target', () => {
         </ful-wizard>`;
 
     it('targets the component, its own sections told from a nested one by currentTarget', async () => {
-        const [wizard, container] = await mount(nested);
+        const [wizard] = await mount(nested);
         const own = [];
         const seen = [];
         AsyncEvents.asyncOn(wizard, 'section:requested', (e) => {
@@ -311,6 +296,5 @@ describe('Wizard, the event target', () => {
             ['ful-wizard', 'ful-tabs', 'ful-tabs'],
             'the target names the family, nested events included',
         );
-        container.remove();
     });
 });

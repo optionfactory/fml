@@ -2,13 +2,12 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     const el = container.firstElementChild;
     await Rendering.waitFor(el);
     return [el, container];
@@ -17,42 +16,37 @@ const mount = async (html) => {
 describe('Input placeholder', () => {
     for (const tag of ['ful-input', 'ful-input-local-date', 'ful-input-instant', 'ful-input-file', 'ful-filter-text']) {
         it(`${tag} applies the initial placeholder attribute`, async () => {
-            const [el, container] = await mount(`<${tag} placeholder="PH">l</${tag}>`);
+            const [el] = await mount(`<${tag} placeholder="PH">l</${tag}>`);
             assert.strictEqual(el.querySelector('input').getAttribute('placeholder'), 'PH', `${tag} inner input`);
             assert.strictEqual(el.placeholder, 'PH', `${tag} getter`);
-            container.remove();
         });
         it(`${tag} applies a later placeholder change`, async () => {
-            const [el, container] = await mount(`<${tag}>l</${tag}>`);
+            const [el] = await mount(`<${tag}>l</${tag}>`);
             el.setAttribute('placeholder', 'LATER');
             assert.strictEqual(el.querySelector('input').getAttribute('placeholder'), 'LATER', `${tag} inner input`);
-            container.remove();
         });
     }
 });
 
 describe('Input placeholder and :placeholder-shown', () => {
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const el = container.firstElementChild;
         await Rendering.waitFor(el);
         return [el, container];
     };
 
     it('treats an undefined value assignment as empty, not the text "undefined"', async () => {
-        const [el, container] = await mount(`<ful-input name="a" value="x">l</ful-input>`);
+        const [el] = await mount(`<ful-input name="a" value="x">l</ful-input>`);
 
         el.value = undefined;
 
         assert.isNull(el.value);
         assert.strictEqual(el.querySelector('input').value, '');
-        container.remove();
     });
 
     it('decodes the value to a number under v-type, an explicit opt in', async () => {
-        const [el, container] = await mount(`<ful-input name="a" type="number" v-type="number" value="42">l</ful-input>`);
+        const [el] = await mount(`<ful-input name="a" type="number" v-type="number" value="42">l</ful-input>`);
 
         assert.strictEqual(el.value, 42);
 
@@ -62,16 +56,14 @@ describe('Input placeholder and :placeholder-shown', () => {
 
         el.value = null;
         assert.isNull(el.value, 'blank stays null, never NaN');
-        container.remove();
     });
 
     it('keeps a v-type value that does not decode as it is, like the select keys', async () => {
         //an explicit text type: the defaulted number widget would sanitize the
         //garbage away before the getter ever saw it
-        const [el, container] = await mount(`<ful-input name="a" type="text" v-type="number" value="abc">l</ful-input>`);
+        const [el] = await mount(`<ful-input name="a" type="text" v-type="number" value="abc">l</ful-input>`);
 
         assert.strictEqual(el.value, 'abc');
-        container.remove();
     });
 
     it('defaults the native type to number under v-type, a declared type winning', async () => {
@@ -85,7 +77,7 @@ describe('Input placeholder and :placeholder-shown', () => {
     });
 
     it('announces the decoded number through change', async () => {
-        const [el, container] = await mount(`<ful-input name="a" type="number" v-type="number">l</ful-input>`);
+        const [el] = await mount(`<ful-input name="a" type="number" v-type="number">l</ful-input>`);
         const seen = [];
         el.addEventListener('change', (evt) => seen.push(evt.detail.value));
 
@@ -94,42 +86,38 @@ describe('Input placeholder and :placeholder-shown', () => {
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
         assert.deepStrictEqual(seen, [7]);
-        container.remove();
     });
 
     it('leaves the value a string without the opt in', async () => {
-        const [el, container] = await mount(`<ful-input name="a" type="number" value="42">l</ful-input>`);
+        const [el] = await mount(`<ful-input name="a" type="number" value="42">l</ful-input>`);
 
         assert.strictEqual(el.value, '42');
-        container.remove();
     });
 
     //:placeholder-shown only matches on input types that take a placeholder at all,
     //so date, time and file inputs carry the blank one without ever matching
     for (const tag of ['ful-input', 'ful-filter-text']) {
         it(`${tag} keeps a blank placeholder, so the label can float`, async () => {
-            const [el, container] = await mount(`<${tag}>l</${tag}>`);
+            const [el] = await mount(`<${tag}>l</${tag}>`);
             const input = el.querySelector('input');
 
             assert.strictEqual(input.getAttribute('placeholder'), ' ');
             assert.isTrue(input.matches(':placeholder-shown'));
             assert.isNull(el.placeholder, 'the blank one does not read back as a value');
-            container.remove();
         });
     }
 
     for (const tag of ['ful-input-file', 'ful-input-local-date', 'ful-input-instant']) {
         it(`${tag} keeps a blank placeholder without reporting it as a value`, async () => {
-            const [el, container] = await mount(`<${tag}>l</${tag}>`);
+            const [el] = await mount(`<${tag}>l</${tag}>`);
 
             assert.strictEqual(el.querySelector('input').getAttribute('placeholder'), ' ');
             assert.isNull(el.placeholder);
-            container.remove();
         });
     }
 
     it('restores the blank placeholder when the attribute is removed', async () => {
-        const [el, container] = await mount(`<ful-input placeholder="p">l</ful-input>`);
+        const [el] = await mount(`<ful-input placeholder="p">l</ful-input>`);
         const input = el.querySelector('input');
         assert.strictEqual(input.getAttribute('placeholder'), 'p');
 
@@ -137,14 +125,12 @@ describe('Input placeholder and :placeholder-shown', () => {
 
         assert.strictEqual(input.getAttribute('placeholder'), ' ');
         assert.isNull(el.placeholder);
-        container.remove();
     });
 
     it('does not reflect the blank placeholder onto the host', async () => {
-        const [el, container] = await mount(`<ful-input>l</ful-input>`);
+        const [el] = await mount(`<ful-input>l</ful-input>`);
 
         assert.isFalse(el.hasAttribute('placeholder'));
-        container.remove();
     });
 });
 
@@ -157,9 +143,7 @@ describe('Input enter key inside a form', () => {
         }
     };
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const inputEl = container.querySelector('ful-input');
         await Rendering.waitFor(container.firstElementChild);
         await Rendering.waitFor(inputEl);
@@ -205,11 +189,10 @@ describe('Input enter key inside a form', () => {
         await settle();
 
         assert.deepStrictEqual(submits, [], 'the picker opens, the form stays put');
-        container.remove();
     });
 
     it('submits the enclosing form, which the detached inner input can never do', async () => {
-        const [inputEl, container] = await mount(`
+        const [inputEl] = await mount(`
             <ful-form>
                 <ful-input name="i">label</ful-input>
                 <button type="submit">go</button>
@@ -220,7 +203,6 @@ describe('Input enter key inside a form', () => {
         await settle();
 
         assert.strictEqual(submits.length, 1);
-        container.remove();
     });
 
     it('submits with the first enabled submit control as the submitter', async () => {
@@ -240,7 +222,6 @@ describe('Input enter key inside a form', () => {
         assert.strictEqual(submits.length, 1);
         assert.strictEqual(submitters.length, 1);
         assert.strictEqual(submitters[0].id, 'the-submitter');
-        container.remove();
     });
 
     it('submits without a submitter when the form has no submit control', async () => {
@@ -255,7 +236,6 @@ describe('Input enter key inside a form', () => {
 
         assert.strictEqual(submits.length, 1);
         assert.deepStrictEqual(submitters, [undefined]);
-        container.remove();
     });
 
     it('submits without a submitter when the only candidate belongs to another form', async () => {
@@ -275,7 +255,6 @@ describe('Input enter key inside a form', () => {
             [undefined],
             'the foreign button is neither passed to requestSubmit nor recorded',
         );
-        container.remove();
     });
 
     it('picks the owned submitter over a foreign one coming first in document order', async () => {
@@ -292,11 +271,10 @@ describe('Input enter key inside a form', () => {
 
         assert.strictEqual(submits.length, 1);
         assert.strictEqual(submitters[0].id, 'the-submitter');
-        container.remove();
     });
 
     it('leaves enter alone in a textarea, where it inserts a newline', async () => {
-        const [inputEl, container] = await mount(`
+        const [inputEl] = await mount(`
             <ful-form>
                 <ful-input type="textarea" name="i">label</ful-input>
                 <button type="submit">go</button>
@@ -307,11 +285,10 @@ describe('Input enter key inside a form', () => {
         await settle();
 
         assert.strictEqual(submits.length, 0);
-        container.remove();
     });
 
     it('does not submit on any other key', async () => {
-        const [inputEl, container] = await mount(`
+        const [inputEl] = await mount(`
             <ful-form>
                 <ful-input name="i">label</ful-input>
                 <button type="submit">go</button>
@@ -323,17 +300,15 @@ describe('Input enter key inside a form', () => {
         await settle();
 
         assert.strictEqual(submits.length, 0);
-        container.remove();
     });
 
     it('does nothing on enter outside a form', async () => {
-        const [inputEl, container] = await mount(`<ful-input name="i">label</ful-input>`);
+        const [inputEl] = await mount(`<ful-input name="i">label</ful-input>`);
 
         enter(inputEl);
         await settle();
 
         assert.strictEqual(submits.length, 0);
-        container.remove();
     });
 });
 
@@ -349,26 +324,24 @@ describe('Input mask', () => {
     };
 
     it('strips the characters the mask matches as they are typed', async () => {
-        const [el, container] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
 
         const input = type(el, 'a1');
 
         assert.strictEqual(input.value, '1');
         assert.strictEqual(el.value, '1', 'the host reports the masked value');
-        container.remove();
     });
 
     it('strips every match, not only the first one', async () => {
-        const [el, container] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
 
         const input = type(el, 'a1b2c3');
 
         assert.strictEqual(input.value, '123');
-        container.remove();
     });
 
     it('keeps the caret next to the same character when earlier ones are stripped', async () => {
-        const [el, container] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
 
         //caret sits right after the '2' of 'a1b2|3'
         const input = type(el, 'a1b23', 4);
@@ -376,11 +349,10 @@ describe('Input mask', () => {
         assert.strictEqual(input.value, '123');
         assert.strictEqual(input.selectionStart, 2, "still right after the '2'");
         assert.strictEqual(input.selectionEnd, 2);
-        container.remove();
     });
 
     it('leaves a value with nothing to strip completely alone, selection included', async () => {
-        const [el, container] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
         const input = el.querySelector('input');
         input.value = '123';
         input.setSelectionRange(1, 3);
@@ -390,16 +362,14 @@ describe('Input mask', () => {
         assert.strictEqual(input.value, '123');
         assert.strictEqual(input.selectionStart, 1, 'the selection is not collapsed');
         assert.strictEqual(input.selectionEnd, 3);
-        container.remove();
     });
 
     it('does not touch the value when no mask is declared', async () => {
-        const [el, container] = await mount(`<ful-input>l</ful-input>`);
+        const [el] = await mount(`<ful-input>l</ful-input>`);
 
         const input = type(el, 'a1b2');
 
         assert.strictEqual(input.value, 'a1b2');
-        container.remove();
     });
 
     it('warns once and ignores a malformed mask instead of throwing per keystroke', async () => {
@@ -423,21 +393,18 @@ describe('Input mask', () => {
     });
 
     it('reads the mask on every input, so a later attribute change applies', async () => {
-        const [el, container] = await mount(`<ful-input>l</ful-input>`);
+        const [el] = await mount(`<ful-input>l</ful-input>`);
         assert.strictEqual(type(el, 'a1').value, 'a1');
 
         el.setAttribute('mask', '[^0-9]');
 
         assert.strictEqual(type(el, 'a1').value, '1');
-        container.remove();
     });
 });
 
 describe('Input mask on values it cannot place a caret in', () => {
     const mount = async (attrs) => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-input name="a" ${attrs}>label</ful-input>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-input name="a" ${attrs}>label</ful-input>`);
         const el = container.querySelector('ful-input');
         await Rendering.waitFor(el);
         return [el, container];
@@ -446,18 +413,17 @@ describe('Input mask on values it cannot place a caret in', () => {
     it('masks an email, which has no selection to restore', async () => {
         //setSelectionRange throws on the types that report a null selectionStart, and an
         //uncaught error in the listener fails this test on its own
-        const [el, container] = await mount('type="email" mask="[^a-z@.]"');
+        const [el] = await mount('type="email" mask="[^a-z@.]"');
         const input = el.querySelector('input');
 
         input.value = 'a1b2@x.com';
         input.dispatchEvent(new Event('input'));
 
         assert.strictEqual(input.value, 'ab@x.com');
-        container.remove();
     });
 
     it('keeps the caret in place when characters after it are stripped too', async () => {
-        const [el, container] = await mount('mask="[a-z]"');
+        const [el] = await mount('mask="[a-z]"');
         const input = el.querySelector('input');
 
         input.value = 'a1b2c3';
@@ -466,22 +432,20 @@ describe('Input mask on values it cannot place a caret in', () => {
 
         assert.strictEqual(input.value, '123');
         assert.strictEqual(input.selectionStart, 2, 'the caret stays after the 2 it was after');
-        container.remove();
     });
 });
 
 describe('Input focus and reset', () => {
     it('hands its focus to the inner control', async () => {
-        const [el, container] = await mount(`<ful-input>l</ful-input>`);
+        const [el] = await mount(`<ful-input>l</ful-input>`);
 
         el.focus();
 
         assert.strictEqual(document.activeElement, el.querySelector('input'));
-        container.remove();
     });
 
     it('restores the value it was rendered with when the form resets', async () => {
-        const [el, container] = await mount(`
+        const [el] = await mount(`
             <ful-form>
                 <ful-input name="who" value="ann">who</ful-input>
             </ful-form>`);
@@ -495,6 +459,5 @@ describe('Input focus and reset', () => {
         el.reset();
 
         assert.strictEqual(input.value, 'ann', 'the reset brings back the rendered value');
-        container.remove();
     });
 });

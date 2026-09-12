@@ -24,6 +24,22 @@ afterEach(() => {
 });
 
 /**
+ * Appends the markup in a container of its own and hands it back unawaited: the
+ * caller owns the waiting. A suite whose drain is its own keeps it and takes
+ * only the container and its teardown from here, so adopting the harness never
+ * changes what a test waits for.
+ * @param {string} html
+ * @returns {HTMLElement} the container
+ */
+const appended = (html) => {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    mounted.push(container);
+    return container;
+};
+
+/**
  * Appends the markup in a container of its own and waits for it to render.
  * The container is removed after the test whatever the test does.
  * @param {string} html
@@ -33,10 +49,7 @@ afterEach(() => {
  * @returns {Promise<HTMLElement>} the container
  */
 const mount = async (html, { children = false, drain = false } = {}) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
-    mounted.push(container);
+    const container = appended(html);
     await (children ? Rendering.waitForChildren(container) : Rendering.waitFor(container));
     if (drain) {
         await settle(drain === true ? undefined : drain);
@@ -63,4 +76,4 @@ const captureConsole = (...kinds) => {
     return messages;
 };
 
-export { mount, captureConsole, settle, tick };
+export { appended, mount, captureConsole, settle, tick };

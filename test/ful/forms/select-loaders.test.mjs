@@ -2,6 +2,7 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin, SelectLoader } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -28,9 +29,7 @@ describe('SelectLoader', () => {
         </select>`;
 
     const mount = async (attributes = '', body = '') => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select ${attributes}>${body}</ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select ${attributes}>${body}</ful-select>`);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await opened();
@@ -70,16 +69,15 @@ describe('SelectLoader', () => {
     };
 
     it('builds an in-memory loader out of the slotted options', async () => {
-        const [selectEl, container] = await mount('', INLINE_OPTIONS);
+        const [selectEl] = await mount('', INLINE_OPTIONS);
 
         const dropdown = await open(selectEl);
 
         assert.deepStrictEqual(options(dropdown), ['One', 'Two', 'Three']);
-        container.remove();
     });
 
     it('filters the slotted options on the typed needle, ignoring case', async () => {
-        const [selectEl, container] = await mount('', INLINE_OPTIONS);
+        const [selectEl] = await mount('', INLINE_OPTIONS);
         await open(selectEl);
 
         const input = selectEl.querySelector('input');
@@ -88,11 +86,10 @@ describe('SelectLoader', () => {
         await opened();
 
         assert.deepStrictEqual(options(selectEl.querySelector('ful-dropdown')), ['Two']);
-        container.remove();
     });
 
     it('treats a needleless load as no filter, not as the string "undefined"', async () => {
-        const [selectEl, container] = await mount('', INLINE_OPTIONS);
+        const [selectEl] = await mount('', INLINE_OPTIONS);
 
         const all = await selectEl.withLoader((l) => l.load(undefined));
 
@@ -100,14 +97,12 @@ describe('SelectLoader', () => {
             all.map(({ label }) => label),
             ['One', 'Two', 'Three'],
         );
-        container.remove();
     });
 
     it('labels an assigned value by looking it up in the slotted options', async () => {
-        const [selectEl, container] = await mount('value="k2"', INLINE_OPTIONS);
+        const [selectEl] = await mount('value="k2"', INLINE_OPTIONS);
 
         assert.strictEqual(selectEl.querySelector('input').value, 'Two');
-        container.remove();
     });
 
     it('fetches the remote options once and serves every later open from memory', async () => {
@@ -117,7 +112,7 @@ describe('SelectLoader', () => {
                 ['k2', 'Two'],
             ],
         });
-        const [selectEl, container] = await mount('src="/all-opts"');
+        const [selectEl] = await mount('src="/all-opts"');
 
         const dropdown = await open(selectEl);
         assert.deepStrictEqual(options(dropdown), ['One', 'Two']);
@@ -132,19 +127,17 @@ describe('SelectLoader', () => {
 
         assert.lengthOf(calls, 1, 'the second open must not hit the network again');
         assert.deepStrictEqual(calls[0], { method: 'POST', url: '/all-opts', params: {} });
-        container.remove();
     });
 
     it('prefetches on upgrade when declared, so opening adds no request', async () => {
         const calls = stubHttp({ '/pre-opts': [['k1', 'One']] });
 
-        const [selectEl, container] = await mount('src="/pre-opts" preload');
+        const [selectEl] = await mount('src="/pre-opts" preload');
         assert.lengthOf(calls, 1, 'the options were fetched while upgrading');
 
         await open(selectEl);
         assert.lengthOf(calls, 1);
         assert.deepStrictEqual(options(selectEl.querySelector('ful-dropdown')), ['One']);
-        container.remove();
     });
 
     it('paints its own chrome without waiting on the prefetch', async () => {
@@ -158,9 +151,7 @@ describe('SelectLoader', () => {
                 return { fetchJson: () => resolvers.promise };
             },
         });
-        const container = document.createElement('div');
-        container.innerHTML = '<ful-select src="/never" preload name="s">a label</ful-select>';
-        document.body.appendChild(container);
+        const container = appended('<ful-select src="/never" preload name="s">a label</ful-select>');
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
 
@@ -168,10 +159,9 @@ describe('SelectLoader', () => {
         assert.isNotNull(selectEl.querySelector('input'), 'the combobox painted');
         assert.isNotNull(selectEl.querySelector('label'), 'the label painted');
         assert.isNotNull(selectEl.querySelector('ful-field-error'), 'the error region painted');
-        assert.isTrue(selectEl.rendered, 'the live door is open while the options are still loading');
+        assert.isTrue(selectEl.rendered, 'the properties are live while the options are still loading');
 
         pending[0].resolve([]);
-        container.remove();
     });
 
     it('reuses a revisioned response across mounts through local storage', async () => {
@@ -183,19 +173,18 @@ describe('SelectLoader', () => {
         assert.lengthOf(calls, 1);
         firstContainer.remove();
 
-        const [second, secondContainer] = await mount('src="/rev-opts" revision="r1"');
+        const [second] = await mount('src="/rev-opts" revision="r1"');
         const dropdown = await open(second);
         assert.deepStrictEqual(options(dropdown), ['One']);
         assert.lengthOf(calls, 1, 'the revisioned data came from local storage, not the network');
 
         localStorage.removeItem('POST@/rev-opts');
-        secondContainer.remove();
     });
 
     it('asks the server per search and per key lookup when mode is chunked', async () => {
         const calls = stubHttp({ '/chunk-opts': [['k1', 'One']] });
 
-        const [selectEl, container] = await mount('src="/chunk-opts" mode="chunked" value="k1"');
+        const [selectEl] = await mount('src="/chunk-opts" mode="chunked" value="k1"');
         await opened();
         assert.deepStrictEqual(
             calls.find((c) => 'k' in c.params)?.params,
@@ -211,7 +200,6 @@ describe('SelectLoader', () => {
             'opening asks with an empty needle',
         );
 
-        container.remove();
     });
 
     it('maps the response through the declared expressions', async () => {
@@ -224,11 +212,10 @@ describe('SelectLoader', () => {
             },
         });
 
-        const [selectEl, container] = await mount('src="/shaped" d-expr="rows" k-expr="id" l-expr="name" value="2"');
+        const [selectEl] = await mount('src="/shaped" d-expr="rows" k-expr="id" l-expr="name" value="2"');
 
         assert.strictEqual(selectEl.querySelector('input').value, 'Two', 'the assignment resolved through the mapper');
         assert.deepStrictEqual(options(await open(selectEl)), ['One', 'Two']);
-        container.remove();
     });
 
     it('resolves a named response-mapper component', async () => {
@@ -238,10 +225,9 @@ describe('SelectLoader', () => {
         );
         stubHttp({ '/mapped': { options: [['k1', 'One']] } });
 
-        const [selectEl, container] = await mount('src="/mapped" response-mapper="mappers:demo"');
+        const [selectEl] = await mount('src="/mapped" response-mapper="mappers:demo"');
 
         assert.deepStrictEqual(options(await open(selectEl)), ['One']);
-        container.remove();
     });
 });
 
@@ -251,9 +237,7 @@ describe('Dropdown contract', () => {
             <option value="k1">One</option>
         </select>`;
     const mount = async (inner) => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select>${inner}</ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select>${inner}</ful-select>`);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         const input = selectEl.querySelector('input');
@@ -265,20 +249,18 @@ describe('Dropdown contract', () => {
     };
 
     it('rejects null data with a contract error', async () => {
-        const [, dropdown, container] = await mount(INLINE_OPTIONS);
+        const [, dropdown] = await mount(INLINE_OPTIONS);
 
         assert.throws(() => dropdown.update(undefined), 'null data');
-        container.remove();
     });
 
     it('closes when the blank area of the menu is clicked', async () => {
-        const [, dropdown, container] = await mount(INLINE_OPTIONS);
+        const [, dropdown] = await mount(INLINE_OPTIONS);
         assert.isTrue(dropdown.shown);
 
         dropdown.querySelector('menu').dispatchEvent(new Event('click'));
 
         assert.isFalse(dropdown.shown);
-        container.remove();
     });
 });
 
@@ -308,9 +290,7 @@ describe('SelectLoader runtime updates', () => {
         return calls;
     };
     const mount = async (attributes = '', body = '') => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select ${attributes}>${body}</ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select ${attributes}>${body}</ful-select>`);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await opened();
@@ -324,11 +304,10 @@ describe('SelectLoader runtime updates', () => {
     const options = (dropdown) => Array.from(dropdown.querySelectorAll('menu li')).map((li) => li.textContent.trim());
 
     it('serves the options an in-memory loader was updated with', async () => {
-        const [selectEl, container] = await mount('', INLINE_OPTIONS);
+        const [selectEl] = await mount('', INLINE_OPTIONS);
 
         await selectEl.withLoader((loader) => loader.update([{ key: 'k9', label: 'Nine', metadata: undefined }]));
         assert.deepStrictEqual(options(await open(selectEl)), ['Nine']);
-        container.remove();
     });
 
     it('refetches from the new url after reconfigureUrl, instead of serving the stale cache', async () => {
@@ -336,7 +315,7 @@ describe('SelectLoader runtime updates', () => {
             '/before': [['k1', 'One']],
             '/after': [['k2', 'Two']],
         });
-        const [selectEl, container] = await mount('src="/before"');
+        const [selectEl] = await mount('src="/before"');
         const close = () => keydown(selectEl.querySelector('input'), 'ArrowUp', { altKey: true });
 
         assert.deepStrictEqual(options(await open(selectEl)), ['One']);
@@ -350,7 +329,6 @@ describe('SelectLoader runtime updates', () => {
             calls.map((c) => c.url),
             ['/before', '/after'],
         );
-        container.remove();
     });
 });
 
@@ -494,9 +472,7 @@ describe('SelectLoader fetch discipline', () => {
                 };
             },
         });
-        const container = document.createElement('div');
-        container.innerHTML = '<ful-select src="/tampered" revision="9"></ful-select>';
-        document.body.appendChild(container);
+        const container = appended('<ful-select src="/tampered" revision="9"></ful-select>');
         try {
             const selectEl = container.querySelector('ful-select');
             await Rendering.waitFor(selectEl);

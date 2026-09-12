@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -10,9 +11,7 @@ const settle = async () => {
     }
 };
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     await Rendering.waitFor(container);
     await settle();
     return [container.firstElementChild, container];
@@ -27,17 +26,16 @@ describe('Accordion', () => {
         </ful-accordion>`;
 
     it('renders the disclosures inside the group, untouched', async () => {
-        const [accordion, container] = await mount(markup);
+        const [accordion] = await mount(markup);
         const details = accordion.querySelectorAll('ful-accordion-group > details');
 
         assert.lengthOf(details, 3);
         assert.isNull(details[0].getAttribute('name'), 'a free accordion assigns no name');
         assert.isTrue(details[1].open, 'the author-claimed open panel stays open');
-        container.remove();
     });
 
     it('the exclusive claim names the group: opening one closes the others', async () => {
-        const [accordion, container] = await mount(markup.replace('<ful-accordion>', '<ful-accordion exclusive>'));
+        const [accordion] = await mount(markup.replace('<ful-accordion>', '<ful-accordion exclusive>'));
         const details = [...accordion.querySelectorAll('ful-accordion-group > details')];
 
         assert.strictEqual(
@@ -50,11 +48,10 @@ describe('Accordion', () => {
         details[0].open = true;
         await settle();
         assert.isFalse(details[1].open, 'the platform closed the other named panel');
-        container.remove();
     });
 
-    it('the exclusive claim is a live door', async () => {
-        const [accordion, container] = await mount(markup);
+    it('the exclusive claim stays live', async () => {
+        const [accordion] = await mount(markup);
         const details = [...accordion.querySelectorAll('details')];
 
         accordion.exclusive = true;
@@ -63,6 +60,5 @@ describe('Accordion', () => {
 
         accordion.exclusive = false;
         assert.isNull(details[0].getAttribute('name'));
-        container.remove();
     });
 });

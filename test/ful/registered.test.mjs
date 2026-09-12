@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../harness.mjs';
 
 //records what the plugin registers, so a new element has to be sampled below
 const REGISTERED = [];
@@ -280,9 +281,7 @@ describe('Registered elements', () => {
         e.preventDefault();
     });
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const el = container.firstElementChild;
         //waitFor drains the queue, nested components included, so nothing else to await
         await Rendering.waitFor(el);
@@ -318,13 +317,12 @@ describe('Registered elements', () => {
     for (const spec of ELEMENTS) {
         describe(spec.tag, () => {
             it('mounts and renders without errors', async () => {
-                const [el, container] = await mount(spec.html);
+                const [el] = await mount(spec.html);
 
                 assert.deepStrictEqual(uncaught, [], `${spec.tag} reported errors while mounting`);
                 if (!spec.empty) {
                     assert.isAbove(el.childNodes.length, 0, `${spec.tag} rendered no content`);
                 }
-                container.remove();
             });
 
             it('samples every observed attribute', () => {
@@ -338,7 +336,7 @@ describe('Registered elements', () => {
 
             for (const [attribute, [value, expected]] of Object.entries(spec.observed)) {
                 it(`applies ${attribute} at render`, async () => {
-                    const [el, container] = await mount(withAttribute(spec.html, attribute, value));
+                    const [el] = await mount(withAttribute(spec.html, attribute, value));
 
                     assert.deepStrictEqual(uncaught, [], `${spec.tag}[${attribute}] reported errors`);
                     if (expected !== ANY) {
@@ -348,7 +346,6 @@ describe('Registered elements', () => {
                             `${spec.tag}: the ${attribute} attribute is not reflected by the property`,
                         );
                     }
-                    container.remove();
                 });
             }
         });

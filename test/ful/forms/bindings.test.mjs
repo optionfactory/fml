@@ -453,7 +453,7 @@ describe('Bindings.providePath prototype safety', () => {
         assert.deepEqual(result, { prototypes: { my__proto__key: 'fine' } });
     });
 
-    it('refuses through the form extraction door too', () => {
+    it('refuses through the form extraction too', () => {
         const form = document.createElement('form');
         const input = document.createElement('input');
         input.setAttribute('name', '__proto__.polluted');

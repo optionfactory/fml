@@ -2,6 +2,7 @@ import { tick, settle } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -20,9 +21,7 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
     });
 
     it('parses and behaves the same way when multiple is toggled after the render', async () => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select><template slot="options"><option value="k1">One</option><option value="k2">Two</option></template></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select><template slot="options"><option value="k1">One</option><option value="k2">Two</option></template></ful-select>`);
         const el = container.querySelector('ful-select');
         await Rendering.waitFor(el);
 
@@ -42,13 +41,10 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
         await settle();
         assert.equal(el.value, 'k1');
 
-        container.remove();
     });
 
     it('should establish standard ARIA roles on mounting', async () => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select></ful-select>`);
 
         const selectEl = container.querySelector('ful-select');
 
@@ -61,13 +57,10 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
         assert.strictEqual(input.getAttribute('aria-haspopup'), 'listbox');
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
 
-        container.remove();
     });
 
     it('should dynamically update aria-expanded state when dropdown visibility shifts', async () => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select></ful-select>`);
 
         const selectEl = container.querySelector('ful-select');
         await tick();
@@ -81,7 +74,6 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
         input.dispatchEvent(new Event('blur'));
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
 
-        container.remove();
     });
 });
 
@@ -117,16 +109,13 @@ describe('Select & Dropdown load failure handling', () => {
                 load: async () => [],
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select></ful-select>`);
 
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
 
         assert.isNotNull(selectEl.querySelector('input[role=combobox]'));
         assert.isTrue(warns.some((args) => String(args[0]).includes('prefetch')));
-        container.remove();
     });
 
     it('hides the dropdown and reports the rejection when load fails', async () => {
@@ -137,9 +126,7 @@ describe('Select & Dropdown load failure handling', () => {
                 },
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select></ful-select>`);
 
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
@@ -158,7 +145,6 @@ describe('Select & Dropdown load failure handling', () => {
         );
         assert.strictEqual(rejections.length, rejectionsBefore + 1);
         assert.isTrue(errors.some((args) => String(args[0]).includes('boom')));
-        container.remove();
     });
 
     it('reports the rejection and keeps the requested keys when exact lookup fails', async () => {
@@ -170,9 +156,7 @@ describe('Select & Dropdown load failure handling', () => {
                 },
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select value="k1"></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select value="k1"></ful-select>`);
 
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
@@ -183,7 +167,6 @@ describe('Select & Dropdown load failure handling', () => {
         assert.strictEqual(rejections.length, rejectionsBefore + 1);
         assert.strictEqual(selectEl.value, 'k1', 'the requested key is kept');
         assert.isTrue(warns.length === 0);
-        container.remove();
     });
 });
 describe('Select & Dropdown keyboard interaction', () => {
@@ -198,9 +181,7 @@ describe('Select & Dropdown keyboard interaction', () => {
         }
     };
     const mount = (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         return [container.querySelector('ful-select'), container];
     };
     const keydown = (input, code, options = {}) => {
@@ -221,17 +202,16 @@ describe('Select & Dropdown keyboard interaction', () => {
     });
 
     it('ignores Enter before the dropdown is rendered', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
 
         keydown(selectEl.querySelector('input'), 'Enter');
 
         assert.deepStrictEqual(uncaught, []);
-        container.remove();
     });
 
     it('ignores Enter when the dropdown was never opened', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
 
@@ -242,14 +222,13 @@ describe('Select & Dropdown keyboard interaction', () => {
         assert.deepStrictEqual(uncaught, []);
         assert.deepStrictEqual(changes, []);
         assert.isNull(selectEl.value);
-        container.remove();
     });
 
     it('ignores arrow keys when the shown dropdown has no options', async () => {
         registry.defineComponent('loaders:select', {
             create: () => ({ prefetch: async () => {}, exact: async () => [], load: async () => [] }),
         });
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
 
@@ -266,14 +245,13 @@ describe('Select & Dropdown keyboard interaction', () => {
 
         assert.deepStrictEqual(uncaught, []);
         assert.isNull(selectEl.value);
-        container.remove();
     });
 
     it('says no results when the search matches nothing', async () => {
         registry.defineComponent('loaders:select', {
             create: () => ({ prefetch: async () => {}, exact: async () => [], load: async () => [] }),
         });
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
 
@@ -284,11 +262,10 @@ describe('Select & Dropdown keyboard interaction', () => {
         assert.isFalse(empty.hidden, 'the message replaces the empty list');
         assert.strictEqual(empty.innerText, 'No results');
         assert.isTrue(selectEl.querySelector('menu').hidden, 'no empty listbox is exposed');
-        container.remove();
     });
 
     it('keeps the message hidden while there are options', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
 
@@ -297,11 +274,10 @@ describe('Select & Dropdown keyboard interaction', () => {
 
         assert.isTrue(selectEl.querySelector('ful-dropdown p[data-ref=empty]').hidden);
         assert.isFalse(selectEl.querySelector('menu').hidden);
-        container.remove();
     });
 
     it('accepts the highlighted option on Enter', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
 
@@ -318,14 +294,13 @@ describe('Select & Dropdown keyboard interaction', () => {
         assert.strictEqual(changes.length, 1);
         assert.strictEqual(changes[0].label, 'Label 1');
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        container.remove();
     });
 
     it('announces its own value in the change detail, with the entry beside it', async () => {
         //every field's detail carries its value, so a listener can rely on
         //el.value === evt.detail.value whatever the field is; the select adds
         //the labeled selection rather than replacing the value with it
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
 
@@ -339,13 +314,12 @@ describe('Select & Dropdown keyboard interaction', () => {
         assert.strictEqual(details[0].value, selectEl.value, 'the detail is the value the property answers');
         assert.strictEqual(details[0].value, 'k1');
         assert.strictEqual(details[0].entry.label, 'Label 1', 'the labeled selection rides beside it');
-        container.remove();
     });
 
     it('points the combobox at a listbox the announcement can resolve in', async () => {
         //aria-activedescendant names an option; without aria-controls and a named
         //listbox the name resolves to nothing and the active option reaches no one
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
         const input = selectEl.querySelector('input');
@@ -361,11 +335,10 @@ describe('Select & Dropdown keyboard interaction', () => {
         const active = input.getAttribute('aria-activedescendant');
         assert.isNotNull(active);
         assert.isNotNull(listbox.querySelector(`#${active}`), 'the active option lives inside the listbox');
-        container.remove();
     });
 
     it('announces the highlighted option through aria-activedescendant', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
         const input = selectEl.querySelector('input');
@@ -387,11 +360,10 @@ describe('Select & Dropdown keyboard interaction', () => {
         assert.strictEqual(active(), highlighted());
         input.dispatchEvent(new FocusEvent('blur'));
         assert.isNull(active(), 'blur drops the announcement too');
-        container.remove();
     });
 
     it('toggles the dropdown when the input itself is clicked', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
         const input = selectEl.querySelector('input');
@@ -404,7 +376,6 @@ describe('Select & Dropdown keyboard interaction', () => {
         input.dispatchEvent(new Event('click', { bubbles: true }));
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-        container.remove();
     });
 
     it('offers the whole list when opened from rest, the label is not a needle', async () => {
@@ -419,7 +390,7 @@ describe('Select & Dropdown keyboard interaction', () => {
                 },
             }),
         });
-        const [selectEl, container] = mount(`<ful-select value="k1"></ful-select>`);
+        const [selectEl] = mount(`<ful-select value="k1"></ful-select>`);
         await settle();
         const input = selectEl.querySelector('input');
         assert.strictEqual(input.value, 'Label k1');
@@ -428,7 +399,6 @@ describe('Select & Dropdown keyboard interaction', () => {
         await opened();
 
         assert.deepStrictEqual(needles, [''], 'the label must not filter the list');
-        container.remove();
     });
 
     it('opens highlighting the current selection', async () => {
@@ -442,7 +412,7 @@ describe('Select & Dropdown keyboard interaction', () => {
                 ],
             }),
         });
-        const [selectEl, container] = mount(`<ful-select value="k2"></ful-select>`);
+        const [selectEl] = mount(`<ful-select value="k2"></ful-select>`);
         await settle();
         const input = selectEl.querySelector('input');
 
@@ -453,7 +423,6 @@ describe('Select & Dropdown keyboard interaction', () => {
 
         keydown(input, 'Enter');
         assert.strictEqual(selectEl.value, 'k2', 're-accepting the highlighted selection keeps it');
-        container.remove();
     });
 
     it('opens highlighting a first-entry selection over a custom template default', async () => {
@@ -469,7 +438,7 @@ describe('Select & Dropdown keyboard interaction', () => {
         });
         //the custom template carries its own default highlight, as the stock one
         //marks index 0: the picked key must beat it wherever it sits, index 0 included
-        const [selectEl, container] = mount(`<ful-select value="k1">
+        const [selectEl] = mount(`<ful-select value="k1">
             <template slot="dropdown">
                 <li data-tpl-each="self" data-tpl-selected="index == 1" data-tpl-value="index" role="option" data-tpl-aria-selected="index == 1 ? 'true' : 'false'">{{ label }}</li>
             </template>
@@ -484,11 +453,10 @@ describe('Select & Dropdown keyboard interaction', () => {
 
         keydown(input, 'Enter');
         assert.strictEqual(selectEl.value, 'k1', 're-accepting the highlighted selection keeps it');
-        container.remove();
     });
 
     it('jumps to the last option on End and back on Home', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
         const input = selectEl.querySelector('input');
@@ -505,11 +473,10 @@ describe('Select & Dropdown keyboard interaction', () => {
         keydown(input, 'Home');
         keydown(input, 'Enter');
         assert.strictEqual(selectEl.value, 'k1');
-        container.remove();
     });
 
     it('pages through the options with PageDown and PageUp', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
         const input = selectEl.querySelector('input');
@@ -519,11 +486,10 @@ describe('Select & Dropdown keyboard interaction', () => {
         keydown(input, 'PageDown');
         keydown(input, 'Enter');
         assert.strictEqual(selectEl.value, 'k2', 'a page down lands past the first option');
-        container.remove();
     });
 
     it('opens with Alt+ArrowDown and closes with Alt+ArrowUp', async () => {
-        const [selectEl, container] = mount(`<ful-select></ful-select>`);
+        const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
         const input = selectEl.querySelector('input');
@@ -536,7 +502,6 @@ describe('Select & Dropdown keyboard interaction', () => {
         keydown(input, 'ArrowUp', { altKey: true });
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-        container.remove();
     });
 });
 
@@ -548,9 +513,7 @@ describe('Select value resolution', () => {
     };
     let exactCalls = [];
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -571,23 +534,21 @@ describe('Select value resolution', () => {
     });
 
     it('does not query the loader when there is no value', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const [selectEl] = await mount(`<ful-select></ful-select>`);
 
         assert.deepStrictEqual(exactCalls, []);
         assert.isNull(selectEl.value);
-        container.remove();
     });
 
     it('does not query the loader when a multiple select has no value', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple></ful-select>`);
 
         assert.deepStrictEqual(exactCalls, []);
         assert.deepStrictEqual(selectEl.value, []);
-        container.remove();
     });
 
     it('still resolves an empty key, which an <option value=""> can carry', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const [selectEl] = await mount(`<ful-select></ful-select>`);
         assert.deepStrictEqual(exactCalls, []);
 
         selectEl.value = '';
@@ -595,19 +556,17 @@ describe('Select value resolution', () => {
 
         assert.deepStrictEqual(exactCalls, [['']]);
         assert.strictEqual(selectEl.value, '');
-        container.remove();
     });
 
     it('resolves the declared keys', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
 
         assert.deepStrictEqual(exactCalls, [['k1', 'k2']]);
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        container.remove();
     });
 
     it('clears without querying the loader when the value attribute is removed', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1"></ful-select>`);
         assert.deepStrictEqual(exactCalls, [['k1']]);
 
         selectEl.removeAttribute('value');
@@ -615,7 +574,6 @@ describe('Select value resolution', () => {
 
         assert.deepStrictEqual(exactCalls, [['k1']]);
         assert.deepStrictEqual(selectEl.value, []);
-        container.remove();
     });
 });
 
@@ -627,9 +585,7 @@ describe('Select value assignment', () => {
     };
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -645,18 +601,17 @@ describe('Select value assignment', () => {
     });
 
     it('exposes the assigned keys synchronously', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling());
+        const [selectEl] = await mount(`<ful-select></ful-select>`, labelling());
 
         selectEl.value = 'k1';
 
         assert.strictEqual(selectEl.value, 'k1', 'value must not lag behind the assignment');
         await settle();
         assert.strictEqual(selectEl.value, 'k1');
-        container.remove();
     });
 
     it('labels the field once the loader resolves them', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling({ k1: 20 }));
+        const [selectEl] = await mount(`<ful-select></ful-select>`, labelling({ k1: 20 }));
         const input = selectEl.querySelector('input');
 
         selectEl.value = 'k1';
@@ -666,11 +621,10 @@ describe('Select value assignment', () => {
         await new Promise((resolve) => setTimeout(resolve, 30));
         await settle();
         assert.strictEqual(input.value, 'Label k1');
-        container.remove();
     });
 
     it('restores the label in the field when the dropdown leaves', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling());
+        const [selectEl] = await mount(`<ful-select></ful-select>`, labelling());
         const input = selectEl.querySelector('input');
         selectEl.value = 'k1';
         await settle();
@@ -682,11 +636,10 @@ describe('Select value assignment', () => {
         input.dispatchEvent(new FocusEvent('blur'));
 
         assert.strictEqual(input.value, 'Label k1', 'blur brings the label back');
-        container.remove();
     });
 
     it('keeps the newest assignment when an older lookup resolves late', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`, labelling({ slow: 40 }));
+        const [selectEl] = await mount(`<ful-select></ful-select>`, labelling({ slow: 40 }));
 
         selectEl.value = 'slow';
         selectEl.value = 'fast';
@@ -694,14 +647,11 @@ describe('Select value assignment', () => {
 
         assert.strictEqual(selectEl.value, 'fast');
         assert.strictEqual(selectEl.querySelector('input').value, 'Label fast');
-        container.remove();
     });
 
     it('carries its value as soon as the upgrade completes, labels follow', async () => {
         registry.defineComponent('loaders:select', { create: () => labelling({ k1: 20 }) });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select value="k1"></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select value="k1"></ful-select>`);
         const selectEl = container.querySelector('ful-select');
 
         await Rendering.waitFor(selectEl);
@@ -710,16 +660,13 @@ describe('Select value assignment', () => {
         await new Promise((resolve) => setTimeout(resolve, 30));
         await settle();
         assert.strictEqual(selectEl.querySelector('input').value, 'Label k1');
-        container.remove();
     });
 
     it('does not hold up the upgrade when the loader never answers', async () => {
         registry.defineComponent('loaders:select', {
             create: () => ({ prefetch: async () => {}, load: async () => [], exact: () => new Promise(() => {}) }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select value="k1"></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select value="k1"></ful-select>`);
         const selectEl = container.querySelector('ful-select');
 
         const outcome = await Promise.race([
@@ -729,7 +676,6 @@ describe('Select value assignment', () => {
 
         assert.strictEqual(outcome, 'upgraded');
         assert.strictEqual(selectEl.value, 'k1');
-        container.remove();
     });
 });
 
@@ -761,9 +707,7 @@ describe('Select key types', () => {
     });
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -771,64 +715,58 @@ describe('Select key types', () => {
     };
 
     it('keeps a string assignment selected when the loader keys are numbers', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="16"></ful-select>`, numeric());
+        const [selectEl] = await mount(`<ful-select value="16"></ful-select>`, numeric());
 
         assert.strictEqual(selectEl.value, '16');
         assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
-        container.remove();
     });
 
     it('coerces a javascript assignment of a number to a string key', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`, numeric());
+        const [selectEl] = await mount(`<ful-select></ful-select>`, numeric());
 
         selectEl.value = 16;
         await settle();
 
         assert.strictEqual(selectEl.value, '16');
         assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
-        container.remove();
     });
 
     it('exposes number keys when k-type is number', async () => {
-        const [selectEl, container] = await mount(`<ful-select k-type="number" value="16"></ful-select>`, numeric());
+        const [selectEl] = await mount(`<ful-select k-type="number" value="16"></ful-select>`, numeric());
 
         assert.strictEqual(selectEl.value, 16);
         assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
         assert.deepStrictEqual(selectEl.entry, { key: 16, label: 'Label 16', metadata: undefined });
-        container.remove();
     });
 
     it('coerces every key of a multiple assignment', async () => {
-        const [selectEl, container] = await mount(
+        const [selectEl] = await mount(
             `<ful-select k-type="number" multiple value="16,17"></ful-select>`,
             numeric(),
         );
 
         assert.deepStrictEqual(selectEl.value, [16, 17]);
-        container.remove();
     });
 
     it('exposes boolean keys when k-type is boolean', async () => {
-        const [selectEl, container] = await mount(
+        const [selectEl] = await mount(
             `<ful-select k-type="boolean" value="true"></ful-select>`,
             booleany(),
         );
 
         assert.strictEqual(selectEl.value, true);
         assert.strictEqual(selectEl.querySelector('input').value, 'Yes');
-        container.remove();
     });
 
     it('keeps a key that does not decode as it is', async () => {
-        const [selectEl, container] = await mount(`<ful-select k-type="number" value="abc"></ful-select>`, echoing());
+        const [selectEl] = await mount(`<ful-select k-type="number" value="abc"></ful-select>`, echoing());
 
         assert.strictEqual(selectEl.value, 'abc');
         assert.strictEqual(selectEl.querySelector('input').value, 'Label abc');
-        container.remove();
     });
 
     it('reports an option picked from the dropdown as a string by default', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`, numeric());
+        const [selectEl] = await mount(`<ful-select></ful-select>`, numeric());
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
@@ -836,11 +774,10 @@ describe('Select key types', () => {
 
         assert.strictEqual(selectEl.value, '16');
         assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
-        container.remove();
     });
 
     it('coerces an option picked from the dropdown when k-type is number', async () => {
-        const [selectEl, container] = await mount(`<ful-select k-type="number"></ful-select>`, numeric());
+        const [selectEl] = await mount(`<ful-select k-type="number"></ful-select>`, numeric());
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
@@ -848,7 +785,6 @@ describe('Select key types', () => {
 
         assert.strictEqual(selectEl.value, 16);
         assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
-        container.remove();
     });
 });
 
@@ -860,9 +796,7 @@ describe('Select enter key inside a form', () => {
         }
     };
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -893,7 +827,7 @@ describe('Select enter key inside a form', () => {
     });
 
     it('submits the form when the dropdown is closed', async () => {
-        const [selectEl, container] = await mount(`
+        const [selectEl] = await mount(`
             <ful-form>
                 <ful-select name="s">label</ful-select>
                 <button type="submit">go</button>
@@ -903,11 +837,10 @@ describe('Select enter key inside a form', () => {
         await settle();
 
         assert.strictEqual(submits.length, 1, 'enter reaches the form');
-        container.remove();
     });
 
     it('accepts the highlighted option instead of submitting when the dropdown is open', async () => {
-        const [selectEl, container] = await mount(`
+        const [selectEl] = await mount(`
             <ful-form>
                 <ful-select name="s">label</ful-select>
                 <button type="submit">go</button>
@@ -920,17 +853,15 @@ describe('Select enter key inside a form', () => {
 
         assert.strictEqual(selectEl.value, 'k1', 'the option is taken');
         assert.strictEqual(submits.length, 0, 'the form is not submitted');
-        container.remove();
     });
 
     it('does nothing on enter outside a form', async () => {
-        const [selectEl, container] = await mount(`<ful-select name="s">label</ful-select>`);
+        const [selectEl] = await mount(`<ful-select name="s">label</ful-select>`);
 
         enter(selectEl);
         await settle();
 
         assert.strictEqual(submits.length, 0);
-        container.remove();
     });
 });
 
@@ -947,9 +878,7 @@ describe('Select selection removal', () => {
     });
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader ?? labelling() });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -960,7 +889,7 @@ describe('Select selection removal', () => {
     const items = (selectEl) => [...selectEl.querySelectorAll('ful-item-list > ful-item')];
 
     it('drops the entry whose badge was clicked, keeping the others', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2,k3"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2,k3"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
 
@@ -980,11 +909,10 @@ describe('Select selection removal', () => {
             items(selectEl).map((i) => i.getAttribute('data-key')),
             ['k1', 'k3'],
         );
-        container.remove();
     });
 
     it('drops the entry whose item remove button was clicked', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple itemlist value="k1,k2,k3"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple itemlist value="k1,k2,k3"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
 
@@ -1004,11 +932,10 @@ describe('Select selection removal', () => {
             badges(selectEl).map((b) => b.innerText),
             ['Label k1', 'Label k2'],
         );
-        container.remove();
     });
 
     it('renders the item list from a slotted items template, removals still working', async () => {
-        const [selectEl, container] = await mount(`
+        const [selectEl] = await mount(`
             <ful-select multiple itemlist value="k1,k2">
                 pick
                 <template slot="items">
@@ -1033,11 +960,10 @@ describe('Select selection removal', () => {
             items(selectEl).map((i) => i.querySelector('em')?.textContent),
             ['Label k2'],
         );
-        container.remove();
     });
 
     it('removes nothing when the click misses both a badge and a remove button', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
 
@@ -1046,11 +972,10 @@ describe('Select selection removal', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(changes, []);
-        container.remove();
     });
 
     it('keeps the selection when a disabled select is clicked', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         selectEl.disabled = true;
@@ -1060,11 +985,10 @@ describe('Select selection removal', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(changes, []);
-        container.remove();
     });
 
     it('keeps the selection when a readonly select is clicked', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         selectEl.readonly = true;
@@ -1074,11 +998,10 @@ describe('Select selection removal', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(changes, []);
-        container.remove();
     });
 
     it('keeps the selection when a claim lands while the dropdown is open on a pick', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const dropdown = selectEl.querySelector('ful-dropdown');
@@ -1095,11 +1018,10 @@ describe('Select selection removal', () => {
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the pick is not applied');
         assert.deepStrictEqual(changes, []);
         assert.isFalse(dropdown.shown, 'the leftover dropdown is closed');
-        container.remove();
     });
 
     it('reports a single select as empty once backspace clears its label', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select value="k1"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const input = selectEl.querySelector('input');
@@ -1111,7 +1033,6 @@ describe('Select selection removal', () => {
         assert.deepStrictEqual(changes, [null], 'a single select reports no selection as null');
         assert.deepStrictEqual(badges(selectEl), []);
         assert.strictEqual(input.value, '');
-        container.remove();
     });
 });
 
@@ -1129,9 +1050,7 @@ describe('Select chips and picked options', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1139,7 +1058,7 @@ describe('Select chips and picked options', () => {
     };
 
     it('marks the picked options selected, leaving the highlight to activedescendant', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1"></ful-select>`);
         selectEl.querySelector('input').dispatchEvent(
             new KeyboardEvent('keydown', { code: 'ArrowDown', altKey: true, bubbles: true }),
         );
@@ -1153,11 +1072,10 @@ describe('Select chips and picked options', () => {
             ['Label k1'],
             'aria-selected says what is picked; the active option is named by aria-activedescendant',
         );
-        container.remove();
     });
 
     it('puts one chip in the tab order, so the group is reachable', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
 
         const chips = [...selectEl.querySelectorAll('ful-badge')];
         assert.lengthOf(chips, 2);
@@ -1166,7 +1084,6 @@ describe('Select chips and picked options', () => {
             ['0', '-1'],
             'a roving tab stop, not a group Tab skips entirely',
         );
-        container.remove();
     });
 });
 
@@ -1184,9 +1101,7 @@ describe('Select chips keyboard access', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1197,7 +1112,7 @@ describe('Select chips keyboard access', () => {
     };
 
     it('hands the focus to the chips when the caret cannot move left', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const input = selectEl.querySelector('input');
         const [first, second] = [...selectEl.querySelectorAll('ful-control > ful-badge')];
         input.focus();
@@ -1214,11 +1129,10 @@ describe('Select chips keyboard access', () => {
 
         keydown(document.activeElement, 'ArrowRight');
         assert.strictEqual(document.activeElement, input, 'past the last chip the field takes over');
-        container.remove();
     });
 
     it('removes the focused chip with Enter or Delete, returning to the field', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const [, second] = [...selectEl.querySelectorAll('ful-control > ful-badge')];
@@ -1237,11 +1151,10 @@ describe('Select chips keyboard access', () => {
         keydown(survivor, 'Delete');
         assert.deepStrictEqual(selectEl.value, [], 'the last chip goes too');
         assert.strictEqual(document.activeElement, selectEl.querySelector('input'));
-        container.remove();
     });
 
     it('returns to the field from a chip on Escape, removing nothing', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const badge = selectEl.querySelector('ful-control > ful-badge');
@@ -1252,11 +1165,10 @@ describe('Select chips keyboard access', () => {
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(changes, []);
         assert.strictEqual(document.activeElement, selectEl.querySelector('input'));
-        container.remove();
     });
 
     it('leaves a readonly select alone', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         selectEl.readonly = true;
         const badge = selectEl.querySelector('ful-control > ful-badge');
 
@@ -1264,7 +1176,6 @@ describe('Select chips keyboard access', () => {
         keydown(badge, 'Enter');
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        container.remove();
     });
 });
 
@@ -1282,9 +1193,7 @@ describe('Select backspace', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1294,7 +1203,7 @@ describe('Select backspace', () => {
         input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', bubbles: true }));
 
     it('removes the last selection when the caret sits at the start', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const input = selectEl.querySelector('input');
@@ -1311,11 +1220,10 @@ describe('Select backspace', () => {
             [...selectEl.querySelectorAll('ful-control > ful-badge')].map((b) => b.innerText),
             ['Label k1'],
         );
-        container.remove();
     });
 
     it('leaves the selection alone while the caret is inside the typed text', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const input = selectEl.querySelector('input');
@@ -1326,11 +1234,10 @@ describe('Select backspace', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'backspace belongs to the text being typed');
         assert.deepStrictEqual(changes, []);
-        container.remove();
     });
 
     it('leaves the selection alone while text is selected from the start', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const input = selectEl.querySelector('input');
@@ -1341,11 +1248,10 @@ describe('Select backspace', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'backspace deletes the highlighted text');
         assert.deepStrictEqual(changes, []);
-        container.remove();
     });
 
     it('does not fire a change when there is nothing to remove', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const input = selectEl.querySelector('input');
@@ -1355,11 +1261,10 @@ describe('Select backspace', () => {
 
         assert.deepStrictEqual(selectEl.value, []);
         assert.deepStrictEqual(changes, []);
-        container.remove();
     });
 
     it('ignores backspace on a readonly select', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
         selectEl.readonly = true;
         const input = selectEl.querySelector('input');
         input.setSelectionRange(0, 0);
@@ -1367,7 +1272,6 @@ describe('Select backspace', () => {
         backspace(input);
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        container.remove();
     });
 });
 
@@ -1385,9 +1289,7 @@ describe('Select blur', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1395,7 +1297,7 @@ describe('Select blur', () => {
     };
 
     it('clears the typed text and closes the dropdown when focus leaves', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const [selectEl] = await mount(`<ful-select></ful-select>`);
         const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
@@ -1407,11 +1309,10 @@ describe('Select blur', () => {
         assert.strictEqual(input.value, '', 'a half typed needle is not kept around');
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        container.remove();
     });
 
     it('stays open when focus moves to something inside the select', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const [selectEl] = await mount(`<ful-select></ful-select>`);
         const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
@@ -1422,11 +1323,10 @@ describe('Select blur', () => {
         assert.strictEqual(input.value, 'typed', 'clicking an option must not wipe the needle first');
         assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
         assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
-        container.remove();
     });
 
     it('does not let a throttled search reopen the dropdown after blur', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`);
+        const [selectEl] = await mount(`<ful-select></ful-select>`);
         const input = selectEl.querySelector('input');
         //the leading edge opens it, the second request is queued on the trailing edge
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
@@ -1440,7 +1340,6 @@ describe('Select blur', () => {
 
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-        container.remove();
     });
 });
 
@@ -1452,9 +1351,7 @@ describe('Select loader access and entries', () => {
     };
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1479,7 +1376,7 @@ describe('Select loader access and entries', () => {
     });
 
     it('hands the live loader to withLoader, so the next search sees the new options', async () => {
-        const [selectEl, container] = await mount(`<ful-select></ful-select>`, updatable());
+        const [selectEl] = await mount(`<ful-select></ful-select>`, updatable());
 
         const outcome = await selectEl.withLoader((loader) => loader.update([{ key: 'k9', label: 'Nine' }]));
 
@@ -1490,22 +1387,20 @@ describe('Select loader access and entries', () => {
             [...selectEl.querySelectorAll('menu li')].map((li) => li.textContent.trim()),
             ['Nine'],
         );
-        container.remove();
     });
 
     it('reports label and metadata through entry, keys through value', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`, described());
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`, described());
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(selectEl.entry, [
             { key: 'k1', label: 'Label k1', metadata: { id: 'k1' } },
             { key: 'k2', label: 'Label k2', metadata: { id: 'k2' } },
         ]);
-        container.remove();
     });
 
     it('reports the one entry of a single select, and null when it has none', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1"></ful-select>`, described());
+        const [selectEl] = await mount(`<ful-select value="k1"></ful-select>`, described());
 
         assert.deepStrictEqual(selectEl.entry, { key: 'k1', label: 'Label k1', metadata: { id: 'k1' } });
 
@@ -1514,7 +1409,6 @@ describe('Select loader access and entries', () => {
 
         assert.isNull(selectEl.entry);
         assert.isNull(selectEl.value);
-        container.remove();
     });
 });
 
@@ -1530,9 +1424,7 @@ describe('Select edits made while a lookup is in flight', () => {
                 },
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select multiple name="s" value="k1,k2">label</ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select multiple name="s" value="k1,k2">label</ful-select>`);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
 
@@ -1543,7 +1435,6 @@ describe('Select edits made while a lookup is in flight', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the lookup must not undo the removal');
         assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1', 'the survivor is still labelled');
-        container.remove();
     });
 });
 
@@ -1557,9 +1448,7 @@ describe('Select chips and validity', () => {
         input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
     };
     const mount = async (html) => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1575,7 +1464,7 @@ describe('Select chips and validity', () => {
     });
 
     it('removes the last chip on Backspace at the caret start', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2">labels</ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2">labels</ful-select>`);
         const input = selectEl.querySelector('input');
         assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 2, 'two chips are rendered');
 
@@ -1585,22 +1474,20 @@ describe('Select chips and validity', () => {
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the newest chip is gone');
         assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 1);
         assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1');
-        container.remove();
     });
 
     it('ignores the chip remove button while readonly', async () => {
-        const [selectEl, container] = await mount(
+        const [selectEl] = await mount(
             `<ful-select multiple itemlist readonly value="k1,k2">labels</ful-select>`,
         );
 
         selectEl.querySelector('ful-item button')?.click();
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'a readonly select keeps its selection');
-        container.remove();
     });
 
     it('closes the open dropdown on Tab without picking anything', async () => {
-        const [selectEl, container] = await mount(`<ful-select>labels</ful-select>`);
+        const [selectEl] = await mount(`<ful-select>labels</ful-select>`);
         const input = selectEl.querySelector('input');
         registry.defineComponent('loaders:select', {
             create: () => ({ load: async () => [{ key: 'k1', label: 'Label 1' }] }),
@@ -1616,18 +1503,16 @@ describe('Select chips and validity', () => {
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.isNull(selectEl.value);
-        container.remove();
     });
 
     it('clears the field error when the custom validity is reset', async () => {
-        const [selectEl, container] = await mount(`<ful-select>labels</ful-select>`);
+        const [selectEl] = await mount(`<ful-select>labels</ful-select>`);
 
         selectEl.setCustomValidity('nope');
         assert.strictEqual(selectEl.querySelector('ful-field-error').innerText, 'nope');
 
         selectEl.setCustomValidity();
         assert.strictEqual(selectEl.querySelector('ful-field-error').innerText, '');
-        container.remove();
     });
 });
 
@@ -1648,9 +1533,7 @@ describe('Select pointer picking', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1658,7 +1541,7 @@ describe('Select pointer picking', () => {
     };
 
     it('picks the clicked option and closes the dropdown', async () => {
-        const [selectEl, container] = await mount(`<ful-select>pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select>pick</ful-select>`);
         const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
@@ -1669,11 +1552,10 @@ describe('Select pointer picking', () => {
         assert.strictEqual(input.value, 'Label 2');
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-        container.remove();
     });
 
     it('closes without picking when the blank area of the menu is clicked', async () => {
-        const [selectEl, container] = await mount(`<ful-select>pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select>pick</ful-select>`);
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
@@ -1681,7 +1563,6 @@ describe('Select pointer picking', () => {
 
         assert.isNull(selectEl.value);
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        container.remove();
     });
 });
 
@@ -1699,9 +1580,7 @@ describe('Select dropdown opening', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1712,7 +1591,7 @@ describe('Select dropdown opening', () => {
     };
 
     it('opens with a plain ArrowDown, starting from the current selection', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
         const input = selectEl.querySelector('input');
 
         keydown(input, 'ArrowDown');
@@ -1721,11 +1600,10 @@ describe('Select dropdown opening', () => {
         assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
         assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 1');
-        container.remove();
     });
 
     it('closes on Escape, bringing the label of the selection back', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
         const input = selectEl.querySelector('input');
         keydown(input, 'ArrowDown');
         await opened();
@@ -1735,11 +1613,10 @@ describe('Select dropdown opening', () => {
 
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(input.value, 'Label k1', 'escaping an edit restores the resolved label');
-        container.remove();
     });
 
     it('does not open when a disabled select is clicked', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
         selectEl.disabled = true;
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
@@ -1747,18 +1624,16 @@ describe('Select dropdown opening', () => {
 
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
         assert.strictEqual(selectEl.querySelector('input').getAttribute('aria-expanded'), 'false');
-        container.remove();
     });
 
     it('does not open when a readonly select is clicked', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
         selectEl.readonly = true;
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        container.remove();
     });
 });
 
@@ -1776,9 +1651,7 @@ describe('Select inner control isolation', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1786,18 +1659,17 @@ describe('Select inner control isolation', () => {
     };
 
     it('does not re-emit the inner input change as its own', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
         const seen = [];
         selectEl.addEventListener('change', (e) => seen.push(e.detail));
 
         selectEl.querySelector('input').dispatchEvent(new Event('change', { bubbles: true }));
 
         assert.deepStrictEqual(seen, [], 'only the element announces changes, with tuple details');
-        container.remove();
     });
 
     it('ignores typing on a disabled select', async () => {
-        const [selectEl, container] = await mount(`<ful-select>pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select>pick</ful-select>`);
         const input = selectEl.querySelector('input');
         selectEl.disabled = true;
 
@@ -1807,11 +1679,10 @@ describe('Select inner control isolation', () => {
 
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'a disabled select never searches');
         assert.strictEqual(input.value, 'ty', 'the typed text is left to the platform');
-        container.remove();
     });
 
     it('keeps the caret where typing left it when the field regains focus', async () => {
-        const [selectEl, container] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
         const input = selectEl.querySelector('input');
         input.value = 'ty';
         input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1822,7 +1693,6 @@ describe('Select inner control isolation', () => {
 
         assert.strictEqual(input.selectionStart, 2, 'refocusing mid-edit must not select the whole needle');
         assert.strictEqual(input.selectionEnd, 2);
-        container.remove();
     });
 });
 
@@ -1840,9 +1710,7 @@ describe('Select stray clicks', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1850,7 +1718,7 @@ describe('Select stray clicks', () => {
     };
 
     it('removes nothing when a badge nested somewhere else in the control is clicked', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,k2">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,k2">pick</ful-select>`);
         //not a direct child of the control: decorative chrome around the field,
         //not one of the selection badges the removal is indexed by
         const wrapper = document.createElement('span');
@@ -1865,11 +1733,10 @@ describe('Select stray clicks', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(seen, []);
-        container.remove();
     });
 
     it('removes nothing when a button outside any item is clicked in the item list', async () => {
-        const [selectEl, container] = await mount(`<ful-select multiple itemlist value="k1,k2">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple itemlist value="k1,k2">pick</ful-select>`);
         const stray = document.createElement('button');
         stray.type = 'button';
         stray.innerText = 'add all';
@@ -1881,7 +1748,6 @@ describe('Select stray clicks', () => {
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
         assert.deepStrictEqual(seen, []);
-        container.remove();
     });
 });
 
@@ -1908,9 +1774,7 @@ describe('Select failed searches', () => {
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
             }),
         });
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select>pick</ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select>pick</ful-select>`);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1926,7 +1790,7 @@ describe('Select failed searches', () => {
     });
 
     it('keeps the typed needle for another try after a failed search', async () => {
-        const [selectEl, container] = await mount();
+        const [selectEl] = await mount();
         const input = selectEl.querySelector('input');
         const rejectionsBefore = rejections.length;
 
@@ -1943,7 +1807,6 @@ describe('Select failed searches', () => {
 
         assert.isAbove(rejections.length, rejectionsBefore, 'the retried search failed again, as configured');
         assert.isTrue(errors.some((args) => String(args[0]).includes('search backend down')));
-        container.remove();
     });
 });
 
@@ -1955,9 +1818,7 @@ describe('Select focus and key coercion gaps', () => {
     };
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader });
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -1965,7 +1826,7 @@ describe('Select focus and key coercion gaps', () => {
     };
 
     it('hands its focus to the combobox', async () => {
-        const [selectEl, container] = await mount(
+        const [selectEl] = await mount(
             `<ful-select>pick</ful-select>`,
             (() => ({
                 prefetch: async () => {},
@@ -1977,7 +1838,6 @@ describe('Select focus and key coercion gaps', () => {
         selectEl.focus();
 
         assert.strictEqual(document.activeElement, selectEl.querySelector('input'));
-        container.remove();
     });
 
     it('coerces false and keeps undecodable keys when k-type is boolean', async () => {
@@ -2021,14 +1881,13 @@ describe('Select focus and key coercion gaps', () => {
             load: async () => [],
             exact: async (...keys) => keys.filter((k) => k !== 'unknown').map((k) => ({ key: k, label: `Label ${k}` })),
         };
-        const [selectEl, container] = await mount(`<ful-select multiple value="k1,unknown">pick</ful-select>`, partial);
+        const [selectEl] = await mount(`<ful-select multiple value="k1,unknown">pick</ful-select>`, partial);
 
         assert.deepStrictEqual(selectEl.value, ['k1'], 'a key without an entry cannot stay selected');
         assert.deepStrictEqual(
             [...selectEl.querySelectorAll('ful-control > ful-badge')].map((b) => b.innerText),
             ['Label k1'],
         );
-        container.remove();
     });
 });
 
@@ -2059,9 +1918,7 @@ describe('Select stale searches', () => {
         });
     });
     const mount = async () => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select>pick</ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select>pick</ful-select>`);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -2069,7 +1926,7 @@ describe('Select stale searches', () => {
     };
 
     it('discards a search resolving after a newer open, keeping the newest options', async () => {
-        const [selectEl, container] = await mount();
+        const [selectEl] = await mount();
         const input = selectEl.querySelector('input');
         //alt-down opens without going through the search throttle, so two opens overlap:
         //the first search is still in flight when the closed dropdown is opened again
@@ -2092,11 +1949,10 @@ describe('Select stale searches', () => {
             'the stale search highlights nothing',
         );
         assert.isTrue(dropdown.querySelector('ful-spinner').hasAttribute('hidden'));
-        container.remove();
     });
 
     it('discards a search failing after a newer open, without hiding it nor reporting the failure', async () => {
-        const [selectEl, container] = await mount();
+        const [selectEl] = await mount();
         const input = selectEl.querySelector('input');
         keydown(input, 'ArrowDown', { altKey: true });
         keydown(input, 'ArrowUp', { altKey: true });
@@ -2112,11 +1968,10 @@ describe('Select stale searches', () => {
         assert.isTrue(dropdown.shown, 'a superseded failure must not hide the newer open');
         assert.match(dropdown.querySelector('menu').textContent, /fast/);
         assert.strictEqual(rejections.length, rejectionsBefore, 'a superseded failure is not reported');
-        container.remove();
     });
 
     it('keeps a search that lands after a hide from repopulating the hidden dropdown', async () => {
-        const [selectEl, container] = await mount();
+        const [selectEl] = await mount();
         const input = selectEl.querySelector('input');
         keydown(input, 'ArrowDown', { altKey: true });
         input.dispatchEvent(new FocusEvent('blur'));
@@ -2130,7 +1985,6 @@ describe('Select stale searches', () => {
             input.getAttribute('aria-activedescendant'),
             'the combobox is not pointed into a hidden dropdown',
         );
-        container.remove();
     });
 });
 
@@ -2159,9 +2013,7 @@ describe('Select attributes during the async render window', () => {
         });
     });
     const mount = (html = '<form><ful-select name="a">l</ful-select></form>') => {
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        document.body.appendChild(container);
+        const container = appended(html);
         return [container.querySelector('ful-select'), container];
     };
     const inWindow = async (selectEl) => {
@@ -2172,7 +2024,7 @@ describe('Select attributes during the async render window', () => {
     };
 
     it('applies every attribute that landed while the prefetch was in flight', async () => {
-        const [selectEl, container] = await mount();
+        const [selectEl] = await mount();
         await inWindow(selectEl);
         selectEl.setAttribute('value', 'k1');
         selectEl.setAttribute('itemlist', '');
@@ -2190,11 +2042,10 @@ describe('Select attributes during the async render window', () => {
         assert.isTrue(input.readOnly, 'the readonly claim reaches the control');
         assert.strictEqual(input.getAttribute('aria-required'), 'true', 'the required claim reaches the control');
         assert.isTrue(selectEl.hasAttribute('readonly'), 'the claim is not un-claimed by the stale snapshot');
-        container.remove();
     });
 
     it('keeps a value that changed mid-flight over the markup one', async () => {
-        const [selectEl, container] = await mount('<form><ful-select name="a" value="k0">l</ful-select></form>');
+        const [selectEl] = await mount('<form><ful-select name="a" value="k0">l</ful-select></form>');
         await inWindow(selectEl);
         selectEl.setAttribute('value', 'k1');
         release();
@@ -2203,7 +2054,6 @@ describe('Select attributes during the async render window', () => {
 
         assert.strictEqual(selectEl.value, 'k1', 'the live attribute wins over the pre-prefetch snapshot');
         assert.strictEqual(selectEl.querySelector('input').value, 'Label k1');
-        container.remove();
     });
 
     it('survives a form reset while the prefetch is in flight', async () => {
@@ -2216,7 +2066,6 @@ describe('Select attributes during the async render window', () => {
 
         assert.deepStrictEqual(uncaught, [], 'the reset does not crash the unrendered field');
         assert.isNull(selectEl.value);
-        container.remove();
     });
 });
 
@@ -2227,9 +2076,7 @@ describe('Select dropdown anchoring', () => {
         }
     };
     const mount = async () => {
-        const container = document.createElement('div');
-        container.innerHTML = `<ful-select></ful-select>`;
-        document.body.appendChild(container);
+        const container = appended(`<ful-select></ful-select>`);
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         await settle();
@@ -2263,11 +2110,10 @@ describe('Select dropdown anchoring', () => {
     });
 
     it('anchors on its control group, stretched to its width', async () => {
-        const [selectEl, container] = await mount();
+        const [selectEl] = await mount();
         await open(selectEl);
 
         assertAnchored(selectEl);
-        container.remove();
     });
 
     it('keeps the same geometry where the platform lacks the anchor css', async () => {

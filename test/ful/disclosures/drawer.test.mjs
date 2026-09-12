@@ -2,6 +2,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { AsyncEvents, Plugin, Drawer } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -11,9 +12,7 @@ const settle = async () => {
     }
 };
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     await Rendering.waitFor(container);
     await settle();
     return [container.firstElementChild, container];
@@ -21,7 +20,7 @@ const mount = async (html) => {
 
 describe('Drawer', () => {
     it('renders the title, the localized close button and the slotted body', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="the title">the body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="the title">the body</ful-drawer>');
 
         assert.strictEqual(drawer.querySelector('[data-ref=title]').textContent, 'the title');
         assert.strictEqual(drawer.querySelector('[data-ref=close]').getAttribute('aria-label'), 'Close');
@@ -32,7 +31,6 @@ describe('Drawer', () => {
             'none',
             'a closed drawer stays unseen',
         );
-        container.remove();
     });
 
     it('opens and closes, and any dialog-target element opens it too', async () => {
@@ -50,11 +48,10 @@ describe('Drawer', () => {
         container.querySelector('[dialog-target]').click();
         assert.isTrue(dialog.open);
         drawer.close();
-        container.remove();
     });
 
     it('update() shows the loading state, then the delivered content', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t">old</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t">old</ful-drawer>');
         let deliver;
         const updated = drawer.update('Nuova controparte', () => new Promise((resolve) => (deliver = resolve)));
 
@@ -70,11 +67,10 @@ describe('Drawer', () => {
         assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
         assert.isFalse(content.hasAttribute('hidden'));
         assert.strictEqual(content.querySelector('form'), form, 'update resolves with the content section');
-        container.remove();
     });
 
     it('update() reports a rejecting callback in the error section and rethrows', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
         const failure = new Failure('invalid', [
             { type: 'FIELD_ERROR', context: null, reason: 'must not be blank' },
             { type: 'GENERIC_PROBLEM', context: null, reason: 'start is after end' },
@@ -93,11 +89,10 @@ describe('Drawer', () => {
         assert.include(error.textContent, 'must not be blank');
         assert.include(error.textContent, 'start is after end');
         assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
-        container.remove();
     });
 
     it('a superseded update owns nothing: its outcome is not painted, a newer one wins', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
         let deliverFirst;
         const first = drawer.update('first', () => new Promise((resolve) => (deliverFirst = resolve)));
         const second = drawer.update('second', async () => {
@@ -120,11 +115,10 @@ describe('Drawer', () => {
             'only the newer outcome is painted',
         );
         assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
-        container.remove();
     });
 
     it('answers with a close event, Escape included', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
         const closes = [];
         drawer.addEventListener('close', () => closes.push('closed'));
 
@@ -132,7 +126,6 @@ describe('Drawer', () => {
         drawer.close();
         await new Promise((r) => setTimeout(r));
         assert.deepStrictEqual(closes, ['closed']);
-        container.remove();
     });
 
     it('slides in from the inline end side, mirrored in rtl', async () => {
@@ -146,7 +139,7 @@ describe('Drawer', () => {
         );
         rtlDrawer.close();
         rtlContainer.remove();
-        const [drawer, container] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
         drawer.open();
         assert.strictEqual(
             getComputedStyle(drawer.querySelector('dialog')).animationName,
@@ -154,7 +147,6 @@ describe('Drawer', () => {
             'ltr end',
         );
         drawer.close();
-        container.remove();
     });
 });
 
@@ -171,7 +163,7 @@ describe('Drawer subclass reuse', () => {
             `;
         }
         registry.defineElement('x-side-panel', SidePanel);
-        const [panel, container] = await mount('<x-side-panel title="t" placement="start">body</x-side-panel>');
+        const [panel] = await mount('<x-side-panel title="t" placement="start">body</x-side-panel>');
 
         const dialog = panel.querySelector('dialog');
         assert.isTrue(dialog.classList.contains('ful-drawer'));
@@ -179,13 +171,12 @@ describe('Drawer subclass reuse', () => {
         const content = await panel.update('the panel', () => document.createElement('p'));
         assert.strictEqual(content.querySelector('p').localName, 'p');
         panel.close();
-        container.remove();
     });
 });
 
-describe('Drawer, the section:requested door', () => {
+describe('Drawer, the section:requested contract', () => {
     it('fires on the content when opened, not when update() owns the cycle', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
         const seen = [];
         AsyncEvents.asyncOn(drawer, 'section:requested', (e) => {
             seen.push(e.detail.first);
@@ -212,11 +203,10 @@ describe('Drawer, the section:requested door', () => {
         await settle();
         assert.deepStrictEqual(seen, [true, false], 'a later declarative open asks again');
         drawer.close();
-        container.remove();
     });
 });
 
-describe('Drawer, the declarative door against update()', () => {
+describe('Drawer, the declarative content against update()', () => {
     const frames = async () => {
         for (let i = 0; i !== 3; ++i) {
             await new Promise((r) => requestAnimationFrame(() => r()));
@@ -224,7 +214,7 @@ describe('Drawer, the declarative door against update()', () => {
     };
 
     it('rests the chrome update() left behind, the delivery landing on a visible content', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
         await drawer
             .update('title', async () => {
                 throw new Failure('invalid', [{ type: 'GENERIC', context: null, reason: 'nope' }]);
@@ -252,11 +242,10 @@ describe('Drawer, the declarative door against update()', () => {
 
         assert.include(content.textContent, 'delivered');
         drawer.close();
-        container.remove();
     });
 
     it("a user reopen during an update's wait is a real open", async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
         const fired = [];
         AsyncEvents.asyncOn(drawer, 'section:requested', (e) => fired.push(e.detail.first));
         const waiting = drawer.update('title', () => new Promise(() => {}));
@@ -268,12 +257,11 @@ describe('Drawer, the declarative door against update()', () => {
 
         assert.deepStrictEqual(fired, [true], "the update's own open stays quiet, the user's reopen fires");
         drawer.close();
-        container.remove();
         void waiting;
     });
 
-    it('refresh re-fires the content door, its failures painted and swallowed', async () => {
-        const [drawer, container] = await mount('<ful-drawer title="t"></ful-drawer>');
+    it('refresh re-fires the content request, its failures painted and swallowed', async () => {
+        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
         let fail = true;
         AsyncEvents.asyncOn(drawer, 'section:requested', () => {
             if (fail) {
@@ -287,6 +275,5 @@ describe('Drawer, the declarative door against update()', () => {
         fail = false;
         await drawer.refresh();
         assert.strictEqual(drawer.querySelector('[data-ref=content] > .ful-section-error'), null);
-        container.remove();
     });
 });

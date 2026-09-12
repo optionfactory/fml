@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, Plugin, Tooltip, Dialog } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -10,9 +11,7 @@ const settle = async () => {
     }
 };
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     await Rendering.waitFor(container);
     await settle();
     return [container.firstElementChild, container];
@@ -20,7 +19,7 @@ const mount = async (html) => {
 
 describe('Tooltip', () => {
     it('renders an icon button wired to a popover carrying the explanation', async () => {
-        const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         const button = tooltip.querySelector('button');
         const popover = tooltip.querySelector('[popover]');
 
@@ -50,11 +49,10 @@ describe('Tooltip', () => {
         assert.isFalse(popover.matches(':popover-open'));
         await settle();
         assert.strictEqual(button.getAttribute('aria-expanded'), 'false');
-        container.remove();
     });
 
     it('anchors the note on the side the placement attribute picks', async () => {
-        const [tooltip, container] = await mount('<ful-tooltip placement="right">side note</ful-tooltip>');
+        const [tooltip] = await mount('<ful-tooltip placement="right">side note</ful-tooltip>');
         const button = tooltip.querySelector('button');
         const popover = tooltip.querySelector('[popover]');
 
@@ -67,7 +65,6 @@ describe('Tooltip', () => {
             Math.round(triggerBox.right) - 1,
             'the note is anchored after the trigger',
         );
-        container.remove();
     });
 });
 
@@ -102,7 +99,6 @@ describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
         assert.closeTo(n.left + n.width / 2, b.left + b.width / 2, 1, 'the note is centered on the trigger');
 
         button.click();
-        container.remove();
     });
 
     it('places the note above the trigger when the placement picks top', async () => {
@@ -117,7 +113,6 @@ describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
         const n = note.getBoundingClientRect();
         assert.isAtMost(Math.round(n.bottom), Math.round(b.top) + 1, 'the note sits above the trigger');
         assert.closeTo(n.left + n.width / 2, b.left + b.width / 2, 1, 'the note is centered on the trigger');
-        container.remove();
     });
 
     it("keeps an edge-hugging trigger's note clear of the viewport edge", async () => {
@@ -134,7 +129,6 @@ describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
             document.documentElement.clientWidth - 7,
             'the note stays inside the viewport',
         );
-        container.remove();
     });
 
     it('follows the trigger while the page scrolls', async () => {
@@ -156,33 +150,30 @@ describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
 
         window.scrollTo(0, 0);
         button.click();
-        container.remove();
     });
 });
 
 describe('Dialog', () => {
     it('shows the header, the body and the localized acknowledge button', async () => {
-        const [dialog, container] = await mount('<ful-dialog header="the header">the body</ful-dialog>');
+        const [dialog] = await mount('<ful-dialog header="the header">the body</ful-dialog>');
 
         assert.isNotNull(dialog.querySelector('header h2')?.textContent.match(/the header/));
         assert.include(dialog.querySelector("[data-ref='body']").textContent, 'the body');
         assert.strictEqual(dialog.querySelector('[data-ref=acknowledge]').textContent, 'Got it');
-        container.remove();
     });
 
     it('ask() resolves with the acknowledge result', async () => {
-        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
 
         assert.isTrue(dialog.querySelector('dialog').open);
         dialog.querySelector('[data-ref=acknowledge]').click();
         assert.strictEqual(await asked, 'acknowledged');
         assert.isFalse(dialog.querySelector('dialog').open);
-        container.remove();
     });
 
     it('ask() resolves with the data-result of the slotted button that closed it', async () => {
-        const [dialog, container] = await mount(`
+        const [dialog] = await mount(`
             <ful-dialog>
                 body
                 <template slot="buttons">
@@ -196,21 +187,19 @@ describe('Dialog', () => {
         dialog.querySelector('button[data-result=dismissed]').click();
 
         assert.strictEqual(await asked, 'dismissed');
-        container.remove();
     });
 
     it('resolves null when the dialog closes without a result, as Escape does', async () => {
-        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
 
         dialog.querySelector('dialog').close();
 
         assert.isNull(await asked);
-        container.remove();
     });
 
     it('an Escape after an earlier answer resolves null, not the earlier answer', async () => {
-        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const first = dialog.ask();
         dialog.querySelector('[data-ref=acknowledge]').click();
         assert.strictEqual(await first, 'acknowledged');
@@ -222,19 +211,19 @@ describe('Dialog', () => {
 
         assert.isNull(await second, 'the stale acknowledged is not the answer');
         assert.deepStrictEqual(results, [null], 'the close event agrees');
-        container.remove();
     });
 
     it('a dialog leaving the document while open answers its waiters with null', async () => {
         const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
-
+        //the removal is the subject of the test, not its teardown
         container.remove();
+
         assert.isNull(await asked, 'the await does not hang on a destroyed element');
     });
 
     it('answers with a close event carrying the answer', async () => {
-        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const answers = [];
         dialog.addEventListener('close', (e) => answers.push(e.detail.result));
 
@@ -242,7 +231,6 @@ describe('Dialog', () => {
         dialog.querySelector('[data-ref=acknowledge]').click();
         await new Promise((r) => setTimeout(r));
         assert.deepStrictEqual(answers, ['acknowledged']);
-        container.remove();
     });
 
     it('any element carrying dialog-target opens the dialog it names, clones included', async () => {
@@ -263,7 +251,6 @@ describe('Dialog', () => {
         assert.isTrue(dialog.querySelector('dialog').open, 'the cloned trigger opens the dialog');
         dialog.querySelector('[data-ref=acknowledge]').click();
         assert.strictEqual(await again, 'acknowledged');
-        container.remove();
     });
 });
 
@@ -276,7 +263,7 @@ describe('subclass reuse', () => {
             `;
         }
         registry.defineElement('x-help-tip', HelpTip);
-        const [tip, container] = await mount('<x-help-tip placement="top">custom note</x-help-tip>');
+        const [tip] = await mount('<x-help-tip placement="top">custom note</x-help-tip>');
         const button = tip.querySelector('button');
         const note = tip.querySelector('ful-note');
 
@@ -286,7 +273,6 @@ describe('subclass reuse', () => {
         await settle();
         assert.strictEqual(button.getAttribute('aria-expanded'), 'true');
         assert.strictEqual(note.getAttribute('placement'), 'top');
-        container.remove();
     });
 
     it('a custom dialog keeps the card chrome through the class on the native dialog', async () => {
@@ -296,20 +282,19 @@ describe('subclass reuse', () => {
             `;
         }
         registry.defineElement('x-confirm-dialog', ConfirmDialog);
-        const [dialog, container] = await mount('<x-confirm-dialog>body</x-confirm-dialog>');
+        const [dialog] = await mount('<x-confirm-dialog>body</x-confirm-dialog>');
 
         assert.isTrue(dialog.querySelector('dialog').classList.contains('ful-dialog'));
         const asked = dialog.ask();
         assert.isTrue(dialog.querySelector('dialog').open);
         dialog.close('done');
         assert.strictEqual(await asked, 'done');
-        container.remove();
     });
 });
 
-describe('Dialog, the section:requested door', () => {
+describe('Dialog, the section:requested contract', () => {
     it('fires on the body on open, first only the first time', async () => {
-        const [dialog, container] = await mount('<ful-dialog header="h">the body</ful-dialog>');
+        const [dialog] = await mount('<ful-dialog header="h">the body</ful-dialog>');
         const seen = [];
         AsyncEvents.asyncOn(dialog, 'section:requested', (e) => {
             seen.push(e.detail.first);
@@ -318,7 +303,7 @@ describe('Dialog, the section:requested door', () => {
 
         dialog.ask();
         await settle();
-        assert.deepStrictEqual(seen, [true], 'ask() opens, the door fires');
+        assert.deepStrictEqual(seen, [true], 'ask() opens, the request fires');
         assert.include(dialog.querySelector('[data-ref=body]').textContent, 'delivered');
 
         dialog.close();
@@ -327,13 +312,12 @@ describe('Dialog, the section:requested door', () => {
         await settle();
         assert.deepStrictEqual(seen, [true, false]);
         dialog.close();
-        container.remove();
     });
 });
 
-describe('Dialog, the refresh door', () => {
-    it('re-fires the body door, its failures painted and swallowed', async () => {
-        const [dialog, container] = await mount('<ful-dialog header="h">the body</ful-dialog>');
+describe('Dialog, refresh', () => {
+    it('re-fires the body request, its failures painted and swallowed', async () => {
+        const [dialog] = await mount('<ful-dialog header="h">the body</ful-dialog>');
         let fail = true;
         AsyncEvents.asyncOn(dialog, 'section:requested', () => {
             if (fail) {
@@ -347,6 +331,5 @@ describe('Dialog, the refresh door', () => {
         fail = false;
         await dialog.refresh();
         assert.strictEqual(dialog.querySelector('[data-ref=body] > .ful-section-error'), null);
-        container.remove();
     });
 });

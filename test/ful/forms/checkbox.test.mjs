@@ -1,13 +1,12 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
+import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
+    const container = appended(html);
     const el = container.firstElementChild;
     await Rendering.waitFor(el);
     return [el, container, el.querySelector('input'), el.querySelector('label')];
@@ -22,7 +21,7 @@ const changes = (container) => {
 
 describe('Checkbox toggling', () => {
     it('toggles the value when the label is clicked, as the label is not natively bound to the input', async () => {
-        const [el, container, input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         label.click();
         assert.isTrue(el.value, 'first click checks');
@@ -31,7 +30,6 @@ describe('Checkbox toggling', () => {
         label.click();
         assert.isFalse(el.value, 'second click unchecks');
         assert.isFalse(input.checked);
-        container.remove();
     });
 
     it('announces each toggle with a single bubbling change carrying the new value', async () => {
@@ -43,7 +41,6 @@ describe('Checkbox toggling', () => {
         assert.lengthOf(seen, 1, 'exactly one change per toggle');
         assert.strictEqual(seen[0].target, el, 'the host is the source, not the inner input');
         assert.deepStrictEqual(seen[0].detail, { value: true });
-        container.remove();
     });
 
     it('republishes the inner input change as its own, so listeners never see it twice', async () => {
@@ -57,7 +54,6 @@ describe('Checkbox toggling', () => {
         assert.lengthOf(seen, 1, 'the inner change must be stopped and replaced, not forwarded too');
         assert.strictEqual(seen[0].target, el);
         assert.deepStrictEqual(seen[0].detail, { value: true });
-        container.remove();
     });
 
     it('ignores label clicks while readonly', async () => {
@@ -70,7 +66,6 @@ describe('Checkbox toggling', () => {
 
         assert.isTrue(el.value, 'the value is left alone');
         assert.lengthOf(seen, 0, 'and nothing is announced');
-        container.remove();
     });
 
     it('ignores label clicks while disabled', async () => {
@@ -82,13 +77,12 @@ describe('Checkbox toggling', () => {
 
         assert.isFalse(el.value);
         assert.lengthOf(seen, 0);
-        container.remove();
     });
 });
 
 describe('Checkbox value', () => {
     it('reads and writes the checked state of the inner input', async () => {
-        const [el, container, input] = await mount(`<ful-checkbox name="a" value="true">label</ful-checkbox>`);
+        const [el, , input] = await mount(`<ful-checkbox name="a" value="true">label</ful-checkbox>`);
         assert.isTrue(input.checked, 'value:bool checks the box at render');
 
         el.value = false;
@@ -96,24 +90,22 @@ describe('Checkbox value', () => {
 
         input.checked = true;
         assert.isTrue(el.value, 'the input is the single source of truth');
-        container.remove();
     });
 
     it('follows a later value attribute change, where only the string true means checked', async () => {
-        const [el, container, input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         el.setAttribute('value', 'true');
         assert.isTrue(input.checked);
 
         el.setAttribute('value', 'false');
         assert.isFalse(input.checked);
-        container.remove();
     });
 });
 
 describe('Checkbox states', () => {
     it('freezes readonly without leaving the accessibility tree, so the value stays readable', async () => {
-        const [el, container] = await mount(`<ful-checkbox name="a" readonly value="true">label</ful-checkbox>`);
+        const [el] = await mount(`<ful-checkbox name="a" readonly value="true">label</ful-checkbox>`);
         const box = el.firstElementChild;
         const input = el.querySelector('input');
 
@@ -131,11 +123,10 @@ describe('Checkbox states', () => {
         assert.isNull(input.getAttribute('aria-readonly'));
         input.click();
         assert.isFalse(el.value, 'and it toggles again once the claim is lifted');
-        container.remove();
     });
 
     it('reflects readonly and required set as properties back onto the host attributes', async () => {
-        const [el, container, input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         el.readonly = true;
         el.required = true;
@@ -148,11 +139,10 @@ describe('Checkbox states', () => {
         el.required = false;
         assert.isFalse(el.hasAttribute('required'));
         assert.isFalse(input.hasAttribute('aria-required'));
-        container.remove();
     });
 
     it('disables the inner input, which is what keeps it out of a submitted payload', async () => {
-        const [el, container, input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         el.disabled = true;
         assert.isTrue(input.hasAttribute('disabled'));
@@ -161,22 +151,20 @@ describe('Checkbox states', () => {
         el.disabled = false;
         assert.isFalse(input.hasAttribute('disabled'));
         assert.isFalse(el.disabled);
-        container.remove();
     });
 
     it('forwards focus to the inner input, so labels and form navigation land on something focusable', async () => {
-        const [el, container, input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         el.focus();
 
         assert.strictEqual(document.activeElement, input);
-        container.remove();
     });
 });
 
 describe('Checkbox validity', () => {
     it('renders a custom validity message into its field error and clears it again', async () => {
-        const [el, container] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
         const fieldError = el.querySelector('ful-field-error');
 
         el.setCustomValidity('required');
@@ -188,21 +176,19 @@ describe('Checkbox validity', () => {
 
         assert.strictEqual(fieldError.innerText, '');
         assert.isTrue(el.internals.validity.valid);
-        container.remove();
     });
 
     it('describes the input by its field error, so the message is read out with the control', async () => {
-        const [el, container, input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         assert.deepStrictEqual(input.ariaDescribedByElements, [el.querySelector('ful-field-error')]);
         assert.deepStrictEqual(input.ariaLabelledByElements, [label]);
-        container.remove();
     });
 });
 
 describe('Checkbox rendering', () => {
     it('renders the switch variant with the switch role, and the plain one without it', async () => {
-        const [el, container, input] = await mount(`<ful-checkbox name="a" type="switch">label</ful-checkbox>`);
+        const [el, , input] = await mount(`<ful-checkbox name="a" type="switch">label</ful-checkbox>`);
 
         assert.strictEqual(el.firstElementChild.localName, 'ful-choice');
         assert.isTrue(el.firstElementChild.hasAttribute('switch'));
@@ -212,14 +198,11 @@ describe('Checkbox rendering', () => {
         assert.strictEqual(plain.firstElementChild.localName, 'ful-choice');
         assert.isFalse(plain.firstElementChild.hasAttribute('switch'));
         assert.isFalse(plainInput.hasAttribute('role'), 'a plain checkbox keeps the native checkbox role');
-        container.remove();
         plainContainer.remove();
     });
 
     it('keeps the inner input out of the surrounding form, so only the host contributes a value', async () => {
-        const container = document.createElement('div');
-        container.innerHTML = `<form><ful-checkbox name="a">label</ful-checkbox></form>`;
-        document.body.appendChild(container);
+        const container = appended(`<form><ful-checkbox name="a">label</ful-checkbox></form>`);
         const el = container.querySelector('ful-checkbox');
         await Rendering.waitFor(el);
         const form = container.querySelector('form');
@@ -227,6 +210,5 @@ describe('Checkbox rendering', () => {
         const elements = [...form.elements];
         assert.include(elements, el, 'the host is form associated');
         assert.notInclude(elements, el.querySelector('input'), 'the inner input is detached by form=""');
-        container.remove();
     });
 });
