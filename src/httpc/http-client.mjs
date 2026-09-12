@@ -727,4 +727,18 @@ class HttpMultipartRequestCustomizer {
     }
 }
 
-export { MediaType, HttpClient, HttpClientError };
+//every type a caller can end up holding is nameable: the builder `builder()`
+//answers, the request builder every verb answers, the chain an interceptor is
+//handed and the customizer a multipart callback is handed. They were reachable
+//and unnameable, so a consumer could write the call but not annotate the
+//helper it lives in. The interceptors stay unexported: they are page policy the
+//builder installs, not a type anything hands back
+export {
+    MediaType,
+    HttpClient,
+    HttpClientBuilder,
+    HttpClientError,
+    HttpInterceptorChain,
+    HttpRequestBuilder,
+    HttpMultipartRequestCustomizer,
+};

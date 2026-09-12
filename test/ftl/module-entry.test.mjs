@@ -17,6 +17,21 @@ describe('the module entry', () => {
         assert.strictEqual(fml.Plugin, ful.Plugin);
     });
 
+    it('names every type its own signatures hand back', async () => {
+        //a consumer can write the call either way; without the export they
+        //cannot annotate the helper it lives in, nor the interceptor they write
+        assert.isFunction(httpc.HttpClientBuilder);
+        assert.isFunction(httpc.HttpRequestBuilder);
+        assert.isFunction(httpc.HttpInterceptorChain);
+        assert.isFunction(httpc.HttpMultipartRequestCustomizer);
+
+        const client = httpc.HttpClient.builder().build();
+        assert.instanceOf(httpc.HttpClient.builder(), httpc.HttpClientBuilder);
+        assert.instanceOf(client.get('/x'), httpc.HttpRequestBuilder);
+        //and the root entry hands over the same classes, not copies
+        assert.strictEqual(fml.HttpRequestBuilder, httpc.HttpRequestBuilder);
+    });
+
     it('exports every filter and loader class', () => {
         assert.isFunction(ful.InstantFilter);
         assert.isFunction(ful.LocalDateFilter);
