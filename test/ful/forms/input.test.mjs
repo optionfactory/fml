@@ -306,7 +306,7 @@ describe('Input enter key inside a form', () => {
     });
 });
 
-describe('Input mask', () => {
+describe('Input keep and reject', () => {
     const type = (el, value, caret) => {
         const input = el.querySelector('input');
         input.value = value;
@@ -317,17 +317,17 @@ describe('Input mask', () => {
         return input;
     };
 
-    it('strips the characters the mask matches as they are typed', async () => {
-        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+    it('strips the characters reject matches as they are typed', async () => {
+        const [el] = await mount(`<ful-input reject="[^0-9]">l</ful-input>`);
 
         const input = type(el, 'a1');
 
         assert.strictEqual(input.value, '1');
-        assert.strictEqual(el.value, '1', 'the host reports the masked value');
+        assert.strictEqual(el.value, '1', 'the host reports the filtered value');
     });
 
     it('strips every match, not only the first one', async () => {
-        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+        const [el] = await mount(`<ful-input reject="[^0-9]">l</ful-input>`);
 
         const input = type(el, 'a1b2c3');
 
@@ -335,7 +335,7 @@ describe('Input mask', () => {
     });
 
     it('keeps the caret next to the same character when earlier ones are stripped', async () => {
-        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+        const [el] = await mount(`<ful-input reject="[^0-9]">l</ful-input>`);
 
         //caret sits right after the '2' of 'a1b2|3'
         const input = type(el, 'a1b23', 4);
@@ -346,7 +346,7 @@ describe('Input mask', () => {
     });
 
     it('leaves a value with nothing to strip completely alone, selection included', async () => {
-        const [el] = await mount(`<ful-input mask="[^0-9]">l</ful-input>`);
+        const [el] = await mount(`<ful-input reject="[^0-9]">l</ful-input>`);
         const input = el.querySelector('input');
         input.value = '123';
         input.setSelectionRange(1, 3);
@@ -358,7 +358,7 @@ describe('Input mask', () => {
         assert.strictEqual(input.selectionEnd, 3);
     });
 
-    it('does not touch the value when no mask is declared', async () => {
+    it('does not touch the value when neither is declared', async () => {
         const [el] = await mount(`<ful-input>l</ful-input>`);
 
         const input = type(el, 'a1b2');
@@ -366,37 +366,86 @@ describe('Input mask', () => {
         assert.strictEqual(input.value, 'a1b2');
     });
 
-    it('warns once and ignores a malformed mask instead of throwing per keystroke', async () => {
+    it('keeps only what keep matches, the same statement from the other side', async () => {
+        const [el] = await mount(`<ful-input keep="[0-9]">l</ful-input>`);
+
+        const input = type(el, 'a1b2c3');
+
+        assert.strictEqual(input.value, '123');
+        assert.strictEqual(el.value, '123');
+    });
+
+    it('keeps the caret in place under keep too', async () => {
+        const [el] = await mount(`<ful-input keep="[0-9]">l</ful-input>`);
+
+        //caret sits right after the '2' of 'a1b2|3'
+        const input = type(el, 'a1b23', 4);
+
+        assert.strictEqual(input.value, '123');
+        assert.strictEqual(input.selectionStart, 2, "still right after the '2'");
+    });
+
+    it('keeps multi-character matches, not only single characters', async () => {
+        //keep takes a pattern, not a character class: negating it would not have
+        //given this, which is why the kept text is matched rather than the rest stripped
+        const [el] = await mount(`<ful-input keep="[0-9]{2}">l</ful-input>`);
+
+        const input = type(el, 'a12b3c45');
+
+        assert.strictEqual(input.value, '1245', 'the lone 3 never forms a pair');
+    });
+
+    it('applies keep and warns once when both are declared', async () => {
         const originalWarn = console.warn;
         const warns = [];
         console.warn = (...args) => warns.push(args);
         try {
-            const [el, container] = await mount(`<ful-input mask="[">l</ful-input>`);
+            const [el] = await mount(`<ful-input keep="[0-9]" reject="[0-9]">l</ful-input>`);
+
+            const input = type(el, 'a1b2');
+            assert.strictEqual(input.value, '12', 'keep won, so the digits survived');
+            type(el, 'a1b2c3');
+            assert.lengthOf(warns, 1, 'warned once, not per keystroke');
+            assert.include(String(warns[0]), 'both keep and reject');
+        } finally {
+            console.warn = originalWarn;
+        }
+    });
+
+    it('warns once and ignores a malformed pattern instead of throwing per keystroke', async () => {
+        const originalWarn = console.warn;
+        const warns = [];
+        console.warn = (...args) => warns.push(args);
+        try {
+            const [el, container] = await mount(`<ful-input reject="[">l</ful-input>`);
 
             const input = type(el, 'a1');
-            assert.strictEqual(input.value, 'a1', 'an invalid mask behaves as no mask');
+            assert.strictEqual(input.value, 'a1', 'an invalid pattern behaves as none at all');
             assert.strictEqual(el.value, 'a1');
             type(el, 'a12');
             assert.strictEqual(input.value, 'a12');
             assert.lengthOf(warns, 1, 'warned once, not per keystroke');
-            assert.isTrue(String(warns[0]).includes('mask'));
+            assert.isTrue(String(warns[0]).includes('reject'));
             container.remove();
         } finally {
             console.warn = originalWarn;
         }
     });
 
-    it('reads the mask on every input, so a later attribute change applies', async () => {
+    it('reads the filter on every input, so a later attribute change applies', async () => {
         const [el] = await mount(`<ful-input>l</ful-input>`);
         assert.strictEqual(type(el, 'a1').value, 'a1');
 
-        el.setAttribute('mask', '[^0-9]');
-
+        el.setAttribute('reject', '[^0-9]');
         assert.strictEqual(type(el, 'a1').value, '1');
+
+        el.removeAttribute('reject');
+        el.setAttribute('keep', '[a-z]');
+        assert.strictEqual(type(el, 'a1').value, 'a');
     });
 });
 
-describe('Input mask on values it cannot place a caret in', () => {
+describe('Input filters on values it cannot place a caret in', () => {
     const mount = async (attrs) => {
         const container = appended(`<ful-input name="a" ${attrs}>label</ful-input>`);
         const el = container.querySelector('ful-input');
@@ -404,10 +453,10 @@ describe('Input mask on values it cannot place a caret in', () => {
         return [el, container];
     };
 
-    it('masks an email, which has no selection to restore', async () => {
+    it('filters an email, which has no selection to restore', async () => {
         //setSelectionRange throws on the types that report a null selectionStart, and an
         //uncaught error in the listener fails this test on its own
-        const [el] = await mount('type="email" mask="[^a-z@.]"');
+        const [el] = await mount('type="email" reject="[^a-z@.]"');
         const input = el.querySelector('input');
 
         input.value = 'a1b2@x.com';
@@ -417,7 +466,7 @@ describe('Input mask on values it cannot place a caret in', () => {
     });
 
     it('keeps the caret in place when characters after it are stripped too', async () => {
-        const [el] = await mount('mask="[a-z]"');
+        const [el] = await mount('reject="[a-z]"');
         const input = el.querySelector('input');
 
         input.value = 'a1b2c3';

@@ -101,14 +101,28 @@ const mount = async (html) => {
     const detail = await Promise.race([success, new Promise((r) => setTimeout(() => r(null), 1500))]);
     ok('10 custom form loader pipeline', !!detail && detail.response.echoed?.a === '1' && typeof detail.response.echoed?.ts === 'number', JSON.stringify(detail?.response));
 
-    // ===== 11: ful-input mask + info slot
-    d = await mount(`<ful-input name="vat" mask="[^0-9A-Z]" required>VAT number<template slot="info">as printed on the invoice</template></ful-input>`);
+    // ===== 11: keep / reject, and the info slot
+    d = await mount(`<ful-input name="vat" keep="[0-9A-Z]" required>VAT number<template slot="info">as printed on the invoice</template></ful-input>`);
     const vat = d.querySelector('ful-input');
     const inner = vat.querySelector('input');
     inner.value = 'it-01a23';
     inner.dispatchEvent(new Event('input', { bubbles: true }));
-    ok('11 mask strips the matches', vat.value === '0123', `${vat.value}`);
+    ok('11 keep survives only what it matches', vat.value === '0123', `${vat.value}`);
     ok('11 info slot rendered', d.textContent.includes('as printed on the invoice'));
+
+    d = await mount(`<ful-input name="r" reject="[^0-9]">n</ful-input>`);
+    const rej = d.querySelector('ful-input');
+    const rin = rej.querySelector('input');
+    rin.value = 'a1b2';
+    rin.dispatchEvent(new Event('input', { bubbles: true }));
+    ok('11 reject is the same filter from the other side', rej.value === '12', `${rej.value}`);
+
+    d = await mount(`<ful-input name="p" keep="[0-9]{2}">n</ful-input>`);
+    const pair = d.querySelector('ful-input');
+    const pin = pair.querySelector('input');
+    pin.value = 'a12b3c45';
+    pin.dispatchEvent(new Event('input', { bubbles: true }));
+    ok('11 keep takes a pattern, not only a character class', pair.value === '1245', `${pair.value}`);
 
     // ===== 11: checkbox switch
     d = await mount(`<ful-checkbox name="marketing" type="switch">Send me the newsletter</ful-checkbox>`);

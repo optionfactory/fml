@@ -1,18 +1,48 @@
 import { Attributes, BoundedCache } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
-//a null entry is a mask that did not compile: cached like any other so the
+//a null entry is a pattern that did not compile: cached like any other so the
 //warning is printed once rather than on every keystroke
-const maskCache = new BoundedCache(100);
-const compiledMask = (mask) =>
-    maskCache.getOrCompute(mask, () => {
+const patternCache = new BoundedCache(100);
+const compiled = (attr, pattern) =>
+    patternCache.getOrCompute(`${attr}:${pattern}`, () => {
         try {
-            return new RegExp(mask, 'g');
+            return new RegExp(pattern, 'g');
         } catch (/** @type any */ e) {
-            console.warn('invalid mask attribute', mask, e);
+            console.warn(`invalid ${attr} attribute`, pattern, e);
             return null;
         }
     });
+
+/**
+ * The keystroke filter an input declares, as one function of the text.
+ *
+ * `keep` names the characters that survive and `reject` the ones that do not,
+ * which are the same statement from either side: `keep="[0-9]"` and
+ * `reject="[^0-9]"` both leave the digits. Keeping is the one worth reaching for,
+ * the rejecting spelling of an allowed set being a double negative.
+ */
+const warnedBoth = new WeakSet();
+const filterOf = (el) => {
+    const keep = el.getAttribute('keep');
+    const reject = el.getAttribute('reject');
+    if (keep !== null && reject !== null && !warnedBoth.has(el)) {
+        //the filter is read per keystroke, so the complaint is held per element
+        warnedBoth.add(el);
+        console.warn('a ful-input declares both keep and reject: keep is applied, reject is ignored', el);
+    }
+    if (keep !== null) {
+        const re = compiled('keep', keep);
+        //every match, concatenated: the attribute is a pattern rather than a
+        //character class, so the kept text cannot be found by negating it
+        return re && ((v) => (v.match(re) ?? []).join(''));
+    }
+    if (reject !== null) {
+        const re = compiled('reject', reject);
+        return re && ((v) => v.replace(re, ''));
+    }
+    return null;
+};
 
 /** A labelled text input over any native type or textarea; the temporal inputs are its subclasses. */
 class Input extends Field {
@@ -50,15 +80,10 @@ class Input extends Field {
             this._requestSubmit();
         });
         this._input.addEventListener('input', (evt) => {
-            const mask = this.getAttribute('mask');
-            if (!mask) {
+            const strip = filterOf(this);
+            if (!strip) {
                 return;
             }
-            const re = compiledMask(mask);
-            if (re === null) {
-                return;
-            }
-            const strip = (v) => v.replace(re, '');
             const before = evt.target.value;
             const after = strip(before);
             if (before === after) {

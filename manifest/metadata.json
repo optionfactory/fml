@@ -39,7 +39,7 @@
             }
         },
         "ful-input": {
-            "description": "A labelled text input. Use type to pick any native input type, or textarea; a mask of allowed characters drops every other keystroke in place, and the uppercase and trim claims shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A labelled text input. Use type to pick any native input type, or textarea; keep names the characters that survive a keystroke and reject the ones that do not, the caret staying among the survivors, and the uppercase and trim claims shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {},
             "slots": {},
             "events": {

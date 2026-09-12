@@ -97,7 +97,7 @@
         <ful-form>
             <ful-input name="plain" required>Plain required</ful-input>
             <ful-input name="affixed" value="42"><b slot="before">&euro;</b><span slot="after">kg</span>With affixes</ful-input>
-            <ful-input name="masked" mask="[^0-9]" value="abc123def">Masked (digits only)</ful-input>
+            <ful-input name="filtered" keep="[0-9]" value="abc123def">Filtered (digits only)</ful-input>
             <ful-input name="shouting" uppercase value="shout this">Uppercased</ful-input>
             <ful-input name="trimmed" trim value="  padded  ">Trimmed</ful-input>
             <ful-input name="pin" type="password" value="hunter2">Password</ful-input>
