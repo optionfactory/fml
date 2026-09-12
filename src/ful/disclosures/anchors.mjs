@@ -83,6 +83,14 @@ const unplace = (popover) => {
 const reflow = () => {
     frame = 0;
     for (const [popover, anchored] of open) {
+        //the platform hides a popover removed while open without firing the
+        //toggle that would have dropped its entry, so the pass that places the
+        //open ones is also where a gone one is forgotten: it is the moment
+        //anybody cares, and it needs no callback on either element's life
+        if (!popover.isConnected || !anchored.invoker.isConnected) {
+            open.delete(popover);
+            continue;
+        }
         place(popover, anchored);
     }
 };
