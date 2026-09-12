@@ -101,6 +101,7 @@ The breaking changes, each detailed in its area below:
 
 #### ful-input-file
 
+- [REF] `InputFile.list(files)` builds the FileList every narrowing of a selection needs. The platform offers no way to make one but through a `DataTransfer`, so removing a chip, accepting a drop, dropping the unacceptable files, dropping the oversized ones and assigning a single file each rebuilt it by hand, with three more constructions for an empty one: eight sites, one helper
 - [ENH] the file list entries are deletable chips (see ful-select below for the shared chip pattern), the file's size riding along muted; the default dropzone is themed like the rest of the library (dashed border, theme radius, hover ring, filled drag-over state; it was a `5px solid blue` placeholder), and the native `choose file` button is restyled as an affix-like leading control of the group. A slotted custom dropzone keeps rendering as plain user content, with a `dragover` attribute toggled on `ful-input-file` as the opt-in styling hook
 - [ENH] `accept` honors the whole vocabulary: mime types with parameters ignored, and `image/*`-style families, not extensions alone; a drop carrying more than one file on a single-file field is rejected whole, as the native input's own drop is, and a dropped directory is ignored
 - [ENH] drops and item removals report through `change` as a picker selection does; programmatic `files`/`value` assignments and the form's reset stay silent, like a native input's

@@ -5,6 +5,19 @@ import { Input } from './input.mjs';
 class InputFile extends Input {
     /** how long a warning stands before the field retires it, matching the css fade */
     static WARNING_TIMEOUT = 5000;
+    /**
+     * A FileList holding exactly these files. The platform gives no way to
+     * build one but through a DataTransfer, and every place that narrows a
+     * selection rebuilt it by hand: five loops and three empty ones.
+     * @param {Iterable<File>} [files]
+     */
+    static list(files = []) {
+        const dt = new DataTransfer();
+        for (const file of files) {
+            dt.items.add(file);
+        }
+        return dt.files;
+    }
     static observed = [
         'placeholder',
         'accept:csv',
@@ -73,13 +86,7 @@ class InputFile extends Input {
             if (idx === -1) {
                 return;
             }
-            const dt = new DataTransfer();
-            [...this.files]
-                .filter((f, i) => i !== idx)
-                .forEach((f) => {
-                    dt.items.add(f);
-                });
-            this.files = dt.files;
+            this.files = InputFile.list([...this.files].filter((f, i) => i !== idx));
             //the removal is the user's own gesture: it reports through change as the
             //picker's selection does, while the files setter stays silent like a native one
             this._notifyChange();
@@ -111,11 +118,7 @@ class InputFile extends Input {
             if (files.length === 0 || (files.length > 1 && !this.multiple)) {
                 return;
             }
-            const dt = new DataTransfer();
-            files.forEach((f) => {
-                dt.items.add(f);
-            });
-            this.files = dt.files;
+            this.files = InputFile.list(files);
             //a drop is the user's own gesture too: a native file input receiving
             //one fires change on its own
             this._notifyChange();
@@ -178,13 +181,7 @@ class InputFile extends Input {
             return;
         }
         this.warning('files.unacceptablefiletype', { types: this.#accept.join(', ') });
-        const dt = new DataTransfer();
-        [...this.files]
-            .filter((f) => !unacceptable.includes(f))
-            .forEach((f) => {
-                dt.items.add(f);
-            });
-        this._input.files = dt.files;
+        this._input.files = InputFile.list([...this.files].filter((f) => !unacceptable.includes(f)));
     }
     #ensureFilesCount() {
         if (this.#maxfiles === null) {
@@ -194,7 +191,7 @@ class InputFile extends Input {
             return;
         }
         this.warning('files.maxfilesexceeded', { count: this.#maxfiles });
-        this._input.files = new DataTransfer().files;
+        this._input.files = InputFile.list();
     }
 
     #ensureFileSizes() {
@@ -206,13 +203,7 @@ class InputFile extends Input {
             return;
         }
         this.warning('files.maxfilesizeexceeded', { size: Localization.of().bytes(this.#maxfilesize) });
-        const dt = new DataTransfer();
-        [...this.files]
-            .filter((f) => !oversized.includes(f))
-            .forEach((f) => {
-                dt.items.add(f);
-            });
-        this._input.files = dt.files;
+        this._input.files = InputFile.list([...this.files].filter((f) => !oversized.includes(f)));
     }
     #ensureTotalSize() {
         if (this.#maxtotalsize === null) {
@@ -223,7 +214,7 @@ class InputFile extends Input {
             return;
         }
         this.warning('files.maxtotalsizeexceeded', { size: Localization.of().bytes(this.#maxtotalsize) });
-        this._input.files = new DataTransfer().files;
+        this._input.files = InputFile.list();
     }
 
     get accept() {
@@ -252,11 +243,7 @@ class InputFile extends Input {
         return this.files[0] ?? null;
     }
     set file(v) {
-        const dt = new DataTransfer();
-        if (v) {
-            dt.items.add(v);
-        }
-        this.files = dt.files;
+        this.files = InputFile.list(v ? [v] : []);
     }
     get value() {
         const names = Array.from(this._input.files).map((f) => f.name);
@@ -266,7 +253,7 @@ class InputFile extends Input {
         if (v) {
             return;
         }
-        this.files = new DataTransfer().files;
+        this.files = InputFile.list();
     }
     formResetCallback() {
         //a file selection's default is empty, as the platform's own reset: a
