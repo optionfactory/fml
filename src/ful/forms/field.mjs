@@ -2,18 +2,23 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
 
 /**
  * The base of every form-associated ful field: a form-associated custom element
- * carrying the validity protocol, the field error live region, focus delegation,
- * the label chrome and the disabled/readonly/required claim protocols. A
- * subclass owns its template, its value semantics and its change events, and
- * hands its rendered pieces over through _adopt/_wireLabel once its render
- * queried them. _adopt is the contract, not a courtesy: the claim setters,
- * the validity protocol and the aria wiring reach through the adopted pair,
- * so a field with no native control adopts a focusable piece of its chrome
- * or overrides the claim pairs itself (as ful-radio-group does). The getters
- * and focus() alone tolerate the not-yet-rendered element, where page code
- * may still read a claim or ask for the focus: the properties go live only
- * after the render, as ParsedElement documents. The base
- * references no ful vocabulary, only what its subclasses pass it.
+ * carrying the validity protocol, the field error live region, focus
+ * delegation, the label chrome and the disabled, readonly and required claims.
+ *
+ * A subclass owns its template, its value semantics and its change events. It
+ * implements `_build(conf)`, which builds its dom and returns the pieces the
+ * base drives — the control, the error region, the label, and the optional
+ * `claims`, `announces`, `freeze` and `also` — and the base does the wiring,
+ * the mounting and the application of the declared state. Nothing in the base
+ * is there to be called from a subclass's build.
+ *
+ * The pieces are the contract: the claim setters, the validity protocol and
+ * the aria wiring all act on them, so a field with no native control returns a
+ * focusable piece of its own chrome as the control. The getters and `focus()`
+ * are the only members that tolerate a not-yet-rendered element, where page
+ * code may read a claim or ask for the focus before the upgrade; the
+ * properties go live only after the render, as ParsedElement documents. The
+ * base references no ful vocabulary, only what its subclasses return to it.
  */
 class Field extends ParsedElement {
     static formAssociated = true;
