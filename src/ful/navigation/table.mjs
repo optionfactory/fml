@@ -106,7 +106,23 @@ class Pagination extends ParsedElement {
             );
         });
     }
-    update(current, total) {
+    /**
+     * Moves the pager to a page, a page count, or both, and repaints once. The
+     * two are one state: writing them one at a time repainted the bar twice per
+     * load, the first pass drawing the new page against the old count.
+     * @param {{ current?: number|null, total?: number|null }} [state]
+     */
+    update({ current: toCurrent, total: toTotal } = {}) {
+        if (toCurrent !== undefined) {
+            this.#current = toCurrent ?? 0;
+        }
+        if (toTotal !== undefined) {
+            this.#total = toTotal ?? 0;
+        }
+        this.reflectTo('current', this.#current);
+        this.reflectTo('total', this.#total);
+        const current = this.#current;
+        const total = this.#total;
         const maxRender = Number(this.getAttribute('pages') ?? '5');
         //an empty table is one empty page: everything downstream renders it like
         //any single page result
@@ -145,21 +161,14 @@ class Pagination extends ParsedElement {
         return this.#total;
     }
     set total(value) {
-        //an absent attribute declares no pages, not a NaN one: the default
-        //lives here now that the base applies the declared state as it found it
-        this.#total = value ?? 0;
-        this.reflectTo('total', this.#total);
-        //the re-render is the setter's own projection, not a reflection: inside
-        //the guard it muted every attribute the render happened to touch
-        this.update(this.#current ?? 0, this.#total);
+        //an absent attribute declares no pages, not a NaN one
+        this.update({ total: value });
     }
     get current() {
         return this.#current;
     }
     set current(value) {
-        this.#current = value ?? 0;
-        this.reflectTo('current', this.#current);
-        this.update(this.#current, this.#total ?? 0);
+        this.update({ current: value });
     }
 }
 
@@ -211,6 +220,11 @@ class TableSchemaParser {
                       })();
             const th = document.createElement('th');
             const td = document.createElement('td');
+            //a column's attributes land on both cells, so a `data-tpl-*` written
+            //once applies to the header and the body alike. `inHeaders` and
+            //`inRows` are how an author tells them apart when that is not what
+            //they meant: both templates carry the pair, so a column can say
+            //`data-tpl-if="inRows"` and appear in the body only
             for (const attr of column.getAttributeNames()) {
                 const value = column.getAttribute(attr);
                 th.setAttribute(attr, value ?? '');
@@ -541,8 +555,8 @@ class Table extends ParsedElement {
                 })
                 .render(),
         );
-        this.#paginator.current = pageRequest.page;
-        this.#paginator.total = pages;
+        //one move, one repaint: the page and the count are the same state
+        this.#paginator.update({ current: pageRequest.page, total: pages });
     }
 }
 
