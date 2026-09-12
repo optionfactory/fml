@@ -5,8 +5,8 @@ import { appended } from '../../harness.mjs';
 /**
  * The glyph-button-and-menu the filters are built from, exercised through its own
  * defaults rather than through a filter: every filter passes both a localized
- * label and a glyph, so the plain case — a vocabulary that is its own label and
- * its own glyph — never runs in the library and is the class's own contract.
+ * label and a glyph, so the plain case, a vocabulary that is its own label and
+ * its own glyph, never runs in the library and is the class's own contract.
  */
 describe('ChoiceButton', () => {
     const build = (options) => {

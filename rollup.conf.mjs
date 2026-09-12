@@ -42,7 +42,7 @@ class RollupPeggyWithSourceMap {
  *
  * They are concatenated in the order the modules evaluate, not the order they happened
  * to be transformed in: rollup loads in parallel, so the transform order is arbitrary,
- * and the cascade — which layer is declared first above all — would be decided by a
+ * and the cascade, which layer is declared first above all, would be decided by a
  * race. The stylesheets are emitted here in the same sequence the browser adopts them
  * when the source modules are loaded one by one, so the built file and the source tree
  * cascade alike.

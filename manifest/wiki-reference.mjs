@@ -6,14 +6,14 @@
  * disagree, so the reference page cannot drift from the elements: regenerate it
  * rather than editing it by hand.
  *
- *   node manifest/wiki-reference.mjs ../fml.wiki/21-Element-reference.md
+ *   node manifest/wiki-reference.mjs ../fml.wiki/24-Element-reference.md
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const out = process.argv[2] ?? join(root, '..', 'fml.wiki', '21-Element-reference.md');
+const out = process.argv[2] ?? join(root, '..', 'fml.wiki', '24-Element-reference.md');
 const manifest = JSON.parse(readFileSync(join(root, 'dist/custom-elements.json'), 'utf8'));
 
 const elements = manifest.modules
@@ -99,7 +99,7 @@ const other = rest.length ? `## Other\n\n${rest.map(section).join('')}` : '';
 
 const index = FAMILIES.map(
     ([family, tags]) =>
-        `- **${family}** — ${tags
+        `- **${family}**: ${tags
             .filter((t) => elements.some((e) => e.tagName === t))
             .map((t) => `[\`${t}\`](#${anchor(t)})`)
             .join(', ')}`,

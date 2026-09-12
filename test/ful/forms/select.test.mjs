@@ -38,7 +38,7 @@ const ONE_OPTION = [{ key: 'k1', label: 'Label 1' }];
 describe('Select and dropdown combobox ARIA compliance', () => {
     beforeEach(() => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => {}, load: async () => [] }),
+            create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })) }),
         });
     });
 
@@ -129,6 +129,7 @@ describe('Select and dropdown load failure handling', () => {
                     throw new Error('boom');
                 },
                 load: async () => [],
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
             }),
         });
         const container = appended(`<ful-select></ful-select>`);
@@ -146,6 +147,7 @@ describe('Select and dropdown load failure handling', () => {
                 load: async () => {
                     throw new Error('boom');
                 },
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
             }),
         });
         const container = appended(`<ful-select></ful-select>`);
@@ -209,7 +211,7 @@ describe('Select and dropdown keyboard interaction', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
-                exact: async () => [],
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
                 load: async () => [
                     { key: 'k1', label: 'Label 1' },
                     { key: 'k2', label: 'Label 2' },
@@ -243,7 +245,7 @@ describe('Select and dropdown keyboard interaction', () => {
 
     it('ignores arrow keys when the shown dropdown has no options', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => {}, exact: async () => [], load: async () => [] }),
+            create: () => ({ prefetch: async () => {}, exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })), load: async () => [] }),
         });
         const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
@@ -266,7 +268,7 @@ describe('Select and dropdown keyboard interaction', () => {
 
     it('says no results when the search matches nothing', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => {}, exact: async () => [], load: async () => [] }),
+            create: () => ({ prefetch: async () => {}, exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })), load: async () => [] }),
         });
         const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
@@ -1374,7 +1376,7 @@ describe('Select chips and validity', () => {
         const [selectEl] = await mount(`<ful-select>labels</ful-select>`);
         const input = selectEl.querySelector('input');
         registry.defineComponent('loaders:select', {
-            create: () => ({ load: async () => [{ key: 'k1', label: 'Label 1' }] }),
+            create: () => ({ load: async () => [{ key: 'k1', label: 'Label 1' }], exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })) }),
         });
         input.dispatchEvent(new Event('click', { bubbles: true }));
         for (let i = 0; i !== 10; ++i) {
@@ -1718,6 +1720,7 @@ describe('Select stale searches', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
                 load: () =>
                     new Promise((resolve, reject) => {
                         pending.push({ resolve, reject });
@@ -1903,7 +1906,7 @@ describe('Select dropdown anchoring', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
-                exact: async () => [],
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
                 load: async () => [
                     { key: 'k1', label: 'Alpha' },
                     { key: 'k2', label: 'Beta' },

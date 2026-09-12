@@ -1,0 +1,322 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="../dist/ful.css" rel="stylesheet"><script src="../dist/fml.iife.js"></script>
+</head><body>
+<div id="stage"></div><pre id="out"></pre>
+<script>
+const log = [];
+const ok = (n, c, extra = '') => log.push(`${c ? 'PASS' : 'FAIL'} ${n}${extra ? ` :: ${extra}` : ''}`);
+
+// --- fake http for the remote examples
+const responses = new Map();
+window.fetch = async (url, init) => {
+    const u = String(url).replace(/^file:\/\/[^?]*?(?=\/api|\/steps)/, '');
+    const key = [...responses.keys()].find((k) => u.startsWith(k));
+    if (!key) { return new Response('[]', { headers: { 'content-type': 'application/json' } }); }
+    const body = responses.get(key);
+    return new Response(typeof body === 'string' ? body : JSON.stringify(body),
+        { headers: { 'content-type': typeof body === 'string' ? 'text/html' : 'application/json' } });
+};
+responses.set('/api/users', { });
+responses.set('/steps/', '<p data-ref="delivered">delivered</p>');
+
+// --- 12: the custom select loader from the page
+const ENTRIES = [
+    { key: 'it', label: 'Italy', metadata: { flag: '🇮🇹' } },
+    { key: 'fr', label: 'France', metadata: { flag: '🇫🇷' } },
+];
+ftl.registry.defineComponent('loaders:countries', {
+    create: (el, { options }) => ({
+        async prefetch() {},
+        async load(needle) { return ENTRIES; },
+        async exact(...keys) { return ENTRIES.filter((e) => keys.includes(e.key)); },
+    }),
+});
+
+// --- 10: the custom form loader from the page
+const myApi = async (request) => ({ data: { echoed: request } });
+ftl.registry.defineComponent('loaders:form-mine', {
+    create: (form) => ({
+        prepare: async (values, form) => ({ ...values, ts: Date.now() }),
+        submit: async (request, form) => myApi(request),
+        transform: async (response, form) => response.data,
+    }),
+});
+
+// --- 15: the custom table loader from the page
+ftl.registry.defineComponent('loaders:users', {
+    create: () => ({
+        async load(page, sort, filters) {
+            window.__tableArgs = { page, sort, filters };
+            return { data: [{ id: 1, email: 'a@b.c', createdAt: '2030-01-01' }], size: 1 };
+        },
+    }),
+});
+
+ftl.registry
+    .plugin(new ful.Plugin({ language: 'en', translations: { 'app.email': 'Email' } }))
+    .configure();
+
+const stage = document.getElementById('stage');
+const mount = async (html) => {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    stage.append(d);
+    await ftl.Rendering.waitForChildren(d);
+    await new Promise((r) => setTimeout(r, 120));
+    return d;
+};
+
+(async () => {
+  try {
+    await ftl.registry.ready();
+
+    // ===== 10-Ful-forms: values getter/setter shape
+    let d = await mount(`
+      <ful-form id="f1">
+        <ful-input name="user.email" value="a@b.c">Email</ful-input>
+        <ful-checkbox name="privacy" value="true">Privacy</ful-checkbox>
+        <ful-errors hidden></ful-errors>
+      </ful-form>`);
+    const f1 = d.querySelector('#f1');
+    ok('10 form.values getter', JSON.stringify(f1.values) === JSON.stringify({ user: { email: 'a@b.c' }, privacy: true }), JSON.stringify(f1.values));
+    f1.values = { user: { email: 'z@z.z' }, privacy: false };
+    ok('10 form.values setter', f1.values.user.email === 'z@z.z' && f1.values.privacy === false, JSON.stringify(f1.values));
+
+    // ===== 10: form.errors routing
+    f1.errors = [
+        { type: 'FIELD_ERROR', context: 'user.email', reason: 'already taken' },
+        { type: 'GENERIC', context: null, reason: 'try later' },
+    ];
+    await new Promise((r) => setTimeout(r, 60));
+    const fieldErr = f1.querySelector('ful-input').querySelector('ful-field-error');
+    const banner = f1.querySelector('ful-errors');
+    ok('10 FIELD_ERROR lands on the field', (fieldErr?.textContent ?? '').includes('already taken'), fieldErr?.textContent);
+    ok('10 GENERIC lands in the banner', (banner?.textContent ?? '').includes('try later') && !banner.hidden, `${banner?.textContent} hidden=${banner?.hidden}`);
+
+    // ===== 10: the custom form loader
+    d = await mount(`<ful-form loader="loaders:form-mine"><ful-input name="a" value="1">A</ful-input><button type="submit">go</button></ful-form>`);
+    const f2 = d.querySelector('ful-form');
+    const success = new Promise((r) => f2.addEventListener('submit:success', (e) => r(e.detail)));
+    f2.submit();
+    const detail = await Promise.race([success, new Promise((r) => setTimeout(() => r(null), 1500))]);
+    ok('10 custom form loader pipeline', !!detail && detail.response.echoed?.a === '1' && typeof detail.response.echoed?.ts === 'number', JSON.stringify(detail?.response));
+
+    // ===== 11: ful-input mask + info slot
+    d = await mount(`<ful-input name="vat" mask="[^0-9A-Z]" required>VAT number<template slot="info">as printed on the invoice</template></ful-input>`);
+    const vat = d.querySelector('ful-input');
+    const inner = vat.querySelector('input');
+    inner.value = 'it-01a23';
+    inner.dispatchEvent(new Event('input', { bubbles: true }));
+    ok('11 mask strips the matches', vat.value === '0123', `${vat.value}`);
+    ok('11 info slot rendered', d.textContent.includes('as printed on the invoice'));
+
+    // ===== 11: checkbox switch
+    d = await mount(`<ful-checkbox name="marketing" type="switch">Send me the newsletter</ful-checkbox>`);
+    const cb = d.querySelector('ful-checkbox');
+    ok('11 switch role', cb.querySelector('[role=switch]') !== null || cb.querySelector('input[type=checkbox]') !== null,
+       cb.querySelector('input')?.getAttribute('role') ?? 'none');
+
+    // ===== 11: radio-group
+    d = await mount(`<ful-radio-group name="size" value="m">Pick a size<ful-radio value="s">Small</ful-radio><ful-radio value="m">Medium</ful-radio><ful-radio value="l">Large</ful-radio><template slot="header">sizes run one small</template></ful-radio-group>`);
+    const rg = d.querySelector('ful-radio-group');
+    ok('11 radio-group value', rg.value === 'm', String(rg.value));
+    ok('11 radio-group renders three radios', rg.querySelectorAll('input[type=radio]').length === 3, String(rg.querySelectorAll('input[type=radio]').length));
+    ok('11 radio-group legend', rg.querySelector('legend')?.textContent.includes('Pick a size'), rg.querySelector('legend')?.textContent);
+    ok('11 radio-group header slot', d.textContent.includes('sizes run one small'));
+
+    // ===== 12: slotted options
+    d = await mount(`<ful-select name="country" required>Country<select slot="options"><option value="it">Italy</option><option value="fr">France</option><option value="de">Germany</option></select></ful-select>`);
+    const s1 = d.querySelector('ful-select');
+    s1.value = 'it';
+    await new Promise((r) => setTimeout(r, 120));
+    ok('12 slotted options label the value', s1.querySelector('input')?.value === 'Italy', s1.querySelector('input')?.value);
+    ok('12 entry property', s1.entry?.label === 'Italy', JSON.stringify(s1.entry));
+
+    // ===== 12: change detail carries value + entry
+    s1.value = 'fr';
+    await new Promise((r) => setTimeout(r, 150));
+    const cd = { value: s1.value, entry: s1.entry };
+    ok('12 value/entry pair after an assignment', cd.value === 'fr' && cd.entry?.label === 'France', JSON.stringify(cd));
+
+    // ===== 12: the custom loader + exact()
+    d = await mount(`<ful-select loader="loaders:countries" name="country">Country</ful-select>`);
+    const s2 = d.querySelector('ful-select');
+    s2.value = 'it';
+    await new Promise((r) => setTimeout(r, 200));
+    ok('12 custom loader exact() labels the key', s2.querySelector('input')?.value === 'Italy', s2.querySelector('input')?.value);
+
+    // ===== 12: multiple + csv value + items template
+    d = await mount(`<ful-select multiple itemlist name="tags" value="it,fr" loader="loaders:countries">Tags
+      <template slot="items">
+        <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry.key">
+          <div><em>{{ entry.label }}</em><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
+        </ful-item>
+      </template></ful-select>`);
+    const s3 = d.querySelector('ful-select');
+    await new Promise((r) => setTimeout(r, 200));
+    ok('12 multiple csv value', JSON.stringify(s3.value) === JSON.stringify(['it', 'fr']), JSON.stringify(s3.value));
+    const items = s3.querySelectorAll('ful-item');
+    ok('12 items template renders', items.length === 2 && items[0].textContent.includes('Italy') && items[0].dataset.key === 'it',
+       `${items.length} first=${items[0]?.textContent.trim()} key=${items[0]?.dataset.key}`);
+    ok('12 items template aria-label localized', items[0]?.querySelector('button')?.getAttribute('aria-label')?.length > 0,
+       items[0]?.querySelector('button')?.getAttribute('aria-label'));
+
+    // ===== 12: dropdown template
+    d = await mount(`<ful-select name="c" loader="loaders:countries">Country
+      <template slot="dropdown">
+        <li data-tpl-each="self" data-tpl-value="index" role="option"><ful-icon name="star"></ful-icon> {{ label }}</li>
+      </template></ful-select>`);
+    const s4 = d.querySelector('ful-select');
+    s4.querySelector('input').click();
+    await new Promise((r) => setTimeout(r, 300));
+    const opts = s4.querySelectorAll('li[role=option]');
+    ok('12 dropdown template renders options', opts.length === 2 && opts[0].textContent.includes('Italy') && opts[0].getAttribute('value') === '0',
+       `${opts.length} first="${opts[0]?.textContent.trim()}" value=${opts[0]?.getAttribute('value')}`);
+    ok('12 dropdown template icon', opts[0]?.querySelector('ful-icon[name=star]') !== null);
+    document.body.click();
+
+    // ===== 13: files
+    d = await mount(`<ful-input-file name="attachments" multiple accept=".pdf,.png" maxfiles="5" maxfilesize="5242880">Attachments<template slot="info">pdf or png, up to 5 files, 5MiB each</template></ful-input-file>`);
+    const ff = d.querySelector('ful-input-file');
+    const fi = ff.querySelector('input[type=file]');
+    ok('13 accept forwarded', fi?.getAttribute('accept') === '.pdf,.png', fi?.getAttribute('accept'));
+    ok('13 multiple forwarded', fi?.multiple === true, String(fi?.multiple));
+    ok('13 empty value is null-ish', ff.value === null || (Array.isArray(ff.value) && ff.value.length === 0), JSON.stringify(ff.value));
+    ok('13 info slot rendered', d.textContent.includes('pdf or png'));
+
+    // ===== 14: display elements
+    d = await mount(`<p>shipped on <ful-local-date>2030-12-10</ful-local-date>, at <ful-instant>2030-12-10T11:12:13.456Z</ful-instant></p>`);
+    const ld = d.querySelector('ful-local-date').textContent.trim();
+    const ins = d.querySelector('ful-instant').textContent.trim();
+    ok('14 ful-local-date formats', ld !== '2030-12-10' && /\d/.test(ld), ld);
+    ok('14 ful-instant formats', ins !== '2030-12-10T11:12:13.456Z' && /\d/.test(ins), ins);
+
+    // ===== 15: table with schema, filters, sorter
+    d = await mount(`
+      <ful-table loader="loaders:users" autoload page-size="10">
+        <div slot="filters">
+          <ful-filter-text name="byName">Name</ful-filter-text>
+          <ful-filter-boolean name="byActive">Active</ful-filter-boolean>
+          <button type="submit">Search</button>
+        </div>
+        <template slot="schema">
+          <schema class="tight">
+            <column title="ID" sorter="id" order="asc">{{ id }}</column>
+            <column sorter="email"><title>{{ #l10n:t('app.email') }}</title><a data-tpl-href="\`mailto:{email}\`">{{ email }}</a></column>
+            <column title="Created">{{ createdAt }}</column>
+          </schema>
+        </template>
+      </ful-table>`);
+    await new Promise((r) => setTimeout(r, 400));
+    const table = d.querySelector('ful-table');
+    const ths = [...table.querySelectorAll('th')].map((t) => t.textContent.trim());
+    ok('15 templated <title> header', ths.some((t) => t.includes('Email')), JSON.stringify(ths));
+    ok('15 schema class lands on the rows', table.querySelector('tr.tight') !== null || table.querySelector('.tight') !== null);
+    const link = table.querySelector('tbody a');
+    ok('15 data-tpl-href template string', link?.getAttribute('href') === 'mailto:a@b.c', link?.getAttribute('href'));
+    ok('15 sorter wraps the sortable titles', table.querySelectorAll('ful-sorter').length === 2, String(table.querySelectorAll('ful-sorter').length));
+    ok('15 loader args page/sort/filters', window.__tableArgs?.page?.page === 0 && window.__tableArgs?.page?.size === 10 && window.__tableArgs?.sort?.sorter === 'id',
+       JSON.stringify(window.__tableArgs));
+
+    // ===== 15: the filter value tuple
+    d = await mount(`<ful-filter-text name="byName" value='["STARTS_WITH","IGNORE_CASE","ada"]'>Name</ful-filter-text>`);
+    const filt = d.querySelector('ful-filter-text');
+    ok('15 filter tuple value', JSON.stringify(filt.value) === JSON.stringify(['STARTS_WITH', 'IGNORE_CASE', 'ada']), JSON.stringify(filt.value));
+
+    // ===== 16: tooltip in the info slot
+    d = await mount(`<ful-input name="vat">VAT number<ful-tooltip slot="info">the Italian VAT identifier: eleven digits, IT-prefixed.</ful-tooltip></ful-input>`);
+    ok('16 tooltip in info slot', d.querySelector('ful-tooltip button') !== null && d.querySelector('ful-note, .ful-note') !== null);
+
+    // ===== 16: dialog with buttons slot -> ask() resolves with data-result
+    d = await mount(`<ful-dialog id="confirm" header="Publish the ledger?">Once published, the entries are immutable.
+      <template slot="buttons"><button type="button" data-result="published">Publish</button><button type="button" data-result="cancelled">Cancel</button></template></ful-dialog>`);
+    const dlg = d.querySelector('ful-dialog');
+    const answer = dlg.ask();
+    await new Promise((r) => setTimeout(r, 80));
+    dlg.querySelector('[data-result=published]').click();
+    const res = await Promise.race([answer, new Promise((r) => setTimeout(() => r('TIMEOUT'), 1000))]);
+    ok('16 dialog ask() resolves with data-result', res === 'published', String(res));
+
+    // ===== 16: toasts, both ways
+    d = await mount(`<ful-toasts id="tst" timeout="60000"></ful-toasts>`);
+    const toasts = d.querySelector('ful-toasts');
+    toasts.show('Saved.', { severity: 'success' });
+    document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'From the event.', severity: 'success' } }));
+    await new Promise((r) => setTimeout(r, 120));
+    const shown = [...toasts.querySelectorAll('ful-toast')].map((t) => t.textContent);
+    ok('16 toast show() and show-toast event', shown.length === 2 && shown.some((t) => t.includes('Saved.')) && shown.some((t) => t.includes('From the event.')),
+       JSON.stringify(shown));
+
+    // ===== 16: tabs
+    d = await mount(`<ful-tabs active="0"><template slot="tabs"><tab>Shipping</tab><tab>Invoices</tab></template><section>one</section><section>two</section></ful-tabs>`);
+    const tabs = d.querySelector('ful-tabs');
+    ok('16 tabs render buttons', tabs.querySelectorAll('[role=tab]').length === 2, String(tabs.querySelectorAll('[role=tab]').length));
+    tabs.active = 1;
+    await new Promise((r) => setTimeout(r, 80));
+    ok('16 tabs active switches the panel', tabs.active === 1 && tabs.querySelectorAll('section:not([hidden])').length === 1,
+       `active=${tabs.active} visible=${tabs.querySelectorAll('section:not([hidden])').length}`);
+
+    // ===== 16: accordion
+    d = await mount(`<ful-accordion exclusive><details><summary>What is covered</summary><p>a</p></details><details><summary>What is not</summary><p>b</p></details></ful-accordion>`);
+    const acc = d.querySelector('ful-accordion');
+    const dets = acc.querySelectorAll('details');
+    ok('16 accordion exclusive names the group', dets[0].name && dets[0].name === dets[1].name, `${dets[0].name}`);
+
+    // ===== 16: wizard + section:requested by name + move()
+    d = await mount(`<ful-wizard id="wz"><template slot="steps"><step>Verify</step><step>Edit</step><step>Confirm</step></template>
+      <section data-step="verify">a</section><section data-step="dettagli">b</section><section data-step="confirm">c</section></ful-wizard>`);
+    const wz = d.querySelector('ful-wizard');
+    const client = wz.component('http-client');   // exactly what the page now shows
+    ful.AsyncEvents.asyncOn(wz, 'section:requested:dettagli', async (e) => {
+        if (!e.detail.first) { return; }
+        const html = await client.get(`/steps/${e.detail.name}`).fetchText();
+        e.detail.section.prepend(ftl.Fragments.fromHtml(html));
+    });
+    await wz.move('dettagli');
+    await new Promise((r) => setTimeout(r, 200));
+    ok('16 wizard move() by data-step name', wz.querySelector('[data-step=dettagli]')?.getAttribute('aria-current') === 'step',
+       wz.querySelector('[data-step=dettagli]')?.getAttribute('aria-current'));
+    ok('16 section:requested:<name> delivered', wz.querySelector('[data-ref=delivered]') !== null);
+
+    // ===== 17: icons and the static config
+    d = await mount(`<p><ful-icon name="search" aria-hidden="true"></ful-icon></p>`);
+    const icon = d.querySelector('ful-icon');
+    ok('17 ful-icon is painted by a mask', getComputedStyle(icon).maskImage !== 'none' && getComputedStyle(icon).maskImage !== '', getComputedStyle(icon).maskImage.slice(0, 40));
+    ok('17 Pagination.config exists', ful.Pagination && typeof ful.Pagination.config === 'object' && 'reloadIcon' in ful.Pagination.config, JSON.stringify(ful.Pagination?.config));
+    ok('17 Table.config exists', ful.Table && typeof ful.Table.config === 'object' && 'searchIcon' in ful.Table.config, JSON.stringify(ful.Table?.config));
+    // the tokens the page tells you to override
+    const cs = getComputedStyle(document.documentElement);
+    for (const t of ['--ful-active-bg', '--ful-invalid-color', '--ful-border-radius', '--ful-controls-height', '--ful-bg', '--ful-color', '--ful-border-color', '--ful-accent-ink', '--ful-muted-color', '--ful-backdrop-color', '--ful-disabled-bg', '--ful-selected-bg', '--ful-active-color']) {
+        ok(`17 root token ${t} defined`, cs.getPropertyValue(t).trim().length > 0, cs.getPropertyValue(t).trim());
+    }
+    // the three component-scoped ones, and the selectors the page now names
+    d = await mount(`<ful-dialog header="h">x</ful-dialog><ful-drawer title="t">x</ful-drawer><ful-toasts timeout="60000"></ful-toasts>`);
+    // the toasts rule is *:has(> ful-toast): the token exists only while a toast does
+    d.querySelector('ful-toasts').show('x', { severity: 'info' });
+    await new Promise((r) => setTimeout(r, 100));
+    const scoped = [
+        ['--ful-dialog-width', d.querySelector('ful-dialog dialog')],
+        ['--ful-drawer-width', d.querySelector('ful-drawer dialog')],
+        ['--ful-toasts-max-width', d.querySelector('ful-toasts')],
+    ];
+    for (const [t, el] of scoped) {
+        ok(`17 ${t} is component-scoped, not :root`,
+           cs.getPropertyValue(t).trim() === '' && getComputedStyle(el).getPropertyValue(t).trim().length > 0,
+           `root="${cs.getPropertyValue(t).trim()}" component="${getComputedStyle(el).getPropertyValue(t).trim()}"`);
+    }
+    // the override selectors the page recommends
+    const sheet = document.createElement('style');
+    sheet.textContent = `dialog.ful-dialog { --ful-dialog-width: 44rem; } dialog.ful-drawer { --ful-drawer-width: 40rem; } ful-toasts { --ful-toasts-max-width: 30rem; }`;
+    document.head.append(sheet);
+    ok('17 the documented override selectors take',
+       getComputedStyle(scoped[0][1]).getPropertyValue('--ful-dialog-width').trim() === '44rem' &&
+       getComputedStyle(scoped[1][1]).getPropertyValue('--ful-drawer-width').trim() === '40rem' &&
+       getComputedStyle(scoped[2][1]).getPropertyValue('--ful-toasts-max-width').trim() === '30rem',
+       [scoped[0][1], scoped[1][1], scoped[2][1]].map((el, i) => getComputedStyle(el).getPropertyValue(scoped[i][0]).trim()).join(' / '));
+    sheet.remove();
+  } catch (e) {
+    log.push(`THREW ${e?.stack ?? e}`);
+  }
+  document.getElementById('out').textContent = `${log.join('\n')}\n[done]`;
+})();
+</script></body></html>

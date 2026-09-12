@@ -5,7 +5,7 @@ import { settle, tick } from './tick.mjs';
  * Mounting and teardown for the component suites.
  *
  * Every test used to build its own container, append it and remove it by hand
- * at the end — 538 removals across twenty files, none of which run when an
+ * at the end: 538 removals across twenty files, none of which run when an
  * assertion fails first, so a failing test leaked its dom into the next one.
  * `mount` records what it appended and a root hook clears it after every test,
  * failed or not.

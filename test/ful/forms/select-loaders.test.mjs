@@ -16,7 +16,7 @@ const keydown = (el, code, opts) => el.dispatchEvent(new KeyboardEvent('keydown'
 
 /**
  * The other select tests stub 'loaders:select' wholesale: these exercise the
- * loader stack the plugin actually registers — the in-memory one built from
+ * loader stack the plugin actually registers: the in-memory one built from
  * slotted options, the remote one with its revision cache, the chunked one
  * asking per query, and the expression-based response mapper.
  */

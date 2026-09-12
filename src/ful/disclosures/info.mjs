@@ -100,7 +100,7 @@ class Dialog extends ParsedElement {
     /**
      * Re-fires section:requested on the body, open or closed: the explicit
      * request for a body that wants refreshing. A failed refresh paints its
-     * problems, nothing rejects — there is no caller to reject towards.
+     * problems, nothing rejects: there is no caller to reject towards.
      */
     refresh() {
         return this.#requests.request(this, this.#body, null, null)?.then(undefined, () => undefined);

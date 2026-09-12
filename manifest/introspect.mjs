@@ -4,7 +4,7 @@
  * The manifest generator runs in node over the built bundle and the parity test
  * runs in a browser over the sources, so the two cannot share an import of the
  * library: they hand their own `Plugin` and `Registry` to the factory instead.
- * They did each carry their own copy of this, and the copies drifted — the walk
+ * They did each carry their own copy of this, and the copies drifted: the walk
  * over the attribute declarations stopped at a different class in each, and two
  * of the three read only the observed half, so the metadata documented none of
  * the configuration tier while every reader believed it agreed with the others.

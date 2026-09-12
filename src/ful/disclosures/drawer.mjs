@@ -95,7 +95,7 @@ class Drawer extends ParsedElement {
     /**
      * Re-fires section:requested on the content, open or closed: the explicit
      * request for a body that wants refreshing. A failed refresh paints its
-     * problems, nothing rejects — update() stays the rejecting call.
+     * problems, nothing rejects: update() stays the rejecting call.
      */
     refresh() {
         return this.#requests.request(this, this.#content, null, null)?.then(undefined, () => undefined);

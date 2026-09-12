@@ -59,7 +59,8 @@
         "test:manual": "npm run test -- --manual",
         "test:watch": "npm run test -- --watch",
         "manifest": "node manifest/generate.mjs",
-        "wiki": "node manifest/wiki-reference.mjs && node manifest/wiki-screenshots.mjs"
+        "wiki": "node manifest/wiki-reference.mjs && node manifest/wiki-screenshots.mjs",
+        "wiki:verify": "node manifest/wiki-examples.mjs"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.11",

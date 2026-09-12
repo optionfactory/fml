@@ -1,6 +1,6 @@
 {
-    "$comment": "Prose that cannot be introspected from the source. Tags, attributes, slots and events are derived from the code itself; test/manifest/metadata.test.mjs fails when this file and the code disagree in either direction.",
-    "common": {
+    "$comment": "Prose that cannot be introspected from the source. fieldProtocol carries the attributes and slots the Field base defines, used for any element that does not describe its own. Tags, attributes, slots and events are derived from the code itself; test/manifest/metadata.test.mjs fails when this file and the code disagree in either direction.",
+    "fieldProtocol": {
         "attributes": {
             "disabled": "The field's own disabled claim: the control is disabled and the field is left out of the submitted values, composed with a disabled fieldset ancestry. The property reflects the claim only, matches(':disabled') tells the effective state.",
             "value": "The current value.",
@@ -329,7 +329,7 @@
             "events": {}
         },
         "ful-wizard": {
-            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section — the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
+            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section, so the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
             "attributes": {
                 "progress": "picks the progress chrome's shape over the same claims: the default shows the current step alone (any counter or dressing is the page's own), timeline the full timeline, dots a done/current/future strip, none leaves the chrome to the page."
             },

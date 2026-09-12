@@ -7,8 +7,8 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
  *
  * A subclass owns its template, its value semantics and its change events. It
  * implements `_build(conf)`, which builds its dom and returns the pieces the
- * base drives — the control, the error region, the label, and the optional
- * `claims`, `announces`, `freeze` and `also` — and the base does the wiring,
+ * base drives: the control, the error region, the label, and the optional
+ * `claims`, `announces`, `freeze` and `also`. The base does the wiring,
  * the mounting and the application of the declared state. Nothing in the base
  * is there to be called from a subclass's build.
  *

@@ -79,7 +79,7 @@ describe('Element metadata', function () {
             for (const { tag, klass } of registered()) {
                 const actual =
                     kind === 'attributes' ? attributesOf(klass).map((d) => d.split(':')[0]) : slotsOf(klass);
-                const common = Object.keys(metadata.common[kind] ?? {});
+                const inherited = Object.keys(metadata.fieldProtocol[kind] ?? {});
                 const own = Object.keys(metadata.elements[tag]?.[kind] ?? {});
                 //the element's own prose must be real: an entry the code no
                 //longer has cannot rot here unnoticed
@@ -88,10 +88,10 @@ describe('Element metadata', function () {
                     [],
                     `${tag}: the metadata documents ${kind} the code no longer has`,
                 );
-                //and everything real must be documented, the common overlay
+                //and everything real must be documented, the field-protocol overlay
                 //standing in for the shared vocabulary
                 assert.deepStrictEqual(
-                    actual.filter((name) => !(own.includes(name) || common.includes(name))),
+                    actual.filter((name) => !(own.includes(name) || inherited.includes(name))),
                     [],
                     `${tag}: the ${kind} in the code are not all documented`,
                 );

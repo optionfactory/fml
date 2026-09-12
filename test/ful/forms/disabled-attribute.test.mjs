@@ -122,6 +122,7 @@ describe('The disabled attribute after the upgrade', () => {
                         release = resolve;
                     }),
                 load: async () => [],
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
             }),
         });
         const container = appended('<ful-select name="a">l</ful-select>');

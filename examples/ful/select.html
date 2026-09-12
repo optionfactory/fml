@@ -23,7 +23,7 @@
 
 <body>
     <h1>ful-select</h1>
-    <p>Single or multiple, chips or item list, options slotted from a native select or answered by a loader. The combobox pattern walks it: arrows, Home/End, Escape, and a click anywhere on the field toggles the list. Reopening the menu marks the options already picked, and an item list carries one deletable chip per entry — templatable through the items slot.</p>
+    <p>Single or multiple, chips or item list, options slotted from a native select or answered by a loader. The combobox pattern walks it: arrows, Home/End, Escape, and a click anywhere on the field toggles the list. Reopening the menu marks the options already picked, and an item list carries one deletable chip per entry, templatable through the items slot.</p>
 
     <h2>single</h2>
     <fieldset>
@@ -116,7 +116,7 @@
     </fieldset>
 
     <h2>loader-fed</h2>
-    <p>The remote shape without the network: a mock loader answers after a delay, so opening shows the spinner the real endpoint would. The vocabulary is the one the applications run — <code>src</code>, <code>method</code>, <code>revision</code> for the cached whole-set fetch, <code>mode="chunked"</code> for the searched one, <code>k-expr</code>/<code>l-expr</code> to map the payload.</p>
+    <p>The remote shape without the network: a mock loader answers after a delay, so opening shows the spinner the real endpoint would. The vocabulary is the one the applications run: <code>src</code>, <code>method</code>, <code>revision</code> for the cached whole-set fetch, <code>mode="chunked"</code> for the searched one, <code>k-expr</code>/<code>l-expr</code> to map the payload.</p>
     <fieldset>
         <legend>single and multiple, answered by a mock loader</legend>
         <ful-select loader="loaders:demo-options">
@@ -145,8 +145,8 @@
     <script>
         /**
          * A mock of the remote select options: the loader contract the select
-         * drives — prefetch on preload, load on open and search, exact for the
-         * values that must resolve — answered with a simulated round trip.
+         * drives, prefetch on preload, load on open and search, exact for the
+         * values that must resolve, answered with a simulated round trip.
          * Every door answers `{ key, label, metadata }` entries, the one shape the
          * element speaks.
          */

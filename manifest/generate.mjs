@@ -42,7 +42,7 @@ const TYPES = {
     json: 'string',
 };
 
-const describe = (tag, kind, name) => metadata.elements[tag]?.[kind]?.[name] ?? metadata.common[kind]?.[name] ?? '';
+const describe = (tag, kind, name) => metadata.elements[tag]?.[kind]?.[name] ?? metadata.fieldProtocol[kind]?.[name] ?? '';
 
 const model = registered().map(({ tag, klass }) => {
     const entry = metadata.elements[tag] ?? {};

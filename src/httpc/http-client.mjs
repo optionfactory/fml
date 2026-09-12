@@ -762,7 +762,7 @@ class HttpMultipartRequestCustomizer {
 //answers, the request builder every verb answers, the chain an interceptor is
 //handed and the customizer a multipart callback is handed. They were reachable
 //and unnameable, so a consumer could write the call but not annotate the
-//helper it lives in. The interceptors stay unexported: they are page policy the
+//function it lives in. The interceptors stay unexported: they are page policy the
 //builder installs, not a type anything hands back
 export {
     MediaType,

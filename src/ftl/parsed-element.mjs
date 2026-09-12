@@ -44,7 +44,7 @@ class ParsedElement extends HTMLElement {
         if (!mapper) {
             //an attribute the class never declared has no type to read it as:
             //say so rather than dying on the missing mapper. Content this
-            //element does not own — a custom loader's own configuration, say —
+            //element does not own, such as a custom loader's own configuration,
             //is read with getAttribute, the platform's own answer
             throw new Error(
                 `${this.constructor.name} declares no attribute '${attr}': declare it in static observed or static attributes, or read it with getAttribute`,
@@ -164,13 +164,13 @@ class ParsedElement extends HTMLElement {
      * A `static attributes` name is the configuration tier: read once when the
      * upgrade starts and answered unchanged for the element's life, so a later
      * attribute write does not quietly change how the element behaves. An
-     * observed name answers the snapshot while the render is pending — kept
-     * open to attribute writes landing in that window — and the live attribute
+     * observed name answers the snapshot while the render is pending, kept
+     * open to attribute writes landing in that window, and the live attribute
      * afterwards, the property being live by then.
      *
      * The snapshot exists rather than a read of the dom because an element may
-     * write its own observed attributes while it renders — a reflection, or a
-     * value the platform normalizes on the way in — and what the author
+     * write its own observed attributes while it renders, whether a reflection
+     * or a value the platform normalizes on the way in, and what the author
      * declared is what the base applies, not what the render left behind.
      * @param {string} name
      */

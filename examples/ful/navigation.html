@@ -40,7 +40,7 @@
     </fieldset>
 
     <h2>tabs, async panel</h2>
-    <p>Entering a panel fires the <code>section:requested</code> family on the tabs — the generic type, the panel's <code>#index</code> — and the component awaits the answers, the loading chrome covering the wait: a panel can deliver itself. Nobody listening is a plain activation, panels rendered on the server never know the event exists. The event's target is the component, so a host's own panels are told from a nested component's by <code>e.target === e.currentTarget</code>.</p>
+    <p>Entering a panel fires the <code>section:requested</code> family on the tabs, in the generic type and the panel's <code>#index</code>, and the component awaits the answers, the loading chrome covering the wait: a panel can deliver itself. Nobody listening is a plain activation, panels rendered on the server never know the event exists. The event's target is the component, so a host's own panels are told from a nested component's by <code>e.target === e.currentTarget</code>.</p>
     <fieldset>
         <legend>the second panel delivered on every entry, refreshable on demand</legend>
         <ful-tabs id="async-tabs">
@@ -89,7 +89,7 @@
     <h2>wizard</h2>
     <p>Three steps paired with sections by position, each section carrying its own buttons: <code>next()</code>, <code>prev()</code> and <code>move(name)</code> walk, the focus follows the step, each landing answering with a <code>change</code> event.</p>
     <fieldset>
-        <legend>verify, edit, confirm — named by data-step</legend>
+        <legend>verify, edit, confirm: named by data-step</legend>
         <ful-wizard id="wizard" progress="timeline">
             <template slot="steps">
                 <step>Verify</step>
@@ -160,7 +160,7 @@
     </fieldset>
 
     <h2>wizard, async steps</h2>
-    <p>Entering a step fires the <code>section:requested</code> family on the wizard: the generic type, its <code>#index</code>, and its <code>data-step</code> name. The component awaits the answers — <code>move()</code> resolves when the entered step is painted, the loading chrome covering the wait — and a failed delivery paints the section's problems and rejects the move. Register through one door per section: the name here, the index or the generic type elsewhere.</p>
+    <p>Entering a step fires the <code>section:requested</code> family on the wizard: the generic type, its <code>#index</code>, and its <code>data-step</code> name. The component awaits the answers, so <code>move()</code> resolves when the entered step is painted, the loading chrome covering the wait, and a failed delivery paints the section's problems and rejects the move. Register through one event per section: the name here, the index or the generic type elsewhere.</p>
     <fieldset>
         <legend>one step delivered on entry, one failing its round trip</legend>
         <ful-wizard id="async-wizard">
@@ -187,7 +187,7 @@
     </fieldset>
 
     <h2>wizard, minimal progress</h2>
-    <p>The progress chrome shows the current step alone by default — the counter, the separator, any dressing is the page's own. The <code>progress</code> attribute picks another shape over the same claims: <code>timeline</code> (the full timeline), <code>dots</code>, <code>none</code>. <code>move()</code>, the focus and the <code>change</code> events are the same in every shape.</p>
+    <p>The progress chrome shows the current step alone by default: the counter, the separator and any other dressing are the page's own. The <code>progress</code> attribute picks another shape over the same claims: <code>timeline</code> (the full timeline), <code>dots</code>, <code>none</code>. <code>move()</code>, the focus and the <code>change</code> events are the same in every shape.</p>
     <fieldset>
         <legend>the default shape: the current step alone</legend>
         <ful-wizard id="counter-wizard">

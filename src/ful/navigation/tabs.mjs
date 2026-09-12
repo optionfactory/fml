@@ -85,7 +85,7 @@ class Tabs extends ParsedElement {
      * Re-fires the section:requested family on the panel (by index or the
      * panel element itself), whether active or not: the explicit request for a
      * content that wants refreshing. A failed refresh paints its problems,
-     * nothing rejects — there is no caller to reject towards.
+     * nothing rejects: there is no caller to reject towards.
      */
     refresh(ref) {
         const index = ref instanceof Element ? this.#panels.indexOf(ref) : Number.isInteger(ref) ? ref : NaN;

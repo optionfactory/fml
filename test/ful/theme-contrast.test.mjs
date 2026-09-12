@@ -4,8 +4,8 @@ import '../../src/ful/index.mjs';
 /**
  * The theme's ink pairs must hold WCAG AA wherever they render text, and the
  * non-text 3:1 where they draw indicators. The probes resolve the custom
- * properties through real declarations — that is where light-dark() picks its
- * side — under both color schemes.
+ * properties through real declarations, which is where light-dark() picks its
+ * side, under both color schemes.
  */
 const luminance = (r, g, b) => {
     const [rr, gg, bb] = [r, g, b].map((c) => {

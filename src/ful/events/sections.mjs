@@ -6,16 +6,16 @@ import { Claims } from '../claims.mjs';
  * ful-drawer: every activation of a section fires the section:requested family
  * on the host component (bubbling: the generic type, the #index type, and the
  * data-step name when present) and awaits the union of the answers, wherever
- * they were registered. The event's target is the component — its local name
+ * they were registered. The event's target is the component, whose local name
  * telling the family, e.target === e.currentTarget separating a host's own
- * sections from a nested component's — while detail.section stays the write
- * target. No listener is a plain pass-through — the first-entry flag is not
+ * sections from a nested component's, while detail.section stays the write
+ * target. No listener is a plain pass-through, and the first-entry flag is not
  * even spent, so a listener attached later still sees the first activation. A
  * pending answer shows the loading chrome a frame late (answers that never
  * pend never flash) and declares the section aria-busy; a delivery superseded
  * by a newer activation of the same section owns no chrome; a rejection paints
- * the section's error chrome — replacing whatever a previous answer had
- * painted — and travels to the caller.
+ * the section's error chrome, replacing whatever a previous answer had
+ * painted, and travels to the caller.
  */
 class SectionRequests {
     #entered = new WeakSet();
