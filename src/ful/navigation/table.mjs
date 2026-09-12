@@ -349,7 +349,7 @@ class Table extends ParsedElement {
                         <td data-tpl-colspan="schema.length">
                             <div>
                                 <p data-tpl-if="config.searchIcon"><ful-icon data-tpl-name="config.searchIcon" aria-hidden="true"></ful-icon></p>
-                                {{{ #l10n:t('table.initial') }}}
+                                {{ #l10n:t('table.initial') }}
                             </div>
                         </td>
                     </tr>

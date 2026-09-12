@@ -128,6 +128,7 @@ The breaking changes, each detailed in its area below:
 
 #### ful-table and pagination
 
+- [BRK] the table's initial message renders through `{{ }}` like every other built-in string, where it was the library's one `{{{ }}}`. No message ful ships is html-privileged now, so a consumer overriding `table.initial` gets text: a translation set fetched at runtime, which the README suggests, could otherwise have carried markup into the page through that one key. A test pins it by overriding the message with markup and asserting it never becomes an element
 - [BRK] `page-requested` and `sort-requested` are `page:requested` and `sort:requested`, joining the colon-namespaced request families (`submit:*`, `section:requested*`) the rest of the library uses for an awaited round trip
 - [BUG] the default in-memory table loader sorts: the schema renders a sorter for every sortable column whatever the loader is, and activating one over local data used to reorder nothing. Rows missing the sorted value sort last whichever way the column points
 - [ENH] `ful-table` accepts a `response-mapper` component like `ful-select` and `ful-form` do, so a remote table can shape a payload that does not already match `{ data, size }`

@@ -10,7 +10,12 @@ registry
     .plugin(
         new Plugin({
             language: 'en',
-            translations: { 'files.unacceptablefiletype': 'we only take {types} around here' },
+            translations: {
+                'files.unacceptablefiletype': 'we only take {types} around here',
+                //an overridden message carrying markup: no built-in string is
+                //html-privileged, so the table must render this as text
+                'table.initial': '<b id="l10n-escape">start searching</b>',
+            },
         }),
     )
     .configure();
@@ -149,6 +154,24 @@ describe('Plugin translations', () => {
             el.querySelector('ful-field-warnings ful-field-warning').innerText,
             'Maximum of 2 files exceeded',
         );
+
+        container.remove();
+    });
+});
+
+describe('Built-in messages are data, not markup', () => {
+    it('renders an overridden message as text rather than splicing it into the page', async () => {
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-table>
+            <template slot="schema"><schema><column>a</column></schema></template>
+        </ful-table>`;
+        document.body.appendChild(container);
+        const el = container.querySelector('ful-table');
+        await Rendering.waitFor(el);
+
+        const cell = el.querySelector('tbody[data-ref=initial]');
+        assert.include(cell.textContent, '<b id="l10n-escape">start searching</b>');
+        assert.isNull(document.getElementById('l10n-escape'), 'the markup must not have become an element');
 
         container.remove();
     });
