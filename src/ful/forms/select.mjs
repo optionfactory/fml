@@ -485,6 +485,7 @@ class Select extends Field {
     #items;
     #itemstemplate;
     #multiple;
+    #warnedComma = false;
     #values = new Map();
     #assignments = new Claims();
     #editing = false;
@@ -908,6 +909,16 @@ class Select extends Field {
         //the csv mapper yields [] for an absent attribute; an empty string assigned
         //through the property is left alone, being a usable key for an <option value="">
         const keys = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
+        //a key is what the value attribute carries, and that attribute is a comma
+        //separated list: a key holding a comma cannot be written back into markup, so
+        //a server rendered page could never preselect it. Said once and kept, rather
+        //than split here, where splitting would quietly truncate a single select
+        if (!this.#warnedComma && keys.some((k) => typeof k === 'string' && k.includes(','))) {
+            //once per element, not once per page: a loop assigning bad keys to one
+            //select is one mistake, where fifty selects holding one each are fifty
+            this.#warnedComma = true;
+            console.warn('a ful-select key cannot contain a comma: it is unexpressible in the value attribute', this);
+        }
         //the keys are known synchronously and are all `value` reads, so they are applied
         //now: only the labels need the loader, until then a key stands in for its own
         this.#values = new Map(keys.map((k) => [k, { key: k, label: k, metadata: undefined }]));

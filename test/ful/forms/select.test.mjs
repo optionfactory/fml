@@ -551,16 +551,44 @@ describe('Select value resolution', () => {
         assert.deepEqual(multi.value, ['it', 'fr']);
     });
 
-    it('splits a single select value on commas, so a key may not contain one', async () => {
+    it('warns once for a key carrying a comma, which no key may', async () => {
         const [selectEl] = await mount(`<ful-select value="a,b"></ful-select>`);
 
-        //the documented cost of reading every value as a list: before 9.0 a single
-        //select took "a,b" as one key. A key carrying a comma has to be assigned
-        //through the property, which never goes through the mapper
-        assert.strictEqual(selectEl.value, 'a', 'the attribute splits');
-        selectEl.value = 'a,b';
-        await settle();
-        assert.strictEqual(selectEl.value, 'a,b', 'the property does not');
+        //a key is what the value attribute carries, and that attribute is a comma
+        //separated list: the attribute reads "a,b" as two keys, and a comma bearing
+        //key assigned through the property is one nothing could ever write back
+        assert.strictEqual(selectEl.value, 'a', 'the attribute reads a list');
+
+        const warnings = [];
+        const warn = console.warn;
+        console.warn = (...args) => warnings.push(args);
+        try {
+            selectEl.value = 'a,b';
+            await settle();
+        } finally {
+            console.warn = warn;
+        }
+        assert.lengthOf(warnings, 1);
+        assert.include(String(warnings[0][0]), 'cannot contain a comma');
+        assert.strictEqual(selectEl.value, 'a,b', 'the key is kept: splitting here would truncate a single select');
+    });
+
+    it('warns once per element, not once for every bad assignment', async () => {
+        const [selectEl] = await mount(`<ful-select></ful-select>`);
+        const warnings = [];
+        const warn = console.warn;
+        console.warn = (...args) => warnings.push(args);
+        try {
+            selectEl.value = 'a,b';
+            selectEl.value = 'c,d';
+            await settle();
+        } finally {
+            console.warn = warn;
+        }
+
+        //a loop assigning bad keys to one select is one mistake, and must not turn
+        //the console into the failure it is reporting
+        assert.lengthOf(warnings, 1);
     });
 
     it('trims the keys it reads from the attribute', async () => {
