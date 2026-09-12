@@ -103,7 +103,7 @@ describe('Timing.debounce rescheduling', () => {
 describe('Timing.debounce immediate', () => {
     it('fires at once on the leading edge, never on the trailing one', async () => {
         const calls = [];
-        const [debounced] = Timing.debounce(50, (v) => calls.push(v), Timing.DEBOUNCE_IMMEDIATE);
+        const [debounced] = Timing.debounce(50, (v) => calls.push(v), { immediate: true });
 
         debounced('first');
         assert.deepEqual(calls, ['first'], 'the leading edge fires immediately');
@@ -121,7 +121,7 @@ describe('Timing.debounce immediate', () => {
 describe('Timing.throttle modes', () => {
     it('without a leading edge, the first call only fires on the trailing one', async () => {
         const calls = [];
-        const [throttled] = Timing.throttle(50, (v) => calls.push(v), Timing.THROTTLE_NO_LEADING);
+        const [throttled] = Timing.throttle(50, (v) => calls.push(v), { leading: false });
 
         throttled('first');
         assert.deepEqual(calls, [], 'the leading edge is suppressed');
@@ -132,7 +132,7 @@ describe('Timing.throttle modes', () => {
 
     it('without a trailing edge, calls inside the window are dropped', async () => {
         const calls = [];
-        const [throttled] = Timing.throttle(60, (v) => calls.push(v), Timing.THROTTLE_NO_TRAILING);
+        const [throttled] = Timing.throttle(60, (v) => calls.push(v), { trailing: false });
 
         throttled('leading');
         await Timing.sleep(20);
