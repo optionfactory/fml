@@ -10,6 +10,7 @@ let doorWired = false;
 
 /** A transient feedback region: each show() stacks a toast that retires on its own timer. */
 class Toasts extends ParsedElement {
+    static attributes = ['timeout:number'];
     #timeout;
     connectedCallback() {
         super.connectedCallback();
@@ -21,7 +22,7 @@ class Toasts extends ParsedElement {
         REGIONS.delete(this);
     }
     render() {
-        this.#timeout = Number(this.getAttribute('timeout')) || 5000;
+        this.#timeout = this.declared('timeout') || 5000;
         this.setAttribute('role', 'region');
         //focusable only programmatically, so a retiring toast can hand its focus back
         this.setAttribute('tabindex', '-1');

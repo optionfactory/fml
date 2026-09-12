@@ -78,8 +78,8 @@ class CompareFilter extends Input {
             },
         });
         //the default operator below reads the whitelist, so it is resolved here
-        //rather than waiting for the observed pass
-        this.operators = conf.observed.operators;
+        //rather than waiting for the base's declared pass
+        this.operators = this.declared('operators');
         //Input.render only re-dispatches changes coming from the first operand
         this._value2.addEventListener('change', (evt) => {
             evt.stopPropagation();
@@ -338,7 +338,7 @@ class BooleanFilter extends Field {
     _operator;
     _value;
     _container;
-    _build({ slots, observed }) {
+    _build({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this._container = fragment.querySelector('ful-control-group');
         const valueButton = fragment.querySelector('[data-ref=value]');
@@ -358,7 +358,7 @@ class BooleanFilter extends Field {
             interactive: () => this._interactive(),
             onPick: () => this._notifyChange(),
         });
-        this.operators = observed.operators;
+        this.operators = this.declared('operators');
         const allowed = this._operator.allowed;
         this._operator.value = allowed.includes(BooleanFilter.DEFAULT_OPERATOR)
             ? BooleanFilter.DEFAULT_OPERATOR

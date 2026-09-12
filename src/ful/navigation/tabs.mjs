@@ -21,7 +21,7 @@ class Tabs extends ParsedElement {
     #panels = [];
     #requests = new SectionRequests();
     #active = 0;
-    render({ slots, observed }) {
+    render({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this.#tablist = fragment.querySelector('ful-tablist');
         const declared = [...this.#tablist.children];
@@ -77,7 +77,6 @@ class Tabs extends ParsedElement {
             this.#tabs[target].focus();
         });
         this.replaceChildren(fragment);
-        this.active = observed.active ?? 0;
     }
     get active() {
         return this.#active;

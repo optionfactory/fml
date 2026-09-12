@@ -1,4 +1,5 @@
 import { assert } from 'chai';
+import { Registry } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/plugin.mjs';
 
 /**
@@ -37,17 +38,12 @@ describe('Element metadata', function () {
         }
         return [...slots];
     };
-    //the registry composes observed attributes along the inheritance chain with
-    //the leaf winning for a shared name, so the parity check reads the same
-    //list: declarations are verbatim, the name is everything before the colon
+    //both declared tiers are the element's author-facing vocabulary, and the
+    //composition is the registry's own: the parity check, the generator and the
+    //runtime read one list rather than three walks that can disagree
     const attributesOf = (klass) => {
-        const names = new Set();
-        for (let c = klass; c?.name && c.name !== 'ParsedElement'; c = Object.getPrototypeOf(c)) {
-            for (const declared of Object.getOwnPropertyDescriptor(c, 'observed')?.value ?? []) {
-                names.add(declared.split(':')[0]);
-            }
-        }
-        return [...names];
+        const { observed, attributes } = Registry.declarationsOf(klass);
+        return [...new Set([...attributes, ...observed].map((declared) => declared.split(':')[0]))];
     };
 
     let metadata;

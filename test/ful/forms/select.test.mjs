@@ -19,6 +19,32 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
         });
     });
 
+    it('parses and behaves the same way when multiple is toggled after the render', async () => {
+        const container = document.createElement('div');
+        container.innerHTML = `<ful-select><template slot="options"><option value="k1">One</option><option value="k2">Two</option></template></ful-select>`;
+        document.body.appendChild(container);
+        const el = container.querySelector('ful-select');
+        await Rendering.waitFor(el);
+
+        //the csvm mapper reads the multiple attribute to decide whether a value
+        //parses as a list or a scalar, while the element used to freeze its own
+        //copy at render: the two could disagree for the life of the page
+        assert.isFalse(el.multiple);
+        el.setAttribute('multiple', '');
+        assert.isTrue(el.multiple);
+        el.setAttribute('value', 'k1,k2');
+        await settle();
+        assert.deepEqual(el.value, ['k1', 'k2']);
+
+        el.removeAttribute('multiple');
+        assert.isFalse(el.multiple);
+        el.setAttribute('value', 'k1');
+        await settle();
+        assert.equal(el.value, 'k1');
+
+        container.remove();
+    });
+
     it('should establish standard ARIA roles on mounting', async () => {
         const container = document.createElement('div');
         container.innerHTML = `<ful-select></ful-select>`;

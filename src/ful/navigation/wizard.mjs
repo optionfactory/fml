@@ -28,7 +28,7 @@ class Wizard extends ParsedElement {
     #requests = new SectionRequests();
     #index = 0;
     #progress;
-    render({ slots, observed }) {
+    render({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
         const list = fragment.querySelector('ful-steps ol');
         const declared = [...list.children];
@@ -51,9 +51,6 @@ class Wizard extends ParsedElement {
             this.#sections[i].tabIndex = -1;
         }
         this.replaceChildren(fragment);
-        if (observed.progress !== undefined) {
-            this.progress = observed.progress;
-        }
         if (count > 0) {
             //a section already carrying the claim keeps it: server-rendered state wins
             const claimed = this.#sections.findIndex((s) => s.getAttribute('aria-current') === 'step');

@@ -25,7 +25,7 @@ class Field extends ParsedElement {
      * every field with its own vocabulary overrides it (`value:bool`,
      * `value:csvm`, `value:json`).
      */
-    static observed = ['value', 'disabled:presence', 'readonly:presence', 'required:presence'];
+    static observed = ['disabled:presence', 'readonly:presence', 'required:presence', 'value'];
     /** the role the element internals carry, 'presentation' unless the control is its own */
     static ROLE = 'presentation';
     /** the platform's window into form state: shared with subclasses by necessity */
@@ -277,14 +277,13 @@ class Field extends ParsedElement {
     render(conf) {
         const built = /** @type {any} */ (this._build(conf));
         if (built instanceof Promise) {
-            return built.then((pieces) => this.#settle(pieces, conf));
+            return built.then((pieces) => this.#settle(pieces));
         }
-        this.#settle(built, conf);
+        this.#settle(built);
         return undefined;
     }
-    #settle(pieces, conf) {
+    #settle(pieces) {
         this.#wire(pieces);
-        this.#applyObserved(conf.observed);
     }
     /**
      * Builds the field's dom and answers the pieces the base drives. The one
@@ -310,29 +309,11 @@ class Field extends ParsedElement {
      *
      * A subclass extending another field's build spreads the pieces it answered
      * and overrides the keys it owns.
-     * @param {{slots: any, observed: Record<string, any>}} conf
+     * @param {{slots: any}} conf
      * @returns {any}
      */
     _build(conf) {
         throw new Error(`${this.constructor.name} must implement _build`);
-    }
-    /**
-     * The declared state reaches the properties in declaration order, which the
-     * registry composes base first, so the claims land before a subclass's own
-     * attributes. `value` is applied last whatever its position: every value
-     * setter reads the rest (a select's `itemlist`, a file field's `accept`, a
-     * date's `step`), and the base declares it first so a custom field inherits
-     * the door.
-     * @param {Record<string, any>} observed
-     */
-    #applyObserved(observed) {
-        for (const [name, value] of Object.entries(observed)) {
-            if (name === 'value') {
-                continue;
-            }
-            this[name] = value;
-        }
-        this.value = observed.value;
     }
 }
 

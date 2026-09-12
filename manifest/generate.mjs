@@ -29,7 +29,7 @@ globalThis.window = globalThis;
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const metadata = JSON.parse(readFileSync(join(root, 'manifest/metadata.json'), 'utf8'));
-const { Plugin } = await import(pathToFileURL(join(root, 'dist/fml.mjs')).href);
+const { Plugin, Registry } = await import(pathToFileURL(join(root, 'dist/fml.mjs')).href);
 
 const TYPES = {
     presence: 'boolean',
@@ -61,24 +61,21 @@ const registered = () => {
 
 const describe = (tag, kind, name) => metadata.elements[tag]?.[kind]?.[name] ?? metadata.common[kind]?.[name] ?? '';
 
-//the registry composes observed attributes along the inheritance chain with the
-//leaf winning for a shared name, so the metadata must read the same list
-const observedOf = (klass) => {
+//both declared tiers are the element's author-facing vocabulary: the live
+//doors and the configuration read once at the upgrade. The composition is the
+//registry's own, so this cannot walk the chain differently than the runtime
+const declaredOf = (klass) => {
+    const { observed, attributes } = Registry.declarationsOf(klass);
     const byName = new Map();
-    for (let c = klass; c?.name && c.name !== 'ParsedElement'; c = Object.getPrototypeOf(c)) {
-        for (const declared of Object.getOwnPropertyDescriptor(c, 'observed')?.value ?? []) {
-            const name = declared.split(':')[0];
-            if (!byName.has(name)) {
-                byName.set(name, declared);
-            }
-        }
+    for (const declared of [...attributes, ...observed]) {
+        byName.set(declared.split(':')[0], declared);
     }
     return [...byName.values()];
 };
 
 const model = registered().map(({ tag, klass }) => {
     const entry = metadata.elements[tag] ?? {};
-    const attributes = observedOf(klass).map((declared) => {
+    const attributes = declaredOf(klass).map((declared) => {
         const [name, mapper] = declared.split(':');
         return { name, type: TYPES[mapper] ?? 'string', description: describe(tag, 'attributes', name) };
     });

@@ -14,11 +14,10 @@ class Accordion extends ParsedElement {
     `;
     #group;
     #exclusive = false;
-    render({ slots, observed }) {
+    render({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this.#group = fragment.querySelector('ful-accordion-group');
         this.replaceChildren(fragment);
-        this.exclusive = observed.exclusive ?? false;
     }
     get exclusive() {
         return this.#exclusive;

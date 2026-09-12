@@ -6,6 +6,7 @@ import { wireTargets } from './targets.mjs';
 
 /** A side panel drawer on the native dialog platform, update() owning its open-deliver cycle. */
 class Drawer extends ParsedElement {
+    static attributes = ['title', 'placement'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-drawer">
@@ -27,14 +28,14 @@ class Drawer extends ParsedElement {
     #updates = new Claims();
     render({ slots }) {
         const fragment = this.template()
-            .withOverlay({ slots, title: this.getAttribute('title') ?? '' })
+            .withOverlay({ slots, title: this.declared('title') ?? '' })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#title = fragment.querySelector('[data-ref=title]');
         this.#loading = fragment.querySelector('[data-ref=loading]');
         this.#error = fragment.querySelector('[data-ref=error]');
         this.#content = fragment.querySelector('[data-ref=content]');
-        const placement = this.getAttribute('placement');
+        const placement = this.declared('placement');
         if (placement) {
             this.#dialog.setAttribute('placement', placement);
         }

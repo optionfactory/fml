@@ -14,6 +14,9 @@ class InputFile extends Input {
         'maxfiles:number',
         'maxfilesize:number',
         'maxtotalsize:number',
+        //re-declared so it lands after the constraints: assigning a value
+        //validates the selection against them
+        'value',
     ];
     #accept;
     #items;

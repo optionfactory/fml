@@ -196,24 +196,40 @@ class Registry {
         this.#augmentAndDefineElement(tag, klass);
         return this;
     }
-    #augmentAndDefineElement(tag, klass) {
-        //observed attributes and attribute mappers compose along the inheritance
-        //chain, a subclass's entry for a name overriding its ancestors': a base
-        //class declares what every subclass keeps observing (a protocol attribute
-        //such as Field's disabled claim), and a leaf refines a mapping without
-        //repeating the whole list. the walk stops where the platform's own class
-        //hierarchy begins: no earlier stop can work, since a registered ancestor
-        //carries an own BITS of its own, and nothing above the elements declares
-        //observed anything
+    /**
+     * The attribute declarations a class composes along its inheritance chain,
+     * base first: `observed` are the live doors, `attributes` the configuration
+     * read once at the upgrade. A subclass's entry for a name overrides its
+     * ancestors', so a base class declares what every subclass keeps observing
+     * (a protocol attribute such as Field's disabled claim) and a leaf refines a
+     * mapping, or moves a name's position, without repeating the whole list.
+     *
+     * The walk stops where the platform's own class hierarchy begins: no earlier
+     * stop can work, since a registered ancestor carries an own BITS of its own,
+     * and nothing above the elements declares anything.
+     *
+     * Everything deriving a component's attribute vocabulary reads it here, so
+     * the runtime and whatever documents it cannot walk the chain differently.
+     * @param {*} klass a ParsedElement subclass
+     * @returns {{ observed: string[], attributes: string[] }}
+     */
+    static declarationsOf(klass) {
         const chain = [];
         for (let c = klass; c !== null && c !== HTMLElement; c = Object.getPrototypeOf(c)) {
             chain.unshift(c);
         }
         const own = (name) => chain.flatMap((c) => Object.getOwnPropertyDescriptor(c, name)?.value ?? []);
-        const observed = own('observed');
-        const attributes = own('attributes');
+        return { observed: own('observed'), attributes: own('attributes') };
+    }
+    #augmentAndDefineElement(tag, klass) {
+        const { observed, attributes } = Registry.declarationsOf(klass);
         const { template, templates, slots, mappers } = klass;
-        const observedNames = [...new Set(observed.map((a) => a.split(':')[0]))];
+        //a name a subclass re-declares takes the subclass's position, which is
+        //how a field whose value setter reads its own shape attributes declares
+        //that its value lands after them: the order the declarations compose in
+        //is the order the base applies them
+        const declaredNames = observed.map((a) => a.split(':')[0]);
+        const observedNames = [...new Set(declaredNames.reverse())].reverse();
         const attrToMapper = [...attributes, ...observed].reduce((acc, a) => {
             const [attr, maybeType] = a.split(':');
             const type = maybeType ?? 'string';
@@ -237,6 +253,7 @@ class Registry {
             enqueue: (el) => this.#upgradeQueue.enqueue(el),
             SLOTS: slots,
             OBSERVED: observedNames,
+            DECLARED: [...new Set([...observedNames, ...attributes.map((a) => a.split(':')[0])])],
             ATTR_TO_MAPPER: attrToMapper,
             TEMPLATES: nameToTemplate,
         };

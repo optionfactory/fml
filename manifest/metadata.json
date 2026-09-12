@@ -30,6 +30,7 @@
         "ful-checkbox": {
             "description": "A checkbox, or a switch with type=\"switch\". Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
+                "type": "switch renders the control as a switch rather than a checkbox. The value and the semantics are unchanged.",
                 "value": "Checked when the attribute is the string true."
             },
             "slots": {},
@@ -115,6 +116,8 @@
         "ful-radio-group": {
             "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
+                "name": "The name the radio inputs share, which is what makes them one group. Generated when absent, so a group only needs it to be addressed from outside.",
+                "type": "boolean maps the two declared radios onto true and false rather than onto their own values.",
                 "value": "The value of the selected radio."
             },
             "slots": {
@@ -128,7 +131,10 @@
         },
         "ful-table": {
             "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot; the rows come from src (method, GET by default) through the loader named by loader (loaders:table by default), page-size rows a page (10 by default), the first one loading on upgrade under the autoload claim.",
-            "attributes": {},
+            "attributes": {
+                "autoload": "Loads the first page while upgrading, instead of waiting for a reload(). The load is not awaited, so a slow or failing loader cannot hold up the page.",
+                "loader": "The registered component name the table loads its rows through; loaders:table when absent."
+            },
             "slots": {
                 "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
                 "caption": "The caption of the table.",
@@ -150,7 +156,8 @@
         "ful-sorter": {
             "description": "The sort control rendered in a ful-table header, focusable and activated by Enter and Space, carrying aria-sort on its header cell. Rarely used on its own.",
             "attributes": {
-                "order": "The sort currently applied, asc or desc, or absent when unsorted."
+                "order": "The sort currently applied, asc or desc, or absent when unsorted.",
+                "sorter": "The field name this column sorts by, sent in the load request. A column without it is not sortable."
             },
             "slots": {},
             "events": {
@@ -216,8 +223,12 @@
         "ful-select": {
             "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
-                "value": "The selected key, or a comma separated list of keys when multiple.",
-                "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple)."
+                "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
+                "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or bool.",
+                "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
+                "multiple": "Selects any number of options rather than one: the value is a comma separated list of keys and the selection renders as ful-badge chips.",
+                "name": "The field name the surrounding form submits the selection under.",
+                "value": "The selected key, or a comma separated list of keys when multiple."
             },
             "slots": {
                 "dropdown": "Replaces the template used to render the options."
@@ -228,7 +239,9 @@
         },
         "ful-dropdown": {
             "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. Rarely used on its own.",
-            "attributes": {},
+            "attributes": {
+                "listbox": "The id to give the listbox, so a host can point aria-controls and aria-activedescendant at it before this element upgrades."
+            },
             "slots": {},
             "events": {
                 "activechange": "Fired with the id of the option the reader is on, for the combobox that controls the listbox.",
@@ -237,7 +250,9 @@
         },
         "ful-tooltip": {
             "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click. placement picks the side the note sits on: bottom (default), top, left or right.",
-            "attributes": {},
+            "attributes": {
+                "placement": "Which side of the trigger the note opens on: bottom (the default), top, start or end. Where the platform lacks css anchor positioning the fallback places it on the same side."
+            },
             "slots": {
                 "default": "The short explanation shown in the popover."
             },
@@ -245,7 +260,9 @@
         },
         "ful-dialog": {
             "description": "A modal dialog on the native platform: header, body and buttons, the header attribute naming its heading, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which resolve with the data-result of the button that closed the dialog (null on Escape). Longer explanations belong here, shorter ones in ful-tooltip.",
-            "attributes": {},
+            "attributes": {
+                "header": "The dialog's title, shown in its header. Text only; slot content into the body instead for anything richer."
+            },
             "slots": {
                 "default": "The dialog body.",
                 "buttons": "Buttons closing the dialog; each carries a data-result that ask() resolves with. Without this slot a localized acknowledge button is shown."
@@ -257,7 +274,10 @@
         },
         "ful-drawer": {
             "description": "A side panel drawer on the native dialog platform: a header with its title (the title attribute, or update()'s own) and close button, and a body that opens in a loading state, then shows either the content delivered by update(title, callback) (or the slotted one, when it is never updated) or the error a rejecting callback carries. placement picks the side, end by default, start its mirror. Any element carrying dialog-target set to its id opens it too.",
-            "attributes": {},
+            "attributes": {
+                "placement": "Which edge the panel slides in from: end (the default) or start, following the page's writing direction.",
+                "title": "The drawer's title, shown in its header. Text only, and also what update() re-titles the panel with."
+            },
             "slots": {
                 "default": "The drawer body, shown when update() never replaced it."
             },
@@ -268,7 +288,9 @@
         },
         "ful-toasts": {
             "description": "A transient feedback region, one per page: each show() (or a show-toast document event carrying the same detail) appends a toast that dismisses itself after its timeout, the element's timeout attribute or five seconds by default, and carries its own dismiss button. severity picks the theme and the announcement, info by default, success, warning and error, the error one announced as an alert; a Failure message shows its problems' reasons.",
-            "attributes": {},
+            "attributes": {
+                "timeout": "How long a toast stands before it retires, in milliseconds; 5000 when absent. A show() may override it per toast."
+            },
             "slots": {},
             "events": []
         },
@@ -297,7 +319,7 @@
             "events": []
         },
         "ful-wizard": {
-            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section \u2014 the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
+            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section — the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
             "attributes": {
                 "progress": "picks the progress chrome's shape over the same claims: the default shows the current step alone (any counter or dressing is the page's own), timeline the full timeline, dots a done/current/future strip, none leaves the chrome to the page."
             },

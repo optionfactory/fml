@@ -3,6 +3,7 @@ import { Field } from './field.mjs';
 
 /** A checkbox, or a switch under the type=switch claim. */
 class Checkbox extends Field {
+    static attributes = ['type'];
     static observed = ['value:bool'];
     static slots = true;
     static template = `
@@ -15,8 +16,8 @@ class Checkbox extends Field {
     `;
     #container;
     #input;
-    _build({ slots, observed }) {
-        const isSwitch = this.getAttribute('type') === 'switch';
+    _build({ slots }) {
+        const isSwitch = this.declared('type') === 'switch';
         const fragment = this.template().withOverlay({ slots, isSwitch }).render();
         this.#container = fragment.firstElementChild;
         this.#input = fragment.querySelector('input');

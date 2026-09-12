@@ -197,6 +197,7 @@ class SelectLoader {
 
 /** The options popup of a select: listbox semantics, one loading claim per show, a localized empty state. */
 class Dropdown extends ParsedElement {
+    static attributes = ['listbox'];
     static slots = true;
     static template = `
         <ful-spinner class="centered" role="status" hidden><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
@@ -229,7 +230,7 @@ class Dropdown extends ParsedElement {
         //to nothing, and the active option is announced to no one. The name comes
         //from the host when it gave one, since it has to set aria-controls before
         //this element upgrades
-        this.#menu.id = this.getAttribute('listbox') || Attributes.uid('ful-listbox');
+        this.#menu.id = this.declared('listbox') || Attributes.uid('ful-listbox');
         this.#menu.addEventListener('click', (evt) => {
             evt.stopPropagation();
             const li = evt.target.closest('li');
@@ -386,7 +387,10 @@ class Dropdown extends ParsedElement {
 
 /** A combobox acting like a select over a loader's vocabulary, single or multiple. */
 class Select extends Field {
-    static observed = ['value:csvm', 'itemlist:presence'];
+    static attributes = ['name', 'loader', 'k-type'];
+    //multiple is declared before value: the csvm mapper reads it to decide
+    //whether a value parses as a list or a scalar, so the two cannot disagree
+    static observed = ['multiple:presence', 'itemlist:presence', 'value:csvm'];
     static slots = true;
     //a manual popover: the combobox keeps the focus on its input and owns
     //the whole lifecycle (typing, arrows, blur, Escape, Tab), so no light
@@ -425,12 +429,12 @@ class Select extends Field {
     #dload;
     #abortdload;
     _build({ slots }) {
-        const name = this.getAttribute('name');
-        this.#loader = this.component(this.getAttribute('loader') ?? 'loaders:select').create(this, {
+        const name = this.declared('name');
+        this.#loader = this.component(this.declared('loader') ?? 'loaders:select').create(this, {
             options: slots.options,
         });
 
-        this.#multiple = this.hasAttribute('multiple');
+        this.#multiple = this.declared('multiple');
         //the prefetch is the vocabulary's concern, not the field's: the label, the
         //combobox and the error region paint at once and the live door opens with
         //them, where a slow endpoint used to hold up the whole upgrade. The loader
@@ -793,7 +797,7 @@ class Select extends Field {
      * keys strictly, consistent. A key that does not decode is left as it is.
      */
     #coerceKey(k) {
-        switch (this.getAttribute('k-type')) {
+        switch (this.declared('k-type')) {
             case 'number': {
                 const n = k === '' ? Number.NaN : Number(k);
                 return Number.isNaN(n) ? k : n;
@@ -870,6 +874,15 @@ class Select extends Field {
         return selection[0] ?? null;
     }
     #useItemlist;
+    get multiple() {
+        return this.#multiple;
+    }
+    set multiple(v) {
+        this.#multiple = v;
+        this.reflect(() => {
+            this.toggleAttribute('multiple', v);
+        });
+    }
     get itemlist() {
         return this.#useItemlist;
     }

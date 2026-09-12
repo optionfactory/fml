@@ -4,14 +4,14 @@ import { Failure } from '../../httpc/index.mjs';
 
 /** The sort control of a table header: focusable, keyboard-activated, walking asc, desc, unsorted. */
 class SortButton extends ParsedElement {
+    static attributes = ['sorter'];
     static observed = ['order'];
     #order;
-    render({ observed }) {
-        const sorter = this.getAttribute('sorter');
+    render() {
+        const sorter = this.declared('sorter');
         const orders = ['asc', 'desc', null];
         this.setAttribute('role', 'button');
         this.setAttribute('tabindex', '0');
-        this.order = observed.order;
         this.addEventListener('click', () => {
             const nextOrder = orders[(orders.indexOf(this.order) + 1) % 3];
             this.dispatchEvent(
@@ -91,9 +91,7 @@ class Pagination extends ParsedElement {
     `;
     #total = 0;
     #current = 0;
-    render({ observed }) {
-        this.total = observed.total ?? 0;
-        this.current = observed.current ?? 0;
+    render() {
         this.addEventListener('click', (/** @type any */ evt) => {
             const el = evt.target.closest('button');
             if (!el || el.hasAttribute('disabled')) {
@@ -155,9 +153,11 @@ class Pagination extends ParsedElement {
         return this.#total;
     }
     set total(value) {
-        this.#total = value;
+        //an absent attribute declares no pages, not a NaN one: the default
+        //lives here now that the base applies the declared state as it found it
+        this.#total = value ?? 0;
         this.reflect(() => {
-            this.setAttribute('total', String(value));
+            this.setAttribute('total', String(this.#total));
             this.update(this.#current ?? 0, this.#total);
         });
     }
@@ -165,9 +165,9 @@ class Pagination extends ParsedElement {
         return this.#current;
     }
     set current(value) {
-        this.#current = value;
+        this.#current = value ?? 0;
         this.reflect(() => {
-            this.setAttribute('current', String(value));
+            this.setAttribute('current', String(this.#current));
             this.update(this.#current, this.#total ?? 0);
         });
     }
@@ -330,6 +330,7 @@ class TableLoader {
 
 /** A table loading its rows from a loader, with sorting, pagination and an optional filter form. */
 class Table extends ParsedElement {
+    static attributes = ['loader', 'autoload:presence'];
     static slots = true;
     static config = {
         searchIcon: 'search',
@@ -397,14 +398,14 @@ class Table extends ParsedElement {
     #sorters;
     #latestRequest;
     #loads = new Claims();
-    async render({ slots, observed }) {
+    async render({ slots }) {
         const template = this.template();
         const schema = TableSchemaParser.parse(slots.schema, template);
         const fragment = template.withOverlay({ slots, schema }).render();
         const tableWrapper = /** @type HTMLTableElement */ (Nodes.queryChildren(fragment, 'ful-table-wrapper'));
         const table = /** @type HTMLTableElement */ (tableWrapper.querySelector('table'));
         Attributes.forward('table-', this, table);
-        this.#loader = this.component(this.getAttribute('loader') ?? 'loaders:table').create(this);
+        this.#loader = this.component(this.declared('loader') ?? 'loaders:table').create(this);
 
         this.#schema = schema;
         this.#body = table.querySelector(':scope > tbody');
@@ -464,7 +465,7 @@ class Table extends ParsedElement {
             });
             e.target.order = e.detail.value.order;
         });
-        if (this.hasAttribute('autoload')) {
+        if (this.declared('autoload')) {
             //not awaited: the first load must not hold up the upgrade, and a loader that
             //fails or never answers must not keep ftl:ready from firing for the page.
             //load renders its own error state and lets the failure reject, so it is reported

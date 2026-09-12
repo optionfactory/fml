@@ -90,12 +90,23 @@ describe('ParsedElement Web Component Lifecycle', () => {
         expect(unmarshalFired).to.be.false;
     });
 
-    it('hands the observed attributes to render as the pre-render door', async () => {
+    it('applies the declared state onto the properties once the render returns', async () => {
+        let duringRender = null;
         let renderArgs = null;
+        const applied = [];
         class ObservedEl extends ParsedElement {
-            static observed = ['disabled:presence'];
+            static observed = ['disabled:presence', 'label'];
+            set disabled(v) {
+                applied.push(['disabled', v]);
+            }
+            set label(v) {
+                applied.push(['label', v]);
+            }
             render(c) {
                 renderArgs = c;
+                //the dom the setters drive is not built yet: a render reads a
+                //declared value through the door rather than being handed a bag
+                duringRender = [this.declared('disabled'), this.declared('label'), applied.length];
             }
         }
 
@@ -104,29 +115,58 @@ describe('ParsedElement Web Component Lifecycle', () => {
 
         const el = document.createElement('observed-el');
         el.setAttribute('disabled', '');
+        el.setAttribute('label', 'a label');
         container.appendChild(el);
         expect(registry.pending()).to.include(el);
         await registry.whenUpgraded(el);
 
-        expect(renderArgs.observed.disabled).to.be.true;
-        expect(el.hasAttribute('disabled')).to.be.true;
-
-        el.removeAttribute('disabled');
-        //the snapshot is frozen once the render is done: the live door is the
-        //property forward, and the attribute no longer feeds the record
-        expect(renderArgs.observed.disabled).to.be.true;
+        expect(renderArgs).to.not.have.property('observed');
+        expect(duringRender).to.eql([true, 'a label', 0]);
+        //declaration order, and nothing applied until the render was done
+        expect(applied).to.eql([
+            ['disabled', true],
+            ['label', 'a label'],
+        ]);
     });
 
-    it('patches the observed snapshot with attribute writes made before the render is done', async () => {
+    it('answers a configuration attribute as declared, whatever happens to it afterwards', async () => {
+        let duringRender = null;
+        class FrozenEl extends ParsedElement {
+            static attributes = ['loader', 'size:number'];
+            render() {
+                duringRender = [this.declared('loader'), this.declared('size')];
+            }
+        }
+
+        registry.defineElement('frozen-el', FrozenEl);
+        registry.configure();
+
+        const el = document.createElement('frozen-el');
+        el.setAttribute('loader', 'first');
+        el.setAttribute('size', '3');
+        container.appendChild(el);
+        await registry.whenUpgraded(el);
+
+        expect(duringRender).to.eql(['first', 3]);
+        //the configuration tier is not observed, so it has no property forward
+        //and no live door: what the author declared is what it answers
+        expect(FrozenEl.observedAttributes).to.not.include('loader');
+        el.setAttribute('loader', 'second');
+        expect(el.declared('loader')).to.equal('first');
+    });
+
+    it('applies an attribute write made while the render was still pending', async () => {
         let release = /** @type any */ (null);
         let applied = null;
         class MidFlightEl extends ParsedElement {
             static observed = ['value'];
-            async render(c) {
+            set value(v) {
+                applied = v;
+            }
+            async render() {
                 await new Promise((resolve) => {
                     release = resolve;
                 });
-                applied = c.observed.value;
             }
         }
 

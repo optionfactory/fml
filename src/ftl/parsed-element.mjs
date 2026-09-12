@@ -15,7 +15,10 @@ class ParsedElement extends HTMLElement {
         registry,
         enqueue: (el) => {},
         SLOTS: false,
+        /** @type {string[]} */
         OBSERVED: [],
+        /** @type {string[]} */
+        DECLARED: [],
         /** @type {Record<string, Mapper>} */
         ATTR_TO_MAPPER: {},
         TEMPLATES: {},
@@ -28,6 +31,8 @@ class ParsedElement extends HTMLElement {
     #reflecting = 0;
     /** the observed snapshot between the upgrade's start and its render's end */
     #pending = /** @type {{ [k: string]: any } | null} */ (null);
+    /** the configuration tier, read once at the upgrade and kept for the element's life */
+    #frozen = /** @type {{ [k: string]: any }} */ ({});
     #bits() {
         return /** @type {typeof ParsedElement} */ (this.constructor).BITS;
     }
@@ -101,15 +106,26 @@ class ParsedElement extends HTMLElement {
         }
         this.#started = true;
         const slots = this.#bits().SLOTS ? LightSlots.from(this) : undefined;
-        const observed = Object.fromEntries(
-            this.#bits().OBSERVED.map((attribute) => [
+        //both tiers are read here: the observed ones forward to a property once
+        //the render is done, the rest are the element's configuration, read the
+        //one time and never again
+        const declared = Object.fromEntries(
+            this.#bits().DECLARED.map((attribute) => [
                 attribute,
                 this.unmarshal(attribute, this.getAttribute(attribute)),
             ]),
         );
-        this.#pending = observed;
+        const observedNames = new Set(this.#bits().OBSERVED);
+        this.#frozen = Object.fromEntries(Object.entries(declared).filter(([name]) => !observedNames.has(name)));
+        this.#pending = declared;
         try {
-            await this.render({ slots, observed });
+            await this.render({ slots });
+            //the declared state reaches the properties once the dom the setters
+            //drive exists, in the order the registry composed the declarations:
+            //a base class's attributes before the subclass's own
+            for (const name of this.#bits().OBSERVED) {
+                this[name] = declared[name];
+            }
             //the live door opens once the render is done: from here on, an
             //attribute write forwards to the property. A render that threw
             //leaves it shut, so a later attribute write cannot reach setters
@@ -120,16 +136,39 @@ class ParsedElement extends HTMLElement {
         }
     }
     /**
-     * Renders the element from its declared state. The upgrade hands over the
-     * slots and the observed snapshot, the pre-render door for every declared
-     * attribute: a write made while the render was pending is already in it, so
-     * the render is the one place the declared state is applied. The properties
-     * are the post-render live door: an attribute write after the render
-     * forwards to the property, a property write before the render is not
-     * supported. The slots are undefined for an element declaring no slots.
-     * @param {{ slots: any, observed: { [k: string]: any } }} c
+     * Renders the element from its slots alone: it builds the dom its setters
+     * drive, and the base applies the declared state onto the properties as
+     * soon as it returns. A render needing a declared value while it builds
+     * reads it through `declared(name)`. The slots are undefined for an element
+     * declaring no slots.
+     * @param {{ slots: any }} c
      */
     render(c) {}
+    /**
+     * The declared value of an attribute, unmarshalled through its mapper.
+     *
+     * A `static attributes` name is the configuration tier: read once when the
+     * upgrade starts and answered unchanged for the element's life, so a later
+     * attribute write does not quietly change how the element behaves. An
+     * observed name answers the snapshot while the render is pending — kept
+     * open to attribute writes landing in that window — and the live attribute
+     * afterwards, the property being the live door by then.
+     *
+     * The snapshot exists rather than a read of the dom because an element may
+     * write its own observed attributes while it renders — a reflection, or a
+     * value the platform normalizes on the way in — and what the author
+     * declared is what the base applies, not what the render left behind.
+     * @param {string} name
+     */
+    declared(name) {
+        if (name in this.#frozen) {
+            return this.#frozen[name];
+        }
+        if (this.#pending !== null && name in this.#pending) {
+            return this.#pending[name];
+        }
+        return this.unmarshal(name, this.getAttribute(name));
+    }
     /** Whether the element's render completed: the moment its properties became the live door. */
     get rendered() {
         return this.#parsed;

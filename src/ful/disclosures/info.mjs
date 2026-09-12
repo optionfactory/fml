@@ -6,6 +6,7 @@ import { wireTargets } from './targets.mjs';
 /** An info icon button toggling a popover with a short explanation. */
 class Tooltip extends ParsedElement {
     static slots = true;
+    static attributes = ['placement'];
     static config = {
         icon: 'info-circle-fill',
     };
@@ -18,7 +19,7 @@ class Tooltip extends ParsedElement {
         const trigger = fragment.querySelector('[data-ref=trigger]');
         const content = fragment.querySelector('[data-ref=content]');
         wireAnchoredPopover(trigger, content, { prefix: 'ful-tooltip', invoke: true, expanded: true });
-        const placement = this.getAttribute('placement');
+        const placement = this.declared('placement');
         if (placement) {
             content.setAttribute('placement', placement);
         }
@@ -28,6 +29,7 @@ class Tooltip extends ParsedElement {
 
 /** A modal dialog on the native platform, open()/ask() resolving with the closer's data-result. */
 class Dialog extends ParsedElement {
+    static attributes = ['header'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-dialog">
@@ -45,7 +47,7 @@ class Dialog extends ParsedElement {
     #resolvers = [];
     render({ slots }) {
         const fragment = this.template()
-            .withOverlay({ slots, header: this.getAttribute('header') ?? '' })
+            .withOverlay({ slots, header: this.declared('header') ?? '' })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#body = fragment.querySelector('[data-ref=body]');

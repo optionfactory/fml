@@ -259,6 +259,7 @@ const ELEMENTS = [
             readonly: ['', true],
             required: ['', true],
             itemlist: ['', true],
+            multiple: ['', true],
         },
     },
     {

@@ -3,6 +3,7 @@ import { Field } from './field.mjs';
 
 /** A group of radios declared as ful-radio children, a fieldset carrying the group semantics. */
 class RadioGroup extends Field {
+    static attributes = ['name', 'type'];
     static slots = true;
     static ROLE = 'radiogroup';
     static template = `
@@ -31,11 +32,11 @@ class RadioGroup extends Field {
     #firstRadio;
     #booleanType;
     /**
-     * @param {{slots: any, observed: Record<string, any>}} conf
+     * @param {{slots: any}} conf
      * @returns {any}
      */
-    _build({ slots, observed }) {
-        const name = this.getAttribute('name') ?? Attributes.uid('ful-radiogroup');
+    _build({ slots }) {
+        const name = this.declared('name') ?? Attributes.uid('ful-radiogroup');
         const radioEls = Array.from(slots.default.querySelectorAll('ful-radio'));
         const inputsAndLabels = radioEls.map((el) => {
             const input = document.createElement('input');
@@ -58,7 +59,7 @@ class RadioGroup extends Field {
         const fragment = this.template().withOverlay({ name, slots, inputsAndLabels }).render();
         this.#fieldset = /** @type HTMLElement */ (fragment.firstElementChild);
         this.#firstRadio = fragment.querySelector('input[type=radio]');
-        this.#booleanType = this.getAttribute('type') === 'boolean';
+        this.#booleanType = this.declared('type') === 'boolean';
         //the group claims through its own fieldset, which carries disabled like a
         //native control, inerts for readonly (radios have no editable text to
         //preserve) and announces the requirement; focus stays on the first radio,
