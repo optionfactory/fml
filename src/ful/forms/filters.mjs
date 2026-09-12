@@ -88,9 +88,9 @@ class CompareFilter extends Input {
         if (this._operator.value === null) {
             this._showDefaultOperator();
         }
-        //the second operand mirrors the claims like the first one does, and inert
-        //reaches the operator and sensitivity buttons, whose popovers an input's
-        //readOnly cannot touch
+        //the second operand mirrors the claims like the first one does, and the
+        //freeze reaches the operator and sensitivity buttons, whose popovers an
+        //input's readOnly cannot touch
         return { ...pieces, freeze: this._container, also: [this._value2] };
     }
     _showDefaultOperator() {
@@ -124,7 +124,8 @@ class CompareFilter extends Input {
     _declaredOperators;
     get operators() {
         //a page may whitelist before the upgrade: the narrowed set is held until
-        //the button exists, and the render applies the attribute over it
+        //the button exists, and the declared attribute lands over it when the
+        //base applies the declared state
         return this._operator ? this._operator.allowed : this._declaredOperators;
     }
     set operators(declared) {
@@ -378,7 +379,8 @@ class BooleanFilter extends Field {
     _declaredOperators;
     get operators() {
         //a page may whitelist before the upgrade: the narrowed set is held until
-        //the button exists, and the render applies the attribute over it
+        //the button exists, and the declared attribute lands over it when the
+        //base applies the declared state
         return this._operator ? this._operator.allowed : this._declaredOperators;
     }
     set operators(declared) {

@@ -150,7 +150,7 @@ describe('Localization edge contracts', () => {
         assert.strictEqual(Localization.t.call({ l10n: { k: '{0} and {1}' } }, 'k', 'a'), 'a and {1}');
     });
 
-    it('keeps formatting correctly across formatter cache evictions', function () {
+    it('formats the same way after the formatter cache has evicted', function () {
         this.timeout(10000);
         //each iteration must build its own cache key: a repeated shape would stay
         //under the cap and never evict anything. Distinct private-use locale

@@ -7,8 +7,8 @@ import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-describe('Form Spinner Button States', () => {
-    it('should preserve intentionally disabled button states after the form spinner unspins', async () => {
+describe('Form spinner button states', () => {
+    it('leaves an already-disabled button disabled after the spinner releases', async () => {
         const container = document.createElement('div');
         container.innerHTML = `
             <ful-form>
@@ -18,7 +18,8 @@ describe('Form Spinner Button States', () => {
         `;
         document.body.appendChild(container);
 
-        // FIX: Allow custom element parsing and child transitions to settle
+        //the buttons are the form's own children: one turn past the upgrade is
+        //where they are reachable
         await tick();
 
         const fulForm = container.querySelector('ful-form');
@@ -36,6 +37,35 @@ describe('Form Spinner Button States', () => {
         assert.strictEqual(btnEnabled.dataset.wasDisabled, undefined);
         assert.strictEqual(btnDisabled.dataset.wasDisabled, undefined);
 
+    });
+
+    it('only the outermost spin saves and restores the buttons', async () => {
+        const container = appended(`
+            <ful-form>
+                <button id="btn-enabled">go</button>
+                <button id="btn-disabled" disabled>nope</button>
+            </ful-form>`);
+        await Rendering.waitFor(container);
+        await tick();
+
+        const fulForm = container.querySelector('ful-form');
+        const enabled = fulForm.querySelector('#btn-enabled');
+
+        //a caller's own spin may wrap a submit's: the inner pair must not restore
+        //the buttons while the outer one is still waiting
+        fulForm.spinner(true);
+        fulForm.spinner(true);
+        assert.isTrue(enabled.disabled);
+
+        fulForm.spinner(false);
+        assert.isTrue(enabled.disabled, 'the inner release leaves the outer spin alone');
+
+        fulForm.spinner(false);
+        assert.isFalse(enabled.disabled, 'the outer release restores them');
+
+        //a release nobody asked for cannot drive the count below zero
+        fulForm.spinner(false);
+        assert.isFalse(enabled.disabled);
     });
 
     it('leaves a button that joined mid-spin on its authored state', async () => {
@@ -63,7 +93,7 @@ describe('Form Spinner Button States', () => {
 
     });
 });
-describe('Form Spinner Button States across overlapping submits', () => {
+describe('Form spinner button states across overlapping submits', () => {
     it('drops a submit while one is in flight, re-arming once it settles', async () => {
         const releases = [];
         registry.defineComponent('loaders:form', {
@@ -440,7 +470,7 @@ describe('Form reset and validity', () => {
         assert.deepStrictEqual(form.values, { name: 'ann' });
     });
 
-    describe('restores every field kind through its own value semantics', () => {
+    describe('Restores every field kind through its own value semantics', () => {
         beforeEach(() => {
             registry.defineComponent('loaders:select', {
                 create: () => ({

@@ -3,6 +3,12 @@
  * @property {Promise<any>[]} promises
  * @typedef {Event & { async?: AsyncExtension }} AsyncEvent
  */
+/**
+ * Dispatching an event and waiting for what its listeners answer. A listener
+ * registered through `asyncOn` attaches its promise to the event, and
+ * `fireAsync` resolves once they have all settled: `broadcast` collects every
+ * answer, `pipeline` allows at most one, `delegate` requires exactly one.
+ */
 class AsyncEvents {
     /**
      * Dispatches an event and handles asynchronous resolution based on the execution mode.

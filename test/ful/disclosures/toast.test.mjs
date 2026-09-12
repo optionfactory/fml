@@ -6,9 +6,6 @@ import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-//the clamped loop this replaces billed about 4ms a turn once nested, so
-//the floor keeps the wall time these tests were written against: the turn
-//count alone would drain in a tenth of it
 const settle = () => drain(20, 80);
 const mount = async (html) => {
     const container = appended(html);
@@ -136,6 +133,47 @@ describe('Toasts', () => {
         document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'after the removal' } }));
         assert.strictEqual(first.querySelectorAll('ful-toast').length, 1, 'the removed region answers no more');
         assert.strictEqual(second.querySelectorAll('ful-toast').length, 2, 'the live one keeps answering');
+    });
+
+    it('answers again after being re-attached, without a second render', async () => {
+        const [toasts, container] = await mount('<ful-toasts></ful-toasts>');
+        const parent = container;
+
+        //a region that leaves the document and comes back is the same rendered
+        //element: ParsedElement renders once, so connecting again only has to
+        //put it back on the list the show-toast listener walks
+        toasts.remove();
+        document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'while away' } }));
+        assert.lengthOf(toasts.querySelectorAll('ful-toast'), 0, 'a detached region answers nothing');
+
+        parent.appendChild(toasts);
+        await settle();
+        document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'back again' } }));
+
+        assert.lengthOf(toasts.querySelectorAll('ful-toast'), 1, 'the re-attached region answers');
+        assert.include(toasts.textContent, 'back again');
+    });
+
+    it('hands its focus back to the region, and retires at once where motion is not wanted', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+        const item = toasts.show('holding the focus');
+        const dismiss = item.querySelector('button');
+        dismiss.focus();
+        assert.strictEqual(document.activeElement, dismiss, 'the dismiss button holds the focus');
+
+        const real = window.matchMedia;
+        /** @type any */ (window).matchMedia = (q) =>
+            String(q).includes('prefers-reduced-motion') ? { matches: true } : real.call(window, q);
+        try {
+            dismiss.click();
+        } finally {
+            /** @type any */ (window).matchMedia = real;
+        }
+
+        //no out animation to wait for, so the toast goes now; the focus would
+        //otherwise be left on a removed node, which reads as <body>
+        assert.isFalse(toasts.contains(item), 'the toast is gone the moment it retires');
+        assert.strictEqual(document.activeElement, toasts, 'the region caught the focus on the way out');
     });
 
     it('a custom subclass keeps the chrome through the structure its toasts render', async () => {

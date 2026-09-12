@@ -2,6 +2,7 @@ import { registry } from './registry.mjs';
 import { Template } from './template.mjs';
 
 /** The Template factories, each bound to the page registry's scope. */
+/** The Template factories bound to the page's own registry: the same four sources, with its modules and data already applied. */
 class Templates {
     static fromHtml(html) {
         return Template.fromHtml(html).withEvaluator(registry.evaluator());

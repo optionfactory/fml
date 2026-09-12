@@ -2,6 +2,11 @@ import { Nodes } from './dom.mjs';
 import { ExpressionEvaluator } from './expressions.mjs';
 import { Template } from './template.mjs';
 
+/**
+ * Tracks the elements waiting to render. `ready` resolves once the queue has
+ * drained and never rejects; the promise kept per element resolves when that
+ * element has rendered and rejects with whatever its upgrade threw.
+ */
 class UpgradeQueue {
     #q = new Map();
     #readyResolve;

@@ -562,6 +562,41 @@ describe('Pagination links', () => {
         assert.isFalse(current.matches(':disabled'), 'and stays a tab stop, so the reader can find it');
     });
 
+    it('does not request the page already being shown', async () => {
+        const [el] = await mountPagination(`current="1" total="5"`);
+        const requested = [];
+        el.addEventListener('page:requested', (e) => requested.push(e.detail.value));
+
+        //it stays a real control so the reader can find where they are: clicking
+        //it simply has nothing to ask for
+        const current = el.querySelector('li[data-ref=page] button[aria-current=page]');
+        assert.isNotNull(current);
+        click(current);
+        assert.deepStrictEqual(requested, []);
+
+        click(el.querySelector('li[data-ref=next] button'));
+        assert.deepStrictEqual(requested, [2], 'a page that is not the current one still asks');
+    });
+
+    it('hands the focus to the equivalent control after the bar is replaced', async () => {
+        const [el] = await mountPagination(`current="1" total="5"`);
+
+        //the whole bar is re-rendered, so the control the reader activated is gone
+        //by the time the new one paints
+        const next = el.querySelector('li[data-ref=next] button');
+        next.focus();
+        assert.strictEqual(document.activeElement, next);
+
+        el.update({ current: 2, total: 5 });
+
+        assert.notStrictEqual(document.activeElement, next, 'the old node is gone');
+        assert.strictEqual(
+            document.activeElement,
+            el.querySelector('li[data-ref=next] button'),
+            'the focus followed next to the bar that replaced it',
+        );
+    });
+
     it('does not request a page when a disabled link is clicked', async () => {
         const [el] = await mountPagination(`current="0" total="5"`);
         const requested = [];
@@ -749,6 +784,39 @@ describe('In memory table loader', () => {
         click(sorter.querySelector('button') ?? sorter);
         await settle();
         assert.deepStrictEqual(rowTexts(tableEl), ['pear', 'fig', 'apple'], 'descending');
+    });
+
+    it('leaves rows sharing a value in the order they came in', async () => {
+        const container = appended(`
+            <ful-table page-size="10">
+                <template slot="schema">
+                    <schema><column title="A" sorter="a">{{ a }}</column><column title="B">{{ b }}</column></schema>
+                </template>
+            </ful-table>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        await tableEl.withLoader((loader) =>
+            loader.update([
+                { a: 'same', b: 'first' },
+                { a: 'same', b: 'second' },
+                { a: 'same', b: 'third' },
+            ]),
+        );
+        await tableEl.reload();
+
+        const sorter = tableEl.querySelector('ful-sorter');
+        click(sorter.querySelector('button') ?? sorter);
+        await settle();
+
+        //a comparison that cannot separate two rows must not reorder them: the
+        //reader sorted by one column and expects the rest to sit still
+        assert.deepStrictEqual(
+            [...tableEl.querySelectorAll('table > tbody:not([data-ref]) > tr')].map((tr) =>
+                tr.cells[1].textContent.trim(),
+            ),
+            ['first', 'second', 'third'],
+        );
     });
 
     it('sorts rows missing the value last, whichever way the column points', async () => {

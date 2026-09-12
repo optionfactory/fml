@@ -110,9 +110,9 @@ class ParsedElement extends HTMLElement {
         this[attr] = this.unmarshal(attr, newValue);
     }
     /**
-     * Upgrades once: captures the observed snapshot, opens it to attribute
-     * writes made while the render is pending, and opens the property forward
-     * only when the render is done.
+     * Upgrades once: reads the declared attributes, keeps the observed half open
+     * to writes made while the render is pending, applies them to the properties
+     * when the render returns, and only then lets an attribute write forward.
      */
     async upgrade() {
         if (this.#started) {

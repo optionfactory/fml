@@ -31,7 +31,8 @@ class Timing {
             if (!immediate) {
                 func(...args);
             }
-            // This check is needed because `func` can recursively invoke `debounced`.
+            //func may have called debounced again, arming a new timer with new args:
+            //clearing them then would drop the call that is now pending
             if (tid === null) {
                 args = [];
             }

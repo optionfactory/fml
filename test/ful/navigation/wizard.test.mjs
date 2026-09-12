@@ -1,13 +1,10 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, Plugin } from '../../../src/ful/index.mjs';
-import { appended, settle as drain } from '../../harness.mjs';
+import { appended, captureConsole, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-//the clamped loop this replaces billed about 4ms a turn once nested, so
-//the floor keeps the wall time these tests were written against: the turn
-//count alone would drain in a tenth of it
 const settle = () => drain(20, 80);
 const mount = async (html) => {
     const container = appended(html);
@@ -218,6 +215,32 @@ describe('Wizard, async sections', () => {
         await settle();
 
         assert.deepStrictEqual(seen, [], 'a section with no step is never activated');
+    });
+
+    it('says so when asked to move or refresh a step nothing carries', async () => {
+        const warnings = captureConsole('warn');
+        const [wizard] = await mount(`
+            <ful-wizard>
+                <template slot="steps"><step>One</step><step>Two</step></template>
+                <section data-step="a">a</section>
+                <section data-step="b">b</section>
+            </ful-wizard>`);
+
+        //a name nothing answers to is the caller's mistake, not a crash: the
+        //wizard stays where it is and says which name went nowhere
+        assert.isUndefined(wizard.move('nowhere'));
+        assert.isUndefined(wizard.refresh('nowhere'));
+        assert.isUndefined(wizard.refresh(document.createElement('section')));
+        assert.strictEqual(wizard.querySelector('[data-step=a]').getAttribute('aria-current'), 'step');
+
+        assert.isTrue(
+            warnings.some((w) => w.includes('no section carries data-step="nowhere"')),
+            `expected the move complaint, saw ${JSON.stringify(warnings)}`,
+        );
+        assert.isTrue(
+            warnings.some((w) => w.includes('no section answers to')),
+            `expected the refresh complaint, saw ${JSON.stringify(warnings)}`,
+        );
     });
 
     it('does not spend first when nobody listened', async () => {

@@ -3,7 +3,7 @@
         display: none;
     }
 
-    *:has(> ful-toast):not(body, html) {
+    *:has(> ful-toast) {
         --ful-toasts-max-width: min(90vw, 24rem);
 
         position: fixed;

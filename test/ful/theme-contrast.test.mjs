@@ -54,7 +54,7 @@ const TEXT = [
     ['--ful-warning-color', '--ful-warning-bg'],
 ];
 
-describe('theme contrast', () => {
+describe('Theme contrast', () => {
     for (const mode of ['light', 'dark']) {
         describe(mode, () => {
             let host;

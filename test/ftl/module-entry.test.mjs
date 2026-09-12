@@ -4,7 +4,7 @@ import * as ftl from '../../src/ftl/index.mjs';
 import * as httpc from '../../src/httpc/index.mjs';
 import * as ful from '../../src/ful/index.mjs';
 
-describe('the module entry', () => {
+describe('The module entry', () => {
     it('exposes every namespace on the window, for the script-tag builds', () => {
         assert.strictEqual(window.ftl, ftl);
         assert.strictEqual(window.httpc, httpc);

@@ -20,7 +20,7 @@ const withoutPlatformAnchors = (run) => {
     }
 };
 
-describe('the anchored popover fallback', () => {
+describe('The anchored popover fallback', () => {
     it('forgets a popover removed while open instead of placing it forever', async () => {
         const invoker = document.createElement('button');
         const popover = document.createElement('div');

@@ -1,5 +1,6 @@
 import { Failure } from './failure.mjs';
 
+/** A parsed `Content-Type`: the type and subtype without the parameters, so a comparison is not defeated by a charset. */
 class MediaType {
     #type;
     #subtype;
@@ -42,6 +43,11 @@ class MediaType {
  * @property {(url: URL, init: RequestInit|undefined, chain: HttpInterceptorChain) => Promise<Response>} intercept
  */
 
+/**
+ * A Failure from an http exchange, carrying the status that was served. Status
+ * 0 means no response was served at all: the transport failed, or a body the
+ * server did send could not be read.
+ */
 class HttpClientError extends Failure {
     /**
      * @param {string} message
@@ -153,6 +159,11 @@ const metaContent = (name) =>
 /**
  * @implements {HttpInterceptor}
  */
+/**
+ * Sends the csrf header named by the page's `_csrf_header` meta, with the token
+ * from `_csrf`. Both are read per request, so metas replaced after the client
+ * was built are honoured, and the header is sent to the page's own origin only.
+ */
 class CsrfTokenInterceptor {
     async intercept(url, request, chain) {
         //the token is the page's own: it travels to the page's origin only, and it
@@ -171,6 +182,11 @@ class CsrfTokenInterceptor {
 }
 /**
  * @implements {HttpInterceptor}
+ */
+/**
+ * Navigates to a login url when a response comes back 401. The promise it
+ * returns never settles, so callers keep waiting while the page unloads
+ * instead of showing a failure nobody will be present to read.
  */
 class RedirectOnUnauthorizedInterceptor {
     #redirectUri;
@@ -194,6 +210,7 @@ class RedirectOnUnauthorizedInterceptor {
     }
 }
 
+/** Collects the interceptors an HttpClient will run, in the order they are added. */
 class HttpClientBuilder {
     /**
      * @type {HttpInterceptor[]}
@@ -225,6 +242,7 @@ class HttpClientBuilder {
 /**
  * @implements {HttpInterceptor}
  */
+/** The last interceptor in every chain: the one that performs the request. */
 class HttpCall {
     async intercept(url, request, chain) {
         try {
@@ -238,6 +256,7 @@ class HttpCall {
     }
 }
 
+/** One request's position in the interceptor list: `proceed` runs the next interceptor, the last of which performs the request. */
 class HttpInterceptorChain {
     #interceptors;
     #current;
@@ -266,6 +285,11 @@ class HttpInterceptorChain {
     }
 }
 
+/**
+ * Performs http requests through a fixed list of interceptors. The verbs
+ * return a request builder; `exchange` is the lower-level entry that returns
+ * the Response itself without treating an error status as a failure.
+ */
 class HttpClient {
     #interceptors;
     /**
@@ -390,6 +414,12 @@ const rawEntries = (source) => {
     return Object.entries(source);
 };
 
+/**
+ * One request under construction: method, url, parameters, headers and body,
+ * with a `fetch*` method per body type. Every configuration method returns the
+ * builder, and a `fetch*` rejects with an HttpClientError for any status
+ * outside 200-299.
+ */
 class HttpRequestBuilder {
     #client;
     #method;
@@ -666,6 +696,7 @@ class HttpRequestBuilder {
     }
 }
 
+/** Builds a multipart body: text fields, json parts, and single or repeated blobs. */
 class HttpMultipartRequestCustomizer {
     #formData;
     /**

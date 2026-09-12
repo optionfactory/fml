@@ -93,7 +93,8 @@ class InputLocalDate extends Input {
         if (!v) {
             return '';
         }
-        //this could be date.toLocaleDateString('en-CA')
+        //the offset is subtracted before formatting so the iso date is the local
+        //calendar day, which toISOString alone would shift to utc
         const formatLocalDate = (date) =>
             new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
         if (v === 'now') {

@@ -7,7 +7,7 @@ const attach = (html) => {
     return container;
 };
 
-describe('the cascade contract', () => {
+describe('The cascade contract', () => {
     const withSheet = (css, run) => {
         const sheet = document.createElement('style');
         sheet.textContent = css;
@@ -60,7 +60,7 @@ describe('the cascade contract', () => {
     });
 });
 
-describe('style hooks', () => {
+describe('Style hooks', () => {
     it('the tip chrome follows the class on any trigger, not the button tag', () => {
         const container = attach('<span class="ful-tip">?</span>');
 

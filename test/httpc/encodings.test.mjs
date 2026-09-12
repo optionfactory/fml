@@ -25,7 +25,7 @@ describe('Encodings', () => {
             }
         });
 
-        it('handles padding correctly for URL_SAFE payloads', () => {
+        it('round trips a payload whose length needs padding', () => {
             const buffer = new TextEncoder().encode('foob').buffer;
             const encoded = Base64.encode(buffer, Base64.URL_SAFE);
 

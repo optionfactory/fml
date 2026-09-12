@@ -108,8 +108,8 @@ class InputFile extends Input {
         this.#dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             this.toggleAttribute('dragover', false);
-            //the drop's default stays suppressed even when inert: a disabled field
-            //must not turn into a navigation target
+            //the drop's default stays suppressed whatever the claims say: a
+            //disabled field must not turn into a navigation target
             if (!this._interactive()) {
                 return;
             }
@@ -127,13 +127,15 @@ class InputFile extends Input {
             this.#update();
         });
         //a file input has no native freeze: readOnly does nothing to it, so the
-        //control group goes inert, the only way to keep the picker shut
+        //control group is the frozen piece and the base's refusal of the click is
+        //what keeps the picker shut. The dropzone and the item removals are
+        //guarded on their own handlers
         return { ...pieces, freeze: this.#group };
     }
     /**
-     * A file input has no native freeze: readOnly does nothing to it, so the
-     * control group goes inert, the only way to keep the picker shut. The
-     * dropzone and the item removals are guarded on their own handlers.
+     * Re-reads the selection: the constraints run in order over what is there,
+     * each dropping what it refuses, and the warnings and the item list are
+     * rendered from what survives. Every path that changes the files ends here.
      */
     #update() {
         this.setCustomValidity();

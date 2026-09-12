@@ -5,11 +5,10 @@ describe('Registry', () => {
     let registry;
 
     beforeEach(() => {
-        // Instantiate a fresh registry for isolated configuration tests
         registry = new Registry();
     });
 
-    describe('Attribute Mappers', () => {
+    describe('Attribute mappers', () => {
         it('correctly marshals and unmarshals all built-in types', () => {
             class DummyEl extends HTMLElement {
                 static attributes = ['s:string', 'n:number', 'p:presence', 'b:bool', 'j:json', 'c:csv', 'cm:csvm'];
@@ -20,50 +19,50 @@ describe('Registry', () => {
             const mappers = DummyEl.BITS.ATTR_TO_MAPPER;
             const el = document.createElement('dummy-mappers');
 
-            // 1. String
+            //string
             expect(mappers.s.unmarshal('hello')).to.equal('hello');
             expect(mappers.s.marshal('hello')).to.equal('hello');
             expect(mappers.s.marshal(null)).to.be.null;
 
-            // 2. Number
+            //number
             expect(mappers.n.unmarshal('123')).to.equal(123);
             expect(mappers.n.unmarshal(null)).to.be.null;
             expect(mappers.n.marshal(123)).to.equal('123');
             expect(mappers.n.marshal(null)).to.be.null;
 
-            // 3. Presence
+            //presence
             expect(mappers.p.unmarshal('anything')).to.be.true;
             expect(mappers.p.unmarshal(null)).to.be.false;
             expect(mappers.p.marshal(true)).to.equal('');
             expect(mappers.p.marshal(false)).to.be.null;
 
-            // 4. Boolean
+            //boolean
             expect(mappers.b.unmarshal('true')).to.be.true;
             expect(mappers.b.unmarshal('false')).to.be.false;
             expect(mappers.b.marshal(true)).to.equal('true');
             expect(mappers.b.marshal(false)).to.equal('false');
             expect(mappers.b.marshal(null)).to.be.null;
 
-            // 5. JSON
+            //json
             expect(mappers.j.unmarshal('{"a":1}')).to.deep.equal({ a: 1 });
             expect(mappers.j.unmarshal(null)).to.be.null;
             expect(mappers.j.marshal({ a: 1 })).to.equal('{"a":1}');
             expect(mappers.j.marshal(null)).to.be.null;
 
-            // 6. CSV
+            //csv
             expect(mappers.c.unmarshal('a, b, c')).to.deep.equal(['a', 'b', 'c']);
             expect(mappers.c.unmarshal(null)).to.deep.equal([]);
             expect(mappers.c.marshal(['a', 'b'])).to.equal('a,b');
             expect(mappers.c.marshal(null)).to.be.null;
 
-            // 7. CSVM (Without 'multiple' attribute)
+            //csvm reads the element: a scalar without `multiple`
             expect(mappers.cm.unmarshal('a', 'cm', el)).to.equal('a');
             expect(mappers.cm.unmarshal('', 'cm', el)).to.be.null;
             expect(mappers.cm.unmarshal(null, 'cm', el)).to.be.null;
             expect(mappers.cm.marshal('a', 'cm', el)).to.equal('a');
             expect(mappers.cm.marshal(null, 'cm', el)).to.be.null;
 
-            // 8. CSVM (With 'multiple' attribute)
+            //and a list with it
             el.setAttribute('multiple', '');
             expect(mappers.cm.unmarshal('a, b', 'cm', el)).to.deep.equal(['a', 'b']);
             expect(mappers.cm.unmarshal(null, 'cm', el)).to.deep.equal([]);
@@ -100,7 +99,7 @@ describe('Registry', () => {
         });
     });
 
-    describe('Core Configuration & API', () => {
+    describe('Core configuration and api', () => {
         it('allows defining modules, data, components, mappers, and plugins', () => {
             registry.defineModules({ mod1: { fn: () => 'called' } });
             registry.defineData({ baseData: true });

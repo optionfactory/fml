@@ -42,7 +42,7 @@ describe('AsyncEvents', () => {
         expect(result).to.equal('Pipeline Intercepted Value');
     });
 
-    it('handles events with no async listeners gracefully', async () => {
+    it('answers an empty array when nothing listened', async () => {
         const evt = new CustomEvent('unhandled-async');
 
         const results = await AsyncEvents.fireAsync(el, evt);
@@ -50,7 +50,7 @@ describe('AsyncEvents', () => {
         expect(results).to.be.an('array').that.is.empty;
     });
 
-    it('bubbles asynchronous events up the DOM tree correctly', async () => {
+    it('collects the answer of a listener on an ancestor', async () => {
         const child = document.createElement('span');
         el.appendChild(child);
 

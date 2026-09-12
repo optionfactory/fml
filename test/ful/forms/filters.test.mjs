@@ -569,7 +569,7 @@ describe('Filter sensitivity whitelisting', () => {
         );
     });
 
-    it('re-applies the whitelist when the attribute changes after rendering', async () => {
+    it('re-applies the sensitivity whitelist when the attribute changes after rendering', async () => {
         const [el] = await mount(`<ful-filter-text name="f">t</ful-filter-text>`);
         el.value = ['EQ', 'IGNORE_CASE', 'x'];
         assert.deepStrictEqual(el.value, ['EQ', 'IGNORE_CASE', 'x']);
@@ -964,6 +964,25 @@ describe('Filter property access before rendering', () => {
         bool.operators = ['NEQ'];
 
         assert.deepStrictEqual(bool.operators, ['NEQ']);
+    });
+
+    it('accepts a sensitivities assignment on a filter that has not rendered yet', async () => {
+        const text = document.createElement('ful-filter-text');
+        text.sensitivities = ['CASE_SENSITIVE', 'NOT_A_SENSITIVITY'];
+
+        assert.deepStrictEqual(
+            text.sensitivities,
+            ['CASE_SENSITIVE'],
+            'narrowed against the vocabulary while the menu is still missing',
+        );
+
+        //the held set answers until the menu exists; the declared attribute then
+        //lands over it, an absent one meaning the whole vocabulary
+        appended('').appendChild(text);
+        text.innerHTML = 't';
+        await Rendering.waitFor(text);
+        await settle();
+        assert.deepStrictEqual(text.sensitivities, ['IGNORE_CASE', 'CASE_SENSITIVE']);
     });
 });
 

@@ -414,7 +414,8 @@ describe('Template', () => {
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div><span data-tpl-each="ignored">{{ test }}</span></div>');
     });
-    //currently tpl-remove has lower priority
+    //verbatim wins over the directives inside the node, and tag removal still
+    //applies to the node carrying it
     it('nodes can be marked as verbatim and tag removed', () => {
         const data = { a: 1 };
         const template = Template.fromHtml(
@@ -728,7 +729,7 @@ describe('Template', () => {
 
         target.remove();
     });
-    it('gracefully handles empty arrays in *-class-append', () => {
+    it('appends nothing for an empty list or blank class names', () => {
         const data = { emptyArray: [], emptyStrings: [' ', ''] };
         const template = Template.fromHtml(
             '<div class="base" data-tpl-class-append="emptyArray"></div><span data-tpl-class-append="emptyStrings"></span>',
@@ -745,6 +746,84 @@ describe('Template', () => {
         const rendered = template.render();
 
         assert.strictEqual(Fragments.toHtml(rendered), '<div data-other="ignored" test="1"></div>');
+    });
+
+    it('serializes the offending node only when asked, tidied of the template whitespace', () => {
+        //the markup is what a developer reads in the console; it is deliberately
+        //not on the message, so nothing ships the rendered rows to a reporter
+        const template = Template.fromHtml(`
+            <ul class="rows">
+                <li data-tpl-each="rows">{{ nope.deep }}</li>
+            </ul>
+        `);
+        try {
+            template.withOverlay({ rows: [1] }).render();
+            assert.fail('the render must throw');
+        } catch (ex) {
+            assert.instanceOf(ex, RenderError);
+            const failed = /** @type any */ (ex);
+            //a frame names its node by the open tag; what it never carries is the
+            //subtree, which is what would ship rendered data to a reporter
+            assert.include(failed.message, '<li', 'the frame names the node');
+            assert.notInclude(failed.message, '</li>', 'and stops at the open tag');
+            assert.strictEqual(failed.node.nodeType, Node.ELEMENT_NODE, 'the live node, not a clone');
+
+            const html = failed.html;
+            assert.include(html, '<li', 'the markup is there when asked for');
+            assert.notMatch(html, />\s{2,}</, 'the template indentation is tidied away');
+            assert.strictEqual(html, failed.html, 'and it serializes the same way every time');
+        }
+    });
+
+    it('serializes a failing text node too, not only an element', () => {
+        //an interpolation names the text node it failed in, so the markup a
+        //developer asks for is that text rather than a subtree
+        const template = Template.fromHtml('<p>  {{ nope.deep }}  </p>');
+        try {
+            template.render();
+            assert.fail('the render must throw');
+        } catch (ex) {
+            const failed = /** @type any */ (ex);
+            assert.strictEqual(failed.node.nodeType, Node.TEXT_NODE);
+            assert.strictEqual(failed.html, '{{ nope.deep }}', 'trimmed of the template whitespace');
+        }
+    });
+
+    it('evaluates a templated string in the template scope', () => {
+        const template = Template.fromHtml('<div></div>', modules, { who: 'world' });
+        //the templated form answers the parts, literal and interpolated alike, so
+        //a caller can tell a bound value from the text around it
+        const shape = (parts) => JSON.stringify(parts.map((p) => p.value));
+
+        assert.strictEqual(shape(template.evaluateTemplated('hello {{ who }}')), '["hello ","world"]');
+        assert.strictEqual(shape(template.evaluateTemplated('no interpolation')), '["no interpolation"]');
+        assert.strictEqual(
+            shape(template.evaluateTemplated('hello {{ who }}', { who: 'overlay' })),
+            '["hello ","overlay"]',
+            'the overlay widens the scope for the one call',
+        );
+    });
+
+    it('tidies the template whitespace out of a serialized subtree', () => {
+        //what a developer reads in the console: the markup as authored, not the
+        //indentation the template file happened to carry between its elements
+        const host = document.createElement('div');
+        host.innerHTML = '\n    <span> keep me </span>\n    <b>\n        <i>deep</i>\n    </b>\n';
+
+        const serialized = RenderError.stringify(host);
+
+        assert.strictEqual(typeof serialized, 'string');
+        assert.strictEqual(serialized, '<div><span>keep me</span><b><i>deep</i></b></div>');
+        assert.strictEqual(host.childNodes.length, 5, 'the live node is left alone: it serializes a clone');
+    });
+
+    it('describes a fragment by the elements it holds', () => {
+        const fragment = Fragments.fromHtml('<b>one</b>\n   \n<i class="x">two</i>');
+        const described = RenderError.describe(fragment);
+
+        assert.include(described, '<b>');
+        assert.include(described, '<i class="x">');
+        assert.notInclude(described, '\n', 'the blank text between them is not a child worth naming');
     });
 
     it('throws RenderError when a dynamic data-tpl-* attribute expression fails', () => {

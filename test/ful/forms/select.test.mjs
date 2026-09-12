@@ -13,7 +13,29 @@ const opened = async () => {
     }
 };
 
-describe('Select & Dropdown Combobox ARIA Compliance', () => {
+/**
+ * Mounting for the select suites. `loader` replaces the registered one for the
+ * mount that follows; the two stock vocabularies cover the describes that only
+ * need options to exist, or to be absent.
+ */
+const mountSelect = async (html, loader) => {
+    if (loader) {
+        registry.defineComponent('loaders:select', { create: () => loader });
+    }
+    const container = appended(html);
+    const selectEl = container.querySelector('ful-select');
+    await Rendering.waitFor(selectEl);
+    await settle();
+    return [selectEl, container];
+};
+const labelling = (options) => ({
+    prefetch: async () => {},
+    load: async () => options,
+    exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+});
+const ONE_OPTION = [{ key: 'k1', label: 'Label 1' }];
+
+describe('Select and dropdown combobox ARIA compliance', () => {
     beforeEach(() => {
         registry.defineComponent('loaders:select', {
             create: () => ({ prefetch: async () => {}, load: async () => [] }),
@@ -43,7 +65,7 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
 
     });
 
-    it('should establish standard ARIA roles on mounting', async () => {
+    it('carries the combobox roles from the first render', async () => {
         const container = appended(`<ful-select></ful-select>`);
 
         const selectEl = container.querySelector('ful-select');
@@ -59,7 +81,7 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
 
     });
 
-    it('should dynamically update aria-expanded state when dropdown visibility shifts', async () => {
+    it('mirrors aria-expanded onto the input as the dropdown opens and closes', async () => {
         const container = appended(`<ful-select></ful-select>`);
 
         const selectEl = container.querySelector('ful-select');
@@ -77,7 +99,7 @@ describe('Select & Dropdown Combobox ARIA Compliance', () => {
     });
 });
 
-describe('Select & Dropdown load failure handling', () => {
+describe('Select and dropdown load failure handling', () => {
     const rejections = [];
     window.addEventListener('unhandledrejection', (e) => {
         rejections.push(e.reason);
@@ -169,7 +191,7 @@ describe('Select & Dropdown load failure handling', () => {
         assert.isTrue(warns.length === 0);
     });
 });
-describe('Select & Dropdown keyboard interaction', () => {
+describe('Select and dropdown keyboard interaction', () => {
     const uncaught = [];
     window.addEventListener('error', (e) => {
         uncaught.push(e.error ?? e.message);
@@ -501,14 +523,8 @@ describe('Select & Dropdown keyboard interaction', () => {
 });
 
 describe('Select value resolution', () => {
+    const mount = mountSelect;
     let exactCalls = [];
-    const mount = async (html) => {
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
     beforeEach(() => {
         exactCalls = [];
         registry.defineComponent('loaders:select', {
@@ -568,14 +584,7 @@ describe('Select value resolution', () => {
 });
 
 describe('Select value assignment', () => {
-    const mount = async (html, loader) => {
-        registry.defineComponent('loaders:select', { create: () => loader });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = mountSelect;
     const labelling = (delays = {}) => ({
         prefetch: async () => {},
         load: async () => [],
@@ -665,6 +674,7 @@ describe('Select value assignment', () => {
 });
 
 describe('Select key types', () => {
+    const mount = mountSelect;
     const filtering = (data) => ({
         prefetch: async () => {},
         load: async () => data,
@@ -685,14 +695,6 @@ describe('Select key types', () => {
         load: async () => [],
         exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
     });
-    const mount = async (html, loader) => {
-        registry.defineComponent('loaders:select', { create: () => loader });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
 
     it('keeps a string assignment selected when the loader keys are numbers', async () => {
         const [selectEl] = await mount(`<ful-select value="16"></ful-select>`, numeric());
@@ -769,14 +771,8 @@ describe('Select key types', () => {
 });
 
 describe('Select enter key inside a form', () => {
+    const mount = mountSelect;
     let submits = [];
-    const mount = async (html) => {
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
     const enter = (selectEl) => {
         selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
     };
@@ -1053,20 +1049,7 @@ describe('Select chips and picked options', () => {
 });
 
 describe('Select chips keyboard access', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling([]));
     const keydown = (el, code) => {
         el.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
     };
@@ -1140,20 +1123,7 @@ describe('Select chips keyboard access', () => {
 });
 
 describe('Select backspace', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [{ key: 'k1', label: 'Label 1' }],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling(ONE_OPTION));
     const backspace = (input) =>
         input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', bubbles: true }));
 
@@ -1231,20 +1201,7 @@ describe('Select backspace', () => {
 });
 
 describe('Select blur', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [{ key: 'k1', label: 'Label 1' }],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling(ONE_OPTION));
 
     it('clears the typed text and closes the dropdown when focus leaves', async () => {
         const [selectEl] = await mount(`<ful-select></ful-select>`);
@@ -1294,14 +1251,7 @@ describe('Select blur', () => {
 });
 
 describe('Select loader access and entries', () => {
-    const mount = async (html, loader) => {
-        registry.defineComponent('loaders:select', { create: () => loader });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = mountSelect;
     const updatable = () => {
         let data = [{ key: 'k1', label: 'Label 1' }];
         return {
@@ -1384,15 +1334,9 @@ describe('Select edits made while a lookup is in flight', () => {
 });
 
 describe('Select chips and validity', () => {
+    const mount = mountSelect;
     const keydown = (input, code, options = {}) => {
         input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
-    };
-    const mount = async (html) => {
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
     };
     const labelling = () => ({
         prefetch: async () => {},
@@ -1502,20 +1446,7 @@ describe('Select pointer picking', () => {
 });
 
 describe('Select dropdown opening', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [{ key: 'k1', label: 'Label 1' }],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling(ONE_OPTION));
     const keydown = (input, code) => {
         input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
     };
@@ -1568,20 +1499,7 @@ describe('Select dropdown opening', () => {
 });
 
 describe('Select inner control isolation', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [{ key: 'k1', label: 'Label 1' }],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling(ONE_OPTION));
 
     it('does not re-emit the inner input change as its own', async () => {
         const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
@@ -1622,20 +1540,7 @@ describe('Select inner control isolation', () => {
 });
 
 describe('Select stray clicks', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling([]));
 
     it('removes nothing when a badge nested somewhere else in the control is clicked', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1,k2">pick</ful-select>`);
@@ -1726,14 +1631,7 @@ describe('Select failed searches', () => {
 });
 
 describe('Select focus and key coercion gaps', () => {
-    const mount = async (html, loader) => {
-        registry.defineComponent('loaders:select', { create: () => loader });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = mountSelect;
 
     it('hands its focus to the combobox', async () => {
         const [selectEl] = await mount(

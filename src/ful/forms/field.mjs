@@ -225,9 +225,9 @@ class Field extends ParsedElement {
     /**
      * A field is readonly through its control's native readOnly when it has one:
      * the control stays focusable and its text selectable, only editing is off.
-     * Fields whose chrome must freeze too (popovers, buttons, label clicks)
-     * override both accessors and inert their container instead, and the claim
-     * reflects on the host either way.
+     * Fields whose chrome must freeze too (popovers, buttons, label clicks) name
+     * a `freeze` piece instead, whose gestures the base refuses while the claim
+     * holds; the claim reflects on the host either way.
      */
     get readonly() {
         //the host attribute is the claim, as it is for disabled: every setter

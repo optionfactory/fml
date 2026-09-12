@@ -5,9 +5,6 @@ import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-//the clamped loop this replaces billed about 4ms a turn once nested, so
-//the floor keeps the wall time these tests were written against: the turn
-//count alone would drain in a tenth of it
 const settle = () => drain(20, 80);
 const mount = async (html) => {
     const container = appended(html);
@@ -256,7 +253,7 @@ describe('Dialog', () => {
     });
 });
 
-describe('subclass reuse', () => {
+describe('Subclass reuse', () => {
     it('a custom tooltip keeps the wiring and the chrome through the structural hooks', async () => {
         class HelpTip extends Tooltip {
             static template = `

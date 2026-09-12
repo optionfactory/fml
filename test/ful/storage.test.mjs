@@ -41,7 +41,7 @@ describe('VersionedLocalStorage', () => {
     });
 });
 
-describe('unreachable storage', () => {
+describe('Unreachable storage', () => {
     //blocked cookies and some embedded or private contexts make the accessor
     //itself throw: redefining the property simulates it, and the saved
     //descriptor puts the real storage back
@@ -107,7 +107,7 @@ describe('VersionedSessionStorage', () => {
         expect(sessionStorage.getItem('temp-key')).to.be.null;
     });
 });
-describe('corrupt entries', () => {
+describe('Corrupt entries', () => {
     beforeEach(() => {
         localStorage.clear();
         sessionStorage.clear();
@@ -138,7 +138,7 @@ describe('corrupt entries', () => {
     });
 });
 
-describe('absent entries', () => {
+describe('Absent entries', () => {
     it('LocalStorage.load of a missing key is undefined', () => {
         expect(LocalStorage.load('never.saved.key')).to.be.undefined;
     });

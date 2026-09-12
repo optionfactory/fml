@@ -5,6 +5,11 @@ import { Field } from './field.mjs';
 import { VersionedLocalStorage } from '../storage.mjs';
 import { Timing } from '../timing.mjs';
 
+/**
+ * Fetches a select's whole vocabulary from a url and serves every later read
+ * from it. Concurrent callers share one request, the options may be cached in
+ * local storage under a revision, and reconfiguring the url discards both.
+ */
 class RemoteLoader {
     #http;
     #url;
@@ -96,6 +101,7 @@ class RemoteLoader {
     }
 }
 
+/** Asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold in memory. */
 class PartialRemoteLoader {
     #http;
     #url;
@@ -120,6 +126,7 @@ class PartialRemoteLoader {
     }
 }
 
+/** Serves a select's options from an array held in memory, which is what the slotted `<option>` elements become. */
 class InMemoryLoader {
     #data;
     constructor(data) {
@@ -137,7 +144,20 @@ class InMemoryLoader {
     }
 }
 
-/** Builds the select's loader from its attributes: the slotted options in memory, or a remote or chunked loader over src. */
+/**
+ * Builds the select's loader from its attributes: the slotted options in
+ * memory, or a remote or chunked loader over src.
+ *
+ * A component registered under the `loader` attribute replaces this one and
+ * must implement the same three methods, each answering `{ key, label,
+ * metadata }` entries:
+ *
+ * - `prefetch()` warms the vocabulary if it can, and resolves either way
+ * - `load(needle)` answers the entries matching the typed text, all of them
+ *   when the needle is nullish, which is the empty search the list opens with
+ * - `exact(...keys)` answers the entries for those keys, used to label a value
+ *   assigned without going through the list
+ */
 class SelectLoader {
     /**
      * Builds a loader from a plain configuration, reading no dom: `data` alone
@@ -730,7 +750,8 @@ class Select extends Field {
                 break;
             }
             case 'Backspace': {
-                //remove last if caret at position 0
+                //only where there is no text to delete first, and nothing selected:
+                //backspace belongs to the search until the caret runs out of it
                 if (this.#input.selectionStart === 0 && this.#input.selectionEnd === 0) {
                     this.#removeKeyAt(this.#values.size - 1);
                 }

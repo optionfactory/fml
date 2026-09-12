@@ -1,9 +1,12 @@
 /** Field wiring: extracting and filling values, pinning problems to the fields they name. */
 class Bindings {
     /**
+     * Flattens a nested object into dotted keys, stopping wherever `stops` names
+     * a key: a field named `address` takes the whole object, while one named
+     * `address.city` takes the leaf.
      * @param {{ [x: string]: any; }} obj
      * @param {string} prefix
-     * @param {Set<String>} stops
+     * @param {Set<String>} stops - the names the form actually has fields for
      * @return {{ [x: string]: any; }}
      */
     static flatten(obj, prefix, stops) {
@@ -29,8 +32,10 @@ class Bindings {
      */
     static #FORBIDDEN = new Set(['__proto__', 'prototype', 'constructor']);
     /**
+     * Writes a value into an object at a dotted path, creating the intermediate
+     * objects and arrays the path implies. A numeric segment makes an array.
      * @param {any} result
-     * @param {string} path
+     * @param {string} path - a field name, `a.b` or `a[0].b`
      * @param {any} value
      */
     static providePath(result, path, value) {
@@ -53,7 +58,8 @@ class Bindings {
                 }
             }
             if (i === keys.length - 1) {
-                //when value is undefined we only want to define the property if it's not defined
+                //an undefined value declares the path without filling it: an entry
+                //already there is left alone, a missing one is created null
                 current[ckey] = value !== undefined ? value : ckey in current ? current[ckey] : null;
                 return result;
             }
@@ -68,9 +74,12 @@ class Bindings {
         }
     }
     /**
-     *
+     * Reads one control's value the way its kind demands: an unchecked radio
+     * answers undefined so it contributes nothing, a checkbox answers its
+     * checked state, a multiple select answers its selected values, and a blank
+     * native control answers null rather than an empty string.
      * @param {Element & {dataset?: any} & {checked?: boolean} & {value?: any}} el
-     * @returns
+     * @returns {any} the value, or undefined where the control contributes none
      */
     static extract(el) {
         if (el.getAttribute('type') === 'radio') {
@@ -95,7 +104,8 @@ class Bindings {
     }
 
     /**
-     *
+     * Reads every named, enabled control of a form into a nested object, the
+     * dotted field names deciding its shape.
      * @param {HTMLFormElement} form
      * @param {HTMLElement} [submitter]
      * @returns
@@ -103,7 +113,8 @@ class Bindings {
     static extractFrom(form, submitter) {
         let result = {};
         for (const el of form.elements) {
-            // we are assuming submitters are disabled during submit.
+            //the submitter is exempt from the disabled check: a form disables its
+            //buttons while submitting, and its own submitter still names a value
             if (!el.hasAttribute('name') || (el.matches(':disabled') && el !== submitter)) {
                 continue;
             }
@@ -117,9 +128,11 @@ class Bindings {
     }
 
     /**
-     *
+     * Writes a value into one control, the inverse of `extract`: a radio is
+     * checked when its own value matches, a checkbox takes the value as its
+     * checked state, and a multiple select selects the options the list names.
      * @param {Element & {dataset?: any} & {checked?: boolean} & {value?: any}} el
-     * @returns
+     * @param {any} raw the value as it arrived, coerced per control kind
      */
     static mutate(el, raw) {
         if (el.getAttribute('type') === 'radio') {

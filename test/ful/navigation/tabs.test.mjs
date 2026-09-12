@@ -1,13 +1,10 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, Plugin } from '../../../src/ful/index.mjs';
-import { mount as mounted, settle as drain } from '../../harness.mjs';
+import { captureConsole, mount as mounted, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-//the clamped loop this replaces billed about 4ms a turn once nested, so
-//the floor keeps the wall time these tests were written against: the turn
-//count alone would drain in a tenth of it
 const settle = () => drain(20, 80);
 //the harness owns the container and its teardown; the wait stays this suite's,
 //since its drain is counted in clamped turns and the components lean on it
@@ -81,6 +78,47 @@ describe('Tabs', () => {
         );
         assert.strictEqual(tabs.active, 0, 'the walk wraps');
         assert.strictEqual(document.activeElement, buttons[0], 'the focus follows the walk');
+    });
+
+    it('walks left and Home, and ignores a key that asks for where it already is', async () => {
+        const tabs = await mount(markup);
+        const tablist = tabs.querySelector('ful-tablist');
+        const key = (k) =>
+            tablist.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+
+        key('ArrowLeft');
+        assert.strictEqual(tabs.active, 2, 'left from the first wraps to the last');
+        key('ArrowLeft');
+        assert.strictEqual(tabs.active, 1);
+        key('Home');
+        assert.strictEqual(tabs.active, 0);
+
+        //the key lands where the reader already is: nothing moves, and the event
+        //is left alone rather than consumed
+        const home = new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true });
+        tablist.dispatchEvent(home);
+        assert.strictEqual(tabs.active, 0);
+        assert.isFalse(home.defaultPrevented, 'a walk that goes nowhere does not swallow the key');
+
+        const ignored = new KeyboardEvent('keydown', { key: 'x', bubbles: true, cancelable: true });
+        tablist.dispatchEvent(ignored);
+        assert.strictEqual(tabs.active, 0);
+        assert.isFalse(ignored.defaultPrevented);
+    });
+
+    it('leaves the surplus alone when the tabs and the panels disagree, and says so', async () => {
+        const warnings = captureConsole('warn');
+        const tabs = await mount(`
+            <ful-tabs>
+                <template slot="tabs"><tab>One</tab><tab>Two</tab><tab>Three</tab></template>
+                <section id="only">one panel</section>
+            </ful-tabs>`);
+
+        assert.lengthOf(tabs.querySelectorAll('ful-tablist button'), 1, 'only the paired tab is rendered');
+        assert.isTrue(
+            warnings.some((w) => w.includes('3 tabs declared for 1 panels')),
+            `expected the mismatch warning, saw ${JSON.stringify(warnings)}`,
+        );
     });
 
     it('starts from the active attribute, clamped to the declared panels', async () => {

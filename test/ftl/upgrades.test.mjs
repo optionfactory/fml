@@ -13,8 +13,6 @@ describe('Upgrade ordering and readiness', () => {
     let container;
     let order;
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    //a real timer a turn, clamped to about 4ms once nested: the floor keeps the
-    //elapsed time these tests are written to measure
     const settle = () => drain(20, 80);
     /** an element that takes a while to render, so nothing can pass by luck of timing */
     const slow = (name) => {
@@ -179,8 +177,6 @@ describe('Rendering waitFor and waitForChildren', () => {
     });
 });
 describe('Readiness when a component fails', () => {
-    //a real timer a turn, clamped to about 4ms once nested: the floor keeps the
-    //elapsed time these tests are written to measure
     const settle = () => drain(20, 80);
 
     it('reports ready anyway, and hands the failure out rather than swallowing it', async () => {

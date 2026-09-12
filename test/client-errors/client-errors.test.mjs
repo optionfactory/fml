@@ -7,7 +7,7 @@ import { settle as drain } from '../harness.mjs';
  * window error event, synthetic ones included, so everything here goes through the
  * rejection route. Both events land in the same handler.
  */
-describe('client errors reporting', () => {
+describe('Client errors reporting', () => {
     let originalFetch;
     let originalConsoleError;
     let calls;
@@ -17,8 +17,6 @@ describe('client errors reporting', () => {
         rejections.push(e.reason);
         e.preventDefault();
     };
-    //the loop this replaces waited 5ms a turn deliberately: the floor keeps that
-    //wall time, which is what these tests are actually measuring
     const settle = () => drain(20, 100);
     const reject = (reason) => {
         window.dispatchEvent(
@@ -80,6 +78,22 @@ describe('client errors reporting', () => {
         ]);
     });
 
+    it('stops the walk at a cause that says nothing', async () => {
+        //a link with no message contributes no line and hides everything under
+        //it, so the walk ends there rather than emitting blanks or a bare
+        //`Caused by:` with nothing after it
+        const mute = new Error('');
+        /** @type any */ (mute).cause = new Error('the one nobody will read');
+        const outer = new Error('the frame that surfaced', { cause: mute });
+        reject(outer);
+        await settle();
+
+        const body = JSON.parse(calls[0].init.body);
+        expect(body.message).to.equal('the frame that surfaced');
+        expect(body.message).to.not.contain('Caused by:');
+        expect(body.message).to.not.contain('the one nobody will read');
+    });
+
     it('says so when a chain dropped its outer frames', async () => {
         const truncated = new Error('Error evaluating data-tpl-if="x" in `<li>`');
         /** @type any */ (truncated).truncated = true;
@@ -124,7 +138,7 @@ describe('client errors reporting', () => {
     });
 });
 
-describe('client errors reporting shapes', () => {
+describe('Client errors reporting shapes', () => {
     let calls;
     let rejections;
     let scriptEl;
@@ -132,8 +146,6 @@ describe('client errors reporting shapes', () => {
         rejections.push(e.reason);
         e.preventDefault();
     };
-    //the loop this replaces waited 5ms a turn deliberately: the floor keeps that
-    //wall time, which is what these tests are actually measuring
     const settle = () => drain(20, 100);
     const reject = (reason) => {
         window.dispatchEvent(

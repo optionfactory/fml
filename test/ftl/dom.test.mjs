@@ -15,7 +15,7 @@ describe('dom.mjs', () => {
             expect(html).to.equal('<span>Test</span>');
         });
 
-        it('checks if a fragment is blank', () => {
+        it('reads whitespace as blank, an element or text as not', () => {
             expect(Fragments.isBlank(Fragments.fromHtml('   \n  '))).to.be.true;
             expect(Fragments.isBlank(Fragments.fromHtml('<span></span>'))).to.be.false;
             expect(Fragments.isBlank(Fragments.fromHtml(' text '))).to.be.false;
@@ -185,7 +185,7 @@ describe('dom.mjs', () => {
             expect(none).to.be.null;
         });
 
-        it('checks if a node is parsed based on nextSibling presence', () => {
+        it('reads a node as parsed once something follows it', () => {
             const parent = document.createElement('div');
             const child1 = document.createElement('div');
             const child2 = document.createElement('div');
@@ -237,7 +237,6 @@ describe('dom.mjs', () => {
             const el = document.createElement('div');
             parent.appendChild(el);
 
-            // Mock the document so it doesn't resolve instantly
             const fakeDoc = {
                 readyState: 'loading',
                 addEventListener: () => {},
@@ -283,6 +282,7 @@ describe('dom.mjs', () => {
         });
     });
 
+    //these assert by returning: a wait that never settles fails on the timeout
     describe('Nodes.waitDomContentLoaded', () => {
         it('resolves immediately on a complete document', async () => {
             await Nodes.waitDomContentLoaded({ readyState: 'complete', addEventListener() {} });
@@ -307,6 +307,14 @@ describe('dom.mjs', () => {
             fire();
             await promise;
             expect(settled).to.be.true;
+        });
+
+        it('resolves at once for a document with no window to hear the event', async () => {
+            //a document parsed out of band has no defaultView, so neither event
+            //can ever reach it and waiting for one would strand the caller. The
+            //shape is stubbed like its neighbours: a real one reports complete
+            //and never reaches this branch
+            await Nodes.waitDomContentLoaded({ readyState: 'interactive', defaultView: null });
         });
 
         it('resolves in the interactive gap through load, where the event will never come', async () => {

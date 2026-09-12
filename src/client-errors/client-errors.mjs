@@ -118,7 +118,8 @@ function ful_report_error(evt) {
             // reported as an unhandled rejection, which would call this handler again
         });
     } catch {
-        // nothing to do here
+        //the reporter must never become the failure it reports: a throw while
+        //building or sending the report is dropped rather than re-entering here
     }
 }
 

@@ -46,6 +46,12 @@ const formatter = (ctor, locale, options) => {
     return formatters.getOrCompute(key, () => new ctor(locale, options));
 };
 
+/**
+ * The translations as a template module: `#l10n:t()` for messages, plus date,
+ * number and bytes formatting in the page's locale. The template form and the
+ * imperative `of()` facade both resolve through the registry's scope, so they
+ * always produce the same result for the same key.
+ */
 class Localization {
     /**
      * Resolves a message from the translations and interpolates its arguments.

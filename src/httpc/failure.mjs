@@ -1,6 +1,11 @@
 /**
  * @typedef {{ type: string; context: string?; reason: string; details: any?; }} Problem
  */
+/**
+ * An error carrying a list of problems rather than one message. A problem's
+ * `context` names the field it belongs to, which is what lets a form show each
+ * one beside its own input instead of in a banner.
+ */
 class Failure extends Error {
     /**
      *

@@ -247,6 +247,7 @@ class TableSchemaParser {
     }
 }
 
+/** Serves a table's rows from an array held in memory, applying the sort and the paging itself. */
 class InMemoryTableLoader {
     #data;
     constructor(data) {
@@ -292,6 +293,7 @@ class InMemoryTableLoader {
     }
 }
 
+/** Requests one page of rows from a url, passing the page, the sort and the filters to the endpoint. */
 class RemoteTableLoader {
     #http;
     #url;
@@ -316,7 +318,16 @@ class RemoteTableLoader {
     }
 }
 
-/** Builds the table's loader from its attributes: an in-memory one, or the remote loader over src. */
+/**
+ * Builds the table's loader from its attributes: an in-memory one, or the
+ * remote loader over src.
+ *
+ * A component registered under the `loader` attribute replaces this one and
+ * must implement `load(pageRequest, sortRequest, filterRequest)`, answering
+ * `{ data, page, size }` for the requested page. `pageRequest` carries the page
+ * index and its size, `sortRequest` the column and direction, and
+ * `filterRequest` the values of the filters in the slot.
+ */
 class TableLoader {
     static create(el, conf) {
         const url = el.getAttribute('src');

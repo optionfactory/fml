@@ -1,5 +1,5 @@
 @layer ful.components {
-    *:has(> ful-accordion-group):not(body, html) {
+    *:has(> ful-accordion-group) {
         display: block;
     }
 

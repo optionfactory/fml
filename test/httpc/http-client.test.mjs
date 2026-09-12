@@ -56,7 +56,7 @@ describe('httpc client', () => {
             expect(nothing.problems[0].reason).to.equal('unknown failure');
         });
 
-        it('drops context prefixes correctly', () => {
+        it('drops a prefix from every problem context', () => {
             const err = new HttpClientError('msg', 400, [{ type: 'A', context: 'user.name', reason: 'bad' }]);
             const dropped = err.dropping('user.');
             expect(dropped.problems[0].context).to.equal('name');
@@ -168,7 +168,7 @@ describe('httpc client', () => {
             client = HttpClient.builder().build();
         });
 
-        it('supports all standard HTTP methods', async () => {
+        it('sends the method each verb names', async () => {
             await client.get('/test').fetch();
             expect(fetchArgs.init.method).to.equal('GET');
 
@@ -201,7 +201,7 @@ describe('httpc client', () => {
             expect(`${fetchArgs.url.pathname}${fetchArgs.url.search}${fetchArgs.url.hash}`).to.equal('/a?p=1#frag');
         });
 
-        it('handles headers and params additions and removals', async () => {
+        it('sends the headers and params left after a null removes one', async () => {
             await client
                 .get('/test')
                 .headers({ 'X-Keep': '1', 'X-Remove': '2' })
@@ -342,7 +342,7 @@ describe('httpc client', () => {
             expect(fetchArgs.init.body).to.equal('{"a":1}');
         });
 
-        it('builds multipart forms correctly', async () => {
+        it('builds a multipart body from fields, json, a blob and a blob list', async () => {
             await client
                 .post('/test')
                 .multipart((form) => {
@@ -359,8 +359,7 @@ describe('httpc client', () => {
             expect(formData.get('meta')).to.be.instanceOf(Blob);
         });
 
-        it('supports unmarshaling variations', async () => {
-            // Setup global fetch to return specific data types for testing
+        it('reads a body as json, as text and as a blob', async () => {
             globalThis.fetch = async () =>
                 new Response('{"a": 1}', { headers: { 'Content-Type': 'application/json' } });
             const json = await client.get('/test').fetchJson();

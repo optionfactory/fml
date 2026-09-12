@@ -72,9 +72,7 @@ describe('Timing.throttle', () => {
         //block the main thread past the window: the pending timer cannot fire,
         //so the next call arrives late with the stale trailing edge still armed
         const until = performance.now() + 120;
-        while (performance.now() < until) {
-            //busy
-        }
+        while (performance.now() < until) {}
 
         throttled('late');
 

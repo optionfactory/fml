@@ -79,7 +79,7 @@ const parityProblems = (translations) => {
     return problems;
 };
 
-describe('built-in translations', () => {
+describe('Built-in translations', () => {
     it('keeps every language at parity', () => {
         assert.deepStrictEqual(
             parityProblems({ en, it: itTranslations, es, fr }),

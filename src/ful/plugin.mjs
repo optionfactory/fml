@@ -22,6 +22,11 @@ import fr from './l10n/fr.mjs';
 
 const BUILTIN = { en, it, es, fr };
 
+/**
+ * Registers everything ful provides on a registry: the elements, the loader
+ * components, an http client, and the translations for the configured
+ * language. A page calls `registry.plugin(new Plugin({…})).configure()` once.
+ */
 class Plugin {
     #language;
     #translations;

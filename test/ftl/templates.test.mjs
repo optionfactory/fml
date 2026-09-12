@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { Templates } from '../../src/ftl/templates.mjs';
 import { registry } from '../../src/ftl/registry.mjs';
 
-describe('Templates Factory', () => {
+describe('Templates factory', () => {
     beforeEach(() => {
         registry.defineModule('testMod', {
             transform: (v) => v.toUpperCase(),

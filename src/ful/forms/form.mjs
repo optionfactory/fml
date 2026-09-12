@@ -3,6 +3,7 @@ import { Failure } from '../../httpc/index.mjs';
 import { Bindings } from './bindings.mjs';
 import { AsyncEvents } from '../events/async.mjs';
 
+/** Submits a form's values as json to a url, mapping the request and the response through the configured mappers. */
 class RemoteJsonFormLoader {
     #http;
     #url;
@@ -19,14 +20,15 @@ class RemoteJsonFormLoader {
     prepare(values, form) {
         return this.#requestMapper(values, form);
     }
-    async submit(values, form) {
-        return await this.#http.request(this.#method, this.#url).json(values).fetch();
+    async submit(request, form) {
+        return await this.#http.request(this.#method, this.#url).json(request).fetch();
     }
     transform(response, form) {
         return this.#responseMapper(response, form);
     }
 }
 
+/** Submits a form without a request: the request mapper produces the result the response mapper then reads, for a form handled entirely on the page. */
 class LocalFormLoader {
     #requestMapper;
     #responseMapper;
@@ -37,7 +39,8 @@ class LocalFormLoader {
     async prepare(values, form) {
         return await this.#requestMapper(values, form);
     }
-    async submit(values, form, response) {
+    async submit(request, form, response) {
+        //nothing to send: whatever a submit:requested listener answered is the response
         return response;
     }
     async transform(response, form) {
@@ -45,7 +48,22 @@ class LocalFormLoader {
     }
 }
 
-/** Builds the form's loader from its attributes: a local one when no action is declared, a json post to it otherwise. */
+/**
+ * Builds the form's loader from its attributes: a local one when no action is
+ * declared, a json post to it otherwise.
+ *
+ * A component registered under the `loader` attribute replaces this one and
+ * must implement three methods, called in this order:
+ *
+ * - `prepare(values, form)` turns the extracted values into the request to send
+ * - `submit(request, form, response)` performs it and returns the response. The
+ *   third argument is whatever a `submit:requested` listener already answered,
+ *   which is how a loader with nothing to send returns it unchanged
+ * - `transform(response, form)` turns that response into the detail of the
+ *   `submit:success` event
+ *
+ * A rejection from any of the three is reported as a `submit:failure`.
+ */
 class FormLoader {
     static create(el, conf) {
         const http = el.component('http-client');

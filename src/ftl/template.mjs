@@ -3,6 +3,11 @@ import { BoundedCache } from './cache.mjs';
 import { Fragments } from './dom.mjs';
 import { ExpressionEvaluator } from './expressions.mjs';
 
+/**
+ * Collects the changes a render makes to the tree it is traversing, deferring
+ * those that would break the traversal: a node marked for removal stays in
+ * place until the render finishes, so the iteration containing it completes.
+ */
 class NodeOperations {
     #forRemoval = new Set();
     removed(node) {
@@ -40,6 +45,7 @@ class NodeOperations {
     }
 }
 
+/** The `data-tpl-*` commands, each taking the node it is written on and the scope it evaluates in. */
 class CommandsHandler {
     //the order is the semantics: each command sees the node as the ones before
     //it left it, so tplIf gates before tplWith/tplEach push their overlay and
@@ -232,6 +238,12 @@ function toAttr(dataSetKey) {
     );
 }
 
+/**
+ * A compiled fragment together with the scope it renders in. Both are
+ * immutable: adding data or replacing the scope returns a new Template, so one
+ * piece of compiled markup can be rendered against any number of scopes and a
+ * registry can reuse a single template for every element that requests it.
+ */
 class Template {
     /**
      * Creates a template from a string.

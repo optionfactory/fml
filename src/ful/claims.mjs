@@ -1,4 +1,7 @@
 /**
+ * @typedef {{ readonly stale: boolean }} Claim
+ */
+/**
  * The generations of claims over one contended resource. Every take() starts a
  * new generation, superseding every claim before it, and a holder asks its
  * claim `stale` before painting chrome, storing state or throwing towards a
@@ -8,9 +11,6 @@
  * every pending show). One Claims per contended resource: a component whose
  * dropdown, value labels and loader configuration contend separately holds one
  * each.
- */
-/**
- * @typedef {{ readonly stale: boolean }} Claim
  */
 class Claims {
     #generation = 0;

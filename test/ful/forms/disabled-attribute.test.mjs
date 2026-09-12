@@ -176,6 +176,57 @@ describe('The disabled attribute after the upgrade', () => {
         window.removeEventListener('error', onError);
     });
 
+    it('an async _build renders the field once its pieces arrive', async () => {
+        class SlowField extends Field {
+            static slots = true;
+            static template = '<label>{{{{ slots.default }}}}</label><input form="">';
+            async _build({ slots }) {
+                //a select awaiting its prefetch is the real case: the base takes a
+                //promise of pieces and wires them when it settles
+                await new Promise((r) => setTimeout(r, 0));
+                const fragment = this.template().withOverlay({ slots }).render();
+                return { fragment, control: fragment.querySelector('input'), error: null };
+            }
+            get value() {
+                return this.querySelector('input')?.value || null;
+            }
+            set value(v) {
+                const input = this.querySelector('input');
+                if (input) {
+                    input.value = v ?? '';
+                }
+            }
+        }
+        registry.defineElement('x-slow-field', SlowField);
+
+        const container = await mount('<x-slow-field name="a" value="late">l</x-slow-field>');
+        const field = container.querySelector('x-slow-field');
+
+        assert.isTrue(field.rendered, 'the upgrade waited for the promise');
+        assert.strictEqual(String(field.querySelector('input').value), 'late');
+    });
+
+    it('a field that never implements _build says so by name', async () => {
+        class NoBuildField extends Field {}
+        registry.defineElement('x-no-build-field', NoBuildField);
+
+        const el = document.createElement('x-no-build-field');
+        //the base value pair is inert rather than absent, so the form integration
+        //has a member to write through whatever the subclass forgot
+        assert.isUndefined(el.value);
+        el.value = 'ignored';
+        assert.isUndefined(el.value);
+
+        appended('').appendChild(el);
+        let complaint = null;
+        try {
+            await registry.whenUpgraded(el);
+        } catch (ex) {
+            complaint = String(/** @type any */ (ex).message);
+        }
+        assert.strictEqual(complaint, 'NoBuildField must implement _build');
+    });
+
     it('reaches custom Field subclasses that never list it', async () => {
         class TestField extends Field {
             static slots = true;

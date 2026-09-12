@@ -18,7 +18,7 @@ const modules = {
     },
 };
 
-describe('associativity', () => {
+describe('Associativity', () => {
     const json_replacer = (key, value) => (typeof value === 'symbol' ? value.toString() : value);
     const ast = (description, expression, expected) => {
         it(description, () => {
@@ -184,7 +184,7 @@ describe('Expression', () => {
         assert.isDefined(caught, 'Should have thrown');
         assert.strictEqual(caught.message, 'Module "waldo" not found');
     });
-    it('can report error on missing module', () => {
+    it('can report error on a function the module does not carry', () => {
         let caught = null;
         try {
             Expressions.interpret({ waldo: {} }, [], '#waldo:isHidden()');
@@ -196,7 +196,7 @@ describe('Expression', () => {
     });
 });
 
-describe('Templated Mode Evaluation', () => {
+describe('Templated mode evaluation', () => {
     it('evaluates literal text', () => {
         const res = Expressions.interpret({}, [], 'Just some text', Expressions.MODE_TEMPLATED);
         assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: 'Just some text' }]);
@@ -218,7 +218,7 @@ describe('Templated Mode Evaluation', () => {
         assert.deepStrictEqual(res, [{ type: nodes.dom.n, value: div }]);
     });
 
-    it('handles mixed templated segments', () => {
+    it('answers one part per literal and interpolation, escaped and raw alike', () => {
         const res = Expressions.interpret(
             {},
             [{ a: 'A' }, { b: 'B' }],
@@ -267,13 +267,13 @@ describe('ExpressionEvaluator', () => {
     });
 });
 
-describe('AST Execution Edge Cases', () => {
-    it('evaluates nullsafe method calls correctly', () => {
+describe('AST execution edge cases', () => {
+    it('answers undefined for a call on a null, rather than throwing', () => {
         const result = Expressions.interpret({}, [{ a: null }], 'a?.foo()');
         assert.isUndefined(result);
     });
 
-    it('evaluates nested nullsafe member access correctly', () => {
+    it('stops at the first null in a nested member access', () => {
         const result = Expressions.interpret({}, [{ a: { b: null } }], 'a.b?.c');
         assert.isUndefined(result);
     });
@@ -292,7 +292,7 @@ describe('AST Execution Edge Cases', () => {
             assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
         }
     });
-    it('handles function overlays and null/primitive values in the data stack', () => {
+    it('resolves through a function overlay, and past a null one', () => {
         const fnOverlay = () => {};
         fnOverlay.secretKey = 'activated';
         const resFn = Expressions.interpret({}, [fnOverlay], 'secretKey');
@@ -301,13 +301,13 @@ describe('AST Execution Edge Cases', () => {
         const resNull = Expressions.interpret({}, [null, undefined, { targetValue: 42 }], 'targetValue');
         assert.strictEqual(resNull, 42);
     });
-    it('correctly handles cached templates', () => {
+    it('parses one expression once, answering the same ast', () => {
         const a = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
         const b = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
         assert.strictEqual(a, b);
     });
 
-    it('correctly handles cache size', () => {
+    it('evicts the oldest parse once the cache is full', () => {
         const a = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
         for (let i = 0; i !== 1001; ++i) {
             Expressions.parse(`true == ${i}`, Expressions.MODE_EXPRESSION);

@@ -1,7 +1,8 @@
 import { Attributes, BoundedCache } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
-//a bad mask is warned once, then ignored
+//a null entry is a mask that did not compile: cached like any other so the
+//warning is printed once rather than on every keystroke
 const maskCache = new BoundedCache(100);
 const compiledMask = (mask) =>
     maskCache.getOrCompute(mask, () => {

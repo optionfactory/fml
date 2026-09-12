@@ -36,8 +36,8 @@ class Checkbox extends Field {
             this.value = !this.value;
             this._notifyChange();
         });
-        //a checkbox has no editable text to preserve: readonly freezes the whole
-        //choice, label click included, so the container inerts
+        //a checkbox has no editable text to preserve, so readonly freezes the
+        //whole choice, label click included: the container is the frozen piece
         return {
             fragment,
             control: this.#input,

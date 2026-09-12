@@ -1,3 +1,4 @@
+/** Creates and inspects the DocumentFragments a Template renders into. */
 class Fragments {
     /**
      * Creates a DocumentFragment from an string.
@@ -55,6 +56,7 @@ class Fragments {
     }
 }
 
+/** Attribute reads and writes where a nullish value removes the attribute instead of setting it to the string 'null'. */
 class Attributes {
     static id = 0;
     /**
@@ -116,6 +118,12 @@ class Attributes {
     }
 }
 
+/**
+ * Reads an element's light-dom slots: the named `<template slot=…>` and
+ * `[slot=…]` children are removed and collected by name, and the remaining
+ * children become the default slot. fml renders into the light dom, so this
+ * replaces the slotting a shadow root would do.
+ */
 class LightSlots {
     /**
      * Extracts light slots from an element. For non default slots in a template tag, the content is extracted.
@@ -161,6 +169,7 @@ class LightSlots {
     }
 }
 
+/** Waits for the parser and for the document, for elements that upgrade before their own markup is complete. */
 class Nodes {
     /**
      * Checks if an element is already parsed.

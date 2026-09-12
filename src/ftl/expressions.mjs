@@ -25,6 +25,11 @@ const resolveInStack = (dataStack, prop) => {
     return undefined;
 };
 
+/**
+ * Evaluates a parsed expression against a scope. One instance per evaluation:
+ * it holds the modules and the data stack that names resolve against, and keeps
+ * no state between visits.
+ */
 class EvaluatingVisitor {
     #modules;
     #dataStack;
@@ -194,6 +199,13 @@ class EvaluatingVisitor {
     }
 }
 
+/**
+ * The expression language: parsing to an ast, caching the parses, and
+ * interpreting one against a scope. Member access and calls are unfiltered, so
+ * an expression can do whatever the page's own javascript can. Expressions are
+ * written by the page author; untrusted data is passed in as data and never
+ * spliced into the expression text.
+ */
 class Expressions {
     static MODE_EXPRESSION = Symbol('MODE_EXPRESSION');
     static MODE_TEMPLATED = Symbol('MODE_TEMPLATED');
@@ -238,6 +250,12 @@ class Expressions {
     }
 }
 
+/**
+ * A scope: the modules that `#name:fn()` resolves against and the data stack
+ * that a bare identifier resolves against, as a single value. Adding an overlay
+ * returns a new evaluator instead of modifying this one, so a template can add
+ * data for one subtree without affecting the rest of the render.
+ */
 class ExpressionEvaluator {
     #modules;
     #dataStack;

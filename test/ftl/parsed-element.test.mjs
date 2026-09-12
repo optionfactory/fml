@@ -4,7 +4,7 @@ import { registry } from '../../src/ftl/registry.mjs';
 import { Template } from '../../src/ftl/template.mjs';
 import { tick } from '../tick.mjs';
 
-describe('ParsedElement Web Component Lifecycle', () => {
+describe('ParsedElement web component lifecycle', () => {
     let container;
 
     beforeEach(() => {
@@ -146,6 +146,22 @@ describe('ParsedElement Web Component Lifecycle', () => {
             ['disabled', true],
             ['label', 'a label'],
         ]);
+    });
+
+    it('says which template is missing rather than failing on the lookup', async () => {
+        class OneTemplateEl extends ParsedElement {
+            static template = '<div></div>';
+        }
+
+        registry.defineElement('one-template-el', OneTemplateEl);
+        registry.configure();
+
+        const el = document.createElement('one-template-el');
+        container.appendChild(el);
+        await registry.whenUpgraded(el);
+
+        expect(() => el.template()).to.not.throw();
+        expect(() => el.template('items')).to.throw(/no template named 'items' on OneTemplateEl/);
     });
 
     it('says so when asked for an attribute the class never declared', async () => {

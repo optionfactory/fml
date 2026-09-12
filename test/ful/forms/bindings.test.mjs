@@ -224,7 +224,7 @@ describe('Bindings', () => {
             assert.deepEqual(selected(), []);
         });
 
-        it('checks the radio matching the value', () => {
+        it('checks the radio whose value matches, and reads it back', () => {
             const form = formOf(`
                 <input type="radio" name="a" value="1">
                 <input type="radio" name="a" value="2">

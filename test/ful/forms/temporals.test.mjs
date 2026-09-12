@@ -60,7 +60,7 @@ describe('InputLocalTime min and max', () => {
         assert.isNull(el.max);
     });
 
-    describe('snapped to the step grid', () => {
+    describe('Snapped to the step grid', () => {
         /** the resolved bound is floored to the step, so allow for the grid ticking */
         const snappedCandidates = (offsetMs, stepSeconds) => {
             const floor = (at) => {

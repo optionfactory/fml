@@ -61,8 +61,8 @@ class RadioGroup extends Field {
         this.#firstRadio = fragment.querySelector('input[type=radio]');
         this.#booleanType = this.declared('type') === 'boolean';
         //the group claims through its own fieldset, which carries disabled like a
-        //native control, inerts for readonly (radios have no editable text to
-        //preserve) and announces the requirement; focus stays on the first radio,
+        //native control, is the piece readonly freezes (radios have no editable
+        //text to preserve) and announces the requirement; focus stays on the first radio,
         //and the host itself is described, there being no single control to name
         //and the legend being a fieldset's own label
         return {
