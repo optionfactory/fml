@@ -11,6 +11,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { introspect } from './introspect.mjs';
 
 //the element classes extend DOM types when the module is evaluated, and the plugin
 //builds an http client that looks for the csrf meta tags: enough of a page to load
@@ -30,6 +31,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const metadata = JSON.parse(readFileSync(join(root, 'manifest/metadata.json'), 'utf8'));
 const { Plugin, Registry } = await import(pathToFileURL(join(root, 'dist/fml.mjs')).href);
+const { registered, attributesOf, slotsOf } = introspect({ Plugin, Registry });
 
 const TYPES = {
     presence: 'boolean',
@@ -40,58 +42,21 @@ const TYPES = {
     json: 'string',
 };
 
-const registered = () => {
-    const found = [];
-    const recorder = new Proxy(
-        {},
-        {
-            get:
-                (_target, key) =>
-                (...args) => {
-                    if (key === 'defineElement') {
-                        found.push({ tag: args[0], klass: args[1] });
-                    }
-                    return recorder;
-                },
-        },
-    );
-    new Plugin().configure(recorder);
-    return found;
-};
-
 const describe = (tag, kind, name) => metadata.elements[tag]?.[kind]?.[name] ?? metadata.common[kind]?.[name] ?? '';
-
-//both declared tiers are the element's author-facing vocabulary: the live
-//doors and the configuration read once at the upgrade. The composition is the
-//registry's own, so this cannot walk the chain differently than the runtime
-const declaredOf = (klass) => {
-    const { observed, attributes } = Registry.declarationsOf(klass);
-    const byName = new Map();
-    for (const declared of [...attributes, ...observed]) {
-        byName.set(declared.split(':')[0], declared);
-    }
-    return [...byName.values()];
-};
 
 const model = registered().map(({ tag, klass }) => {
     const entry = metadata.elements[tag] ?? {};
-    const attributes = declaredOf(klass).map((declared) => {
+    const attributes = attributesOf(klass).map((declared) => {
         const [name, mapper] = declared.split(':');
         return { name, type: TYPES[mapper] ?? 'string', description: describe(tag, 'attributes', name) };
     });
-    const slots = new Set();
-    for (const template of [klass.template, ...Object.values(klass.templates ?? {})]) {
-        for (const found of String(template ?? '').matchAll(/slots\.([a-zA-Z]+)/g)) {
-            slots.add(found[1]);
-        }
-    }
-    const events = Object.entries(Array.isArray(entry.events) ? {} : (entry.events ?? {}));
+    const events = Object.entries(entry.events ?? {});
     return {
         tag,
         name: klass.name,
         description: entry.description ?? '',
         attributes,
-        slots: [...slots].map((name) => ({ name, description: describe(tag, 'slots', name) })),
+        slots: slotsOf(klass).map((name) => ({ name, description: describe(tag, 'slots', name) })),
         events: events.map(([name, description]) => ({ name, description })),
     };
 });

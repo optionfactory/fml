@@ -1,22 +1,16 @@
 import { assert } from 'chai';
-import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { registry } from '../../../src/ftl/index.mjs';
 import { Bindings, Plugin } from '../../../src/ful/index.mjs';
+import { mount } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
-    await Rendering.waitForChildren(container);
-    return container;
-};
 
 const GROUP = `<ful-radio-group name="a">label<ful-radio value="k1">one</ful-radio><ful-radio value="k2">two</ful-radio></ful-radio-group>`;
 
 describe('RadioGroup rendering', () => {
     it('turns every ful-radio into a labelled input and drops the placeholder element', async () => {
-        const container = await mount(GROUP);
+        const container = await mount(GROUP, { children: true });
         const group = container.querySelector('ful-radio-group');
 
         assert.isNull(group.querySelector('ful-radio'), 'the placeholders are consumed');
@@ -30,12 +24,11 @@ describe('RadioGroup rendering', () => {
             'the ful-radio content becomes the label of its input',
         );
         assert.strictEqual(group.querySelector('legend').innerText.trim(), 'label');
-        container.remove();
     });
 
     it('gives nameless groups a name of their own, so two groups do not share a selection', async () => {
         const nameless = `<ful-radio-group><ful-radio value="k1">one</ful-radio><ful-radio value="k2">two</ful-radio></ful-radio-group>`;
-        const container = await mount(`${nameless}${nameless}`);
+        const container = await mount(`${nameless}${nameless}`, { children: true });
         const [first, second] = container.querySelectorAll('ful-radio-group');
 
         first.querySelector('input').click();
@@ -47,7 +40,6 @@ describe('RadioGroup rendering', () => {
         );
         assert.strictEqual(first.value, 'k1', 'the other group must not steal the selection');
         assert.strictEqual(second.value, 'k1');
-        container.remove();
     });
 
     it('forwards the ful-radio attributes and the group input- attributes onto the generated input', async () => {
@@ -64,13 +56,12 @@ describe('RadioGroup rendering', () => {
         assert.isTrue(first.disabled, 'a single radio can be disabled on its own');
         assert.deepEqual(Array.from(second.classList), ['check']);
         assert.isFalse(second.disabled);
-        container.remove();
     });
 });
 
 describe('RadioGroup value', () => {
     it('emits exactly one change event, carrying the group value, when a radio is checked', async () => {
-        const container = await mount(GROUP);
+        const container = await mount(GROUP, { children: true });
         const group = container.querySelector('ful-radio-group');
         const seen = [];
         //listening outside the group: the inner input change must not escape too
@@ -82,7 +73,6 @@ describe('RadioGroup value', () => {
         assert.strictEqual(seen[0].target, group, 'the group speaks for its radios');
         assert.strictEqual(seen[0].detail.value, 'k2');
         assert.strictEqual(group.value, 'k2');
-        container.remove();
     });
 
     it('reads a type=boolean group back as a real boolean instead of the attribute text', async () => {
@@ -100,7 +90,6 @@ describe('RadioGroup value', () => {
         assert.strictEqual(group.value, false);
         group.value = true;
         assert.strictEqual(group.value, true, 'a boolean round trips through the setter');
-        container.remove();
     });
 
     it('clears the selection when the value is set to null', async () => {
@@ -114,7 +103,6 @@ describe('RadioGroup value', () => {
 
         assert.isNull(group.value);
         assert.isNull(group.querySelector('input[type=radio]:checked'), 'no radio stays checked');
-        container.remove();
     });
 
     it('clears the selection when the value is set to an unknown key', async () => {
@@ -128,7 +116,6 @@ describe('RadioGroup value', () => {
 
         assert.isNull(group.value, 'an unknown key answers as no selection');
         assert.isNull(group.querySelector('input[type=radio]:checked'), 'the stale radio does not keep answering');
-        container.remove();
     });
 
     it('selects values that are not valid css identifiers', async () => {
@@ -142,7 +129,6 @@ describe('RadioGroup value', () => {
 
         group.value = 'a b';
         assert.strictEqual(group.value, 'a b');
-        container.remove();
     });
 
     it('keeps the generated inputs out of the surrounding form, so only the group provides a value', async () => {
@@ -159,13 +145,12 @@ describe('RadioGroup value', () => {
         assert.isNull(inputs[0].form, 'form="" detaches them from the form');
         assert.notInclude(Array.from(form.elements), inputs[0]);
         assert.deepEqual(Bindings.extractFrom(form), { a: 'k2' });
-        container.remove();
     });
 });
 
 describe('RadioGroup state', () => {
     it('freezes the radios while readonly, following the attribute both ways', async () => {
-        const container = await mount(GROUP.replace('name="a"', 'name="a" readonly'));
+        const container = await mount(GROUP.replace('name="a"', 'name="a" readonly'), { children: true });
         const group = container.querySelector('ful-radio-group');
         const fieldset = group.querySelector('fieldset');
         const first = group.querySelector('input[type=radio]');
@@ -185,11 +170,10 @@ describe('RadioGroup state', () => {
 
         group.readonly = true;
         assert.isTrue(group.hasAttribute('readonly'), 'the property reflects back onto the attribute');
-        container.remove();
     });
 
     it('disables every radio when the group is disabled', async () => {
-        const container = await mount(GROUP);
+        const container = await mount(GROUP, { children: true });
         const group = container.querySelector('ful-radio-group');
         assert.isFalse(group.disabled);
 
@@ -201,21 +185,19 @@ describe('RadioGroup state', () => {
         group.disabled = false;
         assert.isFalse(group.disabled);
         assert.isFalse(group.querySelector('input[type=radio]').matches(':disabled'));
-        container.remove();
     });
 
     it('renders disabled inside a disabled fieldset', async () => {
-        const container = await mount(`<form><fieldset disabled>${GROUP}</fieldset></form>`);
+        const container = await mount(`<form><fieldset disabled>${GROUP}</fieldset></form>`, { children: true });
         const group = container.querySelector('ful-radio-group');
 
         assert.isFalse(group.disabled, 'the property reflects the claim only, like a native input');
         assert.isTrue(group.matches(':disabled'), 'the ancestry is honored through :disabled');
         assert.isTrue(Array.from(group.querySelectorAll('input[type=radio]')).every((i) => i.matches(':disabled')));
-        container.remove();
     });
 
     it('announces a required group on the radiogroup host, the role that accepts it', async () => {
-        const container = await mount(GROUP.replace('name="a"', 'name="a" required'));
+        const container = await mount(GROUP.replace('name="a"', 'name="a" required'), { children: true });
         const group = container.querySelector('ful-radio-group');
         const fieldset = group.querySelector('fieldset');
         assert.isTrue(group.required);
@@ -227,21 +209,19 @@ describe('RadioGroup state', () => {
         assert.isFalse(group.required);
         assert.isFalse(group.hasAttribute('aria-required'), 'aria-required is removed, not set to false');
         assert.isFalse(group.hasAttribute('required'));
-        container.remove();
     });
 
     it('focuses the first radio, so a form can focus the group', async () => {
-        const container = await mount(GROUP);
+        const container = await mount(GROUP, { children: true });
         const group = container.querySelector('ful-radio-group');
 
         group.focus();
 
         assert.strictEqual(document.activeElement, group.querySelector('input[type=radio]'));
-        container.remove();
     });
 
     it('shows a custom validity in ful-field-error and clears both when it is reset', async () => {
-        const container = await mount(GROUP);
+        const container = await mount(GROUP, { children: true });
         const group = container.querySelector('ful-radio-group');
         const fieldError = group.querySelector('ful-field-error');
 
@@ -253,6 +233,5 @@ describe('RadioGroup state', () => {
         group.setCustomValidity('');
         assert.strictEqual(fieldError.innerText, '');
         assert.isTrue(group.internals.validity.valid);
-        container.remove();
     });
 });

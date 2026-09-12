@@ -1,4 +1,5 @@
 import { assert } from 'chai';
+import { introspect } from '../../manifest/introspect.mjs';
 import { Registry } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/plugin.mjs';
 
@@ -10,41 +11,7 @@ import { Plugin } from '../../src/ful/plugin.mjs';
  */
 describe('Element metadata', function () {
     this.timeout(10000);
-    /** what the plugin actually registers, captured without defining anything */
-    const registered = () => {
-        const found = [];
-        const recorder = new Proxy(
-            {},
-            {
-                get:
-                    (_target, key) =>
-                    (...args) => {
-                        if (key === 'defineElement') {
-                            found.push({ tag: args[0], klass: args[1] });
-                        }
-                        return recorder;
-                    },
-            },
-        );
-        new Plugin({ language: 'en' }).configure(recorder);
-        return found;
-    };
-    const slotsOf = (klass) => {
-        const slots = new Set();
-        for (const template of [klass.template, ...Object.values(klass.templates ?? {})]) {
-            for (const found of String(template ?? '').matchAll(/slots\.([a-zA-Z]+)/g)) {
-                slots.add(found[1]);
-            }
-        }
-        return [...slots];
-    };
-    //both declared tiers are the element's author-facing vocabulary, and the
-    //composition is the registry's own: the parity check, the generator and the
-    //runtime read one list rather than three walks that can disagree
-    const attributesOf = (klass) => {
-        const { observed, attributes } = Registry.declarationsOf(klass);
-        return [...new Set([...attributes, ...observed].map((declared) => declared.split(':')[0]))];
-    };
+    const { registered, attributesOf, slotsOf } = introspect({ Plugin, Registry });
 
     let metadata;
     let elements;
@@ -110,7 +77,8 @@ describe('Element metadata', function () {
     for (const kind of ['attributes', 'slots']) {
         it(`documents exactly the ${kind} each element has`, () => {
             for (const { tag, klass } of registered()) {
-                const actual = kind === 'attributes' ? attributesOf(klass) : slotsOf(klass);
+                const actual =
+                    kind === 'attributes' ? attributesOf(klass).map((d) => d.split(':')[0]) : slotsOf(klass);
                 const common = Object.keys(metadata.common[kind] ?? {});
                 const own = Object.keys(metadata.elements[tag]?.[kind] ?? {});
                 //the element's own prose must be real: an entry the code no
@@ -150,7 +118,7 @@ describe('Element metadata', function () {
                 }
             }
             const entry = metadata.elements[tag].events;
-            const described = Array.isArray(entry) ? entry : Object.keys(entry);
+            const described = Object.keys(entry);
             assert.deepStrictEqual(
                 described.sort(),
                 [...emitted].sort(),

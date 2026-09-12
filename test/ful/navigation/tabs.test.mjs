@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, Plugin } from '../../../src/ful/index.mjs';
+import { mount as mounted } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -9,13 +10,12 @@ const settle = async () => {
         await new Promise((r) => setTimeout(r, 0));
     }
 };
+//the harness owns the container and its teardown; the wait stays this suite's,
+//since its drain is counted in clamped turns and the components lean on it
 const mount = async (html) => {
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    document.body.appendChild(container);
-    await Rendering.waitFor(container);
+    const container = await mounted(html);
     await settle();
-    return [container.firstElementChild, container];
+    return container.firstElementChild;
 };
 
 describe('Tabs', () => {
@@ -28,7 +28,7 @@ describe('Tabs', () => {
         </ful-tabs>`;
 
     it('renders the tab pattern: a tablist of buttons naming tabpanels', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         const tablist = tabs.querySelector('ful-tablist');
         const buttons = [...tablist.querySelectorAll('button')];
 
@@ -47,11 +47,10 @@ describe('Tabs', () => {
             assert.strictEqual(panel.getAttribute('aria-labelledby'), button.id);
             assert.strictEqual(panel.hasAttribute('hidden'), i !== 0, 'only the active panel is shown');
         }
-        container.remove();
     });
 
     it('moves the active panel by click and by property, answering with change', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         const changes = [];
         tabs.addEventListener('change', (e) => changes.push(e.detail));
 
@@ -63,11 +62,10 @@ describe('Tabs', () => {
         tabs.active = 2;
         assert.strictEqual(tabs.getAttribute('active'), '2', 'the property reflects to the attribute');
         assert.deepStrictEqual(changes[1], { active: 2, previous: 1 });
-        container.remove();
     });
 
     it('walks the tabs with the keyboard, wrapping around', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         const buttons = tabs.querySelectorAll('button');
         buttons[0].focus();
 
@@ -84,14 +82,12 @@ describe('Tabs', () => {
         );
         assert.strictEqual(tabs.active, 0, 'the walk wraps');
         assert.strictEqual(document.activeElement, buttons[0], 'the focus follows the walk');
-        container.remove();
     });
 
     it('starts from the active attribute, clamped to the declared panels', async () => {
-        const [tabs, container] = await mount(markup.replace('<ful-tabs>', '<ful-tabs active="9">'));
+        const tabs = await mount(markup.replace('<ful-tabs>', '<ful-tabs active="9">'));
 
         assert.strictEqual(tabs.active, 2);
-        container.remove();
     });
 });
 
@@ -109,7 +105,7 @@ describe('Tabs, async panels', () => {
     };
 
     it('fires the generic and index events on the activated panel, the initial one included', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         const seen = [];
         AsyncEvents.asyncOn(tabs, 'section:requested', (e) =>
             seen.push(['generic', e.detail.index, e.detail.first, e.detail.name]),
@@ -127,11 +123,10 @@ describe('Tabs, async panels', () => {
             ['generic', 1, false, null],
             ['index', 1],
         ]);
-        container.remove();
     });
 
     it('delivers the panel through an async answer, the loading chrome covering the wait', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         let land;
         AsyncEvents.asyncOn(tabs, 'section:requested:#1', (e) => {
             return new Promise((r) => {
@@ -152,11 +147,10 @@ describe('Tabs, async panels', () => {
 
         assert.isFalse(panel.hasAttribute('loading'));
         assert.include(panel.textContent, 'delivered');
-        container.remove();
     });
 
     it('paints the problems of a failed delivery without rejecting anywhere', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         AsyncEvents.asyncOn(tabs, 'section:requested:#1', () => {
             throw new Error('unreachable (demo)');
         });
@@ -165,7 +159,6 @@ describe('Tabs, async panels', () => {
         await settle();
 
         assert.include(tabs.querySelector('#p2 > .ful-section-error')?.textContent ?? '', 'unreachable');
-        container.remove();
     });
 
     it('fires no section request when no panel is declared', async () => {
@@ -192,7 +185,7 @@ describe('Tabs, the refresh door', () => {
         </ful-tabs>`;
 
     it('answers null and unknown indices with a warning, not with panel 0', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         const seen = [];
         AsyncEvents.asyncOn(tabs, 'section:requested', (e) => seen.push(e.detail.index));
 
@@ -201,11 +194,10 @@ describe('Tabs, the refresh door', () => {
         await settle();
 
         assert.deepStrictEqual(seen, []);
-        container.remove();
     });
 
     it('swallows a failed refresh, the problems painted in the panel', async () => {
-        const [tabs, container] = await mount(markup);
+        const tabs = await mount(markup);
         AsyncEvents.asyncOn(tabs, 'section:requested:#1', () => {
             throw new Error('boom');
         });
@@ -213,13 +205,12 @@ describe('Tabs, the refresh door', () => {
         await tabs.refresh(1);
 
         assert.include(tabs.querySelector('#p2 > .ful-section-error').textContent, 'boom');
-        container.remove();
     });
 });
 
 describe('Tabs, the event target', () => {
     it('targets the component, not the panel', async () => {
-        const [tabs, container] = await mount(`
+        const tabs = await mount(`
             <ful-tabs>
                 <template slot="tabs"><tab>One</tab><tab>Two</tab></template>
                 <section>first</section>
@@ -232,6 +223,5 @@ describe('Tabs, the event target', () => {
         await settle();
 
         assert.deepStrictEqual(targets, [tabs]);
-        container.remove();
     });
 });

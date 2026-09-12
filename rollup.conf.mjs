@@ -204,71 +204,75 @@ const siblingPaths =
         return name ? `./${name}${min ? '.min' : ''}.mjs` : undefined;
     };
 
+/**
+ * The outputs a bundle ships, stated once: the es pair a bundler consumes and
+ * the iife pair a script tag does, each unminified and minified. `siblings`
+ * says the bundle externalizes ftl and httpc, so the es outputs map them to
+ * their file names and the iife outputs to their globals; `global` names the
+ * iife's own, and a bundle that answers none (client-errors installs handlers
+ * and exports nothing) passes null. They were spelled out per output, and the
+ * sibling mapping alone was restated five times.
+ */
+const outputs = (name, { modules = true, script = true, siblings = false, global = name } = {}) => {
+    const named = global ? { name: global } : {};
+    const linked = siblings ? { globals: siblingOf } : {};
+    return [
+        ...(modules
+            ? [
+                  {
+                      sourcemap: true,
+                      file: `dist/${name}.mjs`,
+                      format: 'es',
+                      ...(siblings ? { paths: siblingPaths(false) } : {}),
+                  },
+                  {
+                      sourcemap: true,
+                      file: `dist/${name}.min.mjs`,
+                      format: 'es',
+                      plugins: [terser(terserOptions)],
+                      ...(siblings ? { paths: siblingPaths(true) } : {}),
+                  },
+              ]
+            : []),
+        ...(script
+            ? [
+                  { sourcemap: true, file: `dist/${name}.iife.js`, format: 'iife', ...named, ...linked },
+                  {
+                      sourcemap: true,
+                      file: `dist/${name}.iife.min.js`,
+                      format: 'iife',
+                      plugins: [terser(terserOptions)],
+                      ...named,
+                      ...linked,
+                  },
+              ]
+            : []),
+    ];
+};
+
 export default [
     {
         input: 'src/ftl/index.mjs',
-        output: [
-            { sourcemap: true, file: 'dist/ftl.mjs', format: 'es' },
-            { sourcemap: true, file: 'dist/ftl.min.mjs', format: 'es', plugins: [terser(terserOptions)] },
-            { sourcemap: true, file: 'dist/ftl.iife.js', name: 'ftl', format: 'iife' },
-            { sourcemap: true, file: 'dist/ftl.iife.min.js', name: 'ftl', format: 'iife', plugins: [terser(terserOptions)] },
-        ],
+        output: outputs('ftl'),
         treeshake: true,
         plugins: [new RollupPeggyWithSourceMap(), resolve(), new RollupTypeGenerator('ftl')],
     },
     {
         input: 'src/httpc/index.mjs',
-        output: [
-            { sourcemap: true, file: 'dist/httpc.mjs', format: 'es' },
-            { sourcemap: true, file: 'dist/httpc.min.mjs', format: 'es', plugins: [terser(terserOptions)] },
-            { sourcemap: true, file: 'dist/httpc.iife.js', name: 'httpc', format: 'iife' },
-            { sourcemap: true, file: 'dist/httpc.iife.min.js', name: 'httpc', format: 'iife', plugins: [terser(terserOptions)] },
-        ],
+        output: outputs('httpc'),
         treeshake: true,
         plugins: [resolve(), new RollupTypeGenerator('httpc')],
     },
     {
         input: 'src/client-errors/client-errors.mjs',
-        output: [
-            { sourcemap: true, file: 'dist/client-errors.iife.js', format: 'iife' },
-            { sourcemap: true, file: 'dist/client-errors.iife.min.js', format: 'iife', plugins: [terser(terserOptions)] },
-        ],
+        output: outputs('client-errors', { modules: false, global: null }),
         treeshake: true,
         plugins: [resolve()],
     },
     {
         input: 'src/ful/index.mjs',
         external: dependsOn('ftl', 'httpc'),
-        output: [
-            {
-                sourcemap: true,
-                file: 'dist/ful.mjs',
-                format: 'es',
-                paths: siblingPaths(false),
-            },
-            {
-                sourcemap: true,
-                file: 'dist/ful.min.mjs',
-                format: 'es',
-                plugins: [terser(terserOptions)],
-                paths: siblingPaths(true),
-            },
-            {
-                sourcemap: true,
-                file: 'dist/ful.iife.js',
-                name: 'ful',
-                format: 'iife',
-                globals: siblingOf,
-            },
-            {
-                sourcemap: true,
-                file: 'dist/ful.iife.min.js',
-                name: 'ful',
-                format: 'iife',
-                globals: siblingOf,
-                plugins: [terser(terserOptions)],
-            },
-        ],
+        output: outputs('ful', { siblings: true }),
         treeshake: true,
         plugins: [
             resolve(),
@@ -283,16 +287,7 @@ export default [
         //two copies and a form showed no field errors
         input: 'src/index.mjs',
         external: dependsOn('ftl', 'httpc', 'ful'),
-        output: [
-            { sourcemap: true, file: 'dist/fml.mjs', format: 'es', paths: siblingPaths(false) },
-            {
-                sourcemap: true,
-                file: 'dist/fml.min.mjs',
-                format: 'es',
-                plugins: [terser(terserOptions)],
-                paths: siblingPaths(true),
-            },
-        ],
+        output: outputs('fml', { script: false, siblings: true }),
         treeshake: true,
         plugins: [resolve(), new RollupTypeGenerator('fml'), oneModuleGraph()],
     },
@@ -300,10 +295,7 @@ export default [
         //the single file a script tag wants: it carries everything and answers the
         //ftl/httpc/ful globals itself, so nothing has to be loaded before it
         input: 'src/index.mjs',
-        output: [
-            { sourcemap: true, file: 'dist/fml.iife.js', name: 'fml', format: 'iife' },
-            { sourcemap: true, file: 'dist/fml.iife.min.js', name: 'fml', format: 'iife', plugins: [terser(terserOptions)] },
-        ],
+        output: outputs('fml', { modules: false }),
         treeshake: true,
         plugins: [new RollupPeggyWithSourceMap(), resolve(), css('fml.css')],
     },

@@ -69,13 +69,13 @@
             "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page or the one its locale attribute names; default is shown when the content is empty.",
             "attributes": {},
             "slots": {},
-            "events": []
+            "events": {}
         },
         "ful-instant": {
             "description": "Formats the ISO instant in its content in the locale and timezone of the page or the one its locale attribute names; default is shown when the content is empty.",
             "attributes": {},
             "slots": {},
-            "events": []
+            "events": {}
         },
         "ful-input-local-date": {
             "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -140,7 +140,7 @@
                 "caption": "The caption of the table.",
                 "footer": "Content rendered in the table footer."
             },
-            "events": []
+            "events": {}
         },
         "ful-pagination": {
             "description": "The pager of a ful-table, its window rendering at most pages links (5 by default). Rarely used on its own.",
@@ -266,7 +266,7 @@
             "slots": {
                 "default": "The short explanation shown in the popover."
             },
-            "events": []
+            "events": {}
         },
         "ful-dialog": {
             "description": "A modal dialog on the native platform: header, body and buttons, the header attribute naming its heading, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which resolve with the data-result of the button that closed the dialog (null on Escape). Longer explanations belong here, shorter ones in ful-tooltip.",
@@ -302,7 +302,7 @@
                 "timeout": "How long a toast stands before it retires, in milliseconds; 5000 when absent. A show() may override it per toast."
             },
             "slots": {},
-            "events": []
+            "events": {}
         },
         "ful-tabs": {
             "description": "A tab panel: one visible panel at a time, announced through the tab pattern (a tablist of tab buttons, each panel a tabpanel named by its tab, the arrows and Home/End walking the tabs with automatic activation). The tabs are declared as tab elements in the tabs slot, the panels as the slotless children, paired in order; the chrome anchors on the ful-tablist style-only tag, so a subclass or foreign markup built from it keeps the look.",
@@ -326,7 +326,7 @@
             "slots": {
                 "default": "The native details/summary disclosures, one per panel, rendered inside the group."
             },
-            "events": []
+            "events": {}
         },
         "ful-wizard": {
             "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section — the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
