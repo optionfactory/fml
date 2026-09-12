@@ -1,19 +1,13 @@
-import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 import { TableLoader } from '../../../src/ful/navigation/table.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
 describe('Table sorting', () => {
     let sorts = [];
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const mount = async (schema) => {
         const container = document.createElement('div');
         container.innerHTML = `
@@ -116,11 +110,6 @@ describe('Table sorting', () => {
 });
 
 describe('Table load failures', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const mount = (loader, autoload) => {
         registry.defineComponent('loaders:table', { create: () => loader });
         const container = document.createElement('div');
@@ -220,11 +209,6 @@ describe('Table schema', () => {
 //is configured with language 'en' above, so they do not depend on the locale
 //the browser happens to be launched with
 
-const settle = async () => {
-    for (let i = 0; i !== 20; ++i) {
-        await tick();
-    }
-};
 
 const mount = async (html) => {
     const container = appended(html);

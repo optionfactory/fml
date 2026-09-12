@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { ParsedElement } from '../../src/ftl/parsed-element.mjs';
 import { Registry, registry } from '../../src/ftl/registry.mjs';
 import { Rendering } from '../../src/ftl/rendering.mjs';
+import { settle as drain } from '../harness.mjs';
 
 /**
  * Characterizes when an element counts as upgraded, which is what `ftl:ready` and
@@ -12,11 +13,9 @@ describe('Upgrade ordering and readiness', () => {
     let container;
     let order;
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await sleep(1);
-        }
-    };
+    //a real timer a turn, clamped to about 4ms once nested: the floor keeps the
+    //elapsed time these tests are written to measure
+    const settle = () => drain(20, 80);
     /** an element that takes a while to render, so nothing can pass by luck of timing */
     const slow = (name) => {
         class Slow extends ParsedElement {
@@ -180,11 +179,9 @@ describe('Rendering waitFor and waitForChildren', () => {
     });
 });
 describe('Readiness when a component fails', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 1));
-        }
-    };
+    //a real timer a turn, clamped to about 4ms once nested: the floor keeps the
+    //elapsed time these tests are written to measure
+    const settle = () => drain(20, 80);
 
     it('reports ready anyway, and hands the failure out rather than swallowing it', async () => {
         class Broken extends ParsedElement {

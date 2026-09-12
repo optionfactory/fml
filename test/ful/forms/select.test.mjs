@@ -1,8 +1,8 @@
-import { tick, settle } from '../../tick.mjs';
+import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -175,11 +175,6 @@ describe('Select & Dropdown keyboard interaction', () => {
         uncaught.push(e.error ?? e.message);
         e.preventDefault();
     });
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const mount = (html) => {
         const container = appended(html);
         return [container.querySelector('ful-select'), container];
@@ -506,11 +501,6 @@ describe('Select & Dropdown keyboard interaction', () => {
 });
 
 describe('Select value resolution', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     let exactCalls = [];
     const mount = async (html) => {
         const container = appended(html);
@@ -578,11 +568,6 @@ describe('Select value resolution', () => {
 });
 
 describe('Select value assignment', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader });
         const container = appended(html);
@@ -680,11 +665,6 @@ describe('Select value assignment', () => {
 });
 
 describe('Select key types', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const filtering = (data) => ({
         prefetch: async () => {},
         load: async () => data,
@@ -790,11 +770,6 @@ describe('Select key types', () => {
 
 describe('Select enter key inside a form', () => {
     let submits = [];
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         const container = appended(html);
         const selectEl = container.querySelector('ful-select');
@@ -866,11 +841,6 @@ describe('Select enter key inside a form', () => {
 });
 
 describe('Select selection removal', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const labelling = () => ({
         prefetch: async () => {},
         load: async () => [{ key: 'k1', label: 'Label 1' }],
@@ -1037,11 +1007,6 @@ describe('Select selection removal', () => {
 });
 
 describe('Select chips and picked options', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1088,11 +1053,6 @@ describe('Select chips and picked options', () => {
 });
 
 describe('Select chips keyboard access', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1180,11 +1140,6 @@ describe('Select chips keyboard access', () => {
 });
 
 describe('Select backspace', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1276,11 +1231,6 @@ describe('Select backspace', () => {
 });
 
 describe('Select blur', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1344,11 +1294,6 @@ describe('Select blur', () => {
 });
 
 describe('Select loader access and entries', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader });
         const container = appended(html);
@@ -1439,11 +1384,6 @@ describe('Select edits made while a lookup is in flight', () => {
 });
 
 describe('Select chips and validity', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const keydown = (input, code, options = {}) => {
         input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
     };
@@ -1517,11 +1457,6 @@ describe('Select chips and validity', () => {
 });
 
 describe('Select pointer picking', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1567,11 +1502,6 @@ describe('Select pointer picking', () => {
 });
 
 describe('Select dropdown opening', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1638,11 +1568,6 @@ describe('Select dropdown opening', () => {
 });
 
 describe('Select inner control isolation', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1697,11 +1622,6 @@ describe('Select inner control isolation', () => {
 });
 
 describe('Select stray clicks', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1759,11 +1679,6 @@ describe('Select failed searches', () => {
     });
     let originalError;
     let errors;
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
@@ -1811,11 +1726,6 @@ describe('Select failed searches', () => {
 });
 
 describe('Select focus and key coercion gaps', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html, loader) => {
         registry.defineComponent('loaders:select', { create: () => loader });
         const container = appended(html);
@@ -2070,11 +1980,6 @@ describe('Select attributes during the async render window', () => {
 });
 
 describe('Select dropdown anchoring', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const mount = async () => {
         const container = appended(`<ful-select></ful-select>`);
         const selectEl = container.querySelector('ful-select');

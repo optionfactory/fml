@@ -2,15 +2,14 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { Plugin, Toasts } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const settle = async () => {
-    for (let i = 0; i !== 20; ++i) {
-        await new Promise((r) => setTimeout(r, 0));
-    }
-};
+//the clamped loop this replaces billed about 4ms a turn once nested, so
+//the floor keeps the wall time these tests were written against: the turn
+//count alone would drain in a tenth of it
+const settle = () => drain(20, 80);
 const mount = async (html) => {
     const container = appended(html);
     await Rendering.waitFor(container);

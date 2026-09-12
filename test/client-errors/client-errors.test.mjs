@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import '../../../src/client-errors/client-errors.mjs';
+import { settle as drain } from '../harness.mjs';
 
 /**
  * The reporter listens on window 'error' too, but the test runner fails a test on any
@@ -16,11 +17,9 @@ describe('client errors reporting', () => {
         rejections.push(e.reason);
         e.preventDefault();
     };
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 5));
-        }
-    };
+    //the loop this replaces waited 5ms a turn deliberately: the floor keeps that
+    //wall time, which is what these tests are actually measuring
+    const settle = () => drain(20, 100);
     const reject = (reason) => {
         window.dispatchEvent(
             new PromiseRejectionEvent('unhandledrejection', {
@@ -133,11 +132,9 @@ describe('client errors reporting shapes', () => {
         rejections.push(e.reason);
         e.preventDefault();
     };
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 5));
-        }
-    };
+    //the loop this replaces waited 5ms a turn deliberately: the floor keeps that
+    //wall time, which is what these tests are actually measuring
+    const settle = () => drain(20, 100);
     const reject = (reason) => {
         window.dispatchEvent(
             new PromiseRejectionEvent('unhandledrejection', {

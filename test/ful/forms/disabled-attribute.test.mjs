@@ -2,18 +2,13 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin, Field, Bindings } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 registry.defineComponent('loaders:select', {
     create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => ({ key: v, label: v })) }),
 });
 
-const settle = async () => {
-    for (let i = 0; i !== 20; ++i) {
-        await tick();
-    }
-};
 const mount = async (html) => {
     const container = appended(html);
     await Rendering.waitFor(container);

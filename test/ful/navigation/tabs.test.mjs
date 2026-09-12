@@ -1,15 +1,14 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, Plugin } from '../../../src/ful/index.mjs';
-import { mount as mounted } from '../../harness.mjs';
+import { mount as mounted, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const settle = async () => {
-    for (let i = 0; i !== 20; ++i) {
-        await new Promise((r) => setTimeout(r, 0));
-    }
-};
+//the clamped loop this replaces billed about 4ms a turn once nested, so
+//the floor keeps the wall time these tests were written against: the turn
+//count alone would drain in a tenth of it
+const settle = () => drain(20, 80);
 //the harness owns the container and its teardown; the wait stays this suite's,
 //since its drain is counted in clamped turns and the components lean on it
 const mount = async (html) => {

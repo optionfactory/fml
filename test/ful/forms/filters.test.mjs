@@ -2,7 +2,7 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -272,11 +272,6 @@ describe('Filter operator selection', () => {
 });
 
 describe('Filter operator keyboard access', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const keydown = (el, code) => {
         el.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
     };
@@ -393,11 +388,6 @@ describe('Filter operator keyboard access', () => {
 });
 
 describe('Filter operator whitelisting', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         const container = appended(html);
         const el = container.firstElementChild;
@@ -553,11 +543,6 @@ describe('Filter operator whitelisting', () => {
 });
 
 describe('Filter sensitivity whitelisting', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         const container = appended(html);
         const el = container.firstElementChild;
@@ -648,11 +633,6 @@ describe('Filter sensitivity whitelisting', () => {
 });
 
 describe('NumberFilter tuples', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (attrs) => {
         const container = appended(`<ful-filter-number ${attrs} name="f">n</ful-filter-number>`);
         const el = container.querySelector('ful-filter-number');
@@ -689,11 +669,6 @@ describe('NumberFilter tuples', () => {
 });
 
 describe('BooleanFilter tuples', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (attrs) => {
         const container = appended(`<ful-filter-boolean ${attrs} name="f">b</ful-filter-boolean>`);
         const el = container.querySelector('ful-filter-boolean');
@@ -948,11 +923,6 @@ describe('Filter change notifications', () => {
 });
 
 describe('Filter operator menu closing', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
 
     it('gives the operator button the focus back when the menu is dismissed', async () => {
         const [el] = await mount(`<ful-filter-local-date name="f">d</ful-filter-local-date>`);
@@ -998,11 +968,6 @@ describe('Filter property access before rendering', () => {
 });
 
 describe('BooleanFilter interactions', () => {
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
     const mount = async (attrs = '') => {
         const container = appended(`<ful-filter-boolean ${attrs} name="f">b</ful-filter-boolean>`);
         const el = container.querySelector('ful-filter-boolean');
@@ -1071,11 +1036,6 @@ describe('Filter menus, where the platform lacks CSS anchor positioning', () => 
     after(() => {
         CSS.supports = supports;
     });
-    const settle = async () => {
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
-    };
 
     it('places the operator menu under its invoker, start-aligned', async () => {
         const [el] = await mount(`<ful-filter-text>t</ful-filter-text>`);

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { capture } from './capture-error-listener.mjs';
 import '../../../src/client-errors/client-errors.mjs';
+import { settle as drain } from '../harness.mjs';
 
 /** the registered window 'error' handler, the same one the rejection route exercises */
 const onError = capture();
@@ -24,11 +25,9 @@ describe('client errors reporting: the error event route', () => {
         scriptEl.remove();
     });
 
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 5));
-        }
-    };
+    //the loop this replaces waited 5ms a turn deliberately: the floor keeps that
+    //wall time, which is what these tests are actually measuring
+    const settle = () => drain(20, 100);
 
     it('reports the message, the location and the stack an error event carries', async () => {
         onError({

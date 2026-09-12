@@ -1,8 +1,7 @@
-import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -137,11 +136,6 @@ describe('Input placeholder and :placeholder-shown', () => {
 describe('Input enter key inside a form', () => {
     let submitters;
     let submits;
-    const settle = async () => {
-        for (let i = 0; i !== 20; ++i) {
-            await tick();
-        }
-    };
     const mount = async (html) => {
         const container = appended(html);
         const inputEl = container.querySelector('ful-input');
