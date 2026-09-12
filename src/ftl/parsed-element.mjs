@@ -15,6 +15,8 @@ class ParsedElement extends HTMLElement {
         registry,
         enqueue: (el) => {},
         SLOTS: false,
+        /** @type {object|undefined} */
+        CONFIG: undefined,
         /** @type {string[]} */
         OBSERVED: [],
         /** @type {string[]} */
@@ -76,14 +78,9 @@ class ParsedElement extends HTMLElement {
         if (!target) {
             throw new Error(`no template named '${name ?? 'default'}' on ${this.constructor.name}`);
         }
-        let t = target.withEvaluator(this.#bits().registry.evaluator());
-        for (const k of ['config']) {
-            const v = this.constructor[k];
-            if (v) {
-                t = t.withOverlay({ [k]: v });
-            }
-        }
-        return t;
+        const t = target.withEvaluator(this.#bits().registry.evaluator());
+        const config = this.#bits().CONFIG;
+        return config ? t.withOverlay({ config }) : t;
     }
     connectedCallback() {
         if (this.#started) {

@@ -18,9 +18,13 @@ describe('ParsedElement Web Component Lifecycle', () => {
 
     it('injects static config properties as template overlays', async () => {
         class ConfiguredEl extends ParsedElement {
-            static config = { debug: true };
+            static config = { icon: 'declared' };
             static template = '<div></div>';
         }
+        //the constants are a definition-time choice like the rest of the
+        //declaration, read when the registry is configured: a page overriding
+        //them replaces the static before that, not after
+        ConfiguredEl.config = { icon: 'overridden' };
 
         registry.defineElement('configured-el', ConfiguredEl);
         registry.configure();
@@ -32,6 +36,7 @@ describe('ParsedElement Web Component Lifecycle', () => {
         const tplInstance = el.template();
 
         expect(tplInstance).to.be.instanceOf(Template);
+        expect(tplInstance.evaluateExpression('config.icon')).to.equal('overridden');
     });
 
     it('guards connectedCallback and upgrade against double execution', async () => {

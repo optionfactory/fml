@@ -223,7 +223,7 @@ class Registry {
     }
     #augmentAndDefineElement(tag, klass) {
         const { observed, attributes } = Registry.declarationsOf(klass);
-        const { template, templates, slots, mappers } = klass;
+        const { template, templates, slots, mappers, config } = klass;
         //a name a subclass re-declares takes the subclass's position, which is
         //how a field whose value setter reads its own shape attributes declares
         //that its value lands after them: the order the declarations compose in
@@ -252,6 +252,10 @@ class Registry {
             registry: this,
             enqueue: (el) => this.#upgradeQueue.enqueue(el),
             SLOTS: slots,
+            //the class's own constants, overlaid on its templates as `config`:
+            //read here with the rest of the declaration, so a page replacing them
+            //does it before configure() like every other definition-time choice
+            CONFIG: config,
             OBSERVED: observedNames,
             DECLARED: [...new Set([...observedNames, ...attributes.map((a) => a.split(':')[0])])],
             ATTR_TO_MAPPER: attrToMapper,
