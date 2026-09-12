@@ -11,8 +11,8 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
  * so a field with no native control adopts a focusable piece of its chrome
  * or overrides the claim pairs itself (as ful-radio-group does). The getters
  * and focus() alone tolerate the not-yet-rendered element, where page code
- * may still read a claim or ask for the focus: the properties are the
- * post-render live door alone, as ParsedElement documents. The base
+ * may still read a claim or ask for the focus: the properties go live only
+ * after the render, as ParsedElement documents. The base
  * references no ful vocabulary, only what its subclasses pass it.
  */
 class Field extends ParsedElement {
@@ -20,7 +20,8 @@ class Field extends ParsedElement {
     /**
      * The claim attributes and the value are observed here so every field,
      * including the custom ones, keeps them live after the upgrade: the
-     * attribute is a third authoring door beside markup and the property,
+     * attribute is a third way to author a claim, beside the markup and the
+     * property,
      * exactly as a native input's. The value defaults to the string mapper and
      * every field with its own vocabulary overrides it (`value:bool`,
      * `value:csvm`, `value:json`).
@@ -135,7 +136,7 @@ class Field extends ParsedElement {
     }
     /**
      * Dispatches the field's change event: bubbling, not cancelable, the value
-     * in the detail. Every field announces through this one door, and the detail
+     * in the detail. Every field announces through this one method, and the detail
      * always carries the field's own `value`, so a listener can rely on
      * `el.value === evt.detail.value` whatever the field is. A field with more to
      * say adds keys beside it; none can replace it.

@@ -52,7 +52,7 @@ class ParsedElement extends HTMLElement {
     }
     /**
      * The component registered under the name on this element's registry, the
-     * door every ful loader and mapper resolves through.
+     * one every ful loader and mapper resolves through.
      * @param {string} name
      */
     component(name) {
@@ -88,9 +88,9 @@ class ParsedElement extends HTMLElement {
         if (this.#reflecting.has(attr)) {
             return;
         }
-        //the properties are the post-render live door alone: before the render,
-        //an attribute write lands in the observed snapshot and the render applies
-        //it with the rest of the declared state
+        //the properties go live only once the render is done: before that, an
+        //attribute write lands in the observed snapshot and the base applies it
+        //with the rest of the declared state
         if (!this.#parsed) {
             if (this.#pending !== null && attr in this.#pending) {
                 this.#pending[attr] = this.unmarshal(attr, newValue);
@@ -130,7 +130,7 @@ class ParsedElement extends HTMLElement {
             for (const name of this.#bits().OBSERVED) {
                 this[name] = declared[name];
             }
-            //the live door opens once the render is done: from here on, an
+            //the properties go live once the render is done: from here on, an
             //attribute write forwards to the property. A render that threw
             //leaves it shut, so a later attribute write cannot reach setters
             //that assume pieces the failed render never adopted
@@ -156,7 +156,7 @@ class ParsedElement extends HTMLElement {
      * attribute write does not quietly change how the element behaves. An
      * observed name answers the snapshot while the render is pending — kept
      * open to attribute writes landing in that window — and the live attribute
-     * afterwards, the property being the live door by then.
+     * afterwards, the property being live by then.
      *
      * The snapshot exists rather than a read of the dom because an element may
      * write its own observed attributes while it renders — a reflection, or a
@@ -173,14 +173,15 @@ class ParsedElement extends HTMLElement {
         }
         return this.unmarshal(name, this.getAttribute(name));
     }
-    /** Whether the element's render completed: the moment its properties became the live door. */
+    /** Whether the element's render completed: the moment its properties went live. */
     get rendered() {
         return this.#parsed;
     }
     /**
      * Projects a property back onto its observed attribute, marshalled through
-     * the mapper the attribute was declared with: the one door back to the dom,
-     * so a setter never has to know how its own type serializes.
+     * the mapper the attribute was declared with: the one place a property
+     * reaches its attribute, so a setter never has to know how its own type
+     * serializes.
      *
      * A value the attribute already carries is not written at all, so reflecting
      * what an attribute write just delivered ends there rather than looping, and

@@ -99,7 +99,7 @@ class Dialog extends ParsedElement {
     }
     /**
      * Re-fires section:requested on the body, open or closed: the explicit
-     * door for a body that wants refreshing. A failed refresh paints its
+     * request for a body that wants refreshing. A failed refresh paints its
      * problems, nothing rejects — there is no caller to reject towards.
      */
     refresh() {

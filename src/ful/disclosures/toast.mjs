@@ -3,10 +3,10 @@ import { Failure } from '../../httpc/index.mjs';
 
 const SEVERITIES = ['info', 'success', 'warning', 'error'];
 
-//the regions alive in the document: the show-toast door is wired once and
+//the regions alive in the document: the show-toast listener is wired once and
 //forwards to each of them, so a re-hosted or second region never doubles a toast
 const REGIONS = new Set();
-let doorWired = false;
+let listenerWired = false;
 
 /** A transient feedback region: each show() stacks a toast that retires on its own timer. */
 class Toasts extends ParsedElement {
@@ -27,8 +27,8 @@ class Toasts extends ParsedElement {
         //focusable only programmatically, so a retiring toast can hand its focus back
         this.setAttribute('tabindex', '-1');
         this.setAttribute('aria-label', Localization.of().t('toast.region'));
-        if (!doorWired) {
-            doorWired = true;
+        if (!listenerWired) {
+            listenerWired = true;
             document.addEventListener('show-toast', (/** @type any */ e) => {
                 for (const region of REGIONS) {
                     region.show(e.detail.message, e.detail);

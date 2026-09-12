@@ -68,7 +68,7 @@ class Drawer extends ParsedElement {
         this.#loading.removeAttribute('hidden');
         this.#content.setAttribute('hidden', '');
         //update owns its own open-answer-deliver cycle, so it shows the dialog
-        //without asking the section door: a user reopen during the wait is a
+        //without going through open(): a user reopen during the wait is a
         //real open and goes through open()
         this.#show();
         try {
@@ -94,8 +94,8 @@ class Drawer extends ParsedElement {
     }
     /**
      * Re-fires section:requested on the content, open or closed: the explicit
-     * door for a body that wants refreshing. A failed refresh paints its
-     * problems, nothing rejects — update() stays the rejecting door.
+     * request for a body that wants refreshing. A failed refresh paints its
+     * problems, nothing rejects — update() stays the rejecting call.
      */
     refresh() {
         return this.#requests.request(this, this.#content, null, null)?.then(undefined, () => undefined);

@@ -5,7 +5,7 @@ import { BoundedCache } from './cache.mjs';
 /**
  * The one lookup against a data stack: the innermost overlay carrying the name
  * wins, `self` is the innermost overlay itself, and a function overlay counts
- * like an object one. Every door that resolves a name goes through this, so the
+ * like an object one. Every lookup that resolves a name goes through this, so the
  * imperative facades cannot drift from what a template sees.
  * @param {any[]} dataStack
  * @param {string|symbol} prop

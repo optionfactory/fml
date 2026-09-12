@@ -436,7 +436,7 @@ class Select extends Field {
 
         this.#multiple = this.declared('multiple');
         //the prefetch is the vocabulary's concern, not the field's: the label, the
-        //combobox and the error region paint at once and the live door opens with
+        //combobox and the error region paint at once and the properties go live with
         //them, where a slow endpoint used to hold up the whole upgrade. The loader
         //shares one in-flight fetch, so a first open during the prefetch joins it
         this.#loader.prefetch?.()?.catch((/** @type any */ e) => {

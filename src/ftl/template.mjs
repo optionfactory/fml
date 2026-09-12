@@ -294,8 +294,8 @@ class Template {
         this.#evaluator = evaluator;
     }
     /**
-     * Creates a new Template rendering in another scope: the one door for
-     * rebinding a compiled template to a registry's modules and data.
+     * Creates a new Template rendering in another scope: the one way to rebind
+     * a compiled template to a registry's modules and data.
      * @param {ExpressionEvaluator} evaluator
      */
     withEvaluator(evaluator) {
@@ -422,8 +422,7 @@ class Template {
             //a command, a text node or a nested render already named the node it
             //failed on: wrapping again would add a frame for the fragment that
             //contains it, one per level, serializing the whole template into the
-            //message that survives. Only a failure outside those doors is framed
-            //here
+            //message that survives. Only a failure outside those is framed here
             if (ex instanceof RenderError) {
                 throw ex;
             }
