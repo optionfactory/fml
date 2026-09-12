@@ -110,12 +110,30 @@ class Bindings {
      * @param {HTMLElement} [submitter]
      * @returns
      */
+    /**
+     * Whether a control is one of a form's buttons, whose name travels only when it
+     * is the one that submitted.
+     * @param {Element & {type?: string}} el
+     */
+    static #submits(el) {
+        return el.type === 'submit' || el.type === 'reset' || el.type === 'button';
+    }
     static extractFrom(form, submitter) {
         let result = {};
         for (const el of form.elements) {
-            //the submitter is exempt from the disabled check: a form disables its
-            //buttons while submitting, and its own submitter still names a value
-            if (!el.hasAttribute('name') || (el.matches(':disabled') && el !== submitter)) {
+            if (!el.hasAttribute('name')) {
+                continue;
+            }
+            //a form submits the name of the button that submitted it and of no other,
+            //which is the platform's own rule. It used to fall out of the spinner
+            //having disabled every button by the time the values were read, so the
+            //affordance was quietly load-bearing for the payload
+            if (Bindings.#submits(el) && el !== submitter) {
+                continue;
+            }
+            //the submitter is exempt from the disabled check: a form holds its buttons
+            //off while submitting, and its own submitter still names a value
+            if (el.matches(':disabled') && el !== submitter) {
                 continue;
             }
             result = Bindings.providePath(

@@ -7,6 +7,86 @@ import { appended } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
+//a button is held off with aria-disabled rather than disabled, so it keeps the
+//focus it almost always holds when a submit starts
+const heldOff = (el) => el.getAttribute('aria-disabled') === 'true';
+
+describe('Form busy state', () => {
+    const mountForm = async (html) => {
+        const container = appended(html);
+        await Rendering.waitFor(container);
+        await tick();
+        return container.querySelector('ful-form');
+    };
+
+    it('declares itself busy while a spin holds, like the table and the sections do', async () => {
+        const form = await mountForm(`<ful-form><button type="submit">go</button></ful-form>`);
+
+        assert.isFalse(form.hasAttribute('aria-busy'));
+        form.spinner(true);
+        assert.strictEqual(form.getAttribute('aria-busy'), 'true');
+        form.spinner(false);
+        assert.isFalse(form.hasAttribute('aria-busy'));
+    });
+
+    it('gives a spinner with no text of its own something to announce', async () => {
+        const form = await mountForm(`<ful-form><ful-spinner hidden></ful-spinner></ful-form>`);
+        const spinner = form.querySelector('ful-spinner');
+
+        form.spinner(true);
+
+        assert.strictEqual(spinner.getAttribute('role'), 'status', 'a live region, or it reads to no one');
+        assert.strictEqual(spinner.textContent.trim(), 'Loading…');
+        assert.isFalse(spinner.hidden);
+
+        form.spinner(false);
+        assert.isTrue(spinner.hidden);
+        assert.strictEqual(spinner.textContent.trim(), '', 'the label does not linger in a hidden region');
+    });
+
+    it('leaves an authored spinner label and role alone', async () => {
+        const form = await mountForm(
+            `<ful-form><ful-spinner role="alert" hidden><span class="ful-sr-only">Saving the policy</span></ful-spinner></ful-form>`,
+        );
+        const spinner = form.querySelector('ful-spinner');
+
+        form.spinner(true);
+
+        assert.strictEqual(spinner.getAttribute('role'), 'alert');
+        assert.strictEqual(spinner.textContent.trim(), 'Saving the policy');
+    });
+
+    it('keeps the submitter focused while it is held off', async () => {
+        const form = await mountForm(`<ful-form><button type="submit" id="go">go</button></ful-form>`);
+        const go = form.querySelector('#go');
+        go.focus();
+
+        form.spinner(true);
+
+        //disabling what holds the focus drops it to the body, losing the user's place
+        //in the middle of the transaction the form is announcing
+        assert.strictEqual(document.activeElement, go);
+        assert.isFalse(go.disabled, 'held off, not disabled');
+        assert.strictEqual(go.getAttribute('aria-disabled'), 'true');
+        form.spinner(false);
+    });
+
+    it('refuses a click on a button it is holding off', async () => {
+        const form = await mountForm(`<ful-form><button type="submit" id="go">go</button></ful-form>`);
+        const go = form.querySelector('#go');
+        let clicks = 0;
+        go.addEventListener('click', () => ++clicks);
+
+        form.spinner(true);
+        go.click();
+        assert.strictEqual(clicks, 0, 'the capturing refusal beats the author own listener');
+
+        form.spinner(false);
+        go.click();
+        assert.strictEqual(clicks, 1, 'and releases with the spin');
+    });
+});
+
 describe('Form spinner button states', () => {
     it('leaves an already-disabled button disabled after the spinner releases', async () => {
         const container = document.createElement('div');
@@ -27,15 +107,14 @@ describe('Form spinner button states', () => {
         const btnDisabled = fulForm.querySelector('#btn-disabled');
 
         fulForm.spinner(true);
-        assert.strictEqual(btnEnabled.disabled, true);
-        assert.strictEqual(btnDisabled.disabled, true);
+        assert.isTrue(heldOff(btnEnabled));
+        assert.isTrue(heldOff(btnDisabled));
+        assert.strictEqual(btnDisabled.disabled, true, 'the authored disabled property is never touched');
 
         fulForm.spinner(false);
-        assert.strictEqual(btnEnabled.disabled, false);
-        assert.strictEqual(btnDisabled.disabled, true);
-
-        assert.strictEqual(btnEnabled.dataset.wasDisabled, undefined);
-        assert.strictEqual(btnDisabled.dataset.wasDisabled, undefined);
+        assert.isFalse(heldOff(btnEnabled));
+        assert.isFalse(heldOff(btnDisabled), 'the hold is released whatever the authored state was');
+        assert.strictEqual(btnDisabled.disabled, true, 'and the authored one still stands');
 
     });
 
@@ -55,17 +134,17 @@ describe('Form spinner button states', () => {
         //the buttons while the outer one is still waiting
         fulForm.spinner(true);
         fulForm.spinner(true);
-        assert.isTrue(enabled.disabled);
+        assert.isTrue(heldOff(enabled));
 
         fulForm.spinner(false);
-        assert.isTrue(enabled.disabled, 'the inner release leaves the outer spin alone');
+        assert.isTrue(heldOff(enabled), 'the inner release leaves the outer spin alone');
 
         fulForm.spinner(false);
-        assert.isFalse(enabled.disabled, 'the outer release restores them');
+        assert.isFalse(heldOff(enabled), 'the outer release restores them');
 
         //a release nobody asked for cannot drive the count below zero
         fulForm.spinner(false);
-        assert.isFalse(enabled.disabled);
+        assert.isFalse(heldOff(enabled));
     });
 
     it('leaves a button that joined mid-spin on its authored state', async () => {
@@ -88,7 +167,7 @@ describe('Form spinner button states', () => {
 
         fulForm.spinner(false);
 
-        assert.isFalse(fulForm.querySelector('#btn-enabled').disabled, 'the saved one restores');
+        assert.isFalse(heldOff(fulForm.querySelector('#btn-enabled')), 'the saved one restores');
         assert.isTrue(latecomer.disabled, 'the latecomer keeps its authored state');
 
     });
@@ -122,8 +201,8 @@ describe('Form spinner button states across overlapping submits', () => {
         const first = fulForm.submit();
         const second = fulForm.submit();
         assert.strictEqual(spinner.hidden, false, 'the spinner is shown while submitting');
-        assert.strictEqual(btnEnabled.disabled, true);
-        assert.strictEqual(btnDisabled.disabled, true);
+        assert.isTrue(heldOff(btnEnabled));
+        assert.isTrue(heldOff(btnDisabled));
 
         //the first submit reaches the loader, the re-entrant one is dropped
         //before extraction: a write must not double behind a racing gesture
@@ -137,7 +216,7 @@ describe('Form spinner button states across overlapping submits', () => {
         releases[0]();
         await first;
         assert.strictEqual(spinner.hidden, true);
-        assert.strictEqual(btnEnabled.disabled, false);
+        assert.isFalse(heldOff(btnEnabled));
         assert.strictEqual(btnDisabled.disabled, true, 'an intentionally disabled button stays disabled');
         assert.isUndefined(btnEnabled.dataset.wd);
         assert.isUndefined(btnDisabled.dataset.wd);

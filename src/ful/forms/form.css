@@ -116,6 +116,16 @@
         background-color: var(--ful-disabled-bg);
     }
 
+    /**
+     * A submit held off while the form is busy keeps its focus, so it is marked
+     * aria-disabled rather than disabled. Unstyled buttons would otherwise lose the
+     * platform's own disabled look: .ful-button already dims both spellings.
+     */
+    ful-form [aria-disabled="true"] {
+        opacity: 0.65;
+        cursor: default;
+    }
+
     ful-badge {
         display: flex;
         flex: 0 0 auto;

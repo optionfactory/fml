@@ -1,4 +1,4 @@
-import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes, Localization, ParsedElement } from '../../ftl/index.mjs';
 import { Failure } from '../../httpc/index.mjs';
 import { Bindings } from './bindings.mjs';
 import { AsyncEvents } from '../events/async.mjs';
@@ -103,6 +103,21 @@ class Form extends ParsedElement {
             e.stopPropagation();
             await this.submit(e.submitter ?? undefined);
         });
+        //an aria-disabled control keeps its focus and its name, so the platform still
+        //activates it: the refusal has to be ours, and capturing puts it ahead of
+        //every listener the author registered on the button itself
+        this.addEventListener(
+            'click',
+            (evt) => {
+                const target = /** @type Element */ (evt.target);
+                if (!target.closest?.('[aria-disabled="true"]')) {
+                    return;
+                }
+                evt.preventDefault();
+                evt.stopImmediatePropagation();
+            },
+            true,
+        );
         if (this.hasAttribute('clear-invalid-on-change')) {
             this.addEventListener('change', (/** @type any */ evt) => {
                 evt.target.setCustomValidity?.('');
@@ -182,7 +197,27 @@ class Form extends ParsedElement {
         this.form.reset();
     }
     #spinning = 0;
-    /** Shows the spinners and disables the submit buttons, overlapping spins sharing one claim. */
+    /**
+     * Reveals a spinner and gives it something to read. A spinner is a style-only
+     * tag: the glyph is its own pseudo-element and the text is the author's, so one
+     * carrying no text is a live region with nothing to announce. The label is
+     * appended only where the author wrote none, and it is filled after the reveal,
+     * a region mutated while hidden being announced unreliably.
+     * @param {HTMLElement} el
+     */
+    #announce(el) {
+        Attributes.defaultValue(el, 'role', 'status');
+        el.hidden = false;
+        if (el.textContent.trim() !== '') {
+            return;
+        }
+        const label = document.createElement('span');
+        label.className = 'ful-sr-only';
+        label.dataset.ref = 'spinner-label';
+        el.append(label);
+        label.textContent = Localization.of().t('spinner.loading');
+    }
+    /** Shows the spinners and holds the submit buttons off, overlapping spins sharing one claim. */
     spinner(spin) {
         //spins can overlap (a caller's own spin may wrap a submit): only the
         //outermost one saves and restores the button states
@@ -197,9 +232,17 @@ class Form extends ParsedElement {
                 return;
             }
         }
+        //the form is the busy region: the table and the async sections say so the
+        //same way, and a form that only dimmed its button said it to no one
+        Attributes.set(this, 'aria-busy', spin ? 'true' : null);
         this.querySelectorAll('ful-spinner').forEach((el) => {
             const hel = /** @type HTMLElement */ (el);
-            hel.hidden = !spin;
+            if (spin) {
+                this.#announce(hel);
+                return;
+            }
+            hel.hidden = true;
+            hel.querySelector(':scope > [data-ref=spinner-label]')?.remove();
         });
         this.querySelectorAll('input,button').forEach((el) => {
             const hel = /** @type HTMLButtonElement|HTMLInputElement */ (el);
@@ -207,14 +250,19 @@ class Form extends ParsedElement {
                 return;
             }
             if (spin) {
-                hel.dataset.wd = String(hel.disabled);
-                hel.disabled = true;
+                //aria-disabled, not disabled: the submitter is almost always the
+                //focused element when a submit starts, and disabling what holds the
+                //focus drops it to the body, losing the user's place mid transaction.
+                //The refusal is the capturing handler below, and #submitting is the
+                //guard that actually makes a second submit a no-op
+                hel.dataset.wd = hel.getAttribute('aria-disabled') ?? '';
+                hel.setAttribute('aria-disabled', 'true');
             } else {
                 //a button that joined mid-spin was never saved: its authored state stands
                 if (hel.dataset.wd === undefined) {
                     return;
                 }
-                hel.disabled = hel.dataset.wd === 'true';
+                Attributes.set(hel, 'aria-disabled', hel.dataset.wd || null);
                 delete hel.dataset.wd;
             }
         });
