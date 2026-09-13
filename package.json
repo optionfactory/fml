@@ -26,7 +26,8 @@
             "import": "./dist/ful.mjs"
         },
         "./ful.css": "./dist/ful.css",
-        "./fml.css": "./dist/fml.css"
+        "./fml.css": "./dist/fml.css",
+        "./package.json": "./package.json"
     },
     "files": [
         "dist"
