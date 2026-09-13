@@ -1,13 +1,4 @@
 @layer ful.components {
-    ful-input:not(:state(rendered)),
-    .ful-input:not(:state(rendered)),
-    ful-input-file:not(:state(rendered)),
-    ful-input-local-date:not(:state(rendered)),
-    ful-input-local-time:not(:state(rendered)),
-    ful-input-instant:not(:state(rendered)) {
-        visibility: hidden;
-    }
-
     *:has(> ful-control-group > input, > ful-control-group > textarea) {
         &[uppercase] input,
         &[uppercase] textarea {

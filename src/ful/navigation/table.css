@@ -1,9 +1,4 @@
 @layer ful.components {
-    ful-pagination:not(:state(rendered)),
-    ful-table:not(:state(rendered)) {
-        visibility: hidden;
-    }
-
     *:has(> ful-table-wrapper) {
         display: block;
 

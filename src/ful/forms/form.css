@@ -9,10 +9,6 @@
         display: block;
     }
 
-    *:has(> ful-control-group):not(:state(rendered)) {
-        visibility: hidden;
-    }
-
     *:has(> ful-control-group) > label,
     *:has(> fieldset > ful-radio-list) > fieldset > legend {
         /*inline-block: an info slot carrying a tooltip rides the label's line,

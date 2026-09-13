@@ -1,0 +1,45 @@
+@layer ful.components {
+    /**
+     * An element whose own markup is misleading before it renders stays
+     * invisible until it does: a select's slotted <select> paints as a native
+     * dropdown, a dialog's body sits in the page flow, a tab host shows every
+     * panel at once. An element whose markup already reads correctly is left
+     * alone, ful-form being the case that matters, since hiding it would hide
+     * the fields and the submit button that were about to paint correctly.
+     *
+     * :is() rather than a plain selector list, because a list is all or nothing:
+     * one bad selector among these would drop the rule for every one of them,
+     * where :is() ignores the bad argument alone. Its specificity, the most
+     * specific argument's, decides nothing here, the layer order settling every
+     * contest before specificity is consulted.
+     *
+     * The list is ful's own, and a field of your own joins it by carrying the
+     * .ful-input class, or opts in on its own tag:
+     *     x-rating:not(:state(rendered)) { visibility: hidden }
+     */
+    :is(
+            ful-input,
+            .ful-input,
+            ful-input-file,
+            ful-input-local-date,
+            ful-input-local-time,
+            ful-input-instant,
+            ful-checkbox,
+            ful-radio-group,
+            ful-select,
+            ful-filter-text,
+            ful-filter-number,
+            ful-filter-boolean,
+            ful-filter-local-date,
+            ful-filter-instant,
+            ful-tabs,
+            ful-wizard,
+            ful-tooltip,
+            ful-dialog,
+            ful-drawer,
+            ful-table,
+            ful-pagination
+        ):not(:state(rendered)) {
+        visibility: hidden;
+    }
+}

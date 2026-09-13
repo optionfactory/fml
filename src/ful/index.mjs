@@ -10,6 +10,7 @@ export { FormLoader, Form } from './forms/form.mjs';
 import './forms/form.css';
 import './chrome/buttons.css';
 import './chrome/sections.css';
+import './chrome/pre-render.css';
 export { Input } from './forms/input.mjs';
 export { LocalDate, Instant, InputLocalDate, InputLocalTime, InputInstant } from './forms/temporals.mjs';
 import './forms/input.css';

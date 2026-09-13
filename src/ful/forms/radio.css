@@ -1,8 +1,4 @@
 @layer ful.components {
-    ful-radio-group:not(:state(rendered)) {
-        visibility: hidden;
-    }
-
     *:has(> fieldset > ful-radio-list) {
         --ful-radio-group-label-border-color: var(--ful-border-color);
         --ful-radio-group-label-bg: inherit;

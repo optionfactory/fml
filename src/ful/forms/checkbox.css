@@ -1,8 +1,4 @@
 @layer ful.components {
-    ful-checkbox:not(:state(rendered)) {
-        visibility: hidden;
-    }
-
     *:has(> ful-choice) {
         display: block;
     }
