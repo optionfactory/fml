@@ -1,6 +1,6 @@
 @layer ful.components {
-    ful-pagination:not(:defined),
-    ful-table:not(:defined) {
+    ful-pagination:not(:state(rendered)),
+    ful-table:not(:state(rendered)) {
         visibility: hidden;
     }
 
@@ -24,7 +24,7 @@
     ful-sorter {
         display: block;
 
-        &:not(:defined) {
+        &:not(:state(rendered)) {
             visibility: hidden;
         }
 

@@ -1,5 +1,5 @@
 @layer ful.components {
-    ful-checkbox:not(:defined) {
+    ful-checkbox:not(:state(rendered)) {
         visibility: hidden;
     }
 

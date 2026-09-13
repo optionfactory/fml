@@ -28,6 +28,21 @@ class ParsedElement extends HTMLElement {
     static get observedAttributes() {
         return this.BITS.OBSERVED;
     }
+    constructor() {
+        super();
+        this.internals = this.attachInternals();
+    }
+    /**
+     * The platform's window into the element's own state. The base attaches it
+     * for every element, so a subclass never calls attachInternals itself: the
+     * platform allows it once, and a second call throws. Form association is a
+     * property of the definition rather than of who attached, so a subclass
+     * declaring `static formAssociated` still gets the form apis here.
+     *
+     * A subclass must not redeclare it: a class field with no initializer
+     * assigns undefined after super() returns, which would wipe it.
+     */
+    internals;
     #parsed = false;
     #started = false;
     /** the attributes whose own reflection is in flight */
@@ -145,6 +160,10 @@ class ParsedElement extends HTMLElement {
             //leaves it shut, so a later attribute write cannot reach setters
             //that assume pieces the failed render never adopted
             this.#parsed = true;
+            //the same moment, said to css. :defined is true from the constructor,
+            //which is before the dom exists, so a guard written against it reveals
+            //an element that has nothing in it yet
+            this.internals.states.add('rendered');
         } finally {
             this.#pending = null;
         }

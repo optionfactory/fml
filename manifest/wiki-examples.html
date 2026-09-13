@@ -327,6 +327,35 @@ const mount = async (html) => {
        wz.querySelector('[data-step=dettagli]')?.getAttribute('aria-current'));
     ok('16 section:requested:<name> delivered', wz.querySelector('[data-ref=delivered]') !== null);
 
+    // ===== 20/21: the rendered state the flash guards hide until
+    class StateProbe extends ftl.ParsedElement {
+        render() {
+            return new Promise((r) => { window.__releaseStateProbe = r; });
+        }
+    }
+    class BrokenProbe extends ftl.ParsedElement {
+        render() { throw new Error('boom'); }
+    }
+    ftl.registry.defineElement('x-state-probe', StateProbe).defineElement('x-broken-probe', BrokenProbe).configure();
+
+    const sp = document.createElement('x-state-probe');
+    stage.append(sp);
+    await new Promise((r) => setTimeout(r, 30));
+    ok('20 :defined is true before the render finishes', sp.matches(':defined') && sp.rendered === false,
+       `defined=${sp.matches(':defined')} rendered=${sp.rendered}`);
+    ok('20 the rendered state is not there yet', sp.matches(':state(rendered)') === false);
+    window.__releaseStateProbe();
+    await ftl.Rendering.waitFor(sp);
+    ok('20 the state arrives with the render', sp.matches(':state(rendered)') === true);
+
+    const bp = document.createElement('x-broken-probe');
+    stage.append(bp);
+    await new Promise((r) => setTimeout(r, 30));
+    ok('20 a failed render never gets the state', bp.matches(':state(rendered)') === false);
+
+    ok('21 the base attached the internals', sp.internals instanceof ElementInternals);
+    ok('21 a second attachInternals throws', (() => { try { sp.attachInternals(); return false; } catch (e) { return e.name === 'NotSupportedError'; } })());
+
     // ===== 21: the waits, and the connect-then-wait ordering the page warns about
     class WaitProbe extends ftl.ParsedElement {
         async render() {

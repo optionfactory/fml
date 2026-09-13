@@ -291,3 +291,78 @@ describe('ParsedElement web component lifecycle', () => {
         expect(el['test-attr']).to.equal('hello-world');
     });
 });
+
+/**
+ * The css hides an element until it has rendered. :defined cannot express that:
+ * it is true from the constructor, which is before the dom exists, so a guard
+ * written against it reveals an element with nothing in it.
+ */
+describe('ParsedElement rendered state', () => {
+    let container;
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+    afterEach(() => container.remove());
+
+    it('carries the state only once the render has finished', async () => {
+        let release;
+        class Slow extends ParsedElement {
+            render() {
+                return new Promise((resolve) => {
+                    release = resolve;
+                });
+            }
+        }
+        registry.defineElement('x-rendered-slow', Slow);
+        container.innerHTML = '<x-rendered-slow></x-rendered-slow>';
+        const el = container.firstElementChild;
+        await tick();
+
+        expect(el.matches(':defined'), 'defined from the constructor').to.be.true;
+        expect(el.rendered, 'but the render has not finished').to.be.false;
+        expect(el.matches(':state(rendered)'), 'so the state is not there yet').to.be.false;
+
+        release();
+        await tick();
+        await tick();
+
+        expect(el.rendered).to.be.true;
+        expect(el.matches(':state(rendered)'), 'and arrives with it').to.be.true;
+    });
+
+    it('withholds the state from an element whose render threw', async () => {
+        class Broken extends ParsedElement {
+            render() {
+                throw new Error('boom');
+            }
+        }
+        registry.defineElement('x-rendered-broken', Broken);
+        container.innerHTML = '<x-rendered-broken></x-rendered-broken>';
+        const el = container.firstElementChild;
+        await el.upgrade().catch(() => {});
+
+        //a failed element stays hidden rather than showing chrome it never built
+        expect(el.rendered).to.be.false;
+        expect(el.matches(':state(rendered)')).to.be.false;
+    });
+
+    it('attaches the internals once, for the whole chain', async () => {
+        class Sub extends ParsedElement {
+            static formAssociated = true;
+            render() {}
+        }
+        registry.defineElement('x-rendered-sub', Sub);
+        const form = document.createElement('form');
+        container.appendChild(form);
+        form.innerHTML = '<x-rendered-sub name="a"></x-rendered-sub>';
+        const el = form.firstElementChild;
+        await tick();
+
+        //form association follows the definition, not whoever attached: a subclass
+        //declaring formAssociated gets the form apis from the base's internals
+        expect(el.internals).to.not.be.undefined;
+        expect(el.internals.form).to.equal(form);
+        expect(() => el.internals.setFormValue('v')).to.not.throw();
+    });
+});

@@ -34,8 +34,6 @@ class Field extends ParsedElement {
     static observed = ['disabled:presence', 'readonly:presence', 'required:presence', 'value'];
     /** the role the element internals carry, 'presentation' unless the control is its own */
     static ROLE = 'presentation';
-    /** the platform's window into form state: shared with subclasses by necessity */
-    internals;
     #control;
     #fieldError;
     #claims;
@@ -43,7 +41,7 @@ class Field extends ParsedElement {
     #also = [];
     constructor() {
         super();
-        this.internals = this.attachInternals();
+        //the base attached the internals: the platform allows one call per element
         this.internals.role = /** @type {typeof Field} */ (this.constructor).ROLE;
     }
     /** every element the claims mirror onto: the claim target, then the extra controls */

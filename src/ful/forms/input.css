@@ -1,10 +1,10 @@
 @layer ful.components {
-    ful-input:not(:defined),
-    .ful-input:not(:defined),
-    ful-input-file:not(:defined),
-    ful-input-local-date:not(:defined),
-    ful-input-local-time:not(:defined),
-    ful-input-instant:not(:defined) {
+    ful-input:not(:state(rendered)),
+    .ful-input:not(:state(rendered)),
+    ful-input-file:not(:state(rendered)),
+    ful-input-local-date:not(:state(rendered)),
+    ful-input-local-time:not(:state(rendered)),
+    ful-input-instant:not(:state(rendered)) {
         visibility: hidden;
     }
 

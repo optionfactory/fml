@@ -1,5 +1,5 @@
 @layer ful.components {
-    ful-radio-group:not(:defined) {
+    ful-radio-group:not(:state(rendered)) {
         visibility: hidden;
     }
 

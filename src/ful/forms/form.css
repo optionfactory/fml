@@ -9,7 +9,7 @@
         display: block;
     }
 
-    *:has(> ful-control-group):not(:defined) {
+    *:has(> ful-control-group):not(:state(rendered)) {
         visibility: hidden;
     }
 
