@@ -66,11 +66,11 @@
                 "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
                 "accept": "Comma separated list of accepted tokens: an extension (.pdf), a mime type (application/pdf) or a wildcard (image/*). Files that do not match are dropped with a warning.",
                 "multiple": "Allows selecting more than one file.",
-                "itemlist": "Shows the list of selected files.",
+                "item-list": "Shows the list of selected files.",
                 "dropzone": "Shows the dropzone.",
-                "maxfiles": "Maximum number of files. Exceeding it clears the selection.",
-                "maxfilesize": "Maximum size of a single file, in bytes. Larger files are dropped.",
-                "maxtotalsize": "Maximum size of all the selected files, in bytes. Exceeding it clears the selection."
+                "max-files": "Maximum number of files. Exceeding it clears the selection.",
+                "max-file-size": "Maximum size of a single file, in bytes. Larger files are dropped.",
+                "max-total-size": "Maximum size of all the selected files, in bytes. Exceeding it clears the selection."
             },
             "slots": {
                 "dropzone": "Replaces the contents of the default dropzone."
@@ -154,7 +154,7 @@
             "attributes": {
                 "autoload": "Loads the first page while upgrading, instead of waiting for a reload(). The load is not awaited, so a slow or failing loader cannot hold up the page.",
                 "loader": "The registered component name the table loads its rows through; loaders:table when absent.",
-                "page-size": "How many rows a page asks the loader for, 10 by default."
+                "page-size": "How many rows a page asks the loader for, 10 by default. Stays live: writing it reloads from the first page, a table that has not been asked to load yet only recording it."
             },
             "slots": {
                 "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
@@ -246,7 +246,7 @@
             "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
-                "itemlist": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
+                "item-list": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
                 "k-expr": "The expression yielding an option's key, evaluated against each row of the response. Set it together with l-expr to shape a response without a mapper component.",
                 "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or bool.",
                 "l-expr": "The expression yielding an option's label, evaluated against each row of the response.",

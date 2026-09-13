@@ -22,11 +22,11 @@ class InputFile extends Input {
         'placeholder',
         'accept:csv',
         'multiple:presence',
-        'itemlist:presence',
+        'item-list:presence',
         'dropzone:presence',
-        'maxfiles:number',
-        'maxfilesize:number',
-        'maxtotalsize:number',
+        'max-files:number',
+        'max-file-size:number',
+        'max-total-size:number',
         //re-declared so it lands after the constraints: assigning a value
         //validates the selection against them
         'value',
@@ -51,7 +51,7 @@ class InputFile extends Input {
             {{{{ slots.dropzone }}}}
         </div>
         <div data-ref="dropzone" class="default-dropzone" data-tpl-if="!slots.dropzone">
-            {{ #l10n:t('files.dropzonelabel') }}
+            {{ #l10n:t('files.dropzone-label') }}
         </div>
         <ful-item-list></ful-item-list>
         <ful-field-warnings role="status" aria-live="polite"></ful-field-warnings>
@@ -187,40 +187,40 @@ class InputFile extends Input {
         if (unacceptable.length === 0) {
             return;
         }
-        this.warning('files.unacceptablefiletype', { types: this.#accept.join(', ') });
+        this.warning('files.unacceptable-file-type', { types: this.#accept.join(', ') });
         this._input.files = InputFile.list([...this.files].filter((f) => !unacceptable.includes(f)));
     }
     #ensureFilesCount() {
-        if (this.#maxfiles === null) {
+        if (this.#maxFiles === null) {
             return;
         }
-        if (this.files.length <= this.#maxfiles) {
+        if (this.files.length <= this.#maxFiles) {
             return;
         }
-        this.warning('files.maxfilesexceeded', { count: this.#maxfiles });
+        this.warning('files.max-files-exceeded', { count: this.#maxFiles });
         this._input.files = InputFile.list();
     }
 
     #ensureFileSizes() {
-        if (this.#maxfilesize === null) {
+        if (this.#maxFileSize === null) {
             return;
         }
-        const oversized = [...this.files].filter((file) => file.size > this.#maxfilesize);
+        const oversized = [...this.files].filter((file) => file.size > this.#maxFileSize);
         if (oversized.length === 0) {
             return;
         }
-        this.warning('files.maxfilesizeexceeded', { size: Localization.of().bytes(this.#maxfilesize) });
+        this.warning('files.max-file-size-exceeded', { size: Localization.of().bytes(this.#maxFileSize) });
         this._input.files = InputFile.list([...this.files].filter((f) => !oversized.includes(f)));
     }
     #ensureTotalSize() {
-        if (this.#maxtotalsize === null) {
+        if (this.#maxTotalSize === null) {
             return;
         }
         const totalSize = [...this.files].reduce((acc, file) => acc + file.size, 0);
-        if (totalSize <= this.#maxtotalsize) {
+        if (totalSize <= this.#maxTotalSize) {
             return;
         }
-        this.warning('files.maxtotalsizeexceeded', { size: Localization.of().bytes(this.#maxtotalsize) });
+        this.warning('files.max-total-size-exceeded', { size: Localization.of().bytes(this.#maxTotalSize) });
         this._input.files = InputFile.list();
     }
 
@@ -270,37 +270,37 @@ class InputFile extends Input {
     get totalsize() {
         return Array.from(this.files).reduce((a, f) => a + f.size, 0);
     }
-    #maxfiles;
-    get maxfiles() {
-        return this.#maxfiles;
+    #maxFiles;
+    get maxFiles() {
+        return this.#maxFiles;
     }
-    set maxfiles(v) {
-        this.#maxfiles = v;
-        this.reflectTo('maxfiles', v);
+    set maxFiles(v) {
+        this.#maxFiles = v;
+        this.reflectTo('max-files', v);
     }
-    #maxfilesize;
-    get maxfilesize() {
-        return this.#maxfilesize;
+    #maxFileSize;
+    get maxFileSize() {
+        return this.#maxFileSize;
     }
-    set maxfilesize(v) {
-        this.#maxfilesize = v;
-        this.reflectTo('maxfilesize', v);
+    set maxFileSize(v) {
+        this.#maxFileSize = v;
+        this.reflectTo('max-file-size', v);
     }
-    #maxtotalsize;
-    get maxtotalsize() {
-        return this.#maxtotalsize;
+    #maxTotalSize;
+    get maxTotalSize() {
+        return this.#maxTotalSize;
     }
-    set maxtotalsize(v) {
-        this.#maxtotalsize = v;
-        this.reflectTo('maxtotalsize', v);
+    set maxTotalSize(v) {
+        this.#maxTotalSize = v;
+        this.reflectTo('max-total-size', v);
     }
-    #useItemlist;
-    get itemlist() {
-        return this.#useItemlist;
+    #useItemList;
+    get itemList() {
+        return this.#useItemList;
     }
-    set itemlist(v) {
-        this.#useItemlist = v;
-        this.reflectTo('itemlist', v);
+    set itemList(v) {
+        this.#useItemList = v;
+        this.reflectTo('item-list', v);
     }
     #useDropzone;
     get dropzone() {

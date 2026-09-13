@@ -2,11 +2,11 @@
     *:has(> ful-control-group > ful-dropdown) {
         cursor: pointer;
 
-        &:not([itemlist]) > ful-item-list {
+        &:not([item-list]) > ful-item-list {
             display: none;
         }
 
-        &[itemlist] ful-control-group ful-badge {
+        &[item-list] ful-control-group ful-badge {
             display: none;
         }
 
@@ -25,8 +25,8 @@
             }
         }
 
-        &[itemlist][readonly],
-        &[itemlist]:disabled {
+        &[item-list][readonly],
+        &[item-list]:disabled {
             & > ful-control-group {
                 display: none;
             }

@@ -58,7 +58,7 @@
                 <option value="pets">Pets</option>
             </select>
         </ful-select>
-        <ful-select multiple itemlist name="covers">
+        <ful-select multiple item-list name="covers">
             The same, as an item list
             <select slot="options">
                 <option value="home">Home</option>
@@ -96,7 +96,7 @@
     <h2>a templated item list</h2>
     <fieldset>
         <legend>the items slot shapes each entry</legend>
-        <ful-select multiple itemlist name="shapedList" value="home,vehicle">
+        <ful-select multiple item-list name="shapedList" value="home,vehicle">
             The same, as a templated item list
             <select slot="options">
                 <option value="home">Home</option>
@@ -122,7 +122,7 @@
         <ful-select loader="loaders:demo-options">
             Single, loader-fed
         </ful-select>
-        <ful-select multiple itemlist loader="loaders:demo-options">
+        <ful-select multiple item-list loader="loaders:demo-options">
             Multiple, loader-fed
         </ful-select>
     </fieldset>

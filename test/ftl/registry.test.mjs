@@ -122,6 +122,32 @@ describe('Registry', () => {
             expect(DirectEl.BITS).to.exist;
             expect(DirectEl.BITS.OBSERVED).to.deep.equal(['val']);
         });
+
+        it('names the property each observed attribute drives, dash to camel', () => {
+            expect(Registry.propertyOf('value')).to.equal('value');
+            expect(Registry.propertyOf('page-size')).to.equal('pageSize');
+            expect(Registry.propertyOf('clear-invalid-on-change')).to.equal('clearInvalidOnChange');
+            expect(Registry.propertyOf('max-total-size')).to.equal('maxTotalSize');
+            //the type suffix is stripped before this is asked, and a single-word
+            //name is its own property
+            expect(Registry.propertyOf('placeholder')).to.equal('placeholder');
+
+            class PagedEl extends HTMLElement {
+                static observed = ['page-size:number'];
+                static attributes = ['scroll-on-error:presence'];
+            }
+            registry.configure();
+            registry.defineElement('paged-registry-el', PagedEl);
+
+            //the attribute keeps its own spelling in the declaration, in what the
+            //platform observes and in what the mappers are keyed by: only the
+            //property it drives is renamed
+            expect(PagedEl.BITS.OBSERVED).to.deep.equal(['page-size']);
+            expect(PagedEl.BITS.ATTR_TO_PROPERTY).to.deep.equal({ 'page-size': 'pageSize' });
+            expect(Object.keys(PagedEl.BITS.ATTR_TO_MAPPER).sort()).to.deep.equal(['page-size', 'scroll-on-error']);
+            //the configuration tier drives no property, so it is absent here
+            expect(PagedEl.BITS.ATTR_TO_PROPERTY).to.not.have.property('scroll-on-error');
+        });
     });
 
     describe('UpgradeQueue', () => {

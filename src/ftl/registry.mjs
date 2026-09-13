@@ -184,8 +184,9 @@ class Registry {
     }
     /**
      * The attribute declarations a class composes along its inheritance chain,
-     * base first: `observed` stay live after the upgrade, `attributes` are the
-     * configuration read once at it. A subclass's entry for a name overrides its
+     * base first: `observed` stay live after the upgrade and drive the property
+     * `propertyOf` names, `attributes` are the configuration read once at it and
+     * drive no property at all. A subclass's entry for a name overrides its
      * ancestors', so a base class declares what every subclass keeps observing
      * (a protocol attribute such as Field's disabled claim) and a leaf refines a
      * mapping, or moves a name's position, without repeating the whole list.
@@ -206,6 +207,27 @@ class Registry {
         }
         const own = (name) => chain.flatMap((c) => Object.getOwnPropertyDescriptor(c, name)?.value ?? []);
         return { observed: own('observed'), attributes: own('attributes') };
+    }
+    /**
+     * The property an observed attribute drives, by the platform's own
+     * dash-to-camel rule: the one `dataset` applies, so `clear-invalid-on-change`
+     * would reach `clearInvalidOnChange` the way `data-clear-invalid-on-change`
+     * reaches `dataset.clearInvalidOnChange`. A single-word name is returned
+     * unchanged, which is what every observed attribute in the library is.
+     *
+     * It exists because the observed tier is the one that becomes properties:
+     * without it an attribute could only be observed if its name happened to be
+     * a usable identifier, which is why every multiword observed attribute here
+     * used to be squashed into one word while the configuration tier, which
+     * never becomes a property, spelled the same idea with a dash.
+     *
+     * Only this direction is mapped. A property never derives its attribute: a
+     * setter reflects through `reflectTo`, naming the attribute it writes.
+     * @param {string} attribute
+     * @returns {string}
+     */
+    static propertyOf(attribute) {
+        return attribute.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     }
     #augmentAndDefineElement(tag, klass) {
         const { observed, attributes } = Registry.declarationsOf(klass);
@@ -245,6 +267,8 @@ class Registry {
             OBSERVED: observedNames,
             DECLARED: [...new Set([...observedNames, ...attributes.map((a) => a.split(':')[0])])],
             ATTR_TO_MAPPER: attrToMapper,
+            //resolved once here rather than at every attribute write
+            ATTR_TO_PROPERTY: Object.fromEntries(observedNames.map((a) => [a, Registry.propertyOf(a)])),
             TEMPLATES: nameToTemplate,
         };
         customElements.define(tag, klass);

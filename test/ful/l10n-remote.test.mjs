@@ -20,10 +20,10 @@ describe('Remote translations, awaited before configure', () => {
 
         //the startup fetch: resolved before configure, exactly like a remote /l10n/{lang}.json
         const payload = encodeURIComponent(
-            JSON.stringify({ 'files.unacceptablefiletype': 'we only take {types} here' }),
+            JSON.stringify({ 'files.unacceptable-file-type': 'we only take {types} here' }),
         );
         const translations = await (await fetch(`data:application/json,${payload}`)).json();
-        assert.strictEqual(translations['files.unacceptablefiletype'], 'we only take {types} here');
+        assert.strictEqual(translations['files.unacceptable-file-type'], 'we only take {types} here');
 
         registry.plugin(new Plugin({ language: 'en', translations })).configure();
 

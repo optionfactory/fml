@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { Registry, registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 import { appended } from '../harness.mjs';
 
@@ -102,11 +102,11 @@ const ELEMENTS = [
             placeholder: ['p', 'p'],
             accept: ['.pdf,.png', ['.pdf', '.png']],
             multiple: ['', true],
-            itemlist: ['', true],
+            'item-list': ['', true],
             dropzone: ['', true],
-            maxfiles: ['3', 3],
-            maxfilesize: ['10', 10],
-            maxtotalsize: ['20', 20],
+            'max-files': ['3', 3],
+            'max-file-size': ['10', 10],
+            'max-total-size': ['20', 20],
         },
     },
     {
@@ -174,7 +174,9 @@ const ELEMENTS = [
     {
         tag: 'ful-table',
         html: `<ful-table><template slot="schema"><schema><column title="A" sorter="a">{{ a }}</column></schema></template></ful-table>`,
-        observed: {},
+        observed: {
+            'page-size': ['25', 25],
+        },
     },
     {
         tag: 'ful-pagination',
@@ -259,7 +261,7 @@ const ELEMENTS = [
             disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
-            itemlist: ['', true],
+            'item-list': ['', true],
             multiple: ['', true],
         },
     },
@@ -340,8 +342,10 @@ describe('Registered elements', () => {
 
                     assert.deepStrictEqual(uncaught, [], `${spec.tag}[${attribute}] reported errors`);
                     if (expected !== ANY) {
+                        //through the property the attribute drives, which is the
+                        //attribute's own name until one of them carries a dash
                         assert.deepStrictEqual(
-                            el[attribute],
+                            el[Registry.propertyOf(attribute)],
                             expected,
                             `${spec.tag}: the ${attribute} attribute is not reflected by the property`,
                         );

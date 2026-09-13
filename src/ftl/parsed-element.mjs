@@ -23,6 +23,8 @@ class ParsedElement extends HTMLElement {
         DECLARED: [],
         /** @type {Record<string, Mapper>} */
         ATTR_TO_MAPPER: {},
+        /** @type {Record<string, string>} */
+        ATTR_TO_PROPERTY: {},
         TEMPLATES: {},
     };
     static get observedAttributes() {
@@ -122,12 +124,17 @@ class ParsedElement extends HTMLElement {
             }
             return;
         }
-        this[attr] = this.unmarshal(attr, newValue);
+        this[this.#bits().ATTR_TO_PROPERTY[attr]] = this.unmarshal(attr, newValue);
     }
     /**
      * Upgrades once: reads the declared attributes, keeps the observed half open
      * to writes made while the render is pending, applies them to the properties
      * when the render returns, and only then lets an attribute write forward.
+     *
+     * An observed attribute drives the property the registry's `propertyOf`
+     * names, so a hyphenated attribute is authored with its dashes and read as
+     * a camelCase property. A single-word attribute is its own property name,
+     * which is what every observed attribute in the library is.
      */
     async upgrade() {
         if (this.#started) {
@@ -152,8 +159,9 @@ class ParsedElement extends HTMLElement {
             //the declared state reaches the properties once the dom the setters
             //drive exists, in the order the registry composed the declarations:
             //a base class's attributes before the subclass's own
+            const properties = this.#bits().ATTR_TO_PROPERTY;
             for (const name of this.#bits().OBSERVED) {
-                this[name] = declared[name];
+                this[properties[name]] = declared[name];
             }
             //the properties go live once the render is done: from here on, an
             //attribute write forwards to the property. A render that threw

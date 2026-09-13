@@ -288,7 +288,45 @@ describe('ParsedElement web component lifecycle', () => {
 
         el.attributeChangedCallback('test-attr', null, 'hello-world');
 
-        expect(el['test-attr']).to.equal('hello-world');
+        //the hyphenated attribute drives the camelCase property, the way
+        //data-test-attr would drive dataset.testAttr
+        expect(el.testAttr).to.equal('hello-world');
+        expect(el['test-attr']).to.be.undefined;
+    });
+
+    it('drives a hyphenated attribute through the camelCase setter, at the upgrade and after it', async () => {
+        const applied = [];
+        class PagedEl extends ParsedElement {
+            static observed = ['page-size:number', 'plain'];
+            set pageSize(v) {
+                applied.push(['pageSize', v]);
+            }
+            set plain(v) {
+                applied.push(['plain', v]);
+            }
+        }
+
+        registry.defineElement('paged-el', PagedEl);
+        registry.configure();
+
+        const el = document.createElement('paged-el');
+        el.setAttribute('page-size', '10');
+        el.setAttribute('plain', 'x');
+        container.appendChild(el);
+        await registry.whenUpgraded(el);
+
+        //the declared state lands on the setters, the number through its mapper
+        expect(applied).to.deep.equal([
+            ['pageSize', 10],
+            ['plain', 'x'],
+        ]);
+        //the attribute keeps its own spelling everywhere it is named
+        expect(PagedEl.observedAttributes).to.deep.equal(['page-size', 'plain']);
+        expect(el.declared('page-size')).to.equal(10);
+
+        el.setAttribute('page-size', '25');
+
+        expect(applied.at(-1)).to.deep.equal(['pageSize', 25]);
     });
 });
 

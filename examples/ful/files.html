@@ -41,8 +41,8 @@
 
     <fieldset>
         <legend>a custom dropzone over the default one</legend>
-        <ful-input-file multiple itemlist dropzone noinput maxtotalsize="5000000" maxfiles="3" accept=".jpg,.jpeg,.pdf,.png">
-            Single with itemlist and dropzone
+        <ful-input-file multiple item-list dropzone noinput max-total-size="5000000" max-files="3" accept=".jpg,.jpeg,.pdf,.png">
+            Single with item-list and dropzone
             <template slot="dropzone">
                 <section>
                     <div><ful-icon name="upload" aria-hidden="true"></ful-icon></div>
@@ -59,14 +59,14 @@
         <ful-input-file>
             Single
         </ful-input-file>
-        <ful-input-file itemlist>
-            Single with itemlist
+        <ful-input-file item-list>
+            Single with item-list
         </ful-input-file>
         <ful-input-file dropzone>
             Single with dropzone
         </ful-input-file>
-        <ful-input-file itemlist dropzone>
-            Single with itemlist and dropzone
+        <ful-input-file item-list dropzone>
+            Single with item-list and dropzone
         </ful-input-file>
         <ful-input-file dropzone>
             Single with custom dropzone
@@ -79,14 +79,14 @@
         <ful-input-file multiple>
             Multiple
         </ful-input-file>
-        <ful-input-file multiple itemlist>
-            Multiple with itemlist
+        <ful-input-file multiple item-list>
+            Multiple with item-list
         </ful-input-file>
         <ful-input-file multiple dropzone>
             Multiple with dropzone
         </ful-input-file>
-        <ful-input-file multiple itemlist dropzone>
-            Multiple with itemlist and dropzone
+        <ful-input-file multiple item-list dropzone>
+            Multiple with item-list and dropzone
         </ful-input-file>
         <ful-input-file multiple dropzone>
             Multiple with custom dropzone
@@ -96,60 +96,60 @@
 
     <fieldset>
         <legend>accept</legend>
-        <ful-input-file itemlist dropzone accept=".svg">
+        <ful-input-file item-list dropzone accept=".svg">
             accept .svg
         </ful-input-file>
-        <ful-input-file multiple itemlist dropzone accept=".svg">
+        <ful-input-file multiple item-list dropzone accept=".svg">
             Multiple, accept .svg
         </ful-input-file>
     </fieldset>
 
     <fieldset>
-        <legend>maxfilesize</legend>
-        <ful-input-file itemlist dropzone maxfilesize="1024">
-            Single, maxfilesize 1024
+        <legend>max-file-size</legend>
+        <ful-input-file item-list dropzone max-file-size="1024">
+            Single, max-file-size 1024
         </ful-input-file>
-        <ful-input-file multiple itemlist dropzone maxfilesize="1024">
-            Multiple, maxfilesize 1024
+        <ful-input-file multiple item-list dropzone max-file-size="1024">
+            Multiple, max-file-size 1024
         </ful-input-file>
     </fieldset>
 
     <fieldset>
-        <legend>maxtotalsize</legend>
-        <ful-input-file itemlist dropzone maxtotalsize="1024">
-            Single, maxtotalsize 1024
+        <legend>max-total-size</legend>
+        <ful-input-file item-list dropzone max-total-size="1024">
+            Single, max-total-size 1024
         </ful-input-file>
-        <ful-input-file multiple itemlist dropzone maxtotalsize="1024">
-            Multiple, maxtotalsize 1024
+        <ful-input-file multiple item-list dropzone max-total-size="1024">
+            Multiple, max-total-size 1024
         </ful-input-file>
     </fieldset>
 
     <fieldset>
         <legend>readonly</legend>
-        <ful-input-file itemlist dropzone readonly>
+        <ful-input-file item-list dropzone readonly>
             Single, readonly
         </ful-input-file>
-        <ful-input-file multiple itemlist dropzone readonly>
+        <ful-input-file multiple item-list dropzone readonly>
             Multiple, readonly
         </ful-input-file>
     </fieldset>
 
     <fieldset>
         <legend>disabled</legend>
-        <ful-input-file itemlist dropzone disabled>
+        <ful-input-file item-list dropzone disabled>
             Single, disabled
         </ful-input-file>
-        <ful-input-file multiple itemlist dropzone disabled>
+        <ful-input-file multiple item-list dropzone disabled>
             Multiple, disabled
         </ful-input-file>
     </fieldset>
 
     <fieldset disabled>
         <legend>in a disabled fieldset</legend>
-        <ful-input-file itemlist dropzone>
+        <ful-input-file item-list dropzone>
             Single
         </ful-input-file>
-        <ful-input-file multiple itemlist dropzone>
+        <ful-input-file multiple item-list dropzone>
             Multiple
         </ful-input-file>
     </fieldset>

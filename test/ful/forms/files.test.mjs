@@ -36,14 +36,14 @@ describe('InputFile', () => {
 
     it('applies its own observed attributes', async () => {
         const [el] = await mount(
-            `<ful-input-file multiple accept=".pdf,.png" maxfiles="3">files</ful-input-file>`,
+            `<ful-input-file multiple accept=".pdf,.png" max-files="3">files</ful-input-file>`,
         );
 
         const input = el.querySelector('input[type=file]');
         assert.strictEqual(input.multiple, true);
         assert.strictEqual(input.accept, '.pdf,.png');
         assert.deepStrictEqual(el.accept, ['.pdf', '.png']);
-        assert.strictEqual(el.maxfiles, 3);
+        assert.strictEqual(el.maxFiles, 3);
 
     });
 
@@ -275,8 +275,8 @@ describe('InputFile constraints', () => {
 
     });
 
-    it('drops the files above maxfilesize and warns with the readable limit', async () => {
-        const [el] = await mount(`<ful-input-file multiple maxfilesize="2048">files</ful-input-file>`);
+    it('drops the files above max-file-size and warns with the readable limit', async () => {
+        const [el] = await mount(`<ful-input-file multiple max-file-size="2048">files</ful-input-file>`);
 
         pick(el, file('small.txt', 2048), file('big.txt', 2049));
 
@@ -285,8 +285,8 @@ describe('InputFile constraints', () => {
 
     });
 
-    it('clears the whole selection when the files together exceed maxtotalsize', async () => {
-        const [el] = await mount(`<ful-input-file multiple maxtotalsize="100">files</ful-input-file>`);
+    it('clears the whole selection when the files together exceed max-total-size', async () => {
+        const [el] = await mount(`<ful-input-file multiple max-total-size="100">files</ful-input-file>`);
 
         pick(el, file('a.txt', 50), file('b.txt', 50));
         assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], 'the limit is inclusive');
@@ -299,8 +299,8 @@ describe('InputFile constraints', () => {
 
     });
 
-    it('clears the whole selection when more files than maxfiles are picked', async () => {
-        const [el] = await mount(`<ful-input-file multiple maxfiles="2">files</ful-input-file>`);
+    it('clears the whole selection when more files than max-files are picked', async () => {
+        const [el] = await mount(`<ful-input-file multiple max-files="2">files</ful-input-file>`);
 
         pick(el, file('a.txt'), file('b.txt'));
         assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], 'the limit is inclusive');
@@ -349,7 +349,7 @@ describe('InputFile dropzone', () => {
 describe('InputFile warnings', () => {
     it('shows one warning per violated constraint, not just the last one', async () => {
         const [el] = await mount(
-            `<ful-input-file multiple accept=".pdf" maxfilesize="10">files</ful-input-file>`,
+            `<ful-input-file multiple accept=".pdf" max-file-size="10">files</ful-input-file>`,
         );
 
         pick(el, file('a.txt', 4), file('big.pdf', 20));

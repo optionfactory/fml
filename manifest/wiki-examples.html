@@ -160,7 +160,7 @@ const mount = async (html) => {
     ok('12 custom loader exact() labels the key', s2.querySelector('input')?.value === 'Italy', s2.querySelector('input')?.value);
 
     // ===== 12: multiple + csv value + items template
-    d = await mount(`<ful-select multiple itemlist name="tags" value="it,fr" loader="loaders:countries">Tags
+    d = await mount(`<ful-select multiple item-list name="tags" value="it,fr" loader="loaders:countries">Tags
       <template slot="items">
         <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry.key">
           <div><em>{{ entry.label }}</em><button type="button" data-tpl-aria-label="#l10n:t('select.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
@@ -190,7 +190,7 @@ const mount = async (html) => {
     document.body.click();
 
     // ===== 13: files
-    d = await mount(`<ful-input-file name="attachments" multiple accept=".pdf,.png" maxfiles="5" maxfilesize="5242880">Attachments<template slot="info">pdf or png, up to 5 files, 5MiB each</template></ful-input-file>`);
+    d = await mount(`<ful-input-file name="attachments" multiple accept=".pdf,.png" max-files="5" max-file-size="5242880">Attachments<template slot="info">pdf or png, up to 5 files, 5MiB each</template></ful-input-file>`);
     const ff = d.querySelector('ful-input-file');
     const fi = ff.querySelector('input[type=file]');
     ok('13 accept forwarded', fi?.getAttribute('accept') === '.pdf,.png', fi?.getAttribute('accept'));
@@ -201,7 +201,7 @@ const mount = async (html) => {
     // ===== 13: the items template documented on the files page
     ftl.registry.defineModule('blob', { url: (f) => URL.createObjectURL(f) });
     d = await mount(`
-      <ful-input-file name="att" multiple itemlist accept="image/*,.pdf">Attachments
+      <ful-input-file name="att" multiple item-list accept="image/*,.pdf">Attachments
         <template slot="items">
           <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
             <img data-tpl-if="file.type.startsWith('image/')" data-tpl-src="#blob:url(file)" alt="">

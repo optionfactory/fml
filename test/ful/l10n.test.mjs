@@ -12,7 +12,7 @@ registry
         new Plugin({
             language: 'en',
             translations: {
-                'files.unacceptablefiletype': 'we only take {types} around here',
+                'files.unacceptable-file-type': 'we only take {types} around here',
                 //an overridden message carrying markup: no built-in string is
                 //html-privileged, so the table must render this as text
                 'table.initial': '<b id="l10n-escape">start searching</b>',
@@ -144,7 +144,7 @@ describe('Plugin translations', () => {
     });
 
     it('leaves the messages it does not override intact', async () => {
-        const [el] = await mount(`<ful-input-file multiple maxfiles="2">files</ful-input-file>`);
+        const [el] = await mount(`<ful-input-file multiple max-files="2">files</ful-input-file>`);
 
         pick(el, file('a.txt'), file('b.txt'), file('c.txt'));
 

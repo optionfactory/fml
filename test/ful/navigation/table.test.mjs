@@ -961,3 +961,146 @@ describe('Remote table loader', () => {
         });
     });
 });
+
+describe('Table page-size', () => {
+    let requests;
+    let sorts;
+    const mount = async (attributes) => {
+        const container = appended(`
+            <ful-table ${attributes}>
+                <template slot="schema">
+                    <schema><column title="A">{{ a }}</column></schema>
+                </template>
+            </ful-table>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        return tableEl;
+    };
+    beforeEach(() => {
+        requests = [];
+        sorts = [];
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: async (pageRequest, sortRequest, filterRequest) => {
+                    requests.push(pageRequest);
+                    sorts.push(sortRequest);
+                    return { data: [{ a: 1 }], size: 100 };
+                },
+            }),
+        });
+    });
+
+    it('answers the size the next load will carry, declared or defaulted', async () => {
+        assert.strictEqual((await mount('page-size="25"')).pageSize, 25);
+        assert.strictEqual((await mount('')).pageSize, 10, 'ten without the attribute');
+    });
+
+    it('does not reload while the base applies the declared value', async () => {
+        await mount('autoload page-size="25"');
+
+        //the attribute is read by the render and applied to the property after
+        //it: the two agree, so the upgrade must load exactly once
+        assert.deepStrictEqual(requests, [{ page: 0, size: 25 }]);
+    });
+
+    it('reloads from the first page when the size changes', async () => {
+        const tableEl = await mount('autoload page-size="10"');
+        click(pageLink(tableEl.querySelector('ful-pagination'), '4'));
+        await settle();
+        assert.deepStrictEqual(requests.at(-1), { page: 3, size: 10 });
+
+        tableEl.setAttribute('page-size', '25');
+        await settle();
+
+        //the page index means nothing under a new size, so the move is to the first
+        assert.deepStrictEqual(requests.at(-1), { page: 0, size: 25 });
+        assert.strictEqual(tableEl.pageSize, 25);
+    });
+
+    it('takes the size from the property as well as from the attribute', async () => {
+        const tableEl = await mount('autoload');
+
+        tableEl.pageSize = 5;
+        await settle();
+
+        assert.deepStrictEqual(requests.at(-1), { page: 0, size: 5 });
+    });
+
+    it('restores the default when the attribute is removed', async () => {
+        const tableEl = await mount('autoload page-size="25"');
+
+        tableEl.removeAttribute('page-size');
+        await settle();
+
+        assert.deepStrictEqual(requests.at(-1), { page: 0, size: 10 }, 'not NaN rows');
+    });
+
+    it('ignores a write that does not change the size', async () => {
+        const tableEl = await mount('autoload page-size="10"');
+        const before = requests.length;
+
+        tableEl.setAttribute('page-size', '10');
+        tableEl.pageSize = 10;
+        await settle();
+
+        assert.strictEqual(requests.length, before, 'nothing to reload for');
+    });
+
+    it('records the size without loading a table that was never asked to load', async () => {
+        const tableEl = await mount('page-size="10"');
+        assert.deepStrictEqual(requests, [], 'no autoload, nothing asked for');
+
+        tableEl.pageSize = 25;
+        await settle();
+
+        assert.deepStrictEqual(requests, [], 'writing the size is not a request to start');
+        assert.strictEqual(tableEl.pageSize, 25);
+
+        await tableEl.reload();
+
+        assert.deepStrictEqual(requests, [{ page: 0, size: 25 }], 'and the recorded size is what it asks for');
+    });
+
+    it('keeps a size written while the first load is still in flight', async () => {
+        let release;
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: async (pageRequest) => {
+                    requests.push(pageRequest);
+                    await new Promise((resolve) => {
+                        release = resolve;
+                    });
+                    return { data: [{ a: 1 }], size: 100 };
+                },
+            }),
+        });
+        const tableEl = await mount('autoload page-size="10"');
+
+        tableEl.pageSize = 25;
+        release();
+        await settle();
+
+        //the answer to the superseded request must not put the old size back
+        assert.strictEqual(tableEl.pageSize, 25);
+        assert.deepStrictEqual(requests.at(-1), { page: 0, size: 25 });
+    });
+
+    it('keeps the sort when the size changes', async () => {
+        const container = appended(`
+            <ful-table autoload page-size="10">
+                <template slot="schema">
+                    <schema><column title="A" sorter="a" order="asc">{{ a }}</column></schema>
+                </template>
+            </ful-table>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+
+        tableEl.pageSize = 25;
+        await settle();
+
+        assert.deepStrictEqual(requests.at(-1), { page: 0, size: 25 });
+        assert.deepStrictEqual(sorts.at(-1), { sorter: 'a', order: 'asc' }, 'the declared sort survives');
+    });
+});

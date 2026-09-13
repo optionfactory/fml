@@ -69,7 +69,7 @@
             display: none;
         }
 
-        &:not([itemlist]) > ful-item-list {
+        &:not([item-list]) > ful-item-list {
             display: none;
         }
 

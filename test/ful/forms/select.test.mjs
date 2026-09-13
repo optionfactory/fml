@@ -967,7 +967,7 @@ describe('Select selection removal', () => {
     });
 
     it('drops the entry whose item remove button was clicked', async () => {
-        const [selectEl] = await mount(`<ful-select multiple itemlist value="k1,k2,k3"></ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple item-list value="k1,k2,k3"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
 
@@ -991,7 +991,7 @@ describe('Select selection removal', () => {
 
     it('renders the item list from a slotted items template, removals still working', async () => {
         const [selectEl] = await mount(`
-            <ful-select multiple itemlist value="k1,k2">
+            <ful-select multiple item-list value="k1,k2">
                 pick
                 <template slot="items">
                     <ful-item data-tpl-each="entries" data-tpl-var="entry" data-tpl-data-key="entry.key">
@@ -1451,7 +1451,7 @@ describe('Select chips and validity', () => {
 
     it('ignores the chip remove button while readonly', async () => {
         const [selectEl] = await mount(
-            `<ful-select multiple itemlist readonly value="k1,k2">labels</ful-select>`,
+            `<ful-select multiple item-list readonly value="k1,k2">labels</ful-select>`,
         );
 
         selectEl.querySelector('ful-item button')?.click();
@@ -1650,7 +1650,7 @@ describe('Select stray clicks', () => {
     });
 
     it('removes nothing when a button outside any item is clicked in the item list', async () => {
-        const [selectEl] = await mount(`<ful-select multiple itemlist value="k1,k2">pick</ful-select>`);
+        const [selectEl] = await mount(`<ful-select multiple item-list value="k1,k2">pick</ful-select>`);
         const stray = document.createElement('button');
         stray.type = 'button';
         stray.innerText = 'add all';
@@ -1925,7 +1925,7 @@ describe('Select attributes during the async render window', () => {
         const [selectEl] = await mount();
         await inWindow(selectEl);
         selectEl.setAttribute('value', 'k1');
-        selectEl.setAttribute('itemlist', '');
+        selectEl.setAttribute('item-list', '');
         selectEl.setAttribute('readonly', '');
         selectEl.setAttribute('required', '');
         release();
@@ -1936,7 +1936,7 @@ describe('Select attributes during the async render window', () => {
         assert.deepStrictEqual(uncaught, [], 'no attribute crashes on the unrendered field');
         assert.strictEqual(selectEl.value, 'k1', 'the value is applied');
         assert.strictEqual(input.value, 'Label k1', 'the label is resolved');
-        assert.isTrue(selectEl.itemlist, 'the item list is on');
+        assert.isTrue(selectEl.itemList, 'the item list is on');
         assert.isTrue(input.readOnly, 'the readonly claim reaches the control');
         assert.strictEqual(input.getAttribute('aria-required'), 'true', 'the required claim reaches the control');
         assert.isTrue(selectEl.hasAttribute('readonly'), 'the claim is not un-claimed by the stale snapshot');

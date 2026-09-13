@@ -452,7 +452,7 @@ class Select extends Field {
     //the value attribute is a list of keys whether or not the select is multiple:
     //`set value` normalizes a list of one to a single key, and the getter answers a
     //scalar for a single select, so nothing downstream has to know which it was
-    static observed = ['multiple:presence', 'itemlist:presence', 'value:csv'];
+    static observed = ['multiple:presence', 'item-list:presence', 'value:csv'];
     static slots = true;
     //a manual popover: the combobox keeps the focus on its input and owns
     //the whole lifecycle (typing, arrows, blur, Escape, Tab), so no light
@@ -975,7 +975,7 @@ class Select extends Field {
         }
         return selection[0] ?? null;
     }
-    #useItemlist;
+    #useItemList;
     get multiple() {
         return this.#multiple;
     }
@@ -983,12 +983,12 @@ class Select extends Field {
         this.#multiple = v;
         this.reflectTo('multiple', v);
     }
-    get itemlist() {
-        return this.#useItemlist;
+    get itemList() {
+        return this.#useItemList;
     }
-    set itemlist(v) {
-        this.#useItemlist = v;
-        this.reflectTo('itemlist', v);
+    set itemList(v) {
+        this.#useItemList = v;
+        this.reflectTo('item-list', v);
     }
 }
 

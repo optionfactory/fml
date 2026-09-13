@@ -346,7 +346,14 @@ class TableLoader {
 
 /** A table loading its rows from a loader, with sorting, pagination and an optional filter form. */
 class Table extends ParsedElement {
-    static attributes = ['loader', 'autoload:presence', 'page-size:number'];
+    static attributes = ['loader', 'autoload:presence'];
+    /**
+     * The page size stays live: a rows-per-page control is a normal thing to
+     * put next to a table, and the size is the one piece of the request an
+     * author changes after the table is up. The rest of the request is the
+     * table's own state, moved by the pager, the sorters and the filter form.
+     */
+    static observed = ['page-size:number'];
     static slots = true;
     static config = {
         searchIcon: 'search',
@@ -398,7 +405,7 @@ class Table extends ParsedElement {
         row: `
             <tr data-tpl-if="pageResponse.data.length == 0">
                 <td data-tpl-colspan="schema.length">
-                    {{ #l10n:t('table.nodata') }}
+                    {{ #l10n:t('table.no-data') }}
                 </td>
             </tr>
             {{{{ schema.rowsTemplate.withOverlay({'rows': pageResponse.data}).render() }}}}
@@ -412,8 +419,40 @@ class Table extends ParsedElement {
     #feedback;
     #paginator;
     #sorters;
-    #latestRequest;
+    //initialised before the render so the size can be read and written on an
+    //element the page has only just created
+    /** @type {{ pageRequest: { page: number, size: number }, sortRequest: any, filterRequest: any }} */
+    #latestRequest = { pageRequest: { page: 0, size: 10 }, sortRequest: null, filterRequest: {} };
+    /** whether a load has been asked for, by autoload or by a caller */
+    #loadRequested = false;
     #loads = new Claims();
+    /** How many rows a page asks the loader for: the size the next load will carry. */
+    get pageSize() {
+        return this.#latestRequest.pageRequest.size;
+    }
+    /**
+     * Changes the page size and reloads from the first page, the current index
+     * meaning nothing under a new size. A table that has not loaded yet only
+     * records it: writing the size is not a request to start loading, which is
+     * what `autoload` and `reload()` are for.
+     *
+     * Absent or null is the default of ten, so removing the attribute restores
+     * it rather than asking the loader for NaN rows.
+     */
+    set pageSize(value) {
+        const size = value ?? 10;
+        if (size === this.#latestRequest.pageRequest.size) {
+            return;
+        }
+        this.#latestRequest = { ...this.#latestRequest, pageRequest: { page: 0, size } };
+        if (!this.#loadRequested) {
+            return;
+        }
+        //the rejection escapes on purpose, as it does for the page, sort and
+        //filter listeners: load renders its own error state and the unhandled
+        //rejection is what reports the failure
+        this.reload();
+    }
     async render({ slots }) {
         const template = this.template();
         const schema = TableSchemaParser.parse(slots.schema, template);
@@ -436,6 +475,9 @@ class Table extends ParsedElement {
         await Rendering.waitForChildren(this);
 
         const maybeForm = /** @type any */ (Nodes.queryChildren(this, 'ful-form'));
+        //the declared size lands here rather than through the setter: the base
+        //applies the observed values after the render returns, and by then the
+        //autoload below has already asked for the first page
         this.#latestRequest = {
             pageRequest: {
                 page: 0,
@@ -497,6 +539,10 @@ class Table extends ParsedElement {
         );
     }
     async load(pageRequest, sortRequest, filterRequest) {
+        //marked before the await, not when a response comes back: a size written
+        //while the first load is still in flight has to reload rather than be
+        //overwritten by the answer to the request it replaced
+        this.#loadRequested = true;
         //each load claims the table: a response resolving after a newer load has
         //started is stale, and neither renders nor updates the request a later
         //reload replays, whichever order the responses arrive in
