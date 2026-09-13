@@ -3,6 +3,7 @@ import { Input } from './input.mjs';
 
 /** Formats the yyyy-mm-dd date in its content in the page's locale, or the one its locale attribute names. */
 class LocalDate extends ParsedElement {
+    static attributes = ['locale', 'default'];
     render() {
         const content = this.textContent.trim();
         const [y, m, d] = content.split('-').map(Number);
@@ -10,26 +11,27 @@ class LocalDate extends ParsedElement {
         //content that does not name a date renders like none: formatting an
         //invalid date would throw and fail the upgrade over a template hole
         if (parsed === null || Number.isNaN(parsed.getTime())) {
-            this.replaceChildren(this.getAttribute('default') ?? '');
+            this.replaceChildren(this.declared('default') ?? '');
             return;
         }
         //the attribute wins, then the page's locale, then the platform default
-        const { date } = Localization.of({ locale: this.getAttribute('locale') ?? undefined });
+        const { date } = Localization.of({ locale: this.declared('locale') ?? undefined });
         this.replaceChildren(date(parsed, { year: 'numeric', month: 'numeric', day: 'numeric' }));
     }
 }
 
 /** Formats the ISO instant in its content in the page's locale and timezone. */
 class Instant extends ParsedElement {
+    static attributes = ['locale', 'default'];
     render() {
         const content = this.textContent.trim();
         const parsed = content === '' ? null : new Date(Instant.isoToLocal(content));
         //content that does not name an instant renders like none, as ful-local-date
         if (parsed === null || Number.isNaN(parsed.getTime())) {
-            this.replaceChildren(this.getAttribute('default') ?? '');
+            this.replaceChildren(this.declared('default') ?? '');
             return;
         }
-        const { date } = Localization.of({ locale: this.getAttribute('locale') ?? undefined });
+        const { date } = Localization.of({ locale: this.declared('locale') ?? undefined });
         this.replaceChildren(
             date(parsed, {
                 year: 'numeric',

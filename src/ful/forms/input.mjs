@@ -24,8 +24,8 @@ const compiled = (attr, pattern) =>
  */
 const warnedBoth = new WeakSet();
 const filterOf = (el) => {
-    const keep = el.getAttribute('keep');
-    const reject = el.getAttribute('reject');
+    const keep = el.declared('keep');
+    const reject = el.declared('reject');
     if (keep !== null && reject !== null && !warnedBoth.has(el)) {
         //the filter is read per keystroke, so the complaint is held per element
         warnedBoth.add(el);
@@ -47,6 +47,9 @@ const filterOf = (el) => {
 /** A labelled text input over any native type or textarea; the temporal inputs are its subclasses. */
 class Input extends Field {
     static observed = ['placeholder'];
+    //configuration: the control is built from them and the value getter reads them,
+    //but none of them is meant to change once the element is up
+    static attributes = ['type', 'v-type', 'keep', 'reject', 'uppercase:presence', 'trim:presence'];
     static slots = true;
     static template = `
         <label>{{{{ slots.default }}}}</label>
@@ -63,7 +66,7 @@ class Input extends Field {
     _type() {
         //a numeric value wants the numeric widget (decimal normalization, the
         //right keyboard): v-type=number defaults the type, a declared one wins
-        return this.getAttribute('type') ?? (this.getAttribute('v-type') === 'number' ? 'number' : 'text');
+        return this.declared('type') ?? (this.declared('v-type') === 'number' ? 'number' : 'text');
     }
     _build({ slots }) {
         const type = this._type();
@@ -112,15 +115,15 @@ class Input extends Field {
         };
     }
     get value() {
-        const uppercase = this.hasAttribute('uppercase');
-        const trim = this.hasAttribute('trim');
+        const uppercase = this.declared('uppercase');
+        const trim = this.declared('trim');
         const v = this._input.value;
         const uppercased = uppercase ? v.toUpperCase() : v;
         const trimmed = trim ? uppercased.trim() : uppercased;
         if (trimmed === '') {
             return null;
         }
-        if (this.getAttribute('v-type') === 'number') {
+        if (this.declared('v-type') === 'number') {
             //typed values are an explicit opt in, as the select's k-type: blank
             //stays null, and a value that does not decode is kept as it is
             const n = Number(trimmed);

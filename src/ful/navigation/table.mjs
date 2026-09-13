@@ -53,6 +53,7 @@ class SortButton extends ParsedElement {
 /** The pager: a window of page links around the current one, and the reload control. */
 class Pagination extends ParsedElement {
     static observed = ['total:number', 'current:number'];
+    static attributes = ['pages:number'];
     static config = {
         prevIcon: 'chevron-left',
         nextIcon: 'chevron-right',
@@ -123,7 +124,7 @@ class Pagination extends ParsedElement {
         this.reflectTo('total', this.#total);
         const current = this.#current;
         const total = this.#total;
-        const maxRender = Number(this.getAttribute('pages') ?? '5');
+        const maxRender = this.declared('pages') ?? 5;
         //an empty table is one empty page: everything downstream renders it like
         //any single page result
         const pageCount = Math.max(total, 1);
@@ -345,7 +346,7 @@ class TableLoader {
 
 /** A table loading its rows from a loader, with sorting, pagination and an optional filter form. */
 class Table extends ParsedElement {
-    static attributes = ['loader', 'autoload:presence'];
+    static attributes = ['loader', 'autoload:presence', 'page-size:number'];
     static slots = true;
     static config = {
         searchIcon: 'search',
@@ -438,7 +439,7 @@ class Table extends ParsedElement {
         this.#latestRequest = {
             pageRequest: {
                 page: 0,
-                size: this.getAttribute('page-size') ? Number(this.getAttribute('page-size')) : 10,
+                size: this.declared('page-size') ?? 10,
             },
             sortRequest: schema.sort,
             filterRequest: maybeForm?.values ?? {},

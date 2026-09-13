@@ -1,12 +1,18 @@
 {
-    "$comment": "Prose that cannot be introspected from the source. fieldProtocol carries the attributes and slots the Field base defines, used for any element that does not describe its own. Tags, attributes, slots and events are derived from the code itself; test/manifest/metadata.test.mjs fails when this file and the code disagree in either direction.",
-    "fieldProtocol": {
+    "$comment": "Prose that cannot be introspected from the source. inherited carries the attributes and slots a base class defines, Field and Input alike, used for any element that does not describe its own. Tags, attributes, slots and events are derived from the code itself; test/manifest/metadata.test.mjs fails when this file and the code disagree in either direction.",
+    "inherited": {
         "attributes": {
             "disabled": "The field's own disabled claim: the control is disabled and the field is left out of the submitted values, composed with a disabled fieldset ancestry. The property reflects the claim only, matches(':disabled') tells the effective state.",
-            "value": "The current value.",
+            "keep": "A regular expression naming the characters that survive a keystroke, so keep=\"[0-9]\" is digits only. It matches rather than negating, so it takes a pattern and not only a character class.",
+            "placeholder": "Placeholder shown while the field is empty.",
             "readonly": "Renders the control but does not let it be edited. A readonly field still contributes its value to the form.",
+            "reject": "The same filter from the other side: a regular expression naming what is stripped from the value on every keystroke. Declaring both applies keep and warns once.",
             "required": "Marks the field as required for assistive technologies and shows the required marker on its label.",
-            "placeholder": "Placeholder shown while the field is empty."
+            "trim": "Trims the value on the way out, leaving what was typed alone.",
+            "type": "Any native input type, or the literal textarea to render one. Defaults to number under v-type=number, and a declared type wins.",
+            "uppercase": "Upper-cases the value on the way out, leaving what was typed alone.",
+            "v-type": "number decodes the value to a number on the way out: blank stays null and a value that does not decode is kept as it is.",
+            "value": "The current value."
         },
         "slots": {
             "default": "The label of the field.",
@@ -18,7 +24,15 @@
     "elements": {
         "ful-form": {
             "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to the loader named by loader (loaders:form by default) on submit: with action the values travel as json (method, POST by default) through the request-mapper and response-mapper components when declared, without it the submit:requested listeners deliver the response themselves. Validation errors are announced politely without focus, or exactly once through focus management with scroll-on-error, and clear-invalid-on-change drops a field's problem as soon as the field changes again; global errors land in an author-provided ful-errors element, announced as an alert.",
-            "attributes": {},
+            "attributes": {
+                "action": "The endpoint the values are submitted to. With it the form posts json through a RemoteJsonFormLoader; without it a LocalFormLoader hands the outcome to whatever a submit:requested listener resolves with.",
+                "clear-invalid-on-change": "Clears a field's custom validity as soon as that field changes again, so a server problem stops being shown the moment the user addresses it.",
+                "loader": "The registry component key of the form loader, loaders:form by default. A loader of your own implements prepare, submit and transform.",
+                "method": "The http method of the remote loader, POST by default.",
+                "request-mapper": "A registry component key, (values, form) => request, applied to the extracted values before they are sent.",
+                "response-mapper": "A registry component key, (response, form) => mapped, applied to a successful response before it reaches submit:success.",
+                "scroll-on-error": "Moves focus, and the viewport with it, to the topmost invalid field when errors land. The error live region is muted while focus moves, so each problem is announced once through the focused field rather than twice."
+            },
             "slots": {},
             "events": {
                 "submit": "Cancelable. Fired before anything is sent: preventDefault aborts the submit.",
@@ -67,13 +81,19 @@
         },
         "ful-local-date": {
             "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page or the one its locale attribute names; default is shown when the content is empty.",
-            "attributes": {},
+            "attributes": {
+                "default": "The text rendered when the content is blank or does not parse as a date.",
+                "locale": "The locale the date is formatted in, taking precedence over the page's. The platform default applies when neither names one."
+            },
             "slots": {},
             "events": {}
         },
         "ful-instant": {
             "description": "Formats the ISO instant in its content in the locale and timezone of the page or the one its locale attribute names; default is shown when the content is empty.",
-            "attributes": {},
+            "attributes": {
+                "default": "The text rendered when the content is blank or does not parse as an instant.",
+                "locale": "The locale the instant is formatted in, taking precedence over the page's. The platform default applies when neither names one."
+            },
             "slots": {},
             "events": {}
         },
@@ -133,7 +153,8 @@
             "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot; the rows come from src (method, GET by default) through the loader named by loader (loaders:table by default), page-size rows a page (10 by default), the first one loading on upgrade under the autoload claim.",
             "attributes": {
                 "autoload": "Loads the first page while upgrading, instead of waiting for a reload(). The load is not awaited, so a slow or failing loader cannot hold up the page.",
-                "loader": "The registered component name the table loads its rows through; loaders:table when absent."
+                "loader": "The registered component name the table loads its rows through; loaders:table when absent.",
+                "page-size": "How many rows a page asks the loader for, 10 by default."
             },
             "slots": {
                 "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
@@ -145,8 +166,9 @@
         "ful-pagination": {
             "description": "The pager of a ful-table, its window rendering at most pages links (5 by default). Rarely used on its own.",
             "attributes": {
-                "total": "Number of pages.",
-                "current": "Zero based index of the page being shown."
+                "current": "Zero based index of the page being shown.",
+                "pages": "How many page buttons are rendered around the current one, 5 by default.",
+                "total": "Number of pages."
             },
             "slots": {},
             "events": {

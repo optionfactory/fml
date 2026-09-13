@@ -67,17 +67,13 @@ class LocalFormLoader {
 class FormLoader {
     static create(el, conf) {
         const http = el.component('http-client');
-        const requestMapper = el.hasAttribute('request-mapper')
-            ? el.component(el.getAttribute('request-mapper'))
-            : (v) => v;
-        const responseMapper = el.hasAttribute('response-mapper')
-            ? el.component(el.getAttribute('response-mapper'))
-            : (v) => v;
-        const url = el.getAttribute('action');
+        const requestMapper = el.declared('request-mapper') ? el.component(el.declared('request-mapper')) : (v) => v;
+        const responseMapper = el.declared('response-mapper') ? el.component(el.declared('response-mapper')) : (v) => v;
+        const url = el.declared('action');
         if (!url) {
             return new LocalFormLoader(requestMapper, responseMapper);
         }
-        const method = el.getAttribute('method') ?? 'POST';
+        const method = el.declared('method') ?? 'POST';
         return new RemoteJsonFormLoader(http, url, method, requestMapper, responseMapper);
     }
 }
@@ -88,6 +84,17 @@ class FormLoader {
  * announcing failures through the errors setter.
  */
 class Form extends ParsedElement {
+    //every one of these says how the form is built and submits, not what it holds:
+    //the loader is named the same way ful-select and ful-table name theirs
+    static attributes = [
+        'action',
+        'method',
+        'loader',
+        'request-mapper',
+        'response-mapper',
+        'clear-invalid-on-change:presence',
+        'scroll-on-error:presence',
+    ];
     form;
     render() {
         const form = document.createElement('form');
@@ -118,7 +125,7 @@ class Form extends ParsedElement {
             },
             true,
         );
-        if (this.hasAttribute('clear-invalid-on-change')) {
+        if (this.declared('clear-invalid-on-change')) {
             this.addEventListener('change', (/** @type any */ evt) => {
                 evt.target.setCustomValidity?.('');
             });
@@ -146,7 +153,7 @@ class Form extends ParsedElement {
         let values;
         let request;
         try {
-            const loader = this.component(this.getAttribute('loader') ?? 'loaders:form').create(this);
+            const loader = this.component(this.declared('loader') ?? 'loaders:form').create(this);
             values = Bindings.extractFrom(this.form, submitter);
             request = await loader.prepare(values, this);
             const se = new CustomEvent('submit', {
@@ -276,7 +283,7 @@ class Form extends ParsedElement {
     }
     /** Pins problems to the fields they name, the banner taking the nameless ones. */
     set errors(es) {
-        Bindings.errors(this.form, es, this.hasAttribute('scroll-on-error'));
+        Bindings.errors(this.form, es, this.declared('scroll-on-error'));
     }
 }
 

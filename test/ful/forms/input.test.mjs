@@ -432,16 +432,17 @@ describe('Input keep and reject', () => {
         }
     });
 
-    it('reads the filter on every input, so a later attribute change applies', async () => {
-        const [el] = await mount(`<ful-input>l</ful-input>`);
-        assert.strictEqual(type(el, 'a1').value, 'a1');
-
-        el.setAttribute('reject', '[^0-9]');
+    it('reads the filter once, at the upgrade, like the rest of its configuration', async () => {
+        const [el] = await mount(`<ful-input keep="[0-9]">l</ful-input>`);
         assert.strictEqual(type(el, 'a1').value, '1');
 
-        el.removeAttribute('reject');
+        //configuration, not a live claim: the filter says how the control treats
+        //what is typed into it, which is decided when the element is written
         el.setAttribute('keep', '[a-z]');
-        assert.strictEqual(type(el, 'a1').value, 'a');
+        assert.strictEqual(type(el, 'a1').value, '1', 'a later attribute write does not change it');
+
+        const [fresh] = await mount(`<ful-input keep="[a-z]">l</ful-input>`);
+        assert.strictEqual(type(fresh, 'a1').value, 'a', 'a new element reads what its markup says');
     });
 });
 

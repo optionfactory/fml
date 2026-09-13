@@ -15,6 +15,7 @@ The breaking changes, each detailed in its area below:
 
 - the positional slots of every field are `before` and `after` only, rendered inside a `ful-affix`; `ibefore`/`iafter` and the raw unthemed passthroughs are gone, so content once slotted raw now carries the addon styling
 - the `disabled`, `readonly`, `required` and `value` claims stay live after the render, observed on the `Field` base; writing properties before the render is not supported, an attribute written between upgrade and render lands in the observed snapshot
+- `ful-form`'s attributes are configuration, read once at the upgrade: `action`, `method`, `loader`, `request-mapper`, `response-mapper`, `clear-invalid-on-change` and `scroll-on-error`. Rewriting one after the form upgrades no longer takes effect, and all seven now appear in the element reference and the IDE metadata, where the form previously documented none
 - `ful-form` submits one exchange at a time: a submit while one is in flight is dropped before the values are extracted
 - while a `ful-form` submits it carries `aria-busy`, and the submit and reset buttons it holds off carry `aria-disabled="true"` rather than the `disabled` property, so they keep the focus: page css selecting `:disabled` on those buttons selects `[aria-disabled="true"]` instead
 
@@ -29,11 +30,13 @@ The breaking changes, each detailed in its area below:
 **ful-input**
 
 - `ful-input`'s `mask` is replaced by `keep` and `reject`: `mask="[^0-9]"` becomes `keep="[0-9]"`, or `reject="[^0-9]"` for the identical behaviour under an honest name
+- `ful-input`'s `type`, `v-type`, `keep`, `reject`, `uppercase` and `trim` are configuration, read once at the upgrade rather than on every use, so rewriting one afterwards no longer takes effect
 
 **ful-table and ful-pagination**
 
 - `ful-pagination.update({ current, total })` replaces the positional `update(current, total)`, and the page being shown is marked `aria-current="page"` and stays enabled where it used to be disabled
 - `ful-table` emits `page:requested` and `sort:requested`, joining the colon-namespaced request family; `page-requested` and `sort-requested` are gone
+- `ful-table`'s `page-size` and `ful-pagination`'s `pages` are configuration, read once at the upgrade rather than on every load
 - the `table.initial` message renders through `{{ }}` like every other built-in string: a consumer overriding it with markup now gets that markup as text
 
 **Localization**
@@ -62,6 +65,7 @@ The breaking changes, each detailed in its area below:
 
 - `Timing.debounce(ms, fn, { immediate })` and `Timing.throttle(ms, fn, { leading, trailing })` take object options; the six `DEBOUNCE_*` and `THROTTLE_*` constants are gone, `{ leading: false }` and `{ trailing: false }` replacing the two throttle flags
 - the package declares `sideEffects: false`: bundler consumers importing through the root entry drop the unused parts of the bundle, and the `window.ftl`/`window.httpc`/`window.ful` assignments of the module entry may be tree-shaken away for them. Script-tag and CDN users of `dist/fml.mjs` are unaffected, `import * as fml` keeps the namespaces explicit
+- `ful-local-date` and `ful-instant` declare `locale` and `default` as configuration, read once at the upgrade; both were already read only during the render, so nothing observable changes
 
 #### ftl: templates, expressions and the registry
 
@@ -121,6 +125,9 @@ The breaking changes, each detailed in its area below:
 
 #### ful: forms and fields
 
+- [BUG] `ful-form` documents the attributes it takes. It declared none, so the element reference and the IDE metadata described it as taking no attributes at all: not `action`, not `method`. Seventeen attributes across six elements were read with a raw `getAttribute` on every use, declared in neither `static observed` nor `static attributes`, which made them invisible to `declared(name)`, to the generated manifest, and to the parity test that keeps the manifest honest. They are declared now, so the test fails if any of them loses its prose
+- [BRK] those seventeen are configuration, read once at the upgrade, where they used to be re-read on every use. That is the rule every other configuration attribute in the library already follows, and it is what makes them declarable. A page that authors them in markup sees no difference; a page that rewrote one after the element upgraded no longer sees the change take effect
+
 - [BUG] a submitting form announces itself. It carries `aria-busy` while the pipeline runs, the way `ful-table` and an async section already declare themselves busy, and every `ful-spinner` it reveals is given `role="status"` and the localized `spinner.loading` label unless the author wrote text of their own. Making `ful-spinner` style-only in this release moved the role and the label to the author, and no form had been updated to carry them, so the one wait in the library with a network round trip behind it was the one wait announced to nobody. The label is appended after the reveal, since a live region filled while hidden is announced unreliably, and removed on release rather than left in a hidden region
 - [BRK] the buttons a submitting form holds off are marked `aria-disabled="true"` and refused through a capturing click handler, where they used to have the `disabled` property set. The submitter is almost always the focused element when a submit starts, and disabling what holds the focus drops it to `<body>`: the user lost their place in the document mid transaction, and with nothing announced either, the whole exchange passed in silence. Held off this way a button keeps its focus and its name, and `.ful-button` already dimmed both spellings; a rule in `form.css` dims an unstyled one. Page css keyed on `button[type=submit]:disabled` inside a `ful-form` matches `[aria-disabled="true"]` instead. Nothing about double submits changes: `submit()` has always dropped a call made while one is in flight, and the button state was affordance
 - [BUG] `Bindings.extractFrom` submits the name of the button that submitted the form and of no other, which is the platform's own rule. It used to fall out of every button having been disabled by the spinner before the values were read, so a second submit button's `name`/`value` would have joined the payload the moment the disabling stopped: the affordance was quietly load-bearing for what travelled
@@ -154,7 +161,7 @@ The breaking changes, each detailed in its area below:
 
 #### ful-input
 
-- [BRK] `mask` is gone, replaced by `keep` and `reject`. It stripped every character its pattern matched, so an allowed set had to be written as its own negation, `mask="[^0-9]"` for digits only: a name that says what survives, describing what does not. `reject` is that behaviour under a name that matches it, and `keep` is the same filter from the useful side, `keep="[0-9]"`. Both are read on every keystroke, both preserve the caret among the surviving characters, and a pattern that does not compile is still warned once and then ignored. Declaring both warns once, per element rather than per keystroke, and applies `keep`
+- [BRK] `mask` is gone, replaced by `keep` and `reject`. It stripped every character its pattern matched, so an allowed set had to be written as its own negation, `mask="[^0-9]"` for digits only: a name that says what survives, describing what does not. `reject` is that behaviour under a name that matches it, and `keep` is the same filter from the useful side, `keep="[0-9]"`. Both are configuration, read once at the upgrade, since a keystroke filter says how the control treats what is typed into it rather than tracking something that changes. Both preserve the caret among the surviving characters, and a pattern that does not compile is warned once and then ignored. Declaring both warns once, per element rather than per keystroke, and applies `keep`
 - [NEW] `keep` matches the text that survives rather than negating what does not, so it takes a pattern and not only a character class: `keep="[0-9]{2}"` keeps digit pairs and drops a lone digit, which no rejecting spelling expresses
 - [ENH] `ful-input` decodes its value to a number under `v-type="number"`, an explicit opt in like the select's `k-type`: blank stays null, a value that does not decode is kept as it is, the change detail and the form extraction carry the number, and an undeclared `type` defaults to `number` so the numeric widget rides along (a declared one wins)
 
