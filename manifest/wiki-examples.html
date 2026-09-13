@@ -327,6 +327,41 @@ const mount = async (html) => {
        wz.querySelector('[data-step=dettagli]')?.getAttribute('aria-current'));
     ok('16 section:requested:<name> delivered', wz.querySelector('[data-ref=delivered]') !== null);
 
+    // ===== 21: the waits, and the connect-then-wait ordering the page warns about
+    class WaitProbe extends ftl.ParsedElement {
+        async render() {
+            await new Promise((r) => setTimeout(r, 30));
+            this.textContent = 'rendered';
+        }
+    }
+    class NestProbe extends ftl.ParsedElement {
+        async render() {
+            await new Promise((r) => setTimeout(r, 10));
+            this.append(document.createElement('x-wait-probe'));
+        }
+    }
+    ftl.registry.defineElement('x-wait-probe', WaitProbe).defineElement('x-nest-probe', NestProbe).configure();
+
+    const early = document.createElement('x-wait-probe');
+    const earlyWait = ftl.Rendering.waitFor(early);
+    stage.append(early);
+    await earlyWait;
+    ok('21 waitFor before connect resolves at once, un-rendered', early.rendered === false, String(early.rendered));
+
+    await ftl.Rendering.waitFor(early);
+    ok('21 waitFor after connect waits for the render', early.rendered === true, String(early.rendered));
+
+    const late = document.createElement('x-wait-probe');
+    stage.append(late);
+    ok('21 whenUpgraded answers a promise once queued', typeof ftl.registry.whenUpgraded(late)?.then === 'function');
+    ok('21 whenUpgraded is undefined before connect', ftl.registry.whenUpgraded(document.createElement('x-wait-probe')) === undefined);
+    await ftl.Rendering.waitFor(late);
+
+    d = await mount(`<div><x-nest-probe></x-nest-probe></div>`);
+    await ftl.Rendering.waitFor(d);
+    const grandchild = d.querySelector('x-nest-probe > x-wait-probe');
+    ok('21 the waits follow components a render creates', grandchild?.rendered === true, String(grandchild?.rendered));
+
     // ===== 17: icons and the static config
     d = await mount(`<p><ful-icon name="search" aria-hidden="true"></ful-icon></p>`);
     const icon = d.querySelector('ful-icon');

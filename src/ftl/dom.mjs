@@ -220,11 +220,21 @@ class Nodes {
     }
 
     /**
-     * Waits for the element's closing tag to be parsed: a MutationObserver
-     * over the parent resolves once the element, or any of its ancestors,
-     * gains a next sibling (the parser has moved past this subtree), with the
-     * document's DOMContentLoaded as the deadline. Resolves immediately for
-     * an element that is already parsed.
+     * Waits for the element's closing tag to be parsed: one MutationObserver
+     * resolves once the element, or any of its ancestors, gains a next sibling,
+     * which is the parser having moved past this subtree. The document's
+     * DOMContentLoaded is the deadline. Resolves immediately for an element
+     * that is already parsed.
+     *
+     * Every ancestor is watched, not only the parent, because that is what the
+     * predicate reads: an element last among its siblings becomes parsed when
+     * an ancestor gains one, and a childList observer on the parent never sees
+     * that. Formatted markup usually hides the difference, the whitespace
+     * before a closing tag being a text node the parent does gain, so the gap
+     * shows on whitespace-free markup, where the wait fell back to the
+     * deadline. One observer takes many targets, so the cost is one observe()
+     * per level, and it is disconnected at the first checkpoint past the
+     * element either way.
      * @param {any} el
      * @returns {Promise<any>}
      */
@@ -240,7 +250,9 @@ class Nodes {
                 observer.disconnect();
                 resolve(el);
             });
-            observer.observe(el.parentNode, { childList: true });
+            for (let c = el.parentNode; c; c = c.parentNode) {
+                observer.observe(c, { childList: true });
+            }
             Nodes.waitDomContentLoaded(el.ownerDocument).then(() => {
                 observer.disconnect();
                 resolve(el);

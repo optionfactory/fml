@@ -255,6 +255,31 @@ describe('dom.mjs', () => {
 
             parent.remove();
         });
+        it('waits on every ancestor, not only the parent', async () => {
+            //the element is last among its siblings, so the parser moving past it
+            //shows up as a sibling of an ancestor and never as one of its own. A
+            //childList observer on the parent alone never sees that mutation, and the
+            //wait fell back to the DOMContentLoaded deadline
+            const section = document.createElement('section');
+            const parent = document.createElement('div');
+            const el = document.createElement('div');
+            parent.appendChild(el);
+            section.appendChild(parent);
+            document.body.appendChild(section);
+
+            const fakeDoc = { readyState: 'loading', addEventListener: () => {} };
+            Object.defineProperty(el, 'ownerDocument', { get: () => fakeDoc });
+
+            const promise = Nodes.waitParsed(el);
+
+            section.appendChild(document.createElement('p'));
+
+            const resolved = await promise;
+            expect(resolved).to.equal(el);
+
+            section.remove();
+        });
+
         it('bails out of MutationObserver callback if mutation does not parse the element', async () => {
             const wrapper = document.createElement('div');
             const parent = document.createElement('div');
