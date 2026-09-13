@@ -74,14 +74,6 @@ class Input extends Field {
         this._input = fragment.querySelector('input,textarea');
 
         Attributes.forward('input-', this, this._input);
-        this._input.addEventListener('keydown', (evt) => {
-            //a file field's Enter opens the picker, as a native file input's would,
-            //and never submits
-            if (evt.key !== 'Enter' || this._type() === 'textarea' || this._type() === 'file') {
-                return;
-            }
-            this._requestSubmit();
-        });
         this._input.addEventListener('input', (evt) => {
             const strip = filterOf(this);
             if (!strip) {

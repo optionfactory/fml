@@ -831,8 +831,10 @@ describe('Select key types', () => {
 describe('Select enter key inside a form', () => {
     const mount = mountSelect;
     let submits = [];
-    const enter = (selectEl) => {
-        selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
+    const enter = (selectEl, code = 'Enter') => {
+        selectEl
+            .querySelector('input')
+            .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code, bubbles: true, cancelable: true }));
     };
     beforeEach(() => {
         submits = [];
@@ -868,6 +870,19 @@ describe('Select enter key inside a form', () => {
         assert.strictEqual(submits.length, 1, 'enter reaches the form');
     });
 
+    it('submits the form from the numpad Enter too, which the platform treats alike', async () => {
+        const [selectEl] = await mount(`
+            <ful-form>
+                <ful-select name="s">label</ful-select>
+                <button type="submit">go</button>
+            </ful-form>`);
+
+        enter(selectEl, 'NumpadEnter');
+        await settle();
+
+        assert.strictEqual(submits.length, 1);
+    });
+
     it('accepts the highlighted option instead of submitting when the dropdown is open', async () => {
         const [selectEl] = await mount(`
             <ful-form>
@@ -878,6 +893,22 @@ describe('Select enter key inside a form', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
         enter(selectEl);
+        await settle();
+
+        assert.strictEqual(selectEl.value, 'k1', 'the option is taken');
+        assert.strictEqual(submits.length, 0, 'the form is not submitted');
+    });
+
+    it('accepts the highlighted option from the numpad Enter as well', async () => {
+        const [selectEl] = await mount(`
+            <ful-form>
+                <ful-select name="s">label</ful-select>
+                <button type="submit">go</button>
+            </ful-form>`);
+
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        enter(selectEl, 'NumpadEnter');
         await settle();
 
         assert.strictEqual(selectEl.value, 'k1', 'the option is taken');

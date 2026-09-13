@@ -96,7 +96,36 @@ class Field extends ParsedElement {
             //a label that does not natively target the control still focuses it
             label.addEventListener('click', () => this.focus());
         }
+        //the platform's implicit submission, stood in for where the field's own
+        //protocol took it away: the inner controls carry form="", so Enter in one
+        //of them reaches no form and the platform submits nothing. Listening on the
+        //host rather than the control means every listener the control has already
+        //ran, so preventDefault is what it says: a ful-select accepting the
+        //highlighted entry has consumed the key and no submit follows
+        this.addEventListener('keydown', (evt) => {
+            if (evt.key !== 'Enter' || evt.defaultPrevented || evt.isComposing) {
+                return;
+            }
+            const target = /** @type {HTMLInputElement} */ (evt.target);
+            //only where the platform cannot: a control still associated with the
+            //form, an author's own input in a slot among them, submits on its own
+            //and would otherwise submit twice
+            if (target.form === this.internals.form || !Field.#submitsOnEnter(target)) {
+                return;
+            }
+            this._requestSubmit();
+        });
         this.replaceChildren(fragment);
+    }
+    /**
+     * The platform's own rule for which control Enter submits from, measured on
+     * Chromium, Firefox and WebKit: every input but the file picker and the
+     * button-shaped ones, the checkbox and the radio included. A textarea takes
+     * the newline, a select takes the key for its own list, and a button is
+     * activated by it.
+     */
+    static #submitsOnEnter(el) {
+        return el instanceof HTMLInputElement && !['file', 'button', 'submit', 'reset', 'image'].includes(el.type);
     }
     focus(options) {
         this.#control?.focus(options);

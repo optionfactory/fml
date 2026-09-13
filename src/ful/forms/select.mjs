@@ -713,6 +713,7 @@ class Select extends Field {
     }
     #chipKeydown(e, badge) {
         switch (e.code) {
+            case 'NumpadEnter':
             case 'Enter':
             case 'Space':
             case 'Backspace':
@@ -779,11 +780,13 @@ class Select extends Field {
                 this.#close();
                 break;
             }
+            //both physical Enter keys: the switch reads e.code, which tells the
+            //numpad's apart, and the base submits from either one
+            case 'NumpadEnter':
             case 'Enter': {
                 if (!this.#ddmenu.shown) {
-                    //nothing to accept: submit the form as ful-input does. the inner
-                    //input carries form="" so it never submits one on its own
-                    this._requestSubmit();
+                    //nothing to accept: the key is left alone and the base submits
+                    //the form, as it does for every field whose control is detached
                     return;
                 }
                 e.preventDefault();
