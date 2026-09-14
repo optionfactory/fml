@@ -62,6 +62,29 @@ describe('Tooltip', () => {
             'the note is anchored after the trigger',
         );
     });
+
+    it('draws a callout pointing back at the trigger, which the popover overflow would otherwise clip', async () => {
+        const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+
+        //the platform gives every popover overflow: auto, which cuts the callout
+        //back inside the box and leaves a notch where the point should be
+        assert.strictEqual(getComputedStyle(note).overflow, 'visible');
+        const point = getComputedStyle(note, '::after');
+        assert.notStrictEqual(point.content, 'none', 'the note draws a callout');
+        assert.include(point.rotate, '45', 'a square turned a corner towards the trigger');
+        assert.isBelow(
+            parseFloat(point.top),
+            0,
+            'it straddles the edge facing the trigger, which is the top edge for a note below it',
+        );
+
+        button.click();
+    });
 });
 
 describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
@@ -79,6 +102,30 @@ describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
     after(() => {
         CSS.supports = supports;
         area.remove();
+    });
+
+    it('leaves the css gap between the note and the trigger, and keeps it on every later placing', async () => {
+        const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+        //read before the opening: the placing clears the margin it reads the gap from
+        const gap = parseFloat(getComputedStyle(note).marginTop);
+        assert.isAbove(gap, 0, 'the stylesheet declares a gap');
+        const distance = () => note.getBoundingClientRect().top - button.getBoundingClientRect().bottom;
+
+        button.click();
+        await settle();
+
+        assert.closeTo(distance(), gap, 1, 'the hand placement honours the gap the anchor css leaves');
+
+        //the placing zeroes the margin it reads, so every pass after the first
+        //used to read its own zero and pull the note flush against the trigger
+        document.dispatchEvent(new Event('scroll'));
+        await settle();
+
+        assert.closeTo(distance(), gap, 1, 'and the reflow does not close it');
+
+        button.click();
     });
 
     it('places the note below the trigger, centered on it', async () => {

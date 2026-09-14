@@ -32,6 +32,10 @@
 
     ful-note,
     .ful-note {
+        /* the space between the note and its invoker, which the callout points across */
+        --ful-note-gap: 0.5rem;
+        --ful-note-callout-size: 0.5rem;
+
         display: none;
         max-width: 20rem;
         padding: 0.5rem 0.75rem;
@@ -41,26 +45,89 @@
         border: var(--ful-border-width) solid var(--ful-border-color);
         border-radius: var(--ful-border-radius);
         font-size: 0.875rem;
-        margin: 0.3rem 0 0;
+        margin: var(--ful-note-gap) 0 0;
 
         &:popover-open {
             display: block;
             position-area: bottom;
+            /*
+             * the platform gives every popover overflow: auto, which clips the
+             * callout back inside the box: a note is a line or two of text with
+             * no height to scroll, so it is the overflow that goes
+             */
+            overflow: visible;
+        }
+
+        /*
+         * The callout: a square straddling the edge that faces the invoker,
+         * rotated a quarter turn so a corner points at it, carrying a border on
+         * the two sides that end up outside the note and none on the two inside,
+         * where its background covers the note's own border and the two become
+         * one shape. Only a popover gets one, both because it is the only note
+         * with an invoker to point at and because it is the only one the platform
+         * positions: a plain .ful-note is static, and giving it a position here
+         * would take the popover's own placement away from it.
+         */
+        &:popover-open::after {
+            content: "";
+            position: absolute;
+            width: var(--ful-note-callout-size);
+            height: var(--ful-note-callout-size);
+            background-color: inherit;
+            border: 0 solid var(--ful-border-color);
+            rotate: 45deg;
+        }
+
+        /* below the invoker: the callout sits on the top edge and points up */
+        &:popover-open::after {
+            top: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
+            left: 50%;
+            translate: -50% 0;
+            border-block-start-width: var(--ful-border-width);
+            border-inline-start-width: var(--ful-border-width);
         }
 
         &[placement="top"]:popover-open {
             position-area: top;
-            margin: 0 0 0.3rem;
+            margin: 0 0 var(--ful-note-gap);
+
+            &::after {
+                top: auto;
+                bottom: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
+                border-block-start-width: 0;
+                border-inline-start-width: 0;
+                border-block-end-width: var(--ful-border-width);
+                border-inline-end-width: var(--ful-border-width);
+            }
         }
 
         &[placement="right"]:popover-open {
             position-area: right;
-            margin: 0 0 0 0.3rem;
+            margin: 0 0 0 var(--ful-note-gap);
+
+            &::after {
+                top: 50%;
+                left: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
+                translate: 0 -50%;
+                border-block-start-width: 0;
+                border-inline-start-width: var(--ful-border-width);
+                border-block-end-width: var(--ful-border-width);
+            }
         }
 
         &[placement="left"]:popover-open {
             position-area: left;
-            margin: 0 0.3rem 0 0;
+            margin: 0 var(--ful-note-gap) 0 0;
+
+            &::after {
+                top: 50%;
+                left: auto;
+                right: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
+                translate: 0 -50%;
+                border-block-start-width: var(--ful-border-width);
+                border-inline-end-width: var(--ful-border-width);
+                border-inline-start-width: 0;
+            }
         }
     }
 

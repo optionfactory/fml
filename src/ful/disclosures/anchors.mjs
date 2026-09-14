@@ -29,9 +29,18 @@ const place = (popover, anchored) => {
     const viewport = document.documentElement;
     const vw = viewport.clientWidth;
     const vh = viewport.clientHeight;
-    //before the placing touches the margins: the css gap lives in them
+    //the css gap lives in the margins, and the computed style is live: the
+    //inline zero a previous placing left behind is dropped first so the numbers
+    //read below are the stylesheet's own, not this function's own zero. Reading
+    //them afterwards left every popover flush against its invoker
+    popover.style.removeProperty('margin');
     const computed = getComputedStyle(popover);
-    const gap = (margin) => parseFloat(margin) || 0;
+    const gap = {
+        top: parseFloat(computed.marginTop) || 0,
+        right: parseFloat(computed.marginRight) || 0,
+        bottom: parseFloat(computed.marginBottom) || 0,
+        left: parseFloat(computed.marginLeft) || 0,
+    };
     popover.style.right = 'auto';
     popover.style.bottom = 'auto';
     popover.style.margin = '0';
@@ -40,7 +49,7 @@ const place = (popover, anchored) => {
         popover.style.width = `${width}px`;
         popover.style.left = `${clamp(box.left, PAD, vw - width - PAD)}px`;
         const height = popover.getBoundingClientRect().height;
-        popover.style.top = `${clamp(box.bottom + gap(computed.marginTop), PAD, vh - height - PAD)}px`;
+        popover.style.top = `${clamp(box.bottom + gap.top, PAD, vh - height - PAD)}px`;
         return;
     }
     //a popover wraps against the spot it lands on: the width is measured
@@ -55,9 +64,9 @@ const place = (popover, anchored) => {
     const wide = popover.getBoundingClientRect().width;
     let left =
         placement === 'right'
-            ? box.right + gap(computed.marginLeft)
+            ? box.right + gap.left
             : placement === 'left'
-              ? box.left - gap(computed.marginRight) - wide
+              ? box.left - gap.right - wide
               : note
                 ? box.left + box.width / 2 - wide / 2
                 : box.left;
@@ -67,10 +76,10 @@ const place = (popover, anchored) => {
     const height = popover.getBoundingClientRect().height;
     const top =
         placement === 'top'
-            ? box.top - gap(computed.marginBottom) - height
+            ? box.top - gap.bottom - height
             : placement === 'right' || placement === 'left'
               ? box.top + box.height / 2 - height / 2
-              : box.bottom + gap(computed.marginTop);
+              : box.bottom + gap.top;
     popover.style.top = `${clamp(top, PAD, vh - height - PAD)}px`;
 };
 
