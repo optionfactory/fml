@@ -67,7 +67,6 @@
 
         &:popover-open {
             display: block;
-            position-area: bottom;
             /*
              * the platform gives every popover overflow: auto, which clips the
              * callout back inside the box: a note is a line or two of text with
@@ -121,7 +120,6 @@
         }
 
         &[placement="top"]:popover-open {
-            position-area: top;
             margin: 0 0 var(--ful-note-gap);
 
             &::after {
@@ -135,7 +133,6 @@
         }
 
         &[placement="right"]:popover-open {
-            position-area: right;
             margin: 0 0 0 var(--ful-note-gap);
 
             &::after {
@@ -153,7 +150,6 @@
         }
 
         &[placement="left"]:popover-open {
-            position-area: left;
             margin: 0 var(--ful-note-gap) 0 0;
 
             &::after {

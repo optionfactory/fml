@@ -283,7 +283,7 @@
         "ful-tooltip": {
             "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click. placement picks the side the note sits on: bottom (default), top, left or right.",
             "attributes": {
-                "placement": "Which side of the trigger the note opens on: bottom (the default), top, start or end. Where the platform lacks css anchor positioning the fallback places it on the same side."
+                "placement": "Which side of the trigger the note opens on: bottom (the default), top, start or end. The library places the note itself on every platform, so the side is the same everywhere."
             },
             "slots": {
                 "default": "The short explanation shown in the popover."

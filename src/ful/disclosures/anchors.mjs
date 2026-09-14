@@ -146,11 +146,17 @@ const schedule = () => {
  * invoker whenever it opens, stretched to the invoker's width when
  * asked, and cleaned up when it closes. Where the css works the call
  * is a no-op.
+ *
+ * `handPlace` takes the placement here on every platform, which a popover
+ * asks for when it needs to know where its invoker ended up: the note's
+ * callout points at the invoker, and a pseudo-element cannot read an anchor
+ * that is not inside its own containing block, so the note is measured rather
+ * than placed by the css. Its stylesheet declares no position-area to match.
  */
 const wireAnchoredPopover = (
     invoker,
     popover,
-    { prefix = 'ful-anchor', invoke = false, expanded = false, stretch = false } = {},
+    { prefix = 'ful-anchor', invoke = false, expanded = false, stretch = false, handPlace = false } = {},
 ) => {
     const uid = Attributes.uid(prefix);
     if (invoke) {
@@ -168,8 +174,9 @@ const wireAnchoredPopover = (
         });
     }
     //the naming above is what the stylesheet reads, so it happens either way:
-    //only the hand placement below is the fallback
-    if (platformAnchors()) {
+    //only the hand placement below is the fallback, and only for a popover that
+    //did not ask to be placed here whatever the platform offers
+    if (!handPlace && platformAnchors()) {
         return;
     }
     const anchored = { invoker, stretch };

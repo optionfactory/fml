@@ -112,23 +112,12 @@ describe('Tooltip', () => {
     });
 });
 
-describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
-    //the engine under test carries the anchor css: the supports probe is
-    //stubbed out and the note's position-area neutralized
-    let supports;
-    let area;
-    before(() => {
-        supports = CSS.supports;
-        CSS.supports = () => false;
-        area = document.createElement('style');
-        area.textContent = 'ful-note, .ful-note { position-area: none !important; }';
-        document.head.append(area);
-    });
-    after(() => {
-        CSS.supports = supports;
-        area.remove();
-    });
-
+/**
+ * The note is placed by the library on every platform rather than by the anchor
+ * css, its callout needing to know where the trigger ended up, so these run
+ * against whatever engine is under test with nothing stubbed out.
+ */
+describe('Tooltip placement', () => {
     it('leaves the css gap between the note and the trigger, and keeps it on every later placing', async () => {
         const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         const button = tooltip.querySelector('button');
