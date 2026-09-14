@@ -578,6 +578,50 @@ describe('InputFile disabled and readonly claims', () => {
                 assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], `the selection is frozen by the ${claim}`);
             });
         }
+        it(`shows no dropzone while ${claim}, the chosen files staying in the item list`, async () => {
+            const [el] = await mount(`<ful-input-file multiple dropzone item-list>files</ful-input-file>`);
+            pick(el, file('a.txt'));
+            const dropzone = el.querySelector('[data-ref=dropzone]');
+            assert.notStrictEqual(getComputedStyle(dropzone).display, 'none', 'it is there to begin with');
+
+            el.setAttribute(attribute, '');
+
+            //a dropzone holds no value to read, so a field that takes neither a
+            //click nor a drop shows none rather than inviting a refused gesture
+            assert.strictEqual(getComputedStyle(dropzone).display, 'none');
+            assert.notStrictEqual(
+                getComputedStyle(el.querySelector('ful-item-list')).display,
+                'none',
+                'the files already chosen stay visible',
+            );
+            assert.deepStrictEqual(selected(el), ['a.txt']);
+
+            el.removeAttribute(attribute);
+            assert.notStrictEqual(getComputedStyle(dropzone).display, 'none', 'and it comes back');
+        });
+
+        it(`keeps the input while ${claim} without an item list, it being the only place the name shows`, async () => {
+            const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
+            pick(el, file('a.txt'));
+
+            el.setAttribute(attribute, '');
+
+            assert.notStrictEqual(getComputedStyle(el.querySelector('ful-control-group')).display, 'none');
+        });
+
+        it(`hides the remove button on each chosen file while ${claim}`, async () => {
+            const [el] = await mount(`<ful-input-file multiple item-list>files</ful-input-file>`);
+            pick(el, file('a.txt'));
+            const remove = el.querySelector('ful-item[data-name="a.txt"] button');
+            assert.notStrictEqual(getComputedStyle(remove).display, 'none', 'it is there to begin with');
+
+            el.setAttribute(attribute, '');
+
+            assert.strictEqual(getComputedStyle(remove).display, 'none');
+            //the name and the size are what there is to read, and they stay
+            assert.include(el.querySelector('ful-item[data-name="a.txt"]').textContent, 'a.txt');
+        });
+
         it(`mirrors the ${claim} from markup`, async () => {
             const [el] = await mount(`<ful-input-file ${attribute}>files</ful-input-file>`);
             const input = el.querySelector('input[type=file]');
@@ -588,6 +632,84 @@ describe('InputFile disabled and readonly claims', () => {
             }
         });
     }
+    it('drops the picker button while readonly, the input taking back its padding', async () => {
+        const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
+        const input = el.querySelector('input[type=file]');
+        const button = () => getComputedStyle(input, '::file-selector-button');
+
+        el.setAttribute('readonly', '');
+
+        //the value is fixed, so the button offers a gesture that will not come
+        assert.strictEqual(button().display, 'none');
+        assert.notStrictEqual(getComputedStyle(input).paddingLeft, '0px');
+        assert.notStrictEqual(getComputedStyle(input).display, 'none', 'the input keeps showing the file name');
+    });
+
+    it('keeps the picker button while disabled, dimmed as the platform dims its own', async () => {
+        const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
+        const input = el.querySelector('input[type=file]');
+        const button = () => getComputedStyle(input, '::file-selector-button');
+
+        el.setAttribute('disabled', '');
+
+        //unavailable rather than absent, so it is shown and dimmed
+        assert.notStrictEqual(button().display, 'none');
+        assert.strictEqual(button().opacity, '0.5');
+        assert.strictEqual(getComputedStyle(input).paddingLeft, '0px', 'the button still sits flush');
+    });
+
+    it('is its item list while readonly, the way ful-select is', async () => {
+        const [el] = await mount(`<ful-input-file multiple item-list>files</ful-input-file>`);
+        pick(el, file('a.txt'));
+        const group = el.querySelector('ful-control-group');
+
+        el.setAttribute('readonly', '');
+
+        //the value is fixed and the rows already carry the names
+        assert.strictEqual(getComputedStyle(group).display, 'none');
+        assert.notStrictEqual(getComputedStyle(el.querySelector('ful-item-list')).display, 'none');
+    });
+
+    it('lines a readonly item list up with an ordinary input beside it', async () => {
+        const container = appended(`
+            <div>
+                <ful-input name="plain" value="a value">A normal input</ful-input>
+                <ful-input-file name="files" item-list readonly>Readonly file</ful-input-file>
+            </div>`);
+        const plain = container.querySelector('ful-input');
+        const claimed = container.querySelector('ful-input-file');
+        await Rendering.waitFor(plain);
+        await Rendering.waitFor(claimed);
+        const transfer = new DataTransfer();
+        transfer.items.add(new File(['x'], 'report.pdf'));
+        claimed.files = transfer.files;
+
+        //a row stands as tall as a control, so a field that is nothing but its
+        //list occupies exactly what the field beside it does
+        const control = plain.querySelector('ful-control-group').getBoundingClientRect().height;
+        const list = claimed.querySelector('ful-item-list').getBoundingClientRect().height;
+        assert.closeTo(list, control, 1, 'the list stands where the control would');
+        assert.closeTo(
+            claimed.getBoundingClientRect().height,
+            plain.getBoundingClientRect().height,
+            1,
+            'so the two fields are the same height',
+        );
+    });
+
+    it('keeps the control while disabled, which says unavailable rather than absent', async () => {
+        const [el] = await mount(`<ful-input-file multiple item-list>files</ful-input-file>`);
+        pick(el, file('a.txt'));
+        const group = el.querySelector('ful-control-group');
+
+        el.setAttribute('disabled', '');
+
+        //a form that re-enables the field must not make the page jump, and the
+        //platform never hides a disabled control either
+        assert.notStrictEqual(getComputedStyle(group).display, 'none');
+        assert.notStrictEqual(getComputedStyle(el.querySelector('ful-item-list')).display, 'none');
+    });
+
     it('mirrors the disabled claim, live', async () => {
         const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
         const input = el.querySelector('input[type=file]');

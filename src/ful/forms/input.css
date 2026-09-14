@@ -12,14 +12,19 @@
         --ful-item-list-item-bg: var(--ful-active-bg);
 
         display: grid;
-        gap: 4px;
+        /*
+        room for a focused row's outline to sit in: at the four pixels this was,
+        the ring landed on the rows either side and read as a smudge between them
+        rather than as a ring around one
+        */
+        gap: 0.5rem;
 
         & > ful-item:first-child {
-            margin-top: 6px;
+            margin-top: 0.5rem;
         }
 
         & > ful-item:last-child {
-            margin-bottom: 6px;
+            margin-bottom: 0.5rem;
         }
 
         & > ful-item > div {
@@ -27,13 +32,37 @@
             align-items: center;
             gap: 0.5rem;
             min-width: 0;
+            /*
+            a row stands as tall as a control, the outer height of a control
+            group rather than the inner one, so a field that is nothing but its
+            item list lines up with an ordinary input beside it in a form. A
+            longer list runs past it, which there is no helping, but the first
+            row is where the eye looks for the control
+            */
+            min-height: calc(var(--ful-controls-height) + 2 * var(--ful-controls-border-width));
             padding: 5px 0.25rem 5px 0.5rem;
             color: var(--ful-item-list-item-color);
             border-radius: var(--ful-item-list-item-border-radius);
             background-color: var(--ful-item-list-item-bg);
 
-            &:focus-within {
-                box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ful-active-color) 40%, transparent);
+            /*
+            an outline rather than the theme's box-shadow ring, which is the one
+            place in the library that departs from it and does so because the row
+            is filled with the accent: a translucent ring of the same accent reads
+            as a smudge against it, while an outline set off from the row shows
+            the page through the gap and stays a ring. The offset also means the
+            gap is whatever is actually behind the row, so a list on a dimmed or
+            coloured surface needs no second rule.
+
+            It replaced a halo of --ful-active-color at 40 percent, which is #fff
+            in both themes: invisible on a light page, a glare on a dark one, and
+            the remove button clears its own outline and leans on this for the
+            indicator. Keyed on :focus-visible through :has, the way .ful-button
+            keys its own, so a click does not raise a ring only the keyboard should
+            */
+            &:has(:focus-visible) {
+                outline: 2px solid var(--ful-active-bg);
+                outline-offset: 2px;
             }
 
             & > span {

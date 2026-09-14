@@ -25,23 +25,43 @@
             }
         }
 
-        &[item-list][readonly],
-        &[item-list]:disabled {
+        /*
+        readonly only: the value is fixed and the rows already carry it, so the
+        control is noise. A disabled field keeps its control, dimmed, because
+        disabled says the control is there and unavailable rather than absent,
+        and a form that re-enables it must not make the page jump
+        */
+        &[item-list][readonly] {
             & > ful-control-group {
                 display: none;
             }
 
+            /*
+            the list stands where the control stood, so it starts and ends where
+            the control group would have: the margins that space a list under a
+            control have nothing to sit under here
+            */
             & > ful-item-list > ful-item:first-child {
                 margin-top: 0;
             }
 
-            & > ful-item-list button {
-                display: none;
+            & > ful-item-list > ful-item:last-child {
+                margin-bottom: 0;
             }
+        }
 
-            & > ful-item-list > ful-item > div {
-                padding-right: 0.5rem;
-            }
+        /*
+        the remove button is an affordance for a gesture both claims refuse, so
+        it goes under either one, and the row takes back the space it held
+        */
+        &[readonly] > ful-item-list button,
+        &:disabled > ful-item-list button {
+            display: none;
+        }
+
+        &[readonly] > ful-item-list > ful-item > div,
+        &:disabled > ful-item-list > ful-item > div {
+            padding-right: 0.5rem;
         }
 
         &:disabled,

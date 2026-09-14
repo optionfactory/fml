@@ -125,37 +125,57 @@
     </fieldset>
 
     <fieldset>
-        <legend>readonly</legend>
-        <ful-input-file item-list dropzone readonly>
+        <legend>readonly, carrying a selection</legend>
+        <ful-input-file class="seeded" item-list dropzone readonly>
             Single, readonly
         </ful-input-file>
-        <ful-input-file multiple item-list dropzone readonly>
+        <ful-input-file class="seeded" multiple item-list dropzone readonly>
             Multiple, readonly
         </ful-input-file>
     </fieldset>
 
     <fieldset>
-        <legend>disabled</legend>
-        <ful-input-file item-list dropzone disabled>
+        <legend>disabled, carrying a selection</legend>
+        <ful-input-file class="seeded" item-list dropzone disabled>
             Single, disabled
         </ful-input-file>
-        <ful-input-file multiple item-list dropzone disabled>
+        <ful-input-file class="seeded" multiple item-list dropzone disabled>
             Multiple, disabled
         </ful-input-file>
     </fieldset>
 
     <fieldset disabled>
-        <legend>in a disabled fieldset</legend>
-        <ful-input-file item-list dropzone>
+        <legend>in a disabled fieldset, carrying a selection</legend>
+        <ful-input-file class="seeded" item-list dropzone>
             Single
         </ful-input-file>
-        <ful-input-file multiple item-list dropzone>
+        <ful-input-file class="seeded" multiple item-list dropzone>
             Multiple
         </ful-input-file>
     </fieldset>
     <script src="../markup.js"></script>
     <script>
         ftl.registry.plugin(new ful.Plugin()).configure();
+
+        /*
+         * a claimed field takes no new files, so the ones below are put there
+         * for it: an empty readonly or disabled field shows nothing at all and
+         * demonstrates nothing, the point being what a frozen selection looks
+         * like
+         */
+        const seed = (el) => {
+            const transfer = new DataTransfer();
+            transfer.items.add(new File(['a report'], 'report.pdf', { type: 'application/pdf' }));
+            if (el.multiple) {
+                transfer.items.add(new File(['a photo'], 'photo.jpg', { type: 'image/jpeg' }));
+            }
+            el.files = transfer.files;
+        };
+        ftl.registry.ready().then(() => {
+            for (const el of document.querySelectorAll('ful-input-file.seeded')) {
+                seed(el);
+            }
+        });
     </script>
 </body>
 

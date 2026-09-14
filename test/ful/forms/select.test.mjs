@@ -828,6 +828,28 @@ describe('Select key types', () => {
     });
 });
 
+describe('Item list focus', () => {
+    it('rings a focused row with the theme ring rather than a white halo', async () => {
+        const [selectEl] = await mountSelect(
+            `<ful-select name="tags" multiple item-list value="k1">labels</ful-select>`,
+            labelling(ONE_OPTION),
+        );
+        const row = selectEl.querySelector('ful-item > div');
+        assert.isNotNull(row, 'the list rendered a row to focus');
+        assert.strictEqual(getComputedStyle(row).outlineStyle, 'none', 'nothing while unfocused');
+
+        row.querySelector('button').focus();
+
+        //an outline set off from the row, not a translucent halo: the old one was
+        //--ful-active-color at 40 percent, which is #fff in both themes, so it was
+        //invisible on a light page and a glare on a dark one
+        const focused = getComputedStyle(row);
+        assert.strictEqual(focused.outlineStyle, 'solid', 'the keyboard focus is shown');
+        assert.notInclude(focused.outlineColor, '255, 255, 255', 'and not as white on white');
+        assert.notStrictEqual(focused.outlineOffset, '0px', 'set off, so the page shows through the gap');
+    });
+});
+
 describe('Select enter key inside a form', () => {
     const mount = mountSelect;
     let submits = [];
