@@ -4,13 +4,22 @@ import { SectionRequests } from '../events/sections.mjs';
 import { Failure } from '../../httpc/index.mjs';
 import { wireTargets } from './targets.mjs';
 
-/** A side panel drawer on the native dialog platform, update() owning its open-deliver cycle. */
+/**
+ * A side panel drawer on the native dialog platform, update() owning its
+ * open-deliver cycle.
+ *
+ * The `header` slot is content beside the title, before it: an icon, a badge, a
+ * status. It sits outside the heading rather than in it because `update()` sets
+ * the title through `textContent`, which would take anything nested there with
+ * it.
+ */
 class Drawer extends ParsedElement {
     static attributes = ['title', 'placement'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-drawer">
             <header>
+                {{{{ slots.header }}}}
                 <h2 data-ref="title">{{ title }}</h2>
                 <button type="button" data-ref="close" data-tpl-aria-label="#l10n:t('drawer.close')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </header>

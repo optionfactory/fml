@@ -1,6 +1,6 @@
 import { ParsedElement } from '../../ftl/index.mjs';
 import { SectionRequests } from '../events/sections.mjs';
-import { wireAnchoredPopover } from './anchors.mjs';
+import { Anchors } from './anchors.mjs';
 import { wireTargets } from './targets.mjs';
 
 /** An info icon button toggling a popover with a short explanation. */
@@ -21,7 +21,7 @@ class Tooltip extends ParsedElement {
         //placed here rather than by the anchor css: the note draws a callout that
         //has to point at the trigger wherever the viewport left room for the note,
         //which is a measurement the stylesheet cannot make for a pseudo-element
-        wireAnchoredPopover(trigger, content, { prefix: 'ful-tooltip', invoke: true, expanded: true, handPlace: true });
+        Anchors.wire(trigger, content, { prefix: 'ful-tooltip', invoke: true, expanded: true, handPlace: true });
         const placement = this.declared('placement');
         if (placement) {
             content.setAttribute('placement', placement);

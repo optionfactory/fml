@@ -297,3 +297,32 @@ describe('Drawer, the declarative content against update()', () => {
         assert.strictEqual(drawer.querySelector('[data-ref=content] > .ful-section-error'), null);
     });
 });
+
+describe('Drawer header slot', () => {
+    it('renders slotted content in the header, before the title', async () => {
+        const [el] = await mount(
+            '<ful-drawer title="Nave"><i slot="header" class="bi bi-water"></i>body</ful-drawer>',
+        );
+        const header = el.querySelector('header');
+        const icon = header.querySelector('i');
+        assert.isNotNull(icon, 'the slot is rendered into the header');
+        assert.strictEqual(icon.className, 'bi bi-water');
+        assert.strictEqual(
+            header.firstElementChild.tagName,
+            'I',
+            'before the title, where a leading affordance belongs',
+        );
+    });
+
+    it('keeps it when the title changes, the title being set as text', async () => {
+        const [el] = await mount('<ful-drawer title="a"><i slot="header"></i>body</ful-drawer>');
+        await el.update('Dati Nave', async () => document.createElement('p'));
+        assert.strictEqual(el.querySelector('header > h2').textContent, 'Dati Nave');
+        assert.strictEqual(el.querySelectorAll('header > i').length, 1, 'the slot survives the title');
+    });
+
+    it('renders no stray node when nothing is slotted', async () => {
+        const [el] = await mount('<ful-drawer title="a">body</ful-drawer>');
+        assert.strictEqual(el.querySelector('header').firstElementChild.tagName, 'H2');
+    });
+});

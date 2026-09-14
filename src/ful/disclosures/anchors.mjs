@@ -36,8 +36,14 @@ const reportCallout = (popover, invoker) => {
     const box = invoker.getBoundingClientRect();
     const here = popover.getBoundingClientRect();
     //against the padding box, which is what a percentage inset resolves against
-    popover.style.setProperty('--ful-note-callout-inline', `${box.left + box.width / 2 - here.left - popover.clientLeft}px`);
-    popover.style.setProperty('--ful-note-callout-block', `${box.top + box.height / 2 - here.top - popover.clientTop}px`);
+    popover.style.setProperty(
+        '--ful-note-callout-inline',
+        `${box.left + box.width / 2 - here.left - popover.clientLeft}px`,
+    );
+    popover.style.setProperty(
+        '--ful-note-callout-block',
+        `${box.top + box.height / 2 - here.top - popover.clientTop}px`,
+    );
 };
 
 const place = (popover, anchored) => {
@@ -141,66 +147,92 @@ const schedule = () => {
 };
 
 /**
- * Wires an invoker/popover pair ful anchors through css: where the
- * platform lacks anchor positioning the popover is placed beside its
- * invoker whenever it opens, stretched to the invoker's width when
- * asked, and cleaned up when it closes. Where the css works the call
- * is a no-op.
- *
- * `handPlace` takes the placement here on every platform, which a popover
- * asks for when it needs to know where its invoker ended up: the note's
- * callout points at the invoker, and a pseudo-element cannot read an anchor
- * that is not inside its own containing block, so the note is measured rather
- * than placed by the css. Its stylesheet declares no position-area to match.
+ * CSS anchor positioning for a popover and the invoker it belongs to, with the
+ * hand-placed fallback for the platforms that do not have it.
  */
-const wireAnchoredPopover = (
-    invoker,
-    popover,
-    { prefix = 'ful-anchor', invoke = false, expanded = false, stretch = false, handPlace = false } = {},
-) => {
-    const uid = Attributes.uid(prefix);
-    if (invoke) {
-        //popovertarget needs a target that can be named
-        popover.id = popover.id || uid;
-        invoker.setAttribute('popovertarget', popover.id);
-    }
-    const anchor = `--${uid}`;
-    invoker.style.anchorName = anchor;
-    popover.style.positionAnchor = anchor;
-    if (expanded) {
-        invoker.setAttribute('aria-expanded', 'false');
-        popover.addEventListener('toggle', (/** @type any */ evt) => {
-            invoker.setAttribute('aria-expanded', evt.newState === 'open' ? 'true' : 'false');
+class Anchors {
+    /**
+     * Anchors a popover to its invoker.
+     *
+     * The invoker is given an `anchor-name` and the popover a `position-anchor`
+     * pointing at it, which is what a stylesheet needs to place the popover
+     * itself: the library's own menus say `top: anchor(bottom); left:
+     * anchor(left)`. **Writing that css is the caller's half of this.** Without
+     * it the popover lands wherever the user agent puts a popover, which is not
+     * beside the invoker.
+     *
+     * Where the platform has no anchor positioning the popover is placed here
+     * instead, beside the invoker whenever it opens, clamped into the viewport,
+     * following it on scroll and resize, and cleaned up on close. That placement
+     * draws the geometry the css above describes, so the two agree.
+     *
+     * @param {HTMLElement} invoker the element the popover belongs to
+     * @param {HTMLElement} popover the `[popover]` element to place
+     * @param {object} [options]
+     * @param {string} [options.prefix] prefixes the generated anchor name and id,
+     *   so the dom says which component a name belongs to
+     * @param {boolean} [options.invoke] points the invoker's `popovertarget` at
+     *   the popover, giving toggle and light dismiss with no script of your own
+     * @param {boolean} [options.expanded] keeps the invoker's `aria-expanded` in
+     *   step with the popover
+     * @param {boolean} [options.stretch] widens the popover to its invoker, which
+     *   is what a combobox dropdown wants
+     * @param {boolean} [options.handPlace] places here on every platform rather
+     *   than only as a fallback, which a popover asks for when it needs to know
+     *   where its invoker ended up: the tooltip's note points a callout at it, and
+     *   a pseudo-element cannot read an anchor outside its own containing block.
+     *   Such a popover declares no anchor placement in css, there being none to
+     *   agree with
+     */
+    static wire(
+        invoker,
+        popover,
+        { prefix = 'ful-anchor', invoke = false, expanded = false, stretch = false, handPlace = false } = {},
+    ) {
+        const uid = Attributes.uid(prefix);
+        if (invoke) {
+            //popovertarget needs a target that can be named
+            popover.id = popover.id || uid;
+            invoker.setAttribute('popovertarget', popover.id);
+        }
+        const anchor = `--${uid}`;
+        invoker.style.anchorName = anchor;
+        popover.style.positionAnchor = anchor;
+        if (expanded) {
+            invoker.setAttribute('aria-expanded', 'false');
+            popover.addEventListener('toggle', (/** @type any */ evt) => {
+                invoker.setAttribute('aria-expanded', evt.newState === 'open' ? 'true' : 'false');
+            });
+        }
+        //the naming above is what the stylesheet reads, so it happens either way:
+        //only the hand placement below is the fallback, and only for a popover that
+        //did not ask to be placed here whatever the platform offers
+        if (!handPlace && platformAnchors()) {
+            return;
+        }
+        const anchored = { invoker, stretch };
+        popover.addEventListener('beforetoggle', (/** @type any */ evt) => {
+            //placed before the showing, refined once laid out: the platform's
+            //centered or corner spot never paints
+            if (evt.newState === 'open') {
+                place(popover, anchored);
+            }
         });
-    }
-    //the naming above is what the stylesheet reads, so it happens either way:
-    //only the hand placement below is the fallback, and only for a popover that
-    //did not ask to be placed here whatever the platform offers
-    if (!handPlace && platformAnchors()) {
-        return;
-    }
-    const anchored = { invoker, stretch };
-    popover.addEventListener('beforetoggle', (/** @type any */ evt) => {
-        //placed before the showing, refined once laid out: the platform's
-        //centered or corner spot never paints
-        if (evt.newState === 'open') {
-            place(popover, anchored);
+        popover.addEventListener('toggle', (/** @type any */ evt) => {
+            if (evt.newState === 'open') {
+                open.set(popover, anchored);
+                place(popover, anchored);
+            } else {
+                open.delete(popover);
+                unplace(popover);
+            }
+        });
+        if (!reflowWired) {
+            reflowWired = true;
+            document.addEventListener('scroll', schedule, true);
+            window.addEventListener('resize', schedule);
         }
-    });
-    popover.addEventListener('toggle', (/** @type any */ evt) => {
-        if (evt.newState === 'open') {
-            open.set(popover, anchored);
-            place(popover, anchored);
-        } else {
-            open.delete(popover);
-            unplace(popover);
-        }
-    });
-    if (!reflowWired) {
-        reflowWired = true;
-        document.addEventListener('scroll', schedule, true);
-        window.addEventListener('resize', schedule);
     }
-};
+}
 
-export { wireAnchoredPopover };
+export { Anchors };

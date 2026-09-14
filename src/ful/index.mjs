@@ -34,6 +34,7 @@ export {
     TextFilter,
 } from './forms/filters.mjs';
 import './forms/filters.css';
+export { Anchors } from './disclosures/anchors.mjs';
 export { Tooltip, Dialog } from './disclosures/info.mjs';
 import './disclosures/info.css';
 export { Drawer } from './disclosures/drawer.mjs';

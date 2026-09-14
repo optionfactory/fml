@@ -313,6 +313,7 @@
                 "title": "The drawer's title, shown in its header. Text only, and also what update() re-titles the panel with."
             },
             "slots": {
+                "header": "Content beside the title and before it: an icon, a badge, a status. It sits outside the heading rather than in it, update() setting the title through textContent and taking anything nested there with it.",
                 "default": "The drawer body, shown when update() never replaced it."
             },
             "events": {

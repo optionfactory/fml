@@ -1,6 +1,6 @@
 import { Attributes, Fragments, ParsedElement, Templates } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
-import { wireAnchoredPopover } from '../disclosures/anchors.mjs';
+import { Anchors } from '../disclosures/anchors.mjs';
 import { Field } from './field.mjs';
 import { VersionedLocalStorage } from '../storage.mjs';
 import { Timing } from '../timing.mjs';
@@ -532,7 +532,7 @@ class Select extends Field {
         });
         //each pair carries its own anchor: two selects on a page must not share one
         const group = fragment.querySelector('ful-control-group');
-        wireAnchoredPopover(group, this.#ddmenu, { prefix: 'ful-select', stretch: true });
+        Anchors.wire(group, this.#ddmenu, { prefix: 'ful-select', stretch: true });
         [this.#dload, this.#abortdload] = Timing.throttle(400, () => this.#open());
         this.#wireChrome();
         this.#wireChips();

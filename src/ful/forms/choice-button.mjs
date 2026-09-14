@@ -1,5 +1,5 @@
 import { Attributes } from '../../ftl/index.mjs';
-import { wireAnchoredPopover } from '../disclosures/anchors.mjs';
+import { Anchors } from '../disclosures/anchors.mjs';
 
 /**
  * An invoker button paired with the `ul[popover][role=menu]` that follows it:
@@ -145,7 +145,7 @@ class ChoiceButton {
     #wire() {
         const button = this.#button;
         const menu = this.#menu;
-        wireAnchoredPopover(button, menu, { prefix: 'ful-filter-menu', invoke: true, expanded: true });
+        Anchors.wire(button, menu, { prefix: 'ful-filter-menu', invoke: true, expanded: true });
         menu.addEventListener('toggle', (/** @type any */ evt) => {
             if (evt.newState !== 'open') {
                 //give the invoker back the focus the menu had borrowed, without
