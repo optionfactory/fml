@@ -26,16 +26,10 @@ class Checkbox extends Field {
             evt.stopPropagation();
             this._notifyChange();
         });
+        //the base points the label at the input with for/id, so the click toggles
+        //the way it does in a plain form: the input's own change listener above
+        //carries the notification, and readonly is refused by the freeze below
         const label = fragment.querySelector('label');
-        //the label neither wraps the input nor targets it, so the toggle is the
-        //field's; the base adds the focus
-        label.addEventListener('click', () => {
-            if (!this._interactive()) {
-                return;
-            }
-            this.value = !this.value;
-            this._notifyChange();
-        });
         //a checkbox has no editable text to preserve, so readonly freezes the
         //whole choice, label click included: the container is the frozen piece
         return {

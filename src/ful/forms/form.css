@@ -122,6 +122,18 @@
         cursor: pointer;
     }
 
+    /**
+     * The cell owns the geometry of whatever button sits in it. A button carrying
+     * .ful-button keeps the accent colours, which is the point of reaching for the
+     * class, but the class outranks the element selector above and would keep its
+     * own border and corner radius too, rounding a corner inside a cell that has
+     * already drawn one and drawing a border where the group has one.
+     */
+    ful-affix > button.ful-button {
+        border: 0;
+        border-radius: 0;
+    }
+
     ful-control {
         position: relative;
         display: flex;

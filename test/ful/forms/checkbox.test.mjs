@@ -20,7 +20,7 @@ const changes = (container) => {
 };
 
 describe('Checkbox toggling', () => {
-    it('toggles the value when the label is clicked, as the label is not natively bound to the input', async () => {
+    it('toggles the value when the label is clicked, the label being bound to the input by for and id', async () => {
         const [el, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         label.click();
@@ -179,10 +179,22 @@ describe('Checkbox validity', () => {
     });
 
     it('describes the input by its field error, so the message is read out with the control', async () => {
-        const [el, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
-        assert.deepStrictEqual(input.ariaDescribedByElements, [el.querySelector('ful-field-error')]);
-        assert.deepStrictEqual(input.ariaLabelledByElements, [label]);
+        const fieldError = el.querySelector('ful-field-error');
+        assert.isNotEmpty(fieldError.id, 'the error region is given an id to be pointed at');
+        assert.strictEqual(input.getAttribute('aria-describedby'), fieldError.id);
+    });
+
+    it('names the input with for and id, so the dom carries the association', async () => {
+        //identity rather than deepStrictEqual: chai formats a failed deep compare
+        //over dom nodes and the run hangs instead of reporting
+        const [, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+
+        assert.isNotEmpty(input.id, 'the control is given an id to be pointed at');
+        assert.strictEqual(label.getAttribute('for'), input.id);
+        assert.lengthOf(input.labels, 1, 'the platform sees the association, not only the a11y tree');
+        assert.isTrue(input.labels[0] === label);
     });
 });
 

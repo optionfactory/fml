@@ -13,7 +13,7 @@ An http client
 ## ful
 A no-build web components library based on ftl
 
-ful fields report their values through `ful-form`'s intercepted submit: a plain `<form>` carrying them submits none of their values. Expressions compare strictly (`==` is `===`, and there is no coercing spelling), and message placeholders are `\w+` names: `{amount}` yes, `{user-name}` no.
+ful fields report their values through `ful-form`'s intercepted submit: a plain `<form>` carrying them submits none of their values. Expressions compare strictly (`==` is `===`, and there is no coercing spelling), and message placeholders are `\w+` names: `{amount}` yes, `{user-name}` no. Every field names its control in the markup, a `<label for>` pointing at it or `aria-labelledby` where the control is not something a `for` may target, so an accessibility audit and the browser's autofill read the label too and not assistive technology alone.
 
 ### Localization
 
@@ -83,10 +83,9 @@ See `examples/ful/kitchen-sink.html` for a page showing every component in its n
 
 fml targets evergreen browsers from spring 2024. The hard floor is Chrome/Edge 123 (March 2024), Firefox 125 (April 2024) and Safari 17.5 (May 2024), set by the newest platform features the library leans on everywhere: `light-dark()`, the Popover API, `Promise.withResolvers`, `:has()` and native CSS nesting. Below the floor, script or styling fail outright.
 
-Two features degrade instead of breaking under newer floors of their own, and another carries its own fallback:
+One feature degrades instead of breaking under a newer floor of its own, and another carries its own fallback:
 
 - the flash guard that keeps a field invisible until it has rendered is a custom state matched with `:state()`, Baseline since May 2024: Chrome/Edge 125, Firefox 126, Safari and iOS 17.4, so Safari is already below the hard floor and only Chrome 123-124 and Firefox 125 are affected. There the rule is dropped and a field shows for the moment between being parsed and being rendered
-- the fields' label and description wiring uses aria element reflection, Baseline since April 2025: an older browser keeps the visible layout intact while assistive technology silently loses the label and description associations
 - anchored popovers (the tooltip's note, the select's dropdown, the filter and boolean-value menus) need CSS anchor positioning: Chrome/Edge 129 (September 2024), Safari 26 (September 2025), Firefox 147 (January 2026; Firefox's support is partial against the full specification, but covers the subset fml uses, `anchor-name`, `position-anchor`, `position-area` (Baseline since January 2026), `anchor()` and `anchor-size()`). Below these a hand-placed fallback keeps the popovers anchored beside their invoker, and never runs where the css works
 
 On iOS every browser runs the system WebKit, so the floor reads in iOS versions: iOS 17.5 (May 2024) or newer, which every iPhone from the XS/XR (2018) onward can reach; the anchored popovers fall back to hand placing below iOS 26 (September 2025).

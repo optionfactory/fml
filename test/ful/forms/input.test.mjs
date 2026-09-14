@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
-import { Plugin } from '../../../src/ful/index.mjs';
+import { Field, Plugin } from '../../../src/ful/index.mjs';
 import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
@@ -635,5 +635,96 @@ describe('Input autocomplete under a form built in script', () => {
         await Rendering.waitFor(form);
         await Rendering.waitFor(input);
         assert.strictEqual(input.querySelector('input').getAttribute('autocomplete'), 'off');
+    });
+});
+
+describe('A button in an affix', () => {
+    it('takes the cell geometry even carrying the accent class', async () => {
+        //.ful-button outranks the shared affix rule, and should for its colours:
+        //the corner radius and the border are the cell's to draw, not the button's
+        const [el] = await mount('<ful-input name="a">l<button class="ful-button" slot="after">Go</button></ful-input>');
+        const button = el.querySelector('ful-affix > button');
+        const style = getComputedStyle(button);
+        assert.strictEqual(style.borderRadius, '0px');
+        assert.strictEqual(style.borderTopWidth, '0px');
+    });
+});
+
+describe('Naming the control from the label', () => {
+    //every assertion here compares primitives: chai formats a failed compare over
+    //a dom node or a NodeList and the run hangs instead of reporting the failure
+    for (const [tag, control] of [
+        ['ful-input', 'input'],
+        ['ful-input-local-date', 'input'],
+        ['ful-select', 'input'],
+        ['ful-input-file', 'input'],
+        ['ful-filter-text', 'input'],
+        ['ful-filter-boolean', '[data-ref=value]'],
+    ]) {
+        it(`${tag} points its label at the control with for and id`, async () => {
+            const [el] = await mount(`<${tag} name="a">Città</${tag}>`);
+            const target = el.querySelector(control);
+            const label = el.querySelector('label');
+
+            assert.isNotEmpty(target.id, `${tag}: the control is given an id to be pointed at`);
+            assert.strictEqual(label.getAttribute('for'), target.id, `${tag}: for points at it`);
+            assert.strictEqual(target.labels.length, 1, `${tag}: the dom carries the association`);
+            assert.isTrue(target.labels[0] === label, `${tag}: and it is this label`);
+            assert.isNull(
+                target.getAttribute('aria-labelledby'),
+                `${tag}: the aria fallback is not used as well`,
+            );
+        });
+    }
+
+    it('gives two fields on one page ids of their own', async () => {
+        const [a] = await mount('<ful-input name="a">A</ful-input>');
+        const [b] = await mount('<ful-input name="b">B</ful-input>');
+        assert.notStrictEqual(a.querySelector('input').id, b.querySelector('input').id);
+    });
+
+    it('keeps a declared id rather than overwriting it', async () => {
+        const [el] = await mount('<ful-input name="a" input-id="mine">A</ful-input>');
+        assert.strictEqual(el.querySelector('input').id, 'mine');
+        assert.strictEqual(el.querySelector('label').getAttribute('for'), 'mine');
+    });
+
+    it('falls back to aria where the control is not labelable', async () => {
+        //nothing in the library reaches this branch: every field that hands the base
+        //a label hands it a labelable control too. It is here for a ful.Field of your
+        //own, the Rating in the extending-fields page among them, whose control is a
+        //ful-control carrying role=radiogroup
+        class Rating extends Field {
+            static slots = true;
+            static template = `
+                <label>{{{{ slots.default }}}}</label>
+                <ful-control-group><ful-control data-ref="stars" role="radiogroup" tabindex="0"></ful-control></ful-control-group>
+                <ful-field-error></ful-field-error>`;
+            _build({ slots }) {
+                const fragment = this.template().withOverlay({ slots }).render();
+                return {
+                    fragment,
+                    control: fragment.querySelector('[data-ref=stars]'),
+                    error: fragment.querySelector('ful-field-error'),
+                    label: fragment.querySelector('label'),
+                };
+            }
+        }
+        registry.defineElement('x-rating', Rating);
+
+        const [el] = await mount('<x-rating name="a">Voto</x-rating>');
+        const control = el.querySelector('[data-ref=stars]');
+        const label = el.querySelector('label');
+
+        assert.isNull(label.getAttribute('for'), 'for would point at nothing labelable');
+        assert.isNotEmpty(label.id, 'the label is given an id to be pointed at');
+        assert.strictEqual(control.getAttribute('aria-labelledby'), label.id);
+        //the attribute and the aria element property are the same thing reflected,
+        //so writing the attribute drives the property too where it is supported and
+        //stands on its own where it is not
+        assert.strictEqual(control.ariaLabelledByElements.length, 1);
+
+        label.click();
+        assert.isTrue(document.activeElement === control, 'the handler stands in for the click');
     });
 });

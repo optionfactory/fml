@@ -89,12 +89,16 @@ class Field extends ParsedElement {
         //the error region describes the control, or the host where there is no
         //single control to describe (a radio group's legend names its fieldset)
         if (error) {
-            (described ?? control).ariaDescribedByElements = [error];
+            //an attribute, not the aria element property: the property reflects to
+            //nothing, so the description lived in the accessibility tree alone and
+            //vanished entirely on a browser without aria element reflection
+            if (!error.id) {
+                error.id = Attributes.uid('ful-field-error');
+            }
+            (described ?? control).setAttribute('aria-describedby', error.id);
         }
         if (label) {
-            control.ariaLabelledByElements = [label];
-            //a label that does not natively target the control still focuses it
-            label.addEventListener('click', () => this.focus());
+            Field.#name(this, label, control);
         }
         //the platform's implicit submission, stood in for where the field's own
         //protocol took it away: the inner controls carry form="", so Enter in one
@@ -182,6 +186,49 @@ class Field extends ParsedElement {
                 detail: { value: this.value, ...extras },
             }),
         );
+    }
+    /** The html elements a label's `for` may point at, `input[type=hidden]` excepted. */
+    static #LABELABLE = new Set(['BUTTON', 'INPUT', 'METER', 'OUTPUT', 'PROGRESS', 'SELECT', 'TEXTAREA']);
+    /**
+     * Names the control from the field's label, natively wherever the platform
+     * allows it.
+     *
+     * `for` and `id` are the form the dom itself carries, so the association is
+     * there for anything reading the markup rather than the accessibility tree:
+     * an audit tool, the browser's autofill, a translation pass. It also makes
+     * the label's click reach the control the way it does in a plain form, which
+     * is focus for a text control and activation for a checkbox, so the field
+     * needs no handler of its own.
+     *
+     * A control the platform will not let a label target, a composite carrying
+     * `role="radiogroup"` among them, takes `aria-labelledby` instead. That is an
+     * attribute too, so the association is equally visible; what it does not carry
+     * is the label's click, which is why the handler stays on that path only.
+     *
+     * Neither branch uses `ariaLabelledByElements`. The property reflects to no
+     * attribute, so the name lived in the accessibility tree alone: nothing reading
+     * the dom saw it, and on a browser without aria element reflection the
+     * assignment is a silent expando and the field has no name at all.
+     * @param {any} field
+     * @param {HTMLElement} label
+     * @param {any} control
+     */
+    static #name(field, label, control) {
+        const labelable =
+            Field.#LABELABLE.has(control.tagName) && control.getAttribute('type') !== 'hidden';
+        if (!labelable) {
+            if (!label.id) {
+                label.id = Attributes.uid('ful-label');
+            }
+            control.setAttribute('aria-labelledby', label.id);
+            //aria-labelledby carries the name but not the label's click
+            label.addEventListener('click', () => field.focus());
+            return;
+        }
+        if (!control.id) {
+            control.id = Attributes.uid('ful-control');
+        }
+        label.setAttribute('for', control.id);
     }
     /**
      * Whether the field's chrome should answer a gesture. Badges, dropzones,
