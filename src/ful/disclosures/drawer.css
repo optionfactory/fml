@@ -82,14 +82,21 @@
             padding: 0.5rem 1.25rem 1rem;
             overflow-y: auto;
 
-            &[data-ref="loading"],
-            &[data-ref="error"] {
+            /*
+            the wait fills the space it is waiting in, so the spinner sits in the
+            middle of the drawer rather than under the header. The error does not:
+            it is a bordered panel around a line or two of text, and growing it to
+            the height of the drawer painted most of the panel as empty colour
+            with the message floating in the centre
+            */
+            &[data-ref="loading"] {
                 display: grid;
                 place-items: center;
                 flex-grow: 1;
             }
 
             &[data-ref="error"] {
+                margin: 0 1.25rem;
                 padding: 1rem;
                 white-space: pre-line;
                 color: var(--ful-error-color);

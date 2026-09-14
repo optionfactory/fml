@@ -2,8 +2,32 @@
 library's own custom properties where the page loads ful.css, neutral
 fallbacks where it does not*/
 
+/*
+ful declares this too, in its components layer, but four of the ftl pages do
+not load ful.css: the skeleton owns its own default rather than inheriting one
+from a stylesheet a page may not have
+*/
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 :root {
     color-scheme: light dark;
+}
+
+/*
+hidden means hidden, whatever a demo below selects. ful keeps its own
+[hidden] rule in the ful.hidden layer, and every rule on these pages is
+unlayered, so a demo rule with an id in it wins on specificity and shows an
+element the library hid: a drawer's spinner and error section alongside its
+content, for instance. !important is right here and was wrong in the library,
+which dropped its own so that a page could always win: this is the page
+binding itself, not a library binding its callers
+*/
+[hidden] {
+    display: none !important;
 }
 
 body {

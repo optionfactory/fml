@@ -153,6 +153,33 @@ describe('Tooltip, where the platform lacks CSS anchor positioning', () => {
         button.click();
     });
 
+    it('keeps the callout on the trigger where the viewport pushes the note off it', async () => {
+        const [holder] = await mount(
+            '<div style="position:absolute;left:40px;top:120px"><ful-tooltip>a rather long explanation, long enough that it cannot be centred on a trigger this close to the edge</ful-tooltip></div>',
+        );
+        const tooltip = holder.querySelector('ful-tooltip');
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+
+        const b = button.getBoundingClientRect();
+        const n = note.getBoundingClientRect();
+        const triggerCentre = b.left + b.width / 2;
+        assert.isAbove(
+            Math.abs(n.left + n.width / 2 - triggerCentre),
+            20,
+            'the note had to move off its trigger, which is what this is about',
+        );
+
+        //the callout's own offset inside the note, which is what has to follow
+        const callout = n.left + note.clientLeft + parseFloat(getComputedStyle(note, '::after').left);
+        assert.closeTo(callout, triggerCentre, 2, 'the callout still points at the trigger, not at the note');
+
+        button.click();
+    });
+
     it('places the note below the trigger, centered on it', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         container.style.marginLeft = '200px';

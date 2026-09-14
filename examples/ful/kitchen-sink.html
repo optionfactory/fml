@@ -10,7 +10,7 @@
     <link href="../base.css" rel="stylesheet">
     <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-            <style>
+    <style>
         fieldset form {
             grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
         }
@@ -20,8 +20,24 @@
             box-shadow: var(--ful-focus-box-shadow);
         }
 
-        #theme-builder section {
+        /*
+         * the drawer's content section, laid out as a grid of rows. :not([hidden])
+         * because the drawer's loading and error sections are sections too, and an
+         * unlayered page rule beats ful.hidden whatever it selects: a bare
+         * `#theme-builder section` showed the spinner and the error region
+         * alongside the content
+         */
+        /*the token is declared on the dialog, so that is where it is overridden*/
+        #theme-builder dialog.ful-drawer {
+            --ful-drawer-width: min(96vw, 44rem);
+        }
+
+        #theme-builder section:not([hidden]) {
             display: grid;
+            /*minmax(0, …) rather than the default auto: an auto track is floored at
+            the min-content of the rows, which the labels and the fixed-width inputs
+            push past the drawer, and the body then scrolled sideways*/
+            grid-template-columns: minmax(0, 1fr);
             gap: 0.375rem;
             align-content: start;
         }
@@ -54,7 +70,11 @@
         }
 
         .theme-var > input[type='text'] {
-            flex: 0 0 8.5rem;
+            /*one width for every row, so the values line up in a column, and
+            shrinkable so a narrow viewport keeps them aligned rather than
+            pushing the drawer sideways. 8.5rem truncated most of these values*/
+            flex: 0 1 20rem;
+            min-width: 0;
             min-height: 1.75rem;
             padding: 0.25rem 0.5rem;
             font-family: ui-monospace, monospace;

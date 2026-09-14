@@ -23,6 +23,23 @@ const platformAnchors = () =>
 
 const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(low, high));
 
+/** a note is the popover that draws a callout, and the only one these offsets serve */
+const isNote = (popover) => popover.matches('ful-note, .ful-note, [placement]');
+
+/**
+ * Reports where the invoker's centre falls inside the popover, which is what a
+ * callout points at. The two are the same spot until the viewport pushes the
+ * popover off its invoker, which the platform's own placement does as readily
+ * as the hand placement below, so this is measured in both.
+ */
+const reportCallout = (popover, invoker) => {
+    const box = invoker.getBoundingClientRect();
+    const here = popover.getBoundingClientRect();
+    //against the padding box, which is what a percentage inset resolves against
+    popover.style.setProperty('--ful-note-callout-inline', `${box.left + box.width / 2 - here.left - popover.clientLeft}px`);
+    popover.style.setProperty('--ful-note-callout-block', `${box.top + box.height / 2 - here.top - popover.clientTop}px`);
+};
+
 const place = (popover, anchored) => {
     const { invoker, stretch } = anchored;
     const box = invoker.getBoundingClientRect();
@@ -55,7 +72,7 @@ const place = (popover, anchored) => {
     //a popover wraps against the spot it lands on: the width is measured
     //wide open, the left clamped so it still fits, the vertical placed
     //against the height that width renders
-    const note = popover.matches('ful-note, .ful-note, [placement]');
+    const note = isNote(popover);
     const placement = note ? (popover.getAttribute('placement') ?? 'bottom') : 'bottom';
     popover.style.removeProperty('max-width');
     const cap = Math.min(parseFloat(computed.maxWidth) || vw, vw - 2 * PAD);
@@ -81,10 +98,23 @@ const place = (popover, anchored) => {
               ? box.top + box.height / 2 - height / 2
               : box.bottom + gap.top;
     popover.style.top = `${clamp(top, PAD, vh - height - PAD)}px`;
+    if (note) {
+        reportCallout(popover, invoker);
+    }
 };
 
 const unplace = (popover) => {
-    for (const property of ['top', 'left', 'right', 'bottom', 'margin', 'max-width', 'width']) {
+    for (const property of [
+        'top',
+        'left',
+        'right',
+        'bottom',
+        'margin',
+        'max-width',
+        'width',
+        '--ful-note-callout-inline',
+        '--ful-note-callout-block',
+    ]) {
         popover.style.removeProperty(property);
     }
 };

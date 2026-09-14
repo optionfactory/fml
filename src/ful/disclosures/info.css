@@ -51,6 +51,8 @@
         /* the space between the note and its invoker, which the callout points across */
         --ful-note-gap: 0.5rem;
         --ful-note-callout-size: 0.5rem;
+        /*how near a corner the callout may sit before it would leave the border's curve*/
+        --ful-note-callout-edge: calc(var(--ful-border-radius) + var(--ful-note-callout-size));
 
         display: none;
         max-width: 20rem;
@@ -94,10 +96,25 @@
             rotate: 45deg;
         }
 
-        /* below the invoker: the callout sits on the top edge and points up */
+        /*
+         * below the invoker: the callout sits on the top edge and points up.
+         *
+         * It points at the invoker rather than at the middle of the note, which
+         * are the same spot until the viewport pushes the note sideways and the
+         * two come apart by more than the note is wide. The wiring measures where
+         * the invoker's centre falls and writes it into the two custom properties
+         * below, in both placements: a pseudo-element cannot read the anchor
+         * itself, its containing block being the note rather than the page, and
+         * an anchor outside that is not one it may name. The clamp keeps the
+         * callout off the rounded corners
+         */
         &:popover-open::after {
             top: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
-            left: 50%;
+            left: clamp(
+                var(--ful-note-callout-edge),
+                var(--ful-note-callout-inline, 50%),
+                calc(100% - var(--ful-note-callout-edge))
+            );
             translate: -50% 0;
             border-block-start-width: var(--ful-border-width);
             border-inline-start-width: var(--ful-border-width);
@@ -122,7 +139,11 @@
             margin: 0 0 0 var(--ful-note-gap);
 
             &::after {
-                top: 50%;
+                top: clamp(
+                    var(--ful-note-callout-edge),
+                    var(--ful-note-callout-block, 50%),
+                    calc(100% - var(--ful-note-callout-edge))
+                );
                 left: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
                 translate: 0 -50%;
                 border-block-start-width: 0;
@@ -136,7 +157,11 @@
             margin: 0 var(--ful-note-gap) 0 0;
 
             &::after {
-                top: 50%;
+                top: clamp(
+                    var(--ful-note-callout-edge),
+                    var(--ful-note-callout-block, 50%),
+                    calc(100% - var(--ful-note-callout-edge))
+                );
                 left: auto;
                 right: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
                 translate: 0 -50%;
