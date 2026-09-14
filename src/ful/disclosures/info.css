@@ -5,6 +5,22 @@
         align-items: center;
         justify-content: center;
         vertical-align: middle;
+        /*
+         * a button does not inherit the page's font, and the correction below is
+         * written in units the font defines, so it has to read the same font the
+         * label does
+         */
+        font: inherit;
+        /*
+         * middle puts the box's centre on the midpoint of the x-height, while a
+         * line of text reads as centred on its cap height, which sits higher, so
+         * the icon rode about a tenth of an em low beside its label. The
+         * correction is half the difference between the two, taken from the font
+         * in use rather than guessed: the offset is paint only, so the label's
+         * line box does not move
+         */
+        position: relative;
+        top: calc((1ex - 1cap) / 2);
         width: 1.5rem;
         height: 1.5rem;
         padding: 0;

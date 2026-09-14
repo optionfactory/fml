@@ -10,8 +10,16 @@
     <link href="../base.css" rel="stylesheet">
     <script src="../../dist/fml.iife.min.js"></script>
     <script src="../theme.js" defer></script>
-            <style>
-        label {
+    <style>
+        /*
+         * the four placement demos below, whose label holds its tooltip beside
+         * the text. Scoped to a direct child of the fieldset: an unlayered page
+         * rule beats every ful layer whatever it selects, so a bare `label`
+         * here also reached the fields further down and stretched their labels
+         * to the full width, dropping the tooltip in their info slot onto the
+         * next line
+         */
+        fieldset > label {
             display: flex;
             align-items: center;
             gap: 0.375rem;

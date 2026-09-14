@@ -63,6 +63,31 @@ describe('Tooltip', () => {
         );
     });
 
+    it('centres the trigger on the cap height of the text it sits beside', async () => {
+        const [container] = await mount('<div><label id="beside">HEX<ful-tooltip>x</ful-tooltip></label></div>');
+        const label = container.querySelector('#beside');
+        //the baseline, read off a zero-sized box aligned to it
+        const strut = document.createElement('span');
+        strut.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+        label.insertBefore(strut, label.firstChild);
+        const baseline = strut.getBoundingClientRect().top;
+        strut.remove();
+        //the ink of the text, from the font rather than from the line box: a
+        //line of capitals reads as centred halfway up its cap height
+        const style = getComputedStyle(label);
+        const ctx = document.createElement('canvas').getContext('2d');
+        ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const ink = ctx.measureText('HEX');
+        const textCentre = baseline + (ink.actualBoundingBoxDescent - ink.actualBoundingBoxAscent) / 2;
+
+        const button = label.querySelector('ful-tooltip button').getBoundingClientRect();
+
+        //vertical-align: middle alone puts it on the midpoint of the x-height,
+        //about a tenth of an em low. The tolerance covers the whole pixel the
+        //engines round the measured ascent to
+        assert.closeTo((button.top + button.bottom) / 2, textCentre, 1, 'the trigger rides the text it explains');
+    });
+
     it('draws a callout pointing back at the trigger, which the popover overflow would otherwise clip', async () => {
         const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         const button = tooltip.querySelector('button');
