@@ -94,6 +94,7 @@ class Form extends ParsedElement {
         'response-mapper',
         'clear-invalid-on-change:presence',
         'scroll-on-error:presence',
+        'autocomplete',
     ];
     form;
     render() {
@@ -104,6 +105,10 @@ class Form extends ParsedElement {
         //internals messages custom elements have no default UI for
         form.setAttribute('novalidate', '');
         Attributes.forward('form-', this, form);
+        //the fields read it off whichever of the two they reach first, which depends
+        //on whether they upgraded before or after this render: they cannot read it
+        //off their own control, which carries form="" and so has no form owner
+        Attributes.set(form, 'autocomplete', this.declared('autocomplete'));
         form.replaceChildren(...this.childNodes);
         form.addEventListener('submit', async (e) => {
             e.preventDefault();

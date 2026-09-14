@@ -38,8 +38,14 @@
             grid-template-columns: 1fr 1fr;
         }
 
+        /*
+        the invalid colour, not the active one: an invalid group used to outline
+        every one of its labels in the accent, which is what a picked label wears,
+        so the group read as entirely selected at the moment it was being reported
+        as wrong
+        */
         &:invalid > fieldset > ful-radio-list label {
-            border-color: var(--ful-radio-group-active-bg);
+            border-color: var(--ful-invalid-border-color);
         }
     }
 

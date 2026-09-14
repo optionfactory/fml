@@ -505,3 +505,135 @@ describe('Input focus and reset', () => {
         assert.strictEqual(input.value, 'ann', 'the reset brings back the rendered value');
     });
 });
+
+describe('An invalid field that has the caret', () => {
+    //the focus rule and the invalid rule both paint the control group, and the
+    //focus one used to win: an invalid field turned the focus colour as soon as
+    //it was focused and read as healthy while the user was being told it was
+    //wrong. It showed longest on the date inputs, whose calendar holds the focus
+    for (const tag of ['ful-input', 'ful-input-local-date', 'ful-input-instant', 'ful-select']) {
+        it(`${tag} keeps the invalid border and glow`, async () => {
+            const [el] = await mount(`<${tag}>l</${tag}>`);
+            const group = el.querySelector('ful-control-group');
+
+            const validBorder = getComputedStyle(group).borderTopColor;
+            el.setCustomValidity('nope');
+            const invalidBorder = getComputedStyle(group).borderTopColor;
+            assert.notStrictEqual(invalidBorder, validBorder, 'the invalid border is its own colour');
+
+            el.setCustomValidity('');
+            el.querySelector('input').focus();
+            assert.isTrue(!!group.querySelector(':focus-visible'), 'the inner control has the visible focus');
+            const focusedValidBorder = getComputedStyle(group).borderTopColor;
+            const focusedValidShadow = getComputedStyle(group).boxShadow;
+            assert.notStrictEqual(focusedValidShadow, 'none', 'a focused field glows');
+
+            el.setCustomValidity('nope');
+            assert.strictEqual(
+                getComputedStyle(group).borderTopColor,
+                invalidBorder,
+                'the border stays the invalid colour under focus',
+            );
+            assert.notStrictEqual(
+                getComputedStyle(group).borderTopColor,
+                focusedValidBorder,
+                'the focus rule does not repaint it',
+            );
+            assert.notStrictEqual(
+                getComputedStyle(group).boxShadow,
+                focusedValidShadow,
+                'the glow is the invalid one, not the focus one',
+            );
+        });
+    }
+});
+
+describe('Input autocomplete', () => {
+    for (const tag of ['ful-input', 'ful-input-local-date', 'ful-input-instant']) {
+        it(`${tag} carries the token to its control`, async () => {
+            const [el] = await mount(`<${tag} autocomplete="street-address">l</${tag}>`);
+            assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'street-address');
+        });
+        it(`${tag} leaves the control alone when nothing is declared`, async () => {
+            const [el] = await mount(`<${tag}>l</${tag}>`);
+            assert.isFalse(el.querySelector('input').hasAttribute('autocomplete'));
+        });
+    }
+    it('carries the token to a textarea', async () => {
+        const [el] = await mount('<ful-input type="textarea" autocomplete="off">l</ful-input>');
+        assert.strictEqual(el.querySelector('textarea').getAttribute('autocomplete'), 'off');
+    });
+    it('lets the input- passthrough have the last word', async () => {
+        //the prefix is the escape hatch under the promoted attribute, not beside it
+        const [el] = await mount('<ful-input autocomplete="off" input-autocomplete="street-address">l</ful-input>');
+        assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'street-address');
+    });
+    it('is configuration, so a later write does not reach the control', async () => {
+        const [el] = await mount('<ful-input autocomplete="off">l</ful-input>');
+        el.setAttribute('autocomplete', 'street-address');
+        assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
+    });
+    it('does not let a ful-select loosen its own combobox', async () => {
+        //a filled combobox shows text matching no key: the select owns this one
+        const [el] = await mount('<ful-select autocomplete="street-address">l</ful-select>');
+        assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
+    });
+});
+
+describe('Input autocomplete inherited from the form', () => {
+    const mountIn = async (html) => {
+        const container = appended(html);
+        const el = container.querySelector('ful-input');
+        await Rendering.waitFor(container.firstElementChild);
+        await Rendering.waitFor(el);
+        return el;
+    };
+    it('takes the token a ful-form declares', async () => {
+        const el = await mountIn('<ful-form autocomplete="off"><ful-input name="a">l</ful-input></ful-form>');
+        assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
+    });
+    it('puts it on the form it renders too, so the dom says what it means', async () => {
+        const el = await mountIn('<ful-form autocomplete="off"><ful-input name="a">l</ful-input></ful-form>');
+        assert.strictEqual(el.closest('form').getAttribute('autocomplete'), 'off');
+    });
+    it('lets a field keep its own token', async () => {
+        const el = await mountIn(
+            '<ful-form autocomplete="off"><ful-input name="a" autocomplete="street-address">l</ful-input></ful-form>',
+        );
+        assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'street-address');
+    });
+    it('takes it from a plain form as well', async () => {
+        //form="" breaks the platform's own inheritance there for the same reason
+        const el = await mountIn('<form autocomplete="off"><ful-input name="a">l</ful-input></form>');
+        assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
+    });
+    it('leaves the control alone when neither declares one', async () => {
+        const el = await mountIn('<ful-form><ful-input name="a">l</ful-input></ful-form>');
+        assert.isFalse(el.querySelector('input').hasAttribute('autocomplete'));
+    });
+    it('does not reach a ful-select combobox, which stays off', async () => {
+        const container = appended('<ful-form autocomplete="street-address"><ful-select name="s">l</ful-select></ful-form>');
+        const el = container.querySelector('ful-select');
+        await Rendering.waitFor(container.firstElementChild);
+        await Rendering.waitFor(el);
+        assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
+    });
+});
+
+describe('Input autocomplete under a form built in script', () => {
+    it('takes the token when the tree is assembled before it is attached', async () => {
+        //the field is a child of a ful-form that has not rendered when the tree
+        //lands in the document: the form still upgrades first, being the ancestor
+        const form = document.createElement('ful-form');
+        form.setAttribute('autocomplete', 'off');
+        const input = document.createElement('ful-input');
+        input.setAttribute('name', 'a');
+        input.textContent = 'l';
+        form.append(input);
+        const container = appended('<div></div>');
+        container.firstElementChild.append(form);
+        await Rendering.waitFor(form);
+        await Rendering.waitFor(input);
+        assert.strictEqual(input.querySelector('input').getAttribute('autocomplete'), 'off');
+    });
+});

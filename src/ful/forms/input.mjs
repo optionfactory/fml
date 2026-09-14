@@ -22,6 +22,22 @@ const compiled = (attr, pattern) =>
  * `reject="[^0-9]"` both leave the digits. Keeping is the one worth reaching for,
  * the rejecting spelling of an allowed set being a double negative.
  */
+/**
+ * The autofill token a field inherits from the form around it.
+ *
+ * A control is rendered with `form=""` so that the host is the only thing that
+ * submits, which also leaves it without a form owner, and the platform resolves
+ * `autocomplete` through the form owner. So a form declaring it reaches nothing
+ * on its own and the field reads the setting off the form element instead.
+ *
+ * The `form` a `ful-form` renders answers here, the host copying its token onto
+ * it, and a plain `form` around ful fields answers too: the platform meant the
+ * same thing by it, and its inheritance is broken here for the same reason. An
+ * ancestor always upgrades before its descendants, so the rendered form is in
+ * place by the time a field of its own builds.
+ */
+const inheritedAutocomplete = (el) => el.closest('form')?.getAttribute('autocomplete') ?? null;
+
 const warnedBoth = new WeakSet();
 const filterOf = (el) => {
     const keep = el.declared('keep');
@@ -49,7 +65,15 @@ class Input extends Field {
     static observed = ['placeholder'];
     //configuration: the control is built from them and the value getter reads them,
     //but none of them is meant to change once the element is up
-    static attributes = ['type', 'v-type', 'keep', 'reject', 'uppercase:presence', 'trim:presence'];
+    static attributes = [
+        'type',
+        'v-type',
+        'keep',
+        'reject',
+        'uppercase:presence',
+        'trim:presence',
+        'autocomplete',
+    ];
     static slots = true;
     static template = `
         <label>{{{{ slots.default }}}}</label>
@@ -73,6 +97,14 @@ class Input extends Field {
         const fragment = this.template().withOverlay({ type, slots }).render();
         this._input = fragment.querySelector('input,textarea');
 
+        //the browser reads autocomplete off the control it is classifying, so the
+        //field's own token, or the form's where it declares none, is put there.
+        //Set before the passthrough, which stays the last word
+        Attributes.set(
+            this._input,
+            'autocomplete',
+            this.declared('autocomplete') ?? inheritedAutocomplete(this),
+        );
         Attributes.forward('input-', this, this._input);
         this._input.addEventListener('input', (evt) => {
             const strip = filterOf(this);

@@ -110,6 +110,18 @@ const mount = async (html) => {
     ok('11 keep survives only what it matches', vat.value === '0123', `${vat.value}`);
     ok('11 info slot rendered', d.textContent.includes('as printed on the invoice'));
 
+    d = await mount(`<ful-input name="address.street" autocomplete="street-address">Street</ful-input>`);
+    ok('11 autocomplete reaches the control',
+        d.querySelector('input').getAttribute('autocomplete') === 'street-address');
+    d = await mount(`<ful-form autocomplete="off"><ful-input name="reference">Reference</ful-input></ful-form>`);
+    ok('11 a form autocomplete reaches its fields',
+        d.querySelector('ful-input input').getAttribute('autocomplete') === 'off');
+    d = await mount(`<ful-form autocomplete="off"><ful-input name="a" autocomplete="street-address">a</ful-input></ful-form>`);
+    ok('11 a field keeps its own token over the form\'s',
+        d.querySelector('ful-input input').getAttribute('autocomplete') === 'street-address');
+    d = await mount(`<ful-select name="s" autocomplete="street-address">s</ful-select>`);
+    ok('11 a ful-select combobox stays off', d.querySelector('input').getAttribute('autocomplete') === 'off');
+
     d = await mount(`<ful-input name="r" reject="[^0-9]">n</ful-input>`);
     const rej = d.querySelector('ful-input');
     const rin = rej.querySelector('input');

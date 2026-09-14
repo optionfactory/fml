@@ -88,6 +88,40 @@
         border-radius: 0;
     }
 
+    /*
+     * An affix holding a button is the button: the cell gives up the padding it
+     * carries for text and an icon, and the button fills it in both axes. Left to
+     * the affix's own layout a button is padded like text, which makes the field
+     * taller than its neighbours, and centred inside a cell at least a control
+     * wide, which leaves the affix's own ground showing down the side of it. Both
+     * grow with the theme's control height and corner radius.
+     *
+     * The filters' operator and sensitivity buttons had this to themselves,
+     * keyed on their data-ref. Every button in an affix needs it, an application's
+     * own included: the affix is documented as a place to put one.
+     */
+    ful-affix:has(> button) {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    ful-affix > button {
+        display: flex;
+        flex: 1 1 auto;
+        align-self: stretch;
+        align-items: center;
+        justify-content: center;
+        padding: 0.375rem 0.75rem;
+        font: inherit;
+        line-height: 1.5;
+        color: var(--ful-color);
+        white-space: nowrap;
+        background-color: transparent;
+        border: 0;
+        border-radius: 0;
+        cursor: pointer;
+    }
+
     ful-control {
         position: relative;
         display: flex;
@@ -103,7 +137,15 @@
     :invalid > ful-control-group {
         border-color: var(--ful-invalid-border-color);
 
-        &:has(:focus-visible) {
+        /**
+         * The border colour is restated and the popover guard repeated from the
+         * focus rule above: that rule's :not(:has(...)) carries the specificity of
+         * its argument, so without both the focus ring would repaint an invalid
+         * field in the focus colour and the field would read as healthy while the
+         * caret is in it.
+         */
+        &:has(:focus-visible):not(:has([popover] :focus-visible)) {
+            border-color: var(--ful-invalid-border-color);
             box-shadow: var(--ful-invalid-box-shadow);
         }
     }
