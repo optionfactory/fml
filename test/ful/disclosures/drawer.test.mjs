@@ -138,14 +138,124 @@ describe('Drawer', () => {
     it('answers with a close event, Escape included', async () => {
         const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
         const closes = [];
-        drawer.addEventListener('close', () => closes.push('closed'));
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
 
         //waiting for the event itself, not for a macrotask to have passed
         const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
         drawer.open();
         drawer.close();
         await closed;
-        assert.deepStrictEqual(closes, ['closed']);
+        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }]);
+    });
+
+    it('closes on its own form succeeding, the close event carrying the response', async () => {
+        const [drawer] = await mount(`
+            <ful-drawer title="Edit" close-on-submit>
+                <ful-form data-ref="edit">
+                    <ful-input name="label" value="a">Label</ful-input>
+                    <button type="submit">Save</button>
+                </ful-form>
+            </ful-drawer>`);
+        const form = drawer.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
+
+        drawer.open();
+        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        form.querySelector('button[type=submit]').click();
+        await closed;
+
+        assert.isFalse(drawer.querySelector('dialog').open);
+        assert.deepStrictEqual(closes, [{ dismissed: false, response: { id: 7 } }]);
+    });
+
+    it('a save answering with no body at all is still a save, not a dismissal', async () => {
+        const [drawer] = await mount(`
+            <ful-drawer title="Edit" close-on-submit>
+                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+            </ful-drawer>`);
+        const form = drawer.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => null);
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
+
+        drawer.open();
+        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        form.querySelector('button[type=submit]').click();
+        await closed;
+
+        assert.deepStrictEqual(closes, [{ dismissed: false, response: null }]);
+    });
+
+    it('stays open on a failed submit, the form keeping the problems', async () => {
+        const [drawer] = await mount(`
+            <ful-drawer title="Edit" close-on-submit>
+                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+            </ful-drawer>`);
+        const form = drawer.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => {
+            throw new Error('rejected upstream');
+        });
+
+        drawer.open();
+        form.querySelector('button[type=submit]').click();
+        await settle();
+
+        assert.isTrue(drawer.querySelector('dialog').open, 'the problems are of no use behind a closed drawer');
+    });
+
+    it('closes on a form update() delivered, the listener outliving every delivery', async () => {
+        const [drawer] = await mount('<ful-drawer title="Edit" close-on-submit></ful-drawer>');
+        const delivered = document.createElement('ful-form');
+        delivered.innerHTML = '<ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button>';
+
+        const content = await drawer.update('Edit', async () => delivered);
+        await settle();
+        const form = content.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 9 }));
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
+
+        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        form.querySelector('button[type=submit]').click();
+        await closed;
+
+        assert.deepStrictEqual(closes, [{ dismissed: false, response: { id: 9 } }]);
+    });
+
+    it('is not closed by a form of its own content: a table searching is not the drawer finishing', async () => {
+        const [drawer] = await mount(`
+            <ful-drawer title="Pick" close-on-submit>
+                <ful-table page-size="5">
+                    <div slot="filters">
+                        <ful-filter-text name="byName">Name</ful-filter-text>
+                        <button type="submit">Search</button>
+                    </div>
+                    <template slot="schema"><schema><column title="Name">{{ name }}</column></schema></template>
+                </ful-table>
+            </ful-drawer>`);
+
+        drawer.open();
+        drawer.querySelector('ful-table button[type=submit]').click();
+        await settle();
+
+        assert.isTrue(drawer.querySelector('dialog').open, "the table's own filter form is not the drawer's");
+    });
+
+    it('leaves a drawer that did not ask for it alone', async () => {
+        const [drawer] = await mount(`
+            <ful-drawer title="Edit">
+                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+            </ful-drawer>`);
+        const form = drawer.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
+
+        drawer.open();
+        form.querySelector('button[type=submit]').click();
+        await settle();
+
+        assert.isTrue(drawer.querySelector('dialog').open, 'closing on submit is opt in');
     });
 
     it('slides in from the inline end side, mirrored in rtl', async () => {
@@ -246,8 +356,13 @@ describe('Drawer, the declarative content against update()', () => {
         drawer.close();
         await settle();
 
+        //the delivery is held open by the test rather than by a timer: a wait
+        //measured in frames against a delivery measured in milliseconds is a
+        //race, and under a loaded suite the frames are the slower of the two,
+        //so the ring this asserts on had already been taken down
+        const delivery = Promise.withResolvers();
         AsyncEvents.asyncOn(drawer, 'section:requested', async (e) => {
-            await new Promise((r) => setTimeout(r, 100));
+            await delivery.promise;
             e.detail.section.append('delivered');
         });
         drawer.open();
@@ -258,9 +373,12 @@ describe('Drawer, the declarative content against update()', () => {
         assert.isFalse(content.hasAttribute('hidden'), 'the content update() hid is visible again');
         assert.isTrue(content.hasAttribute('loading'), 'the ring owns the visible wait');
         assert.isTrue(error.hasAttribute('hidden'), 'the stale update error left with the open');
-        await new Promise((r) => setTimeout(r, 300));
+
+        delivery.resolve();
+        await settle();
 
         assert.include(content.textContent, 'delivered');
+        assert.isFalse(content.hasAttribute('loading'), 'the ring leaves with the delivery');
         drawer.close();
     });
 

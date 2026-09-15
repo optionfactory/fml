@@ -1,4 +1,4 @@
-import { ParsedElement } from '../../ftl/index.mjs';
+import { Nodes, ParsedElement } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 import { Failure } from '../../httpc/index.mjs';
@@ -14,7 +14,7 @@ import { wireTargets } from './targets.mjs';
  * it.
  */
 class Drawer extends ParsedElement {
-    static attributes = ['title', 'placement'];
+    static attributes = ['title', 'placement', 'close-on-submit:presence'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-drawer">
@@ -35,6 +35,10 @@ class Drawer extends ParsedElement {
     #content;
     #requests = new SectionRequests();
     #updates = new Claims();
+    //what a submit closed the drawer with, told from a close of any other kind:
+    //a save answering with no body at all is still a save
+    /** @type {{ dismissed: boolean, response: any }|null} */
+    #answer = null;
     render({ slots }) {
         const fragment = this.template()
             .withOverlay({ slots, title: this.declared('title') ?? '' })
@@ -50,8 +54,25 @@ class Drawer extends ParsedElement {
         }
         fragment.querySelector('[data-ref=close]').addEventListener('click', () => this.close());
         this.#dialog.addEventListener('close', () => {
-            this.dispatchEvent(new CustomEvent('close'));
+            this.dispatchEvent(
+                new CustomEvent('close', { detail: this.#answer ?? { dismissed: true, response: null } }),
+            );
         });
+        if (this.declared('close-on-submit')) {
+            //delegated on the content section rather than bound to the form: a
+            //drawer's form usually arrives with an update() rather than with the
+            //page, and the section outlives every delivery. The form must be the
+            //content's own, a ful-table wrapping its filters in a ful-form of its
+            //own and a search in a table the drawer holds not being the drawer
+            //finishing
+            this.#content.addEventListener('submit:success', (/** @type any */ e) => {
+                if (e.target !== Nodes.queryChildren(this.#content, 'ful-form')) {
+                    return;
+                }
+                this.#answer = { dismissed: false, response: e.detail.response };
+                this.close();
+            });
+        }
         this.replaceChildren(fragment);
         wireTargets();
     }
@@ -124,6 +145,9 @@ class Drawer extends ParsedElement {
         if (this.#dialog.open) {
             return false;
         }
+        //an opening owes nothing to the one before it: the answer a submit left
+        //belongs to the drawer that closed on it
+        this.#answer = null;
         this.#dialog.showModal();
         return true;
     }

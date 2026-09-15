@@ -253,6 +253,28 @@
             padding: 0.5rem 1.25rem;
         }
 
+        /*
+         * what update() shows while it waits and where it paints a rejection,
+         * the same pair the drawer carries. The ring is centred on the room the
+         * dialog has; the error is a bordered panel around a line or two of
+         * text, so it takes only the height it needs
+         */
+        & > [data-ref="loading"] {
+            display: grid;
+            place-items: center;
+            padding: 2rem 1.25rem;
+        }
+
+        & > [data-ref="error"] {
+            margin: 0.5rem 1.25rem;
+            padding: 1rem;
+            white-space: pre-line;
+            color: var(--ful-error-color);
+            background-color: var(--ful-error-bg);
+            border: var(--ful-border-width) solid var(--ful-error-border-color);
+            border-radius: var(--ful-border-radius);
+        }
+
         & > footer,
         & .ful-dialog-footer {
             display: flex;

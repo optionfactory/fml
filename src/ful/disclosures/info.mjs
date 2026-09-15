@@ -1,6 +1,8 @@
-import { ParsedElement } from '../../ftl/index.mjs';
+import { Nodes, ParsedElement } from '../../ftl/index.mjs';
+import { Claims } from '../claims.mjs';
 import { describable } from '../descriptions.mjs';
 import { SectionRequests } from '../events/sections.mjs';
+import { Failure } from '../../httpc/index.mjs';
 import { Anchors } from './anchors.mjs';
 import { wireTargets } from './targets.mjs';
 
@@ -84,8 +86,15 @@ class Tooltip extends ParsedElement {
  * `ful-dialog-body` and `ful-dialog-footer` match at any depth, which is what a
  * dialog whose content is wrapped in a form needs.
  */
+/**
+ * How a dialog ended: `dismissed` tells a cancel from an answer, `result` carries
+ * the `data-result` of the button that closed it and `response` what a submit
+ * answered with, the one that did not happen being null.
+ * @typedef {{ dismissed: boolean, result: string|null, response: any }} DialogOutcome
+ */
+
 class Dialog extends ParsedElement {
-    static attributes = ['header', 'requires-answer:presence'];
+    static attributes = ['header', 'requires-answer:presence', 'close-on-submit:presence'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-dialog">
@@ -93,6 +102,8 @@ class Dialog extends ParsedElement {
                 <h2 data-tpl-if="header">{{ header }}</h2>
                 <button data-tpl-if="!requiresAnswer" type="button" data-ref="close" data-tpl-aria-label="#l10n:t('dialog.close')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </header>
+            <section data-ref="loading" hidden><ful-spinner class="centered" role="status"><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner></section>
+            <section data-ref="error" role="alert" hidden></section>
             <div data-ref="body" class="ful-dialog-body">{{{{ slots.default }}}}</div>
             <footer class="ful-dialog-footer">
                 <button type="button" data-ref="acknowledge" data-result="acknowledged" data-tpl-if="!slots.buttons" data-tpl-aria-label="#l10n:t('dialog.acknowledge')">{{ #l10n:t('dialog.acknowledge') }}</button>
@@ -102,8 +113,15 @@ class Dialog extends ParsedElement {
     `;
     #dialog;
     #body;
+    #loading;
+    #error;
     #requests = new SectionRequests();
+    #updates = new Claims();
     #resolvers = [];
+    //the answer a submit closed the dialog with, which the return value cannot
+    //carry: it is a string, and a response is whatever the server sent
+    /** @type {DialogOutcome|null} */
+    #answer = null;
     render({ slots }) {
         const requiresAnswer = this.declared('requires-answer');
         const fragment = this.template()
@@ -111,13 +129,12 @@ class Dialog extends ParsedElement {
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#body = fragment.querySelector('[data-ref=body]');
+        this.#loading = fragment.querySelector('[data-ref=loading]');
+        this.#error = fragment.querySelector('[data-ref=error]');
         this.#dialog.addEventListener('close', () => {
-            this.dispatchEvent(
-                new CustomEvent('close', {
-                    detail: { result: this.#dialog.returnValue === '' ? null : this.#dialog.returnValue },
-                }),
-            );
-            this.#settle();
+            const outcome = this.#outcome();
+            this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
+            this.#settle(outcome);
         });
         this.#dialog.addEventListener('click', (/** @type any */ e) => {
             const result = e.target.closest('button[data-result]')?.dataset.result;
@@ -125,11 +142,26 @@ class Dialog extends ParsedElement {
                 this.#dialog.close(result);
             }
         });
-        //dismissal, not an answer: the waiters are settled with null, as Escape does.
-        //Optional because a subclass overriding the template owns what it renders
+        //dismissal, not an answer: the waiters are settled with a dismissal, as
+        //Escape does. Optional because a subclass overriding the template owns
+        //what it renders
         fragment
             .querySelector('[data-ref=close]')
             ?.addEventListener('click', () => this.#dialog.close(''));
+        if (this.declared('close-on-submit')) {
+            //delegated on the body rather than bound to the form, so a body
+            //delivered later by update() is covered by the same listener. The
+            //form must be the body's own: a ful-table wraps its filters in a
+            //ful-form of its own, and a search in a table the dialog holds is
+            //not the dialog being answered
+            this.#body.addEventListener('submit:success', (/** @type any */ e) => {
+                if (e.target !== Nodes.queryChildren(this.#body, 'ful-form')) {
+                    return;
+                }
+                this.#answer = { dismissed: false, result: null, response: e.detail.response };
+                this.#dialog.close('submitted');
+            });
+        }
         if (requiresAnswer) {
             //the platform's own dismissal, refused where the dialog must be
             //answered: cancel fires for Escape and for a close request the
@@ -139,31 +171,88 @@ class Dialog extends ParsedElement {
         this.replaceChildren(fragment);
         wireTargets();
     }
-    //answers every waiter with the dialog's own answer: null while still open
-    //or closed without a result, which is also the unanswered answer a dialog
-    //leaving the document owes its waiters instead of hanging them
-    #settle() {
+    /**
+     * How the dialog ended, in one shape for every way it can end: `dismissed`
+     * alone tells a cancel from an answer, so a submit answering with no body at
+     * all (a 204) is still an answer, where a bare `null` could not say which it
+     * was. `result` carries the `data-result` of the button that closed it and
+     * `response` what a submit answered with; the one that did not happen is null.
+     */
+    #outcome() {
+        if (this.#answer) {
+            return this.#answer;
+        }
+        const result = this.#dialog.returnValue;
+        return result === ''
+            ? { dismissed: true, result: null, response: null }
+            : { dismissed: false, result, response: null };
+    }
+    //answers every waiter with the dialog's own answer: a dismissal while still
+    //open or closed without a result, which is also the unanswered answer a
+    //dialog leaving the document owes its waiters instead of hanging them
+    #settle(outcome) {
         const resolvers = this.#resolvers;
         this.#resolvers = [];
         for (const resolve of resolvers) {
-            resolve(this.#dialog.returnValue === '' ? null : this.#dialog.returnValue);
+            resolve(outcome);
         }
     }
     disconnectedCallback() {
-        this.#settle();
+        this.#settle(this.#outcome());
     }
     open() {
         return this.ask();
     }
     ask() {
-        if (!this.#dialog.open) {
-            this.#dialog.returnValue = '';
-            this.#dialog.showModal();
+        if (this.#show()) {
+            this.#restChrome();
             this.#request();
         }
         return new Promise((resolve) => {
             this.#resolvers.push(resolve);
         });
+    }
+    /**
+     * Opens the dialog and waits for the callback, as `ful-drawer`'s does: a
+     * resolved value paints the body (which is returned), a rejection paints the
+     * problems and travels to the caller, and an update superseded by a newer one
+     * paints nothing. The title is the `header` attribute, configuration like the
+     * rest of the dialog's chrome, so what update() owns is the body alone.
+     */
+    async update(cb) {
+        //the claim detaches any update still in flight: its outcome belongs to
+        //an abandoned opening and must neither be painted nor own the dialog
+        const claim = this.#updates.take();
+        this.#body.replaceChildren();
+        this.#restChrome();
+        this.#loading?.removeAttribute('hidden');
+        this.#body.setAttribute('hidden', '');
+        //update owns its own open-answer-deliver cycle, so it shows the dialog
+        //without going through ask(): a user reopen during the wait is a real
+        //open and goes through ask()
+        this.#show();
+        try {
+            const delivered = await cb();
+            if (claim.stale) {
+                return this.#body;
+            }
+            this.#body.replaceChildren(delivered);
+            this.#loading?.setAttribute('hidden', '');
+            this.#body.removeAttribute('hidden');
+            return this.#body;
+        } catch (/** @type any */ e) {
+            if (!claim.stale) {
+                //revealed before it is filled, so the live region announces the
+                //change rather than being revealed already holding it
+                this.#error?.removeAttribute('hidden');
+                if (this.#error) {
+                    this.#error.textContent = Failure.problemsText(e);
+                }
+                this.#loading?.setAttribute('hidden', '');
+                this.#body.setAttribute('hidden', '');
+            }
+            throw e;
+        }
     }
     #request() {
         this.#requests.request(this, this.#body, null, null)?.catch(() => undefined);
@@ -171,13 +260,32 @@ class Dialog extends ParsedElement {
     /**
      * Re-fires section:requested on the body, open or closed: the explicit
      * request for a body that wants refreshing. A failed refresh paints its
-     * problems, nothing rejects: there is no caller to reject towards.
+     * problems, nothing rejects: update() stays the rejecting call.
      */
     refresh() {
         return this.#requests.request(this, this.#body, null, null)?.then(undefined, () => undefined);
     }
     close(result) {
         this.#dialog.close(result ?? '');
+    }
+    /** Shows the modal, answering whether this call is the one that opened it. */
+    #show() {
+        if (this.#dialog.open) {
+            return false;
+        }
+        //an opening owes nothing to the one before it: the platform keeps
+        //returnValue across a close with no result, and the answer a submit
+        //left is just as stale
+        this.#dialog.returnValue = '';
+        this.#answer = null;
+        this.#dialog.showModal();
+        return true;
+    }
+    #restChrome() {
+        this.#error?.replaceChildren();
+        this.#error?.setAttribute('hidden', '');
+        this.#loading?.setAttribute('hidden', '');
+        this.#body?.removeAttribute('hidden');
     }
 }
 
