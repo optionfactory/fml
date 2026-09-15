@@ -187,6 +187,73 @@ describe('Table load failures', () => {
     });
 });
 
+describe('Table sorter layout', () => {
+    const loads = () =>
+        registry.defineComponent('loaders:table', {
+            create: () => ({ load: async () => ({ data: [{ a: 'x' }], size: 1 }) }),
+        });
+    /** where the heading's own first line starts, relative to the top of the sorter */
+    const headingDropsBy = (sorter) => {
+        const range = document.createRange();
+        range.selectNodeContents(sorter);
+        return range.getClientRects()[0].top - sorter.getBoundingClientRect().top;
+    };
+
+    it('keeps the arrow on the line of the heading it belongs to', async () => {
+        loads();
+        //a column no wider than its heading, which is the case that broke: the
+        //line breaker allows a break between the arrow and the word beside it,
+        //so the arrow took a line of its own with the heading under it
+        const container = appended(`
+            <ful-table autoload>
+                <template slot="schema">
+                    <schema><column title="Codice" sorter="a" order="asc">{{ a }}</column></schema>
+                </template>
+            </ful-table>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+
+        assert.isBelow(
+            headingDropsBy(tableEl.querySelector('thead ful-sorter')),
+            4,
+            'the heading starts on the sorter\'s own first line, beside the arrow',
+        );
+    });
+
+    it('lets a heading too long for its column wrap within itself', async () => {
+        loads();
+        //two columns, so the fixed layout can actually hold the sorted one
+        //narrow: a lone column takes the table's whole width whatever it asks for
+        const container = appended(`
+            <style>
+                .wrapping table { table-layout: fixed; width: 340px; }
+                .wrapping th:first-child { width: 96px; }
+            </style>
+            <div class="wrapping">
+                <ful-table autoload>
+                    <template slot="schema">
+                        <schema>
+                            <column title="Tipo di calcolo" sorter="a" order="asc">{{ a }}</column>
+                            <column title="Other">{{ a }}</column>
+                        </schema>
+                    </template>
+                </ful-table>
+            </div>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+
+        const sorter = tableEl.querySelector('thead ful-sorter');
+        const range = document.createRange();
+        range.selectNodeContents(sorter);
+
+        //nowrap would have kept the arrow in place by refusing to break the heading at all
+        assert.isAbove(range.getClientRects().length, 1, 'the heading wraps rather than staying on one line');
+        assert.isBelow(headingDropsBy(sorter), 4, 'and its first line is still beside the arrow');
+    });
+});
+
 describe('Table revalidation', () => {
     const mount = (loader, autoload) => {
         registry.defineComponent('loaders:table', { create: () => loader });

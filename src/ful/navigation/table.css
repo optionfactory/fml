@@ -40,7 +40,18 @@
     }
 
     ful-sorter {
-        display: block;
+        /*
+         * The arrow and the heading it belongs to stay on one line together. A
+         * break is allowed between an atomic inline and the text beside it, so
+         * in a column no wider than its heading the arrow was pushed onto a line
+         * of its own with the word under it, which reads as a broken heading
+         * rather than as a sorted column. Flex items cannot be split that way,
+         * while a heading too long for its column still wraps within itself,
+         * which `white-space: nowrap` here would have cost.
+         */
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.25em;
 
         &:not(:state(rendered)) {
             visibility: hidden;
