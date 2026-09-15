@@ -35,6 +35,9 @@ class Field extends ParsedElement {
     /** the role the element internals carry, 'presentation' unless the control is its own */
     static ROLE = 'presentation';
     #control;
+    #described;
+    #descriptions = [];
+    #errorId = null;
     #fieldError;
     #claims;
     #announces;
@@ -86,17 +89,16 @@ class Field extends ParsedElement {
                 true,
             );
         }
-        //the error region describes the control, or the host where there is no
+        //the description lands on the control, or on the host where there is no
         //single control to describe (a radio group's legend names its fieldset)
+        this.#described = described ?? control;
         if (error) {
-            //an attribute, not the aria element property: the property reflects to
-            //nothing, so the description lived in the accessibility tree alone and
-            //vanished entirely on a browser without aria element reflection
-            if (!error.id) {
-                error.id = Attributes.uid('ful-field-error');
-            }
-            (described ?? control).setAttribute('aria-describedby', error.id);
+            //named for what it is, the generic id being for whoever brings no name
+            error.id = error.id || Attributes.uid('ful-field-error');
+            this.#errorId = error.id;
         }
+        //anything handed over before the field had a target lands here
+        this.#describe();
         if (label) {
             Field.#name(this, label, control);
         }
@@ -130,6 +132,61 @@ class Field extends ParsedElement {
      */
     static #submitsOnEnter(el) {
         return el instanceof HTMLInputElement && !['file', 'button', 'submit', 'reset', 'image'].includes(el.type);
+    }
+    /**
+     * Adds an element to the accessible description of the field's control and
+     * answers whether the field took it.
+     *
+     * A field takes one whenever it is offered, before its own render as
+     * readily as after: content slotted into a field is a custom element of its
+     * own and may upgrade on either side of the field it stands in, which
+     * happens in both directions in practice, a tooltip beating an async select
+     * to its render while losing to a plain input. A description handed over
+     * early waits here and is written the moment the field has somewhere to
+     * write it, so the caller never has to know the order.
+     *
+     * The reference lands on the element handed over rather than on a wrapper
+     * around it: a hidden element is included in a description only where it is
+     * named directly, and content that reaches the description through a
+     * wrapper is skipped while it is hidden. A popover closed until someone
+     * opens it is exactly that, so the caller passes the popover itself.
+     *
+     * An attribute rather than `ariaDescribedByElements`: the property reflects
+     * to nothing, so the description would live in the accessibility tree alone
+     * and vanish entirely on a browser without aria element reflection.
+     *
+     * This is the field's half of the description protocol; `describable` in
+     * `ful/descriptions.mjs` is the half the content uses to find the field.
+     * @param {HTMLElement} el
+     * @returns {boolean}
+     */
+    describedBy(el) {
+        if (!el) {
+            return false;
+        }
+        if (!el.id) {
+            el.id = Attributes.uid('ful-described');
+        }
+        if (!this.#descriptions.includes(el.id)) {
+            this.#descriptions.push(el.id);
+        }
+        this.#describe();
+        return true;
+    }
+    /**
+     * Writes the description the field has collected, the error region last:
+     * the standing explanations are what the field always says, the problem is
+     * the news. The field owns the attribute outright rather than appending to
+     * whatever is there, so the order does not depend on who arrived when.
+     */
+    #describe() {
+        if (!this.#described) {
+            return;
+        }
+        const ids = [...this.#descriptions, this.#errorId].filter((id) => id);
+        if (ids.length) {
+            this.#described.setAttribute('aria-describedby', ids.join(' '));
+        }
     }
     focus(options) {
         this.#control?.focus(options);
@@ -367,8 +424,9 @@ class Field extends ParsedElement {
      *   three claims reach it
      * - `error` is the field's live region
      * - `label`, when given, names the control and focuses it on click
-     * - `described` moves the error's description off the control and onto
-     *   another element, the host where no single control can carry it
+     * - `described` moves the description off the control and onto another
+     *   element, the host where no single control can carry it: the error
+     *   region and anything `describedBy` is later handed both land there
      * - `claims` moves the three claims onto a wrapper the field disables as a
      *   whole, leaving focus and aria on the control
      * - `announces` is the element whose role carries `aria-readonly` and

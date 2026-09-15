@@ -283,9 +283,11 @@
             }
         },
         "ful-tooltip": {
-            "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click. placement picks the side the note sits on: bottom (default), top, left or right.",
+            "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click. placement picks the side the note sits on: top (default), bottom, left or right.",
             "attributes": {
-                "placement": "Which side of the trigger the note opens on: bottom (the default), top, start or end. The library places the note itself on every platform, so the side is the same everywhere."
+                "placement": "Which side of the trigger the note opens on: top (the default), bottom, left or right. Above by default because a note opening downwards covers the control the marker explains. The library places the note itself on every platform, so the side is the same everywhere.",
+                "icon": "The ful-icon the marker shows, for a tooltip meaning something other than plain information. Defaults to the page's Tooltip.config.icon; a name the library does not paint is declared by the page as ful-icon[name='...'] { mask-image: ... }.",
+                "describes": "For a tooltip standing in a field: the note joins the accessible description of that field's control, announced on reaching the field rather than only on opening the marker, and the marker leaves the tab order so a form of hinted fields costs no extra keystrokes to walk. The marker stays clickable, and keeps its tab stop wherever nothing took the note."
             },
             "slots": {
                 "default": "The short explanation shown in the popover."

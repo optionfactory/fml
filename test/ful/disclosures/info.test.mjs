@@ -14,8 +14,53 @@ const mount = async (html) => {
 };
 
 describe('Tooltip', () => {
+    it('shows the configured icon, and the one the icon attribute names', async () => {
+        const [plain] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        assert.strictEqual(plain.querySelector('ful-icon').getAttribute('name'), 'info-circle-fill');
+
+        const [warned] = await mount('<ful-tooltip icon="exclamation-circle">check it</ful-tooltip>');
+        assert.strictEqual(warned.querySelector('ful-icon').getAttribute('name'), 'exclamation-circle');
+    });
+    it('describes the field it stands in and leaves its tab order, under describes', async () => {
+        const [field] = await mount(
+            '<ful-input name="vat">VAT<ful-tooltip slot="info" describes>eleven digits</ful-tooltip></ful-input>',
+        );
+        const control = field.querySelector('input');
+        const tooltip = field.querySelector('ful-tooltip');
+        const note = tooltip.querySelector('[popover]');
+        const trigger = tooltip.querySelector('button');
+
+        const described = (control.getAttribute('aria-describedby') ?? '').split(' ');
+        assert.include(described, note.id, 'the note is part of the description');
+        assert.strictEqual(described.length, 2, 'beside the field error region, which keeps its own entry');
+        assert.strictEqual(trigger.tabIndex, -1, 'the marker is no longer a tab stop');
+
+        //the marker still opens the note: only sequential focus was taken away
+        trigger.click();
+        assert.isTrue(note.matches(':popover-open'));
+        note.hidePopover();
+    });
+    it('keeps its tab stop where nothing took the note', async () => {
+        const [tooltip] = await mount('<ful-tooltip describes>eleven digits</ful-tooltip>');
+        const trigger = tooltip.querySelector('button');
+
+        assert.strictEqual(trigger.tabIndex, 0, 'a note nothing carries stays reachable through the marker');
+    });
+    it('is not described unless it says so', async () => {
+        const [field] = await mount(
+            '<ful-input name="vat">VAT<ful-tooltip slot="info">eleven digits</ful-tooltip></ful-input>',
+        );
+        const control = field.querySelector('input');
+        const note = field.querySelector('ful-tooltip [popover]');
+
+        assert.notInclude(control.getAttribute('aria-describedby').split(' '), note.id);
+        assert.strictEqual(field.querySelector('ful-tooltip button').tabIndex, 0);
+    });
     it('renders an icon button wired to a popover carrying the explanation', async () => {
-        const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        //the default placement is above, and the placing clamps into the
+        //viewport rather than flipping, so the trigger needs room over it
+        container.style.marginTop = '200px';
         const button = tooltip.querySelector('button');
         const popover = tooltip.querySelector('[popover]');
 
@@ -30,10 +75,10 @@ describe('Tooltip', () => {
         assert.strictEqual(button.getAttribute('aria-expanded'), 'true');
         const triggerBox = button.getBoundingClientRect();
         const noteBox = popover.getBoundingClientRect();
-        assert.isAtLeast(
-            Math.round(noteBox.top),
-            Math.round(triggerBox.bottom) - 1,
-            'the note is anchored below the trigger',
+        assert.isAtMost(
+            Math.round(noteBox.bottom),
+            Math.round(triggerBox.top) + 1,
+            'the note is anchored above the trigger, which is the default placement',
         );
         assert.isBelow(
             Math.round(noteBox.left),
@@ -89,7 +134,8 @@ describe('Tooltip', () => {
     });
 
     it('draws a callout pointing back at the trigger, which the popover overflow would otherwise clip', async () => {
-        const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        container.style.marginTop = '200px';
         const button = tooltip.querySelector('button');
         const note = tooltip.querySelector('[popover]');
 
@@ -103,9 +149,9 @@ describe('Tooltip', () => {
         assert.notStrictEqual(point.content, 'none', 'the note draws a callout');
         assert.include(point.rotate, '45', 'a square turned a corner towards the trigger');
         assert.isBelow(
-            parseFloat(point.top),
+            parseFloat(point.bottom),
             0,
-            'it straddles the edge facing the trigger, which is the top edge for a note below it',
+            'it straddles the edge facing the trigger, which is the bottom edge for a note above it',
         );
 
         button.click();
@@ -119,13 +165,16 @@ describe('Tooltip', () => {
  */
 describe('Tooltip placement', () => {
     it('leaves the css gap between the note and the trigger, and keeps it on every later placing', async () => {
-        const [tooltip] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
+        container.style.marginTop = '200px';
         const button = tooltip.querySelector('button');
         const note = tooltip.querySelector('[popover]');
-        //read before the opening: the placing clears the margin it reads the gap from
+        //read before the opening: the placing clears the margin it reads the gap
+        //from. The closed note carries it as a top margin and the open one, above
+        //its trigger, as a bottom margin, both being the same --ful-note-gap
         const gap = parseFloat(getComputedStyle(note).marginTop);
         assert.isAbove(gap, 0, 'the stylesheet declares a gap');
-        const distance = () => note.getBoundingClientRect().top - button.getBoundingClientRect().bottom;
+        const distance = () => button.getBoundingClientRect().top - note.getBoundingClientRect().bottom;
 
         button.click();
         await settle();
@@ -169,24 +218,8 @@ describe('Tooltip placement', () => {
         button.click();
     });
 
-    it('places the note below the trigger, centered on it', async () => {
+    it('places the note above the trigger by default, centered on it', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
-        container.style.marginLeft = '200px';
-        const button = tooltip.querySelector('button');
-        const note = tooltip.querySelector('[popover]');
-
-        button.click();
-        await settle();
-        const b = button.getBoundingClientRect();
-        const n = note.getBoundingClientRect();
-        assert.isAtLeast(Math.round(n.top), Math.round(b.bottom) - 1, 'the note sits below the trigger');
-        assert.closeTo(n.left + n.width / 2, b.left + b.width / 2, 1, 'the note is centered on the trigger');
-
-        button.click();
-    });
-
-    it('places the note above the trigger when the placement picks top', async () => {
-        const [tooltip, container] = await mount('<ful-tooltip placement="top">side note</ful-tooltip>');
         container.style.margin = '200px 0 0 200px';
         const button = tooltip.querySelector('button');
         const note = tooltip.querySelector('[popover]');
@@ -196,6 +229,22 @@ describe('Tooltip placement', () => {
         const b = button.getBoundingClientRect();
         const n = note.getBoundingClientRect();
         assert.isAtMost(Math.round(n.bottom), Math.round(b.top) + 1, 'the note sits above the trigger');
+        assert.closeTo(n.left + n.width / 2, b.left + b.width / 2, 1, 'the note is centered on the trigger');
+
+        button.click();
+    });
+
+    it('places the note below the trigger when the placement picks bottom', async () => {
+        const [tooltip, container] = await mount('<ful-tooltip placement="bottom">side note</ful-tooltip>');
+        container.style.margin = '200px 0 0 200px';
+        const button = tooltip.querySelector('button');
+        const note = tooltip.querySelector('[popover]');
+
+        button.click();
+        await settle();
+        const b = button.getBoundingClientRect();
+        const n = note.getBoundingClientRect();
+        assert.isAtLeast(Math.round(n.top), Math.round(b.bottom) - 1, 'the note sits below the trigger');
         assert.closeTo(n.left + n.width / 2, b.left + b.width / 2, 1, 'the note is centered on the trigger');
     });
 

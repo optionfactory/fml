@@ -728,3 +728,50 @@ describe('Naming the control from the label', () => {
         assert.isTrue(document.activeElement === control, 'the handler stands in for the click');
     });
 });
+
+describe('Field descriptions', () => {
+    it('takes a description offered before it has anywhere to write it', async () => {
+        //content slotted into a field upgrades on either side of the field
+        //itself, so the protocol cannot depend on the field going first
+        const field = document.createElement('ful-input');
+        field.setAttribute('name', 'vat');
+        field.append('VAT');
+        const note = document.createElement('div');
+        note.id = 'an-early-note';
+
+        assert.isTrue(/** @type any */ (field).describedBy(note), 'the field takes it unrendered');
+
+        const container = appended('<div></div>');
+        container.append(field, note);
+        await Rendering.waitFor(container);
+        await settle();
+
+        const described = field.querySelector('input').getAttribute('aria-describedby').split(' ');
+        assert.strictEqual(described[0], 'an-early-note');
+        assert.strictEqual(described.length, 2, 'beside the error region');
+    });
+    it('reads the error region last, whenever the rest arrived', async () => {
+        const [field] = await mount('<ful-input name="vat">VAT</ful-input>');
+        const control = field.querySelector('input');
+        const error = field.querySelector('ful-field-error');
+        const note = document.createElement('div');
+        note.id = 'a-late-note';
+        field.append(note);
+
+        field.describedBy(note);
+
+        assert.deepStrictEqual(control.getAttribute('aria-describedby').split(' '), ['a-late-note', error.id]);
+    });
+    it('mints an id for a description that brought none, and takes it once', async () => {
+        const [field] = await mount('<ful-input name="vat">VAT</ful-input>');
+        const control = field.querySelector('input');
+        const note = document.createElement('div');
+        field.append(note);
+
+        field.describedBy(note);
+        field.describedBy(note);
+
+        assert.match(note.id, /^ful-described/);
+        assert.strictEqual(control.getAttribute('aria-describedby').split(' ').filter((id) => id === note.id).length, 1);
+    });
+});

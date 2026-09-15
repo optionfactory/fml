@@ -1,32 +1,66 @@
 import { ParsedElement } from '../../ftl/index.mjs';
+import { describable } from '../descriptions.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 import { Anchors } from './anchors.mjs';
 import { wireTargets } from './targets.mjs';
 
-/** An info icon button toggling a popover with a short explanation. */
+/**
+ * An info icon button toggling a popover with a short explanation.
+ *
+ * The marker is the page's `config.icon`, and the `icon` attribute names a
+ * `ful-icon` for the tooltip that means something other than plain information:
+ * a caveat, a warning, a setting. A name the library does not paint is the
+ * page's own, declared as `ful-icon[name='...'] { mask-image: ... }`.
+ *
+ * `describes` is for the tooltip standing in a field: the note becomes part of
+ * the accessible description of that field's control, so it is announced on
+ * reaching the field rather than only on opening the marker, and the marker
+ * leaves the tab order, so a form of hinted fields costs no extra keystrokes to
+ * walk. The marker stays clickable, and stays a tab stop wherever the note was
+ * not taken, a tooltip claiming `describes` outside a field among them: the
+ * stop only goes where something else delivers the content.
+ */
 class Tooltip extends ParsedElement {
     static slots = true;
-    static attributes = ['placement'];
+    static attributes = ['placement', 'icon', 'describes:presence'];
     static config = {
         icon: 'info-circle-fill',
     };
     static template = `
-        <button type="button" class="ful-tip" data-ref="trigger" data-tpl-aria-label="#l10n:t('info.tooltip')"><ful-icon data-tpl-name="config.icon" aria-hidden="true"></ful-icon></button>
+        <button type="button" class="ful-tip" data-ref="trigger" data-tpl-aria-label="#l10n:t('info.tooltip')"><ful-icon data-tpl-name="icon ?? config.icon" aria-hidden="true"></ful-icon></button>
         <ful-note popover data-ref="content">{{{{ slots.default }}}}</ful-note>
     `;
     render({ slots }) {
-        const fragment = this.template().withOverlay({ slots }).render();
+        const fragment = this.template().withOverlay({ slots, icon: this.declared('icon') }).render();
         const trigger = fragment.querySelector('[data-ref=trigger]');
         const content = fragment.querySelector('[data-ref=content]');
         //placed here rather than by the anchor css: the note draws a callout that
         //has to point at the trigger wherever the viewport left room for the note,
         //which is a measurement the stylesheet cannot make for a pseudo-element
         Anchors.wire(trigger, content, { prefix: 'ful-tooltip', invoke: true, expanded: true, handPlace: true });
-        const placement = this.declared('placement');
-        if (placement) {
-            content.setAttribute('placement', placement);
-        }
+        //above the marker by default: a note opening downwards covers the control
+        //the marker explains, the marker riding the field's label
+        content.setAttribute('placement', this.declared('placement') ?? 'top');
         this.replaceChildren(fragment);
+        if (this.declared('describes')) {
+            Tooltip.#describe(this, trigger, content);
+        }
+    }
+    /**
+     * Offers the note to the field the tooltip stands in, and takes the trigger
+     * out of the tab order only where the offer was accepted: a note nothing
+     * carries is reachable by the keyboard through the marker alone, so
+     * dropping the stop there would leave it reachable by nothing at all.
+     *
+     * The offer goes through the description protocol rather than naming a
+     * field, the library's own arrow running from the forms to the disclosures.
+     */
+    static #describe(tooltip, trigger, content) {
+        if (!describable(tooltip)?.describedBy(content)) {
+            console.warn('a ful-tooltip declares describes but stands in nothing that takes a description', tooltip);
+            return;
+        }
+        trigger.tabIndex = -1;
     }
 }
 
