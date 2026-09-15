@@ -98,7 +98,8 @@ class Dialog extends ParsedElement {
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-dialog">
-            <header data-tpl-if="header || !requiresAnswer" class="ful-dialog-header">
+            <header data-tpl-if="header || slots.header || !requiresAnswer" class="ful-dialog-header">
+                {{{{ slots.header }}}}
                 <h2 data-tpl-if="header">{{ header }}</h2>
                 <button data-tpl-if="!requiresAnswer" type="button" data-ref="close" data-tpl-aria-label="#l10n:t('dialog.close')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
             </header>
@@ -183,7 +184,10 @@ class Dialog extends ParsedElement {
         if (this.#answer) {
             return this.#answer;
         }
-        const result = this.#dialog.returnValue;
+        //a render that threw adopted no dialog, and a removal still owes its
+        //waiters an answer: reading through it would raise a second, unrelated
+        //failure over the one already reported
+        const result = this.#dialog?.returnValue ?? '';
         return result === ''
             ? { dismissed: true, result: null, response: null }
             : { dismissed: false, result, response: null };

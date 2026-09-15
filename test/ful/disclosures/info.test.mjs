@@ -355,6 +355,23 @@ describe('Dialog', () => {
         assert.isTrue((await asked).dismissed, 'the await does not hang on a destroyed element');
     });
 
+    it('a dialog whose render threw answers a dismissal on removal, raising nothing over it', async () => {
+        //the table is the render failure: it declares no schema
+        const container = appended('<ful-dialog header="broken"><ful-table src="/x"></ful-table></ful-dialog>');
+        await Rendering.waitFor(container).then(
+            () => undefined,
+            () => undefined,
+        );
+        await settle();
+
+        const dialog = container.firstElementChild;
+        //the removal is the subject: it must not raise a second failure over the first
+        container.remove();
+        await settle();
+
+        assert.isFalse(dialog.isConnected);
+    });
+
     it('answers with a close event carrying the answer', async () => {
         const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const answers = [];
@@ -367,6 +384,30 @@ describe('Dialog', () => {
         dialog.querySelector('[data-ref=acknowledge]').click();
         await closed;
         assert.deepStrictEqual(answers, ['acknowledged']);
+    });
+
+    it('carries a header slot beside the heading, as the drawer does', async () => {
+        const [dialog] = await mount(`
+            <ful-dialog header="Seleziona Master">
+                <i slot="header" class="bi bi-layers" aria-hidden="true"></i>
+                the body
+            </ful-dialog>`);
+
+        const header = dialog.querySelector('.ful-dialog-header');
+        assert.isNotNull(header.querySelector('i.bi-layers'), 'the slotted content stands in the header');
+        assert.isNull(
+            header.querySelector('h2 i.bi-layers'),
+            'beside the heading rather than in it, the heading being text the header attribute sets',
+        );
+        assert.strictEqual(header.querySelector('h2').textContent.trim(), 'Seleziona Master');
+    });
+
+    it('renders a header for a slot alone, with no heading to show', async () => {
+        const [dialog] = await mount(
+            '<ful-dialog requires-answer><ful-badge slot="header">3</ful-badge>the body</ful-dialog>',
+        );
+
+        assert.isNotNull(dialog.querySelector('.ful-dialog-header ful-badge'));
     });
 
     it('any element carrying dialog-target opens the dialog it names, clones included', async () => {
@@ -466,6 +507,23 @@ describe('Dialog close-on-submit', () => {
                 <button type="submit">Save</button>
             </ful-form>
         </ful-dialog>`;
+
+    it("lets the body hold the side padding for a footer standing in it", async () => {
+        const [dialog] = await mount(`
+            <ful-dialog close-on-submit header="Edit">
+                <ful-form>
+                    <ful-input name="label" value="a">Label</ful-input>
+                    <footer class="ful-dialog-footer"><button type="submit">Save</button></footer>
+                </ful-form>
+            </ful-dialog>`);
+        dialog.ask();
+
+        const footer = dialog.querySelector('.ful-dialog-footer');
+        const header = dialog.querySelector('.ful-dialog-header');
+        assert.strictEqual(getComputedStyle(footer).paddingLeft, '0px', 'the body already holds it');
+        assert.notStrictEqual(getComputedStyle(header).paddingLeft, '0px', 'a header beside the body keeps its own');
+        dialog.close();
+    });
 
     it('renders no acknowledge button: the form it closes on is where its answer comes from', async () => {
         const [dialog] = await mount(form());

@@ -210,6 +210,12 @@
             & h2 {
                 margin: 0;
                 font-size: 1.125rem;
+                margin-inline-end: auto;
+            }
+
+            /* what the header slot carries sits beside the heading, before it */
+            & > :not(h2, button[data-ref="close"]) {
+                flex: 0 0 auto;
             }
 
             /* the close button, the same one the drawer's header carries */
@@ -278,6 +284,16 @@
         /* a footer the dialog renders empty, its buttons being the form's own */
         & > footer.ful-dialog-footer:empty {
             display: none;
+        }
+
+        /*
+         * a footer standing inside the body rather than beside it, which is where
+         * a form's own buttons sit: the body already holds the side padding, so
+         * the footer adding its own would inset its buttons past the header and
+         * the text they follow
+         */
+        & .ful-dialog-body :is(.ful-dialog-header, .ful-dialog-footer) {
+            padding-inline: 0;
         }
 
         & > footer,

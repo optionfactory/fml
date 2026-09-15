@@ -302,6 +302,7 @@
                 "close-on-submit": "For the dialog whose answer is a form succeeding rather than a button being pressed: its own form submitting successfully closes it and answers with the response. Opt in, and its own form only, a ful-form the body holds directly, since a ful-table wraps its filters in a form of its own and searching one is not the dialog being answered. Such a dialog renders no acknowledge button of its own, the form's submit being its answer."
             },
             "slots": {
+                "header": "Content beside the title and before it: an icon, a badge, a status. It sits outside the heading rather than in it, the header attribute setting the heading through text.",
                 "default": "The dialog body.",
                 "buttons": "Buttons closing the dialog; each carries a data-result that the answer carries back. Without this slot a localized acknowledge button is shown. A dialog closing on its form renders none either way, so the slot is for buttons beside the form, not for suppressing one."
             },
