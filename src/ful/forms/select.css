@@ -73,6 +73,9 @@
         &[readonly] > ful-control-group > ful-control {
             background-size: 0;
             cursor: default;
+            /* the chevron is gone, so the room that was held for it goes too:
+               without this the value sat against an inch of nothing */
+            padding-right: 5px;
         }
 
         & > ful-control-group > ful-control > input {

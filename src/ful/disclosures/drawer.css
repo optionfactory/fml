@@ -83,6 +83,24 @@
             overflow-y: auto;
 
             /*
+            the content takes whatever height the header leaves rather than only
+            its own, and lays its children out in a column, so what a caller
+            delivers can put its buttons at the foot of the drawer instead of
+            immediately under the last field. A footer it ends with is pushed
+            there without the caller having to say so
+            */
+            &[data-ref="content"] {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 auto;
+                min-height: 0;
+
+                & > footer:last-child {
+                    margin-block-start: auto;
+                }
+            }
+
+            /*
             the wait fills the space it is waiting in, so the spinner sits in the
             middle of the drawer rather than under the header. The error does not:
             it is a bordered panel around a line or two of text, and growing it to
