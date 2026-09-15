@@ -187,6 +187,92 @@ describe('Table load failures', () => {
     });
 });
 
+describe('Table revalidation', () => {
+    const mount = (loader, autoload) => {
+        registry.defineComponent('loaders:table', { create: () => loader });
+        const container = document.createElement('div');
+        container.innerHTML = `
+            <ful-table ${autoload ? 'autoload' : ''}>
+                <template slot="schema">
+                    <schema><column title="A" sorter="a">{{ a }}</column></schema>
+                </template>
+            </ful-table>`;
+        document.body.appendChild(container);
+        return [container.querySelector('ful-table'), container];
+    };
+    const rows = (tableEl) => tableEl.querySelector('tbody:not([data-ref])').children.length;
+
+    it('keeps the rows on screen while a reload is in flight', async () => {
+        let answer = null;
+        const [tableEl] = mount(
+            { load: async () => answer ?? { data: [{ a: 1 }, { a: 2 }], size: 2 } },
+            true,
+        );
+        await Rendering.waitFor(tableEl);
+        await settle();
+        assert.strictEqual(rows(tableEl), 2, 'the first load filled the body');
+
+        let release;
+        answer = new Promise((resolve) => {
+            release = () => resolve({ data: [{ a: 3 }], size: 1 });
+        });
+        const reloading = tableEl.reload();
+        await settle();
+
+        assert.strictEqual(rows(tableEl), 2, 'the rows stay put rather than collapsing to the spinner');
+        assert.isTrue(
+            tableEl.querySelector('tbody[data-ref=loading]').hasAttribute('hidden'),
+            'the spinner is for the load with nothing to show yet',
+        );
+        assert.strictEqual(tableEl.getAttribute('aria-busy'), 'true');
+
+        release();
+        await reloading;
+        await settle();
+
+        assert.strictEqual(rows(tableEl), 1);
+        assert.isFalse(tableEl.hasAttribute('aria-busy'));
+    });
+
+    it('shows the spinner for the load that has nothing to show', async () => {
+        const [tableEl] = mount({ load: () => new Promise(() => {}) }, false);
+        await Rendering.waitFor(tableEl);
+
+        tableEl.reload().catch(() => {});
+        await settle();
+
+        assert.isFalse(
+            tableEl.querySelector('tbody[data-ref=loading]').hasAttribute('hidden'),
+            'an empty body has nothing to keep, so the spinner stands in for it',
+        );
+    });
+
+    it('drops the rows a failed load was replacing', async () => {
+        let fail = false;
+        const [tableEl] = mount(
+            {
+                load: async () => {
+                    if (fail) {
+                        throw new Error('boom');
+                    }
+                    return { data: [{ a: 1 }, { a: 2 }], size: 2 };
+                },
+            },
+            true,
+        );
+        await Rendering.waitFor(tableEl);
+        await settle();
+        assert.strictEqual(rows(tableEl), 2);
+
+        fail = true;
+        await tableEl.reload().catch(() => {});
+        await settle();
+
+        assert.strictEqual(rows(tableEl), 0, 'what the table holds is no longer what was asked for');
+        assert.isFalse(tableEl.querySelector('tbody[data-ref=feedback]').hasAttribute('hidden'));
+    });
+});
+
 describe('Table schema', () => {
     it('reports a missing schema slot instead of failing on undefined', async () => {
         registry.defineComponent('loaders:table', { create: () => ({ load: async () => ({ data: [], size: 0 }) }) });

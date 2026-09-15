@@ -63,6 +63,14 @@
         border: var(--ful-border-width) solid var(--ful-border-color);
         border-radius: var(--ful-border-radius);
         font-size: 0.875rem;
+        /*
+         * the note says its own piece: it is placed in the top layer beside
+         * whatever carried the marker, a bold field label or an emphasised cell
+         * among them, and inheriting that set the whole explanation in it
+         */
+        font-weight: 400;
+        font-style: normal;
+        text-align: start;
         margin: var(--ful-note-gap) 0 0;
 
         &:popover-open {

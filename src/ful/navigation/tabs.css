@@ -1,6 +1,16 @@
 @layer ful.components {
     *:has(> ful-tablist) {
         display: block;
+
+        /*
+         * The panel stands off its tablist. Without this the content begins on
+         * the tablist's bottom border, which reads as one block and loses the
+         * rhythm the rest of a page has; the tabs render the panel, so the space
+         * between the two belongs here rather than to every page that uses them.
+         */
+        & > [role="tabpanel"] {
+            padding-block-start: 1rem;
+        }
     }
 
     ful-tablist {
@@ -13,6 +23,9 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            /* a tab's own gap: an icon before its label needs air, and the
+               tablist's gap spaces the tabs from one another, not their parts */
+            gap: 0.375rem;
             min-height: var(--ful-controls-height);
             padding: 0.375rem 0.75rem;
             font: inherit;

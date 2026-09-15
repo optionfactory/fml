@@ -381,9 +381,33 @@ describe('Filter operator keyboard access', () => {
 
         assert.strictEqual(menu.getAttribute('role'), 'menu');
         for (const item of menu.querySelectorAll('a')) {
-            assert.strictEqual(item.getAttribute('role'), 'menuitem');
+            assert.strictEqual(item.getAttribute('role'), 'menuitemradio');
             assert.strictEqual(item.getAttribute('tabindex'), '-1', 'the button is the tab stop, not every item');
         }
+    });
+    it('marks the choice the button holds, and moves the mark on a pick', async () => {
+        const [el] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=operator]');
+        const menu = button.nextElementSibling;
+        const checked = () =>
+            [...menu.querySelectorAll('a[aria-checked="true"]')].map((a) => a.getAttribute('value'));
+
+        assert.deepEqual(checked(), [button.getAttribute('value')], 'exactly the current operator is marked');
+
+        menu.querySelector('a[value=CONTAINS]').click();
+
+        assert.strictEqual(button.getAttribute('value'), 'CONTAINS');
+        assert.deepEqual(checked(), ['CONTAINS'], 'the mark follows the pick, and only one item carries it');
+    });
+    it('marks the sensitivity the button holds too', async () => {
+        const [el] = await mount(`<ful-filter-text>t</ful-filter-text>`);
+        const button = el.querySelector('[data-ref=sensitivity]');
+        const menu = button.nextElementSibling;
+
+        assert.deepEqual(
+            [...menu.querySelectorAll('a[aria-checked="true"]')].map((a) => a.getAttribute('value')),
+            [button.getAttribute('value')],
+        );
     });
 });
 

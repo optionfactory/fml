@@ -26,6 +26,27 @@ const shot = async (sel, file, clip) => {
     console.log('wrote', file);
 };
 
+// a popover draws in the top layer, over whatever the page has below it, so the
+// shots that open one show only the block they are about
+const only = (id) => p.evaluate((keep) => {
+    for (const s of document.querySelectorAll('.shot')) {
+        s.hidden = s.id !== keep;
+    }
+}, id);
+const all = () => p.evaluate(() => { for (const s of document.querySelectorAll('.shot')) s.hidden = false; });
+
+// the filter, closed and with its operator menu open: the mark on the choice the
+// button holds is the half a shot of the closed field cannot show
+await shot('#shot-filter', 'filter.png');
+await only('shot-filter');
+await p.click('#shot-filter [data-ref=operator]');
+await p.waitForTimeout(300);
+await p.screenshot({ path: `${out}/filter-menu.png`, clip: { x: 20, y: 20, width: 520, height: 452 } });
+console.log('wrote filter-menu.png');
+await p.keyboard.press('Escape');
+await all();
+await p.waitForTimeout(200);
+
 // tooltip: open the popover
 await p.click('#shot-tooltip ful-tooltip button');
 await p.waitForTimeout(300);
@@ -33,13 +54,6 @@ await p.screenshot({ path: `${out}/tooltip.png`, clip: { x: 24, y: 24, width: 62
 console.log('wrote tooltip.png');
 await p.keyboard.press('Escape');
 await p.waitForTimeout(200);
-
-// dialog and drawer are modal: clear the page behind them so the shot is the overlay
-const only = (id) => p.evaluate((keep) => {
-    for (const s of document.querySelectorAll('.shot')) {
-        s.hidden = s.id !== keep;
-    }
-}, id);
 
 await only('shot-dialog');
 await p.evaluate(() => { document.querySelector('#dlg').open(); });
@@ -56,7 +70,7 @@ await p.screenshot({ path: `${out}/drawer.png`, clip: { x: 250, y: 0, width: 650
 console.log('wrote drawer.png');
 await p.keyboard.press('Escape');
 await p.waitForTimeout(300);
-await p.evaluate(() => { for (const s of document.querySelectorAll('.shot')) s.hidden = false; });
+await all();
 await p.waitForTimeout(200);
 
 // toasts

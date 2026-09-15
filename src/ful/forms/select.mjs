@@ -554,6 +554,14 @@ class Select extends Field {
             if (!this._interactive()) {
                 return;
             }
+            //a click on another control inside the select is that control's, not
+            //the select's: a tooltip marker slotted into `info`, a button a page
+            //put in an affix. Without this, reading the note beside a select
+            //also stole the focus and dropped the dropdown over the note
+            const elsewhere = e.target.closest('button, a[href], input, select, textarea');
+            if (elsewhere && elsewhere !== this.#input) {
+                return;
+            }
             if (this.#ddmenu.shown) {
                 this.#close();
                 return;

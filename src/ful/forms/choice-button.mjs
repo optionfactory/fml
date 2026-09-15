@@ -95,6 +95,20 @@ class ChoiceButton {
         //menu is where the localized words live
         this.#button.textContent = this.#display(choice);
         Attributes.set(this.#button, 'aria-label', this.#labelFor(choice));
+        this.#mark();
+    }
+    /**
+     * Marks the item the button currently holds, which is what a menu of one
+     * choice among several owes the reader: the glyph on the button says which
+     * one it is only to somebody who already knows the glyphs. The items are
+     * `menuitemradio`, so the state is `aria-checked` rather than the
+     * `aria-selected` a listbox would use, and the stylesheet draws it off that.
+     */
+    #mark() {
+        const current = this.value;
+        for (const item of this.#items()) {
+            item.setAttribute('aria-checked', String(item.getAttribute('value') === current));
+        }
     }
     /** The host's disabled claim, composed with the pin: lifting one cannot lift the other. */
     set claimed(claimed) {
@@ -107,7 +121,9 @@ class ChoiceButton {
                 const li = document.createElement('li');
                 li.setAttribute('role', 'none');
                 const a = document.createElement('a');
-                a.setAttribute('role', 'menuitem');
+                //one choice among several, which is what a radio item is: the
+                //state belongs on the item, not on the button alone
+                a.setAttribute('role', 'menuitemradio');
                 a.setAttribute('tabindex', '-1');
                 a.setAttribute('value', choice);
                 const word = this.#labelFor(choice);
@@ -125,6 +141,7 @@ class ChoiceButton {
                 return li;
             }),
         );
+        this.#mark();
     }
     #sync() {
         const pinned = this.pinned;

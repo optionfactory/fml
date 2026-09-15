@@ -122,6 +122,17 @@
             }
         }
 
+        /*
+         * The choice the button currently holds, drawn as ful-select draws a
+         * picked entry: a wash of the accent with a bar along the leading edge.
+         * The glyph on the button says which one it is only to a reader who
+         * already knows the glyphs, so the menu says it in full.
+         */
+        & > li > a[aria-checked="true"] {
+            background-color: color-mix(in srgb, var(--ful-active-bg) 12%, transparent);
+            box-shadow: inset 0.2rem 0 0 var(--ful-active-bg);
+        }
+
         & > li > a:hover {
             background-color: var(--ful-selected-bg);
         }

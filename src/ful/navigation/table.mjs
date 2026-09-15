@@ -547,8 +547,13 @@ class Table extends ParsedElement {
         //started is stale, and neither renders nor updates the request a later
         //reload replays, whichever order the responses arrive in
         const claim = this.#loads.take();
-        this.#body.replaceChildren();
-        this.#loading.removeAttribute('hidden');
+        //the rows stay while the table revalidates. Emptying the body and raising
+        //the spinner row in its place collapsed the table to one tall row and
+        //expanded it again on every sort, page and reload: two layout jumps for
+        //what is the same table with newer rows in it. The spinner is for the load
+        //with nothing to show yet, the first one and the one after a failure; the
+        //rest announce themselves through aria-busy, which the stylesheet reads
+        this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
         this.#feedback.setAttribute('hidden', '');
         this.#noAutoload.setAttribute('hidden', '');
         this.setAttribute('aria-busy', 'true');
@@ -566,6 +571,10 @@ class Table extends ParsedElement {
                 return;
             }
             this.#loading.setAttribute('hidden', '');
+            //the rows the failed load was replacing go with it: what the table
+            //holds is no longer what the request asked for, and leaving them
+            //under the error would say the opposite
+            this.#body.replaceChildren();
             this.#feedback.removeAttribute('hidden');
             this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Failure.problemsText(
                 error,

@@ -2,6 +2,29 @@
     *:has(> ful-table-wrapper) {
         display: block;
 
+        /*
+         * A column heading reads along its column. The user agent centres a th,
+         * which is a default from an age when a table was a layout, and the
+         * library used to inherit bootstrap's reboot undoing it: the headings
+         * of ful-table's own thead went centred the moment a page dropped
+         * bootstrap. Said here now, on the table the library renders.
+         */
+        & th {
+            text-align: start;
+        }
+
+        /*
+         * Revalidating with rows already on screen: they stay where they are and
+         * go quiet, so a sort or a page change is the rows changing rather than
+         * the table collapsing to a spinner and growing back. They stop taking
+         * the pointer while they do, since a row about to be replaced is not one
+         * to act on, which emptying the body used to guarantee.
+         */
+        &[aria-busy="true"] tbody:not([data-ref]) {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
         & tbody[data-ref="initial"],
         & tbody[data-ref="loading"],
         & tbody[data-ref="feedback"] {

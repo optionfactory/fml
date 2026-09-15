@@ -1607,6 +1607,35 @@ describe('Select dropdown opening', () => {
 
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
     });
+
+    it('leaves a click on another control inside it to that control', async () => {
+        const [selectEl] = await mount(
+            `<ful-select value="k1">pick<ful-tooltip slot="info">a note</ful-tooltip></ful-select>`,
+        );
+        const marker = selectEl.querySelector('ful-tooltip button');
+
+        marker.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await opened();
+
+        assert.isFalse(
+            selectEl.querySelector('ful-dropdown').shown,
+            'reading the note beside a select should not drop the dropdown over it',
+        );
+        assert.notStrictEqual(document.activeElement, selectEl.querySelector('input'));
+    });
+
+    it('still opens when its own control group is clicked', async () => {
+        const [selectEl] = await mount(
+            `<ful-select value="k1">pick<ful-tooltip slot="info">a note</ful-tooltip></ful-select>`,
+        );
+
+        selectEl
+            .querySelector('ful-control-group')
+            .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await opened();
+
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+    });
 });
 
 describe('Select inner control isolation', () => {
