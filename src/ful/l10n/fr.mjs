@@ -35,6 +35,7 @@ export default {
     'filters.boolean.false': 'Non',
     'info.tooltip': 'Plus d’informations',
     'dialog.acknowledge': 'J’ai compris',
+    'dialog.close': 'Fermer',
     'drawer.close': 'Fermer',
     'spinner.loading': 'Chargement…',
     'toast.region': 'Notifications',

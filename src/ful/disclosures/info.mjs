@@ -64,15 +64,37 @@ class Tooltip extends ParsedElement {
     }
 }
 
-/** A modal dialog on the native platform, open()/ask() resolving with the closer's data-result. */
+/**
+ * A modal dialog on the native platform, open()/ask() resolving with the
+ * closer's data-result.
+ *
+ * The header carries a close button, as the drawer's does: Escape dismisses a
+ * modal on its own, but nothing says so, and a dialog whose only exit is a key
+ * you have to know about leaves a pointer with nowhere to go. It answers the way
+ * Escape does, with null.
+ *
+ * `requires-answer` is for the dialog that must be answered: the close button is not
+ * rendered and Escape is refused, so the only way out is a button that carries a
+ * result. It has to be both, a close button withheld while Escape still worked
+ * being decoration rather than a rule.
+ *
+ * The chrome is reachable by class as well as by tag, so a plain `<dialog
+ * class="ful-dialog">` written by a page gets the same look whatever its
+ * structure: the tag form matches a direct child, and `ful-dialog-header`,
+ * `ful-dialog-body` and `ful-dialog-footer` match at any depth, which is what a
+ * dialog whose content is wrapped in a form needs.
+ */
 class Dialog extends ParsedElement {
-    static attributes = ['header'];
+    static attributes = ['header', 'requires-answer:presence'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-dialog">
-            <header data-tpl-if="header"><h2>{{ header }}</h2></header>
-            <div data-ref="body">{{{{ slots.default }}}}</div>
-            <footer>
+            <header data-tpl-if="header || !requiresAnswer" class="ful-dialog-header">
+                <h2 data-tpl-if="header">{{ header }}</h2>
+                <button data-tpl-if="!requiresAnswer" type="button" data-ref="close" data-tpl-aria-label="#l10n:t('dialog.close')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+            </header>
+            <div data-ref="body" class="ful-dialog-body">{{{{ slots.default }}}}</div>
+            <footer class="ful-dialog-footer">
                 <button type="button" data-ref="acknowledge" data-result="acknowledged" data-tpl-if="!slots.buttons" data-tpl-aria-label="#l10n:t('dialog.acknowledge')">{{ #l10n:t('dialog.acknowledge') }}</button>
                 {{{{ slots.buttons }}}}
             </footer>
@@ -83,8 +105,9 @@ class Dialog extends ParsedElement {
     #requests = new SectionRequests();
     #resolvers = [];
     render({ slots }) {
+        const requiresAnswer = this.declared('requires-answer');
         const fragment = this.template()
-            .withOverlay({ slots, header: this.declared('header') ?? '' })
+            .withOverlay({ slots, header: this.declared('header') ?? '', requiresAnswer })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#body = fragment.querySelector('[data-ref=body]');
@@ -102,6 +125,17 @@ class Dialog extends ParsedElement {
                 this.#dialog.close(result);
             }
         });
+        //dismissal, not an answer: the waiters are settled with null, as Escape does.
+        //Optional because a subclass overriding the template owns what it renders
+        fragment
+            .querySelector('[data-ref=close]')
+            ?.addEventListener('click', () => this.#dialog.close(''));
+        if (requiresAnswer) {
+            //the platform's own dismissal, refused where the dialog must be
+            //answered: cancel fires for Escape and for a close request the
+            //browser makes on its own, and preventing it leaves the dialog open
+            this.#dialog.addEventListener('cancel', (/** @type any */ e) => e.preventDefault());
+        }
         this.replaceChildren(fragment);
         wireTargets();
     }

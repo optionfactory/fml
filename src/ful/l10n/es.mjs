@@ -32,6 +32,7 @@ export default {
     'filters.boolean.false': 'No',
     'info.tooltip': 'Más información',
     'dialog.acknowledge': 'Entendido',
+    'dialog.close': 'Cerrar',
     'drawer.close': 'Cerrar',
     'spinner.loading': 'Cargando…',
     'toast.region': 'Notificaciones',

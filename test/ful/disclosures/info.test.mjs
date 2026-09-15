@@ -428,6 +428,56 @@ describe('Subclass reuse', () => {
     });
 });
 
+describe('Dialog dismissal', () => {
+    it('closes on the header button and answers its waiters with null', async () => {
+        const [dialog] = await mount('<ful-dialog header="Publish?">the body</ful-dialog>');
+        const close = dialog.querySelector('header button[data-ref=close]');
+        assert.strictEqual(close.getAttribute('aria-label'), 'Close');
+
+        const asked = dialog.ask();
+        assert.isTrue(dialog.querySelector('dialog').open);
+        close.click();
+
+        assert.isNull(await asked, 'a dismissal is not an answer');
+        assert.isFalse(dialog.querySelector('dialog').open);
+    });
+    it('carries a header for the button even with no heading to show', async () => {
+        const [dialog] = await mount('<ful-dialog>the body</ful-dialog>');
+
+        assert.strictEqual(dialog.querySelectorAll('header button[data-ref=close]').length, 1);
+        assert.strictEqual(dialog.querySelectorAll('header h2').length, 0);
+    });
+    it('withholds the close button and refuses Escape under requires-answer', async () => {
+        const [dialog] = await mount('<ful-dialog requires-answer header="Pick one">the body</ful-dialog>');
+        const native = dialog.querySelector('dialog');
+
+        assert.strictEqual(dialog.querySelectorAll('[data-ref=close]').length, 0);
+
+        dialog.ask();
+        assert.isTrue(native.open);
+        //the platform's own dismissal, which the cancel event is the hook for
+        native.dispatchEvent(new Event('cancel', { cancelable: true }));
+        assert.isTrue(native.open, 'Escape leaves it open, the button being gone');
+
+        dialog.close('answered');
+        assert.isFalse(native.open, 'a result still closes it');
+    });
+    it('renders no header at all under requires-answer with nothing to head it', async () => {
+        const [dialog] = await mount('<ful-dialog requires-answer>the body</ful-dialog>');
+
+        assert.strictEqual(dialog.querySelectorAll('header').length, 0);
+    });
+    it('styles the chrome through the class wherever it stands, not only as a direct child', async () => {
+        const [dialog] = await mount(
+            '<ful-dialog header="h"><div><footer class="ful-dialog-footer" data-ref="nested"><button>a</button></footer></div></ful-dialog>',
+        );
+        const nested = dialog.querySelector('[data-ref=nested]');
+
+        assert.strictEqual(getComputedStyle(nested).display, 'flex');
+        assert.strictEqual(getComputedStyle(nested).justifyContent, 'flex-end');
+    });
+});
+
 describe('Dialog, the section:requested contract', () => {
     it('fires on the body on open, first only the first time', async () => {
         const [dialog] = await mount('<ful-dialog header="h">the body</ful-dialog>');

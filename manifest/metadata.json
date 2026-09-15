@@ -297,7 +297,8 @@
         "ful-dialog": {
             "description": "A modal dialog on the native platform: header, body and buttons, the header attribute naming its heading, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which resolve with the data-result of the button that closed the dialog (null on Escape). Longer explanations belong here, shorter ones in ful-tooltip.",
             "attributes": {
-                "header": "The dialog's title, shown in its header. Text only; slot content into the body instead for anything richer."
+                "header": "The dialog's title, shown in its header. Text only; slot content into the body instead for anything richer.",
+                "requires-answer": "For the dialog that must be answered: the close button is not rendered and Escape is refused, so the only way out is a button carrying a result. Both, since a close button withheld while Escape still worked would be decoration rather than a rule."
             },
             "slots": {
                 "default": "The dialog body.",
