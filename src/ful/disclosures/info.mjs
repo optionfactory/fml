@@ -106,7 +106,7 @@ class Dialog extends ParsedElement {
             <section data-ref="error" role="alert" hidden></section>
             <div data-ref="body" class="ful-dialog-body">{{{{ slots.default }}}}</div>
             <footer class="ful-dialog-footer">
-                <button type="button" data-ref="acknowledge" data-result="acknowledged" data-tpl-if="!slots.buttons" data-tpl-aria-label="#l10n:t('dialog.acknowledge')">{{ #l10n:t('dialog.acknowledge') }}</button>
+                <button type="button" data-ref="acknowledge" data-result="acknowledged" data-tpl-if="!slots.buttons && !closeOnSubmit" data-tpl-aria-label="#l10n:t('dialog.acknowledge')">{{ #l10n:t('dialog.acknowledge') }}</button>
                 {{{{ slots.buttons }}}}
             </footer>
         </dialog>
@@ -124,8 +124,9 @@ class Dialog extends ParsedElement {
     #answer = null;
     render({ slots }) {
         const requiresAnswer = this.declared('requires-answer');
+        const closeOnSubmit = this.declared('close-on-submit');
         const fragment = this.template()
-            .withOverlay({ slots, header: this.declared('header') ?? '', requiresAnswer })
+            .withOverlay({ slots, header: this.declared('header') ?? '', requiresAnswer, closeOnSubmit })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#body = fragment.querySelector('[data-ref=body]');
@@ -148,7 +149,7 @@ class Dialog extends ParsedElement {
         fragment
             .querySelector('[data-ref=close]')
             ?.addEventListener('click', () => this.#dialog.close(''));
-        if (this.declared('close-on-submit')) {
+        if (closeOnSubmit) {
             //delegated on the body rather than bound to the form, so a body
             //delivered later by update() is covered by the same listener. The
             //form must be the body's own: a ful-table wraps its filters in a

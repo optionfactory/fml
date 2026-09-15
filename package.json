@@ -1,6 +1,6 @@
 {
     "name": "@optionfactory/fml",
-    "version": "9.0.0-rc8",
+    "version": "9.0.0-rc9",
     "type": "module",
     "main": "./dist/fml.mjs",
     "module": "./dist/fml.mjs",

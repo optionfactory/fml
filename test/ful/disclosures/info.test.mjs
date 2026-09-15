@@ -447,7 +447,7 @@ describe('Dialog delivery', () => {
     });
 
     it('a reopening owes nothing to the answer before it', async () => {
-        const [dialog] = await mount('<ful-dialog close-on-submit>body</ful-dialog>');
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
         dialog.querySelector('[data-ref=acknowledge]').click();
         assert.strictEqual((await asked).result, 'acknowledged');
@@ -466,6 +466,33 @@ describe('Dialog close-on-submit', () => {
                 <button type="submit">Save</button>
             </ful-form>
         </ful-dialog>`;
+
+    it('renders no acknowledge button: the form it closes on is where its answer comes from', async () => {
+        const [dialog] = await mount(form());
+
+        assert.isNull(
+            dialog.querySelector('[data-ref=acknowledge]'),
+            'the acknowledge button is for the dialog that only announces something',
+        );
+        assert.isNotNull(dialog.querySelector('button[type=submit]'), "the form's own button stands");
+    });
+
+    it('keeps a slotted buttons set beside the form', async () => {
+        const [dialog] = await mount(`
+            <ful-dialog close-on-submit header="Edit">
+                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+                <template slot="buttons"><button type="button" data-result="later">Later</button></template>
+            </ful-dialog>`);
+
+        assert.isNull(dialog.querySelector('[data-ref=acknowledge]'));
+        assert.isNotNull(dialog.querySelector('button[data-result=later]'), 'the slotted buttons are untouched');
+    });
+
+    it('still acknowledges where nothing said its answer comes from a form', async () => {
+        const [dialog] = await mount('<ful-dialog header="Done">the body</ful-dialog>');
+
+        assert.isNotNull(dialog.querySelector('[data-ref=acknowledge]'));
+    });
 
     it('answers with the response its own form submitted, closing the dialog', async () => {
         const [dialog] = await mount(form());

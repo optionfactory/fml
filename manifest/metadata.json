@@ -299,11 +299,11 @@
             "attributes": {
                 "header": "The dialog's title, shown in its header. Text only; slot content into the body instead for anything richer.",
                 "requires-answer": "For the dialog that must be answered: the close button is not rendered and Escape is refused, so the only way out is a button carrying a result. Both, since a close button withheld while Escape still worked would be decoration rather than a rule.",
-                "close-on-submit": "For the dialog whose answer is a form succeeding rather than a button being pressed: its own form submitting successfully closes it and answers with the response. Opt in, and its own form only, a ful-form the body holds directly, since a ful-table wraps its filters in a form of its own and searching one is not the dialog being answered."
+                "close-on-submit": "For the dialog whose answer is a form succeeding rather than a button being pressed: its own form submitting successfully closes it and answers with the response. Opt in, and its own form only, a ful-form the body holds directly, since a ful-table wraps its filters in a form of its own and searching one is not the dialog being answered. Such a dialog renders no acknowledge button of its own, the form's submit being its answer."
             },
             "slots": {
                 "default": "The dialog body.",
-                "buttons": "Buttons closing the dialog; each carries a data-result that the answer carries back. Without this slot a localized acknowledge button is shown."
+                "buttons": "Buttons closing the dialog; each carries a data-result that the answer carries back. Without this slot a localized acknowledge button is shown. A dialog closing on its form renders none either way, so the slot is for buttons beside the form, not for suppressing one."
             },
             "events": {
                 "close": "Fired when the dialog closes, carrying how it ended: dismissed tells a cancel from an answer, result the data-result of the button that closed it, response what a submit answered with. ask() and open() resolve with the same object, and a dialog leaving the document while open answers its waiters with a dismissal.",
