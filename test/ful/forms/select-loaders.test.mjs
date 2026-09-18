@@ -195,7 +195,7 @@ describe('SelectLoader', () => {
         container.remove();
     });
 
-    it('labels a filter preselected by key, so the description reads in words', async () => {
+    it('labels a filter preselected by key, so the criterion reads in words', async () => {
         stubHttp({ '/kinds2': [['A', 'Alpha'], ['B', 'Beta']] });
         const container = appended(
             '<ful-filter-in src="/kinds2" name="byKind" value="A,B">Kind</ful-filter-in>',
@@ -205,7 +205,7 @@ describe('SelectLoader', () => {
         await opened();
 
         assert.deepEqual(filter.value, ['A', 'B']);
-        assert.deepEqual(filter.description.operands, ['Alpha', 'Beta']);
+        assert.deepEqual(filter.criterion.operands, ['Alpha', 'Beta']);
         container.remove();
     });
 

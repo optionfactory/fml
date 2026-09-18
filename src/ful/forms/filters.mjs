@@ -34,13 +34,13 @@ const booleanValueLabel = (token) => t(token === '' ? 'filters.boolean.any' : `f
 
 /**
  * The operands are the words the reader chose, not the keys the wire carries.
- * @typedef {{ label: string|null, operator: string|null, operands: string[] }} FilterDescription
+ * @typedef {{ label: string|null, operator: string|null, operands: string[] }} FilterCriterion
  */
 
 const labelTextOf = (filter) => filter.querySelector(':scope > label')?.textContent.trim() || null;
 
-/** @returns {FilterDescription|null} */
-const described = (label, operator, operands) => {
+/** @returns {FilterCriterion|null} */
+const asCriterion = (label, operator, operands) => {
     const shown = operands.filter((o) => o !== null && o !== undefined && `${o}` !== '');
     return shown.length === 0 ? null : { label, operator, operands: shown.map((o) => `${o}`) };
 };
@@ -187,14 +187,14 @@ class CompareFilter extends Input {
     /**
      * The operands as shown rather than as serialized: a date filter describes
      * what is in its control, not the iso string it sends.
-     * @returns {FilterDescription|null}
+     * @returns {FilterCriterion|null}
      */
-    get description() {
+    get criterion() {
         const operands =
             this._operator.value === 'BETWEEN'
                 ? [this._value1.value, this._value2.value]
                 : [this._value1.value];
-        return described(labelTextOf(this), this._operator.value, operands);
+        return asCriterion(labelTextOf(this), this._operator.value, operands);
     }
     get disabled() {
         return super.disabled;
@@ -431,10 +431,10 @@ class BooleanFilter extends Field {
         this._operator.value = this._operator.pinned ? this._operator.allowed[0] : v[0];
         this._value.value = v[1] ?? '';
     }
-    /** @returns {FilterDescription|null} */
-    get description() {
+    /** @returns {FilterCriterion|null} */
+    get criterion() {
         const token = this._value.value;
-        return described(labelTextOf(this), this._operator.value, [
+        return asCriterion(labelTextOf(this), this._operator.value, [
             token === '' ? '' : booleanValueLabel(token),
         ]);
     }
@@ -471,9 +471,9 @@ class InFilter extends Select {
     set value(v) {
         super.value = v ?? [];
     }
-    /** @returns {FilterDescription|null} */
-    get description() {
-        return described(
+    /** @returns {FilterCriterion|null} */
+    get criterion() {
+        return asCriterion(
             labelTextOf(this),
             null,
             (super.entry ?? []).map((e) => e.label),

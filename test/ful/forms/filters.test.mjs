@@ -1107,11 +1107,11 @@ describe('Filter menus, where the platform lacks CSS anchor positioning', () => 
     });
 });
 
-describe('Filters describing themselves', () => {
+describe('Filters answering their criterion', () => {
     it('answers null while nothing is filtered on', async () => {
         const [el] = await mount(`<ful-filter-text>Position</ful-filter-text>`);
 
-        assert.isNull(el.description);
+        assert.isNull(el.criterion);
     });
 
     it('carries the label, the operator and the operand', async () => {
@@ -1119,7 +1119,7 @@ describe('Filters describing themselves', () => {
             `<ful-filter-text value='["CONTAINS","IGNORE_CASE","ab"]'>Position</ful-filter-text>`,
         );
 
-        assert.deepEqual(el.description, {
+        assert.deepEqual(el.criterion, {
             label: 'Position',
             operator: 'CONTAINS',
             operands: ['ab'],
@@ -1131,7 +1131,7 @@ describe('Filters describing themselves', () => {
             `<ful-filter-local-date value='["BETWEEN","2024-01-01","2024-02-01"]'>When</ful-filter-local-date>`,
         );
 
-        assert.deepEqual(el.description.operands, ['2024-01-01', '2024-02-01']);
+        assert.deepEqual(el.criterion.operands, ['2024-01-01', '2024-02-01']);
     });
 
     it('describes only the first operand while the operator takes one', async () => {
@@ -1139,19 +1139,19 @@ describe('Filters describing themselves', () => {
             `<ful-filter-number value='["GT","3"]'>Count</ful-filter-number>`,
         );
 
-        assert.deepEqual(el.description, { label: 'Count', operator: 'GT', operands: ['3'] });
+        assert.deepEqual(el.criterion, { label: 'Count', operator: 'GT', operands: ['3'] });
     });
 
-    it('answers the boolean filter in the words its menu shows, not the token', async () => {
+    it('answers a boolean filter in the words its menu shows, not the token', async () => {
         const [el] = await mount(`<ful-filter-boolean value='["EQ","true"]'>Active</ful-filter-boolean>`);
 
-        assert.deepEqual(el.description, { label: 'Active', operator: 'EQ', operands: ['Yes'] });
+        assert.deepEqual(el.criterion, { label: 'Active', operator: 'EQ', operands: ['Yes'] });
     });
 
     it('answers null for a boolean filter left on any', async () => {
         const [el] = await mount(`<ful-filter-boolean>Active</ful-filter-boolean>`);
 
-        assert.isNull(el.description);
+        assert.isNull(el.criterion);
     });
 });
 
@@ -1173,7 +1173,7 @@ describe('The set membership filter', () => {
         const [el] = await mount(`<ful-filter-in name="byKind">Kind</ful-filter-in>`);
 
         assert.isNull(el.value);
-        assert.isNull(el.description);
+        assert.isNull(el.criterion);
     });
 
     it('answers the chosen keys as an array', async () => {
@@ -1188,11 +1188,11 @@ describe('The set membership filter', () => {
         assert.deepEqual(el.value, ['A']);
     });
 
-    it('describes the chosen labels rather than the keys', async () => {
+    it('gives the chosen labels rather than the keys', async () => {
         const [el] = await mount(`<ful-filter-in name="byKind" value="A,B">Kind</ful-filter-in>`);
         await settle();
 
-        assert.deepEqual(el.description, {
+        assert.deepEqual(el.criterion, {
             label: 'Kind',
             operator: null,
             operands: ['Alpha', 'Beta'],
@@ -1211,6 +1211,6 @@ describe('The set membership filter', () => {
         el.value = null;
 
         assert.isNull(el.value);
-        assert.isNull(el.description);
+        assert.isNull(el.criterion);
     });
 });
