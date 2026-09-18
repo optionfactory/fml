@@ -350,7 +350,10 @@
                 "caption": "The caption of the table.",
                 "footer": "Content rendered in the table footer."
             },
-            "events": {}
+            "events": {
+                "load:success": "Fired once a load has settled, after the rows are in place and the busy state is gone, carrying the page response and the three requests that asked for it. Not fired for a load a newer one superseded, which owns nothing.",
+                "load:failure": "Fired when a load rejects, after the error row is shown, carrying the exception and the three requests. Telling this from an empty result is what the aria-busy attribute alone cannot do."
+            }
         },
         "ful-tabs": {
             "description": "A tab panel: one visible panel at a time, announced through the tab pattern (a tablist of tab buttons, each panel a tabpanel named by its tab, the arrows and Home/End walking the tabs with automatic activation). The tabs are declared as tab elements in the tabs slot, the panels as the slotless children, paired in order; the chrome anchors on the ful-tablist style-only tag, so a subclass or foreign markup built from it keeps the look.",

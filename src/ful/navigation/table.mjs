@@ -564,6 +564,16 @@ class Table extends ParsedElement {
             }
             this.#latestRequest = { pageRequest, sortRequest, filterRequest };
             this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
+            //settled before the event: a listener counting what loaded has to
+            //see the table as it now is
+            this.removeAttribute('aria-busy');
+            this.dispatchEvent(
+                new CustomEvent('load:success', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: { pageRequest, sortRequest, filterRequest, response: pageResponse },
+                }),
+            );
         } catch (/** @type any */ error) {
             if (claim.stale) {
                 //the newer load owns the table and its outcome: a superseded
@@ -580,12 +590,15 @@ class Table extends ParsedElement {
                 error,
                 `${error}`,
             );
+            this.removeAttribute('aria-busy');
+            this.dispatchEvent(
+                new CustomEvent('load:failure', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: { pageRequest, sortRequest, filterRequest, exception: error },
+                }),
+            );
             throw error;
-        } finally {
-            //a superseded load owns nothing, the newer one's busy state included
-            if (!claim.stale) {
-                this.removeAttribute('aria-busy');
-            }
         }
     }
     /** Hands the loader to the callback, for runtime reconfigurations. */
