@@ -775,3 +775,75 @@ describe('Field descriptions', () => {
         assert.strictEqual(control.getAttribute('aria-describedby').split(' ').filter((id) => id === note.id).length, 1);
     });
 });
+
+describe('Numeric widget types', () => {
+    const mount = async (html) => {
+        const container = appended(html);
+        const el = container.firstElementChild;
+        await Rendering.waitFor(el);
+        return [el, el.querySelector('input'), container];
+    };
+    const type = async (input, text) => {
+        input.value = text;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        await settle();
+    };
+
+    it('renders a text input carrying the keyboard the type names', async () => {
+        const [, numeric] = await mount(`<ful-input type="numeric">n</ful-input>`);
+        const [, decimal] = await mount(`<ful-input type="decimal">d</ful-input>`);
+
+        assert.strictEqual(numeric.getAttribute('type'), 'text');
+        assert.strictEqual(numeric.getAttribute('inputmode'), 'numeric');
+        assert.strictEqual(decimal.getAttribute('type'), 'text');
+        assert.strictEqual(decimal.getAttribute('inputmode'), 'decimal');
+    });
+
+    it('leaves type=number on the native widget', async () => {
+        const [, input] = await mount(`<ful-input type="number">n</ful-input>`);
+
+        assert.strictEqual(input.getAttribute('type'), 'number');
+        assert.isNull(input.getAttribute('inputmode'));
+    });
+
+    it('keeps digits and a leading minus in a numeric field', async () => {
+        const [, input] = await mount(`<ful-input type="numeric">n</ful-input>`);
+
+        await type(input, '-12a3.4');
+
+        assert.strictEqual(input.value, '-1234');
+    });
+
+    it('keeps one separator in a decimal field, and drops the rest', async () => {
+        const [, input] = await mount(`<ful-input type="decimal">d</ful-input>`);
+
+        await type(input, '1,2,3');
+
+        assert.strictEqual(input.value, '1,23');
+    });
+
+    it('answers a comma as a dot, because the wire takes one separator', async () => {
+        const [el, input] = await mount(`<ful-input type="decimal">d</ful-input>`);
+
+        await type(input, '1,5');
+
+        assert.strictEqual(input.value, '1,5', 'what was typed stays on screen');
+        assert.strictEqual(el.value, '1.5');
+    });
+
+    it('answers a number where v-type asks for one', async () => {
+        const [el, input] = await mount(`<ful-input type="decimal" v-type="number">d</ful-input>`);
+
+        await type(input, '1,5');
+
+        assert.strictEqual(el.value, 1.5);
+    });
+
+    it('lets an author keep win over the type own filter', async () => {
+        const [, input] = await mount(`<ful-input type="numeric" keep="[0-9a-f]">n</ful-input>`);
+
+        await type(input, '1a2z3');
+
+        assert.strictEqual(input.value, '1a23');
+    });
+});

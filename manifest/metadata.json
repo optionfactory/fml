@@ -10,7 +10,7 @@
             "reject": "The same filter from the other side: a regular expression naming what is stripped from the value on every keystroke. Declaring both applies keep and warns once.",
             "required": "Marks the field as required for assistive technologies and shows the required marker on its label.",
             "trim": "Trims the value on the way out, leaving what was typed alone.",
-            "type": "Any native input type, or the literal textarea to render one. Defaults to number under v-type=number, and a declared type wins.",
+            "type": "Any native input type, the literal textarea to render one, or numeric and decimal, which render a text input carrying that inputmode and filter what can be typed: numeric takes digits and a leading minus, decimal one separator as well, answering it as a dot whatever the keyboard offered. Neither enforces min, max or step, which the native number type still does. Defaults to number under v-type=number, and a declared type wins.",
             "uppercase": "Upper-cases the value on the way out, leaving what was typed alone.",
             "v-type": "number decodes the value to a number on the way out: blank stays null and a value that does not decode is kept as it is.",
             "value": "The current value."
@@ -192,7 +192,7 @@
             }
         },
         "ful-input": {
-            "description": "A labelled text input. Use type to pick any native input type, or textarea; keep names the characters that survive a keystroke and reject the ones that do not, the caret staying among the survivors, and the uppercase and trim claims shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A labelled text input. Use type to pick any native input type, the keypad types numeric and decimal, or textarea; keep names the characters that survive a keystroke and reject the ones that do not, the caret staying among the survivors, and the uppercase and trim claims shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {},
             "slots": {},
             "events": {

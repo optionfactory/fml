@@ -38,6 +38,27 @@ const compiled = (attr, pattern) =>
  */
 const inheritedAutocomplete = (el) => el.closest('form')?.getAttribute('autocomplete') ?? null;
 
+/**
+ * The widget types fml adds over the platform's: a numeric keypad without the
+ * separator, and one with it. Both render a text input, which is what gives up
+ * the wheel-changes-the-value behaviour and the browser's refusal to show what
+ * was actually typed, and costs the native min/max/step enforcement.
+ */
+const INPUT_MODES = { numeric: 'numeric', decimal: 'decimal' };
+
+const signed = (v, digits) => (v.startsWith('-') ? '-' : '') + digits(v);
+
+const NUMERIC_FILTERS = {
+    numeric: (v) => signed(v, (t) => t.replace(/\D/g, '')),
+    //one separator, the first: the rest are a slip while typing, not a value
+    decimal: (v) =>
+        signed(v, (t) => {
+            const kept = t.replace(/[^\d.,]/g, '');
+            const at = kept.search(/[.,]/);
+            return at === -1 ? kept : kept.slice(0, at + 1) + kept.slice(at + 1).replace(/[.,]/g, '');
+        }),
+};
+
 const warnedBoth = new WeakSet();
 const filterOf = (el) => {
     const keep = el.declared('keep');
@@ -57,7 +78,9 @@ const filterOf = (el) => {
         const re = compiled('reject', reject);
         return re && ((v) => v.replace(re, ''));
     }
-    return null;
+    //a numeric widget filters by what it is, where an author's keep or reject
+    //above says what it should be instead
+    return NUMERIC_FILTERS[el._type()] ?? null;
 };
 
 /** A labelled text input over any native type or textarea; the temporal inputs are its subclasses. */
@@ -93,9 +116,17 @@ class Input extends Field {
         return this.declared('type') ?? (this.declared('v-type') === 'number' ? 'number' : 'text');
     }
     _build({ slots }) {
-        const type = this._type();
+        const declared = this._type();
+        const mode = INPUT_MODES[declared];
+        //a numeric widget is a text input: the type names the keyboard, not the
+        //control, so the rendered markup stays valid html
+        const type = mode ? 'text' : declared;
         const fragment = this.template().withOverlay({ type, slots }).render();
         this._input = fragment.querySelector('input,textarea');
+        if (mode) {
+            //before the passthrough, which stays the last word
+            Attributes.set(this._input, 'inputmode', mode);
+        }
 
         //the browser reads autocomplete off the control it is classifying, so the
         //field's own token, or the form's where it declares none, is put there.
@@ -147,13 +178,15 @@ class Input extends Field {
         if (trimmed === '') {
             return null;
         }
+        //the wire carries a dot wherever the comma is what the keyboard shows
+        const normalized = this._type() === 'decimal' ? trimmed.replaceAll(',', '.') : trimmed;
         if (this.declared('v-type') === 'number') {
             //typed values are an explicit opt in, as the select's k-type: blank
             //stays null, and a value that does not decode is kept as it is
-            const n = Number(trimmed);
-            return Number.isNaN(n) ? trimmed : n;
+            const n = Number(normalized);
+            return Number.isNaN(n) ? normalized : n;
         }
-        return trimmed;
+        return normalized;
     }
     set value(value) {
         this._input.value = value === '' || value === undefined ? null : value;
