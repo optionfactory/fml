@@ -3,6 +3,7 @@ import { ChoiceButton } from './choice-button.mjs';
 import { Field } from './field.mjs';
 import { Instant } from './temporals.mjs';
 import { Input } from './input.mjs';
+import { Select } from './select.mjs';
 
 const GLYPHS = {
     EQ: '=',
@@ -30,6 +31,20 @@ const { t } = Localization.of();
 const operatorLabel = (op) => t(`filters.op.${op}`);
 const sensitivityLabel = (sensitivity) => t(`filters.sensitivity.${sensitivity}`);
 const booleanValueLabel = (token) => t(token === '' ? 'filters.boolean.any' : `filters.boolean.${token}`);
+
+/**
+ * What a filter is filtering on, for a summary drawn beside the table: the
+ * operands are the words the reader chose, not the keys the wire carries.
+ * @typedef {{ label: string|null, operator: string|null, operands: string[] }} FilterDescription
+ */
+
+const labelTextOf = (filter) => filter.querySelector(':scope > label')?.textContent.trim() || null;
+
+/** @returns {FilterDescription|null} */
+const described = (label, operator, operands) => {
+    const shown = operands.filter((o) => o !== null && o !== undefined && `${o}` !== '');
+    return shown.length === 0 ? null : { label, operator, operands: shown.map((o) => `${o}`) };
+};
 
 /**
  * The shared shape of every operator-and-operands filter: an operator menu, one
@@ -169,6 +184,18 @@ class CompareFilter extends Input {
     /** only a BETWEEN carries a second operand */
     _syncBetween() {
         this._value2.toggleAttribute('hidden', this._operator.value !== 'BETWEEN');
+    }
+    /**
+     * The operands as shown rather than as serialized: a date filter describes
+     * what is in its control, not the iso string it sends.
+     * @returns {FilterDescription|null}
+     */
+    get description() {
+        const operands =
+            this._operator.value === 'BETWEEN'
+                ? [this._value1.value, this._value2.value]
+                : [this._value1.value];
+        return described(labelTextOf(this), this._operator.value, operands);
     }
     get disabled() {
         return super.disabled;
@@ -405,6 +432,13 @@ class BooleanFilter extends Field {
         this._operator.value = this._operator.pinned ? this._operator.allowed[0] : v[0];
         this._value.value = v[1] ?? '';
     }
+    /** @returns {FilterDescription|null} */
+    get description() {
+        const token = this._value.value;
+        return described(labelTextOf(this), this._operator.value, [
+            token === '' ? '' : booleanValueLabel(token),
+        ]);
+    }
     get disabled() {
         return super.disabled;
     }
@@ -417,4 +451,43 @@ class BooleanFilter extends Field {
     }
 }
 
-export { BooleanFilter, CompareFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter };
+/**
+ * Set membership over a select's vocabulary, answering for both of data-jpa's
+ * set annotations: InEnum and InList take the same bare array of values and no
+ * operator, differing only in what the server converts them to.
+ */
+class InFilter extends Select {
+    async upgrade() {
+        //the snapshot is taken inside super.upgrade(), so an attribute this
+        //element does not let an author turn off has to be written before it
+        this.toggleAttribute('multiple', true);
+        await super.upgrade();
+    }
+    get value() {
+        const keys = super.value;
+        //an empty set is no filter: the table drops a falsy value, where an
+        //empty array would travel and match nothing
+        return keys.length === 0 ? null : keys;
+    }
+    set value(v) {
+        super.value = v ?? [];
+    }
+    /** @returns {FilterDescription|null} */
+    get description() {
+        return described(
+            labelTextOf(this),
+            null,
+            (super.entry ?? []).map((e) => e.label),
+        );
+    }
+}
+
+export {
+    BooleanFilter,
+    CompareFilter,
+    InFilter,
+    InstantFilter,
+    LocalDateFilter,
+    NumberFilter,
+    TextFilter,
+};

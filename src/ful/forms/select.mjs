@@ -209,9 +209,31 @@ class SelectLoader {
             method: el.declared('method') ?? 'POST',
             mode: el.declared('mode'),
             prefetch: el.declared('preload'),
-            revision: el.declared('revision'),
+            revision: SelectLoader.#revisionFrom(el),
             responseMapper: SelectLoader.#responseMapperFrom(el),
         });
+    }
+    /**
+     * A page has one build to key its caches on, and every element asking for
+     * it by hand is a place to forget: an empty `revision` asks the registry
+     * for the one the page configured, where a written one still wins.
+     */
+    static #revisionFrom(el) {
+        const declared = el.declared('revision');
+        if (declared !== '') {
+            return declared;
+        }
+        const configured = el.component('revision');
+        if (configured === undefined || configured === null) {
+            //not caching while the markup says to cache is the quiet failure
+            //this branch exists to make loud
+            console.warn(
+                "a valueless revision asks the registry for one, and no 'revision' component is defined: the vocabulary will not be cached",
+                el,
+            );
+            return null;
+        }
+        return typeof configured === 'function' ? configured() : configured;
     }
     static #responseMapperFrom(el) {
         if (el.declared('k-expr') && el.declared('l-expr')) {

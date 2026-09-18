@@ -29,6 +29,7 @@ import './navigation/table.css';
 export {
     BooleanFilter,
     CompareFilter,
+    InFilter,
     InstantFilter,
     LocalDateFilter,
     NumberFilter,

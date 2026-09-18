@@ -23,25 +23,15 @@
         }
     },
     "elements": {
-        "ful-form": {
-            "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to the loader named by loader (loaders:form by default) on submit: with action the values travel as json (method, POST by default) through the request-mapper and response-mapper components when declared, without it the submit:requested listeners deliver the response themselves. Validation errors are announced politely without focus, or exactly once through focus management with scroll-on-error, and clear-invalid-on-change drops a field's problem as soon as the field changes again; global errors land in an author-provided ful-errors element, announced as an alert.",
+        "ful-accordion": {
+            "description": "An accordion over native details/summary disclosures: the platform carries the semantics, the keyboard and the toggling, the chrome paints the group (anchored on the ful-accordion-group style-only tag). With the exclusive claim the render assigns one shared name to every panel, which is the platform's own exclusive grouping: opening one closes the others.",
             "attributes": {
-                "action": "The endpoint the values are submitted to. With it the form posts json through a RemoteJsonFormLoader; without it a LocalFormLoader hands the outcome to whatever a submit:requested listener resolves with.",
-                "autocomplete": "The autofill token every field in the form takes unless it declares one of its own, copied onto the form element the host renders. A form cannot pass it down the way the platform would: each control carries form=\"\" so that the host is the only thing that submits, which leaves it with no form owner to inherit through, so the fields read it off the form instead.",
-                "clear-invalid-on-change": "Clears a field's custom validity as soon as that field changes again, so a server problem stops being shown the moment the user addresses it.",
-                "loader": "The registry component key of the form loader, loaders:form by default. A loader of your own implements prepare, submit and transform.",
-                "method": "The http method of the remote loader, POST by default.",
-                "request-mapper": "A registry component key, (values, form) => request, applied to the extracted values before they are sent.",
-                "response-mapper": "A registry component key, (response, form) => mapped, applied to a successful response before it reaches submit:success.",
-                "scroll-on-error": "Moves focus, and the viewport with it, to the topmost invalid field when errors land. The error live region is muted while focus moves, so each problem is announced once through the focused field rather than twice."
+                "exclusive": "When present, opening a panel closes the others: the native details name grouping, assigned (and assignable again) by the render."
             },
-            "slots": {},
-            "events": {
-                "submit": "Cancelable. Fired before anything is sent: preventDefault aborts the submit.",
-                "submit:requested": "Fired after the submit was accepted, to let a listener resolve the response itself.",
-                "submit:success": "Fired with the submitted values and the mapped response.",
-                "submit:failure": "Fired with the exception when the submit fails. The form does not rethrow."
-            }
+            "slots": {
+                "default": "The native details/summary disclosures, one per panel, rendered inside the group."
+            },
+            "events": {}
         },
         "ful-checkbox": {
             "description": "A checkbox, or a switch with type=\"switch\". Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
@@ -53,246 +43,6 @@
             "events": {
                 "change": "Fired with the new checked state when the box or its label is clicked."
             }
-        },
-        "ful-input": {
-            "description": "A labelled text input. Use type to pick any native input type, or textarea; keep names the characters that survive a keystroke and reject the ones that do not, the caret staying among the survivors, and the uppercase and trim claims shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {},
-            "slots": {},
-            "events": {
-                "change": "Fired with the current value when the field is committed."
-            }
-        },
-        "ful-input-file": {
-            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares; the noinput claim hides the picker control, the dropzone and the item list carrying the field alone. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
-                "accept": "Comma separated list of accepted tokens: an extension (.pdf), a mime type (application/pdf) or a wildcard (image/*). Files that do not match are dropped with a warning.",
-                "multiple": "Allows selecting more than one file.",
-                "item-list": "Shows the list of selected files.",
-                "dropzone": "Shows the dropzone.",
-                "max-files": "Maximum number of files. Exceeding it clears the selection.",
-                "max-file-size": "Maximum size of a single file, in bytes. Larger files are dropped.",
-                "max-total-size": "Maximum size of all the selected files, in bytes. Exceeding it clears the selection."
-            },
-            "slots": {
-                "dropzone": "Replaces the contents of the default dropzone."
-            },
-            "events": {
-                "change": "Fired with the names of the selected files."
-            }
-        },
-        "ful-local-date": {
-            "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page or the one its locale attribute names; default is shown when the content is empty.",
-            "attributes": {
-                "default": "The text rendered when the content is blank or does not parse as a date.",
-                "locale": "The locale the date is formatted in, taking precedence over the page's. The platform default applies when neither names one."
-            },
-            "slots": {},
-            "events": {}
-        },
-        "ful-instant": {
-            "description": "Formats the ISO instant in its content in the locale and timezone of the page or the one its locale attribute names; default is shown when the content is empty.",
-            "attributes": {
-                "default": "The text rendered when the content is blank or does not parse as an instant.",
-                "locale": "The locale the instant is formatted in, taking precedence over the page's. The platform default applies when neither names one."
-            },
-            "slots": {},
-            "events": {}
-        },
-        "ful-input-local-date": {
-            "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "min": "Earliest selectable date. Accepts a date, now, or a day, month or year offset.",
-                "max": "Latest selectable date. Accepts a date, now, or a day, month or year offset.",
-                "step": "Step between selectable dates, in days."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the current date."
-            }
-        },
-        "ful-input-local-time": {
-            "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "min": "Earliest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
-                "max": "Latest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
-                "step": "Step between selectable times, in seconds. The bounds are truncated to this grid."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the current time."
-            }
-        },
-        "ful-input-instant": {
-            "description": "A datetime input whose value is read and written as an ISO instant. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "min": "Earliest selectable instant, as an ISO instant.",
-                "max": "Latest selectable instant, as an ISO instant.",
-                "step": "Step between selectable instants, in seconds."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the current instant."
-            }
-        },
-        "ful-radio-group": {
-            "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "name": "The name the radio inputs share, which is what makes them one group. Generated when absent, so a group only needs it to be addressed from outside.",
-                "type": "boolean maps the two declared radios onto true and false rather than onto their own values.",
-                "value": "The value of the selected radio."
-            },
-            "slots": {
-                "default": "The legend of the group, and its ful-radio children.",
-                "header": "Content rendered above the radios.",
-                "footer": "Content rendered below the radios."
-            },
-            "events": {
-                "change": "Fired with the value of the selected radio."
-            }
-        },
-        "ful-table": {
-            "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot; the rows come from src (method, GET by default) through the loader named by loader (loaders:table by default), page-size rows a page (10 by default), the first one loading on upgrade under the autoload claim.",
-            "attributes": {
-                "autoload": "Loads the first page while upgrading, instead of waiting for a reload(). The load is not awaited, so a slow or failing loader cannot hold up the page.",
-                "loader": "The registered component name the table loads its rows through; loaders:table when absent.",
-                "page-size": "How many rows a page asks the loader for, 10 by default. Stays live: writing it reloads from the first page, a table that has not been asked to load yet only recording it."
-            },
-            "slots": {
-                "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
-                "caption": "The caption of the table.",
-                "footer": "Content rendered in the table footer."
-            },
-            "events": {}
-        },
-        "ful-pagination": {
-            "description": "The pager of a ful-table, its window rendering at most pages links (5 by default). Rarely used on its own.",
-            "attributes": {
-                "current": "Zero based index of the page being shown.",
-                "pages": "How many page buttons are rendered around the current one, 5 by default.",
-                "total": "Number of pages."
-            },
-            "slots": {},
-            "events": {
-                "page:requested": "Fired with the zero based index of the page the user asked for."
-            }
-        },
-        "ful-sorter": {
-            "description": "The sort control rendered in a ful-table header, focusable and activated by Enter and Space, carrying aria-sort on its header cell. Rarely used on its own.",
-            "attributes": {
-                "order": "The sort currently applied, asc or desc, or absent when unsorted.",
-                "sorter": "The field name this column sorts by, sent in the load request. A column without it is not sortable."
-            },
-            "slots": {},
-            "events": {
-                "sort:requested": "Fired with the sorter and the next order when activated."
-            }
-        },
-        "ful-filter-instant": {
-            "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
-            }
-        },
-        "ful-filter-local-date": {
-            "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
-            }
-        },
-        "ful-filter-text": {
-            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH and a case sensitivity. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only. A multiple ful-select used as a filter emits the bare value array the in-list annotations expect.",
-            "attributes": {
-                "value": "JSON tuple of the operator, the sensitivity and the text.",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN, CONTAINS, STARTS_WITH, ENDS_WITH. Defaults to all of them.",
-                "sensitivities": "Comma separated list of the case sensitivity modes, IGNORE_CASE, CASE_SENSITIVE. A single entry pins every emitted tuple to it."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the whole tuple, or undefined when the filter is empty."
-            }
-        },
-        "ful-filter-number": {
-            "description": "A ful-table filter over numbers, with an operator such as GTE or BETWEEN. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "value": "JSON tuple of the operator and its bound(s).",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
-            }
-        },
-        "ful-filter-boolean": {
-            "description": "A ful-table filter over booleans, with the EQ or NEQ operator and a yes/no menu carrying the true and false tokens, plus an any entry that contributes nothing. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "value": "JSON tuple of the operator and the token.",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ. Defaults to both."
-            },
-            "slots": {},
-            "events": {
-                "change": "Fired with the whole tuple, or undefined when nothing is picked."
-            }
-        },
-        "ful-select": {
-            "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
-            "attributes": {
-                "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
-                "item-list": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
-                "k-expr": "The expression yielding an option's key, evaluated against each row of the response. Set it together with l-expr to shape a response without a mapper component.",
-                "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or bool.",
-                "l-expr": "The expression yielding an option's label, evaluated against each row of the response.",
-                "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
-                "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
-                "method": "The method the vocabulary is fetched with; POST when absent.",
-                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
-                "multiple": "Selects any number of options rather than one: the value is a comma separated list of keys and the selection renders as ful-badge chips.",
-                "name": "The field name the surrounding form submits the selection under.",
-                "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
-                "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
-                "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it.",
-                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
-                "value": "The selected keys, comma separated, whether or not the select is multiple. A key given here is trimmed and cannot contain a comma; assign such a key through the property instead. The property answers a key for a single select and an array for a multiple one."
-            },
-            "slots": {
-                "dropdown": "Replaces the template used to render the options."
-            },
-            "events": {
-                "change": "Fired with the selection, an array when multiple."
-            }
-        },
-        "ful-dropdown": {
-            "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. Rarely used on its own.",
-            "attributes": {
-                "listbox": "The id to give the listbox, so a host can point aria-controls and aria-activedescendant at it before this element upgrades."
-            },
-            "slots": {},
-            "events": {
-                "activechange": "Fired with the id of the option the reader is on, for the combobox that controls the listbox.",
-                "change": "Fired with the option that was picked."
-            }
-        },
-        "ful-tooltip": {
-            "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click. placement picks the side the note sits on: top (default), bottom, left or right.",
-            "attributes": {
-                "placement": "Which side of the trigger the note opens on: top (the default), bottom, left or right. Above by default because a note opening downwards covers the control the marker explains. The library places the note itself on every platform, so the side is the same everywhere.",
-                "icon": "The ful-icon the marker shows, for a tooltip meaning something other than plain information. Defaults to the page's Tooltip.config.icon; a name the library does not paint is declared by the page as ful-icon[name='...'] { mask-image: ... }.",
-                "describes": "For a tooltip standing in a field: the note joins the accessible description of that field's control, announced on reaching the field rather than only on opening the marker, and the marker leaves the tab order so a form of hinted fields costs no extra keystrokes to walk. The marker stays clickable, and keeps its tab stop wherever nothing took the note."
-            },
-            "slots": {
-                "default": "The short explanation shown in the popover."
-            },
-            "events": {}
         },
         "ful-dialog": {
             "description": "A modal dialog on the native platform: header, body and buttons, the header attribute naming its heading, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which answer with how the dialog ended, or through update(callback), which opens it on a loading state and then shows either what the callback delivered or the problems of a rejection. Longer explanations belong here, shorter ones in ful-tooltip.",
@@ -327,12 +77,279 @@
                 "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems."
             }
         },
-        "ful-toasts": {
-            "description": "A transient feedback region, one per page: each show() (or a show-toast document event carrying the same detail) appends a toast that dismisses itself after its timeout, the element's timeout attribute or five seconds by default, and carries its own dismiss button. severity picks the theme and the announcement, info by default, success, warning and error, the error one announced as an alert; a Failure message shows its problems' reasons.",
+        "ful-dropdown": {
+            "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. Rarely used on its own.",
             "attributes": {
-                "timeout": "How long a toast stands before it retires, in milliseconds; 5000 when absent. A show() may override it per toast."
+                "listbox": "The id to give the listbox, so a host can point aria-controls and aria-activedescendant at it before this element upgrades."
             },
             "slots": {},
+            "events": {
+                "activechange": "Fired with the id of the option the reader is on, for the combobox that controls the listbox.",
+                "change": "Fired with the option that was picked."
+            }
+        },
+        "ful-filter-boolean": {
+            "description": "A ful-table filter over booleans, with the EQ or NEQ operator and a yes/no menu carrying the true and false tokens, plus an any entry that contributes nothing. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "JSON tuple of the operator and the token.",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ. Defaults to both."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when nothing is picked."
+            }
+        },
+        "ful-filter-in": {
+            "description": "A ful-table filter over set membership, answering for both of data-jpa's set annotations: InEnum and InList take the same array of values and no operator, differing only in what the server converts them to. The vocabulary comes from wherever a select's does, slotted options or a loader, and the selection is always multiple, an empty one contributing nothing rather than an empty array.",
+            "attributes": {
+                "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
+                "item-list": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
+                "k-expr": "The expression yielding an option's key, evaluated against each row of the response. Set it together with l-expr to shape a response without a mapper component.",
+                "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or bool.",
+                "l-expr": "The expression yielding an option's label, evaluated against each row of the response.",
+                "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
+                "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
+                "method": "The method the vocabulary is fetched with; POST when absent.",
+                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
+                "multiple": "Always on for this element: a set of one is still a set, and a single selection would answer a bare key where the filter request wants an array.",
+                "name": "The field name the surrounding form submits the selection under.",
+                "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
+                "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
+                "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
+                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
+                "value": "Comma separated list of the selected keys. Empty contributes nothing, so the table drops the filter rather than sending an empty set."
+            },
+            "slots": {
+                "dropdown": "Replaces the template used to render the options."
+            },
+            "events": {
+                "change": "Fired with the selected keys, or undefined when nothing is picked."
+            }
+        },
+        "ful-filter-instant": {
+            "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
+            }
+        },
+        "ful-filter-local-date": {
+            "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
+            }
+        },
+        "ful-filter-number": {
+            "description": "A ful-table filter over numbers, with an operator such as GTE or BETWEEN. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "JSON tuple of the operator and its bound(s).",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is incomplete."
+            }
+        },
+        "ful-filter-text": {
+            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH and a case sensitivity. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "JSON tuple of the operator, the sensitivity and the text.",
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN, CONTAINS, STARTS_WITH, ENDS_WITH. Defaults to all of them.",
+                "sensitivities": "Comma separated list of the case sensitivity modes, IGNORE_CASE, CASE_SENSITIVE. A single entry pins every emitted tuple to it."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the whole tuple, or undefined when the filter is empty."
+            }
+        },
+        "ful-form": {
+            "description": "Wraps its content in a form, collects the values of the fields it contains and hands them to the loader named by loader (loaders:form by default) on submit: with action the values travel as json (method, POST by default) through the request-mapper and response-mapper components when declared, without it the submit:requested listeners deliver the response themselves. Validation errors are announced politely without focus, or exactly once through focus management with scroll-on-error, and clear-invalid-on-change drops a field's problem as soon as the field changes again; global errors land in an author-provided ful-errors element, announced as an alert.",
+            "attributes": {
+                "action": "The endpoint the values are submitted to. With it the form posts json through a RemoteJsonFormLoader; without it a LocalFormLoader hands the outcome to whatever a submit:requested listener resolves with.",
+                "autocomplete": "The autofill token every field in the form takes unless it declares one of its own, copied onto the form element the host renders. A form cannot pass it down the way the platform would: each control carries form=\"\" so that the host is the only thing that submits, which leaves it with no form owner to inherit through, so the fields read it off the form instead.",
+                "clear-invalid-on-change": "Clears a field's custom validity as soon as that field changes again, so a server problem stops being shown the moment the user addresses it.",
+                "loader": "The registry component key of the form loader, loaders:form by default. A loader of your own implements prepare, submit and transform.",
+                "method": "The http method of the remote loader, POST by default.",
+                "request-mapper": "A registry component key, (values, form) => request, applied to the extracted values before they are sent.",
+                "response-mapper": "A registry component key, (response, form) => mapped, applied to a successful response before it reaches submit:success.",
+                "scroll-on-error": "Moves focus, and the viewport with it, to the topmost invalid field when errors land. The error live region is muted while focus moves, so each problem is announced once through the focused field rather than twice."
+            },
+            "slots": {},
+            "events": {
+                "submit": "Cancelable. Fired before anything is sent: preventDefault aborts the submit.",
+                "submit:requested": "Fired after the submit was accepted, to let a listener resolve the response itself.",
+                "submit:success": "Fired with the submitted values and the mapped response.",
+                "submit:failure": "Fired with the exception when the submit fails. The form does not rethrow."
+            }
+        },
+        "ful-input": {
+            "description": "A labelled text input. Use type to pick any native input type, or textarea; keep names the characters that survive a keystroke and reject the ones that do not, the caret staying among the survivors, and the uppercase and trim claims shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {},
+            "slots": {},
+            "events": {
+                "change": "Fired with the current value when the field is committed."
+            }
+        },
+        "ful-input-file": {
+            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares; the noinput claim hides the picker control, the dropzone and the item list carrying the field alone. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
+                "accept": "Comma separated list of accepted tokens: an extension (.pdf), a mime type (application/pdf) or a wildcard (image/*). Files that do not match are dropped with a warning.",
+                "multiple": "Allows selecting more than one file.",
+                "item-list": "Shows the list of selected files.",
+                "dropzone": "Shows the dropzone.",
+                "max-files": "Maximum number of files. Exceeding it clears the selection.",
+                "max-file-size": "Maximum size of a single file, in bytes. Larger files are dropped.",
+                "max-total-size": "Maximum size of all the selected files, in bytes. Exceeding it clears the selection."
+            },
+            "slots": {
+                "dropzone": "Replaces the contents of the default dropzone."
+            },
+            "events": {
+                "change": "Fired with the names of the selected files."
+            }
+        },
+        "ful-input-instant": {
+            "description": "A datetime input whose value is read and written as an ISO instant. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "min": "Earliest selectable instant, as an ISO instant.",
+                "max": "Latest selectable instant, as an ISO instant.",
+                "step": "Step between selectable instants, in seconds."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the current instant."
+            }
+        },
+        "ful-input-local-date": {
+            "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "min": "Earliest selectable date. Accepts a date, now, or a day, month or year offset.",
+                "max": "Latest selectable date. Accepts a date, now, or a day, month or year offset.",
+                "step": "Step between selectable dates, in days."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the current date."
+            }
+        },
+        "ful-input-local-time": {
+            "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "min": "Earliest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
+                "max": "Latest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
+                "step": "Step between selectable times, in seconds. The bounds are truncated to this grid."
+            },
+            "slots": {},
+            "events": {
+                "change": "Fired with the current time."
+            }
+        },
+        "ful-instant": {
+            "description": "Formats the ISO instant in its content in the locale and timezone of the page or the one its locale attribute names; default is shown when the content is empty.",
+            "attributes": {
+                "default": "The text rendered when the content is blank or does not parse as an instant.",
+                "locale": "The locale the instant is formatted in, taking precedence over the page's. The platform default applies when neither names one."
+            },
+            "slots": {},
+            "events": {}
+        },
+        "ful-local-date": {
+            "description": "Formats the date in its content, written as yyyy-mm-dd, in the locale of the page or the one its locale attribute names; default is shown when the content is empty.",
+            "attributes": {
+                "default": "The text rendered when the content is blank or does not parse as a date.",
+                "locale": "The locale the date is formatted in, taking precedence over the page's. The platform default applies when neither names one."
+            },
+            "slots": {},
+            "events": {}
+        },
+        "ful-pagination": {
+            "description": "The pager of a ful-table, its window rendering at most pages links (5 by default). Rarely used on its own.",
+            "attributes": {
+                "current": "Zero based index of the page being shown.",
+                "pages": "How many page buttons are rendered around the current one, 5 by default.",
+                "total": "Number of pages."
+            },
+            "slots": {},
+            "events": {
+                "page:requested": "Fired with the zero based index of the page the user asked for."
+            }
+        },
+        "ful-radio-group": {
+            "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "name": "The name the radio inputs share, which is what makes them one group. Generated when absent, so a group only needs it to be addressed from outside.",
+                "type": "boolean maps the two declared radios onto true and false rather than onto their own values.",
+                "value": "The value of the selected radio."
+            },
+            "slots": {
+                "default": "The legend of the group, and its ful-radio children.",
+                "header": "Content rendered above the radios.",
+                "footer": "Content rendered below the radios."
+            },
+            "events": {
+                "change": "Fired with the value of the selected radio."
+            }
+        },
+        "ful-select": {
+            "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "attributes": {
+                "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
+                "item-list": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
+                "k-expr": "The expression yielding an option's key, evaluated against each row of the response. Set it together with l-expr to shape a response without a mapper component.",
+                "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or bool.",
+                "l-expr": "The expression yielding an option's label, evaluated against each row of the response.",
+                "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
+                "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
+                "method": "The method the vocabulary is fetched with; POST when absent.",
+                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
+                "multiple": "Selects any number of options rather than one: the value is a comma separated list of keys and the selection renders as ful-badge chips.",
+                "name": "The field name the surrounding form submits the selection under.",
+                "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
+                "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
+                "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
+                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
+                "value": "The selected keys, comma separated, whether or not the select is multiple. A key given here is trimmed and cannot contain a comma; assign such a key through the property instead. The property answers a key for a single select and an array for a multiple one."
+            },
+            "slots": {
+                "dropdown": "Replaces the template used to render the options."
+            },
+            "events": {
+                "change": "Fired with the selection, an array when multiple."
+            }
+        },
+        "ful-sorter": {
+            "description": "The sort control rendered in a ful-table header, focusable and activated by Enter and Space, carrying aria-sort on its header cell. Rarely used on its own.",
+            "attributes": {
+                "order": "The sort currently applied, asc or desc, or absent when unsorted.",
+                "sorter": "The field name this column sorts by, sent in the load request. A column without it is not sortable."
+            },
+            "slots": {},
+            "events": {
+                "sort:requested": "Fired with the sorter and the next order when activated."
+            }
+        },
+        "ful-table": {
+            "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot; the rows come from src (method, GET by default) through the loader named by loader (loaders:table by default), page-size rows a page (10 by default), the first one loading on upgrade under the autoload claim.",
+            "attributes": {
+                "autoload": "Loads the first page while upgrading, instead of waiting for a reload(). The load is not awaited, so a slow or failing loader cannot hold up the page.",
+                "loader": "The registered component name the table loads its rows through; loaders:table when absent.",
+                "page-size": "How many rows a page asks the loader for, 10 by default. Stays live: writing it reloads from the first page, a table that has not been asked to load yet only recording it."
+            },
+            "slots": {
+                "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
+                "caption": "The caption of the table.",
+                "footer": "Content rendered in the table footer."
+            },
             "events": {}
         },
         "ful-tabs": {
@@ -349,13 +366,23 @@
                 "section:requested": "Fired by the component when one of its sections is entered (bubbling): the generic type of the family, joined by section:requested:#index and by section:requested:name when the section carries a data-step. Answer through AsyncEvents.asyncOn with the section's delivery; the component awaits the answers under its loading chrome, and a failed delivery paints the section's problems."
             }
         },
-        "ful-accordion": {
-            "description": "An accordion over native details/summary disclosures: the platform carries the semantics, the keyboard and the toggling, the chrome paints the group (anchored on the ful-accordion-group style-only tag). With the exclusive claim the render assigns one shared name to every panel, which is the platform's own exclusive grouping: opening one closes the others.",
+        "ful-toasts": {
+            "description": "A transient feedback region, one per page: each show() (or a show-toast document event carrying the same detail) appends a toast that dismisses itself after its timeout, the element's timeout attribute or five seconds by default, and carries its own dismiss button. severity picks the theme and the announcement, info by default, success, warning and error, the error one announced as an alert; a Failure message shows its problems' reasons.",
             "attributes": {
-                "exclusive": "When present, opening a panel closes the others: the native details name grouping, assigned (and assignable again) by the render."
+                "timeout": "How long a toast stands before it retires, in milliseconds; 5000 when absent. A show() may override it per toast."
+            },
+            "slots": {},
+            "events": {}
+        },
+        "ful-tooltip": {
+            "description": "An info affordance: a themed icon button toggling a small popover with a short explanation, opened by click and by keyboard like a button, dismissed by Escape or an outside click. placement picks the side the note sits on: top (default), bottom, left or right.",
+            "attributes": {
+                "placement": "Which side of the trigger the note opens on: top (the default), bottom, left or right. Above by default because a note opening downwards covers the control the marker explains. The library places the note itself on every platform, so the side is the same everywhere.",
+                "icon": "The ful-icon the marker shows, for a tooltip meaning something other than plain information. Defaults to the page's Tooltip.config.icon; a name the library does not paint is declared by the page as ful-icon[name='...'] { mask-image: ... }.",
+                "describes": "For a tooltip standing in a field: the note joins the accessible description of that field's control, announced on reaching the field rather than only on opening the marker, and the marker leaves the tab order so a form of hinted fields costs no extra keystrokes to walk. The marker stays clickable, and keeps its tab stop wherever nothing took the note."
             },
             "slots": {
-                "default": "The native details/summary disclosures, one per panel, rendered inside the group."
+                "default": "The short explanation shown in the popover."
             },
             "events": {}
         },

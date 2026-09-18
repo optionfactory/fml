@@ -241,6 +241,18 @@ const ELEMENTS = [
         },
     },
     {
+        tag: 'ful-filter-in',
+        html: `<ful-filter-in name="a">label<template slot="options"><option value="k">K</option></template></ful-filter-in>`,
+        observed: {
+            value: ['k', ['k']],
+            multiple: ['', true],
+            'item-list': ['', true],
+            disabled: ['', true],
+            readonly: ['', true],
+            required: ['', true],
+        },
+    },
+    {
         tag: 'ful-filter-text',
         html: `<ful-filter-text name="a">label</ful-filter-text>`,
         observed: {

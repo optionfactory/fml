@@ -29,7 +29,14 @@ const FAMILIES = [
     ['Tables', ['ful-table', 'ful-pagination', 'ful-sorter']],
     [
         'Filters',
-        ['ful-filter-text', 'ful-filter-number', 'ful-filter-boolean', 'ful-filter-local-date', 'ful-filter-instant'],
+        [
+            'ful-filter-text',
+            'ful-filter-number',
+            'ful-filter-boolean',
+            'ful-filter-local-date',
+            'ful-filter-instant',
+            'ful-filter-in',
+        ],
     ],
     ['Disclosures', ['ful-tooltip', 'ful-dialog', 'ful-drawer', 'ful-toasts']],
     ['Navigation', ['ful-tabs', 'ful-accordion', 'ful-wizard']],

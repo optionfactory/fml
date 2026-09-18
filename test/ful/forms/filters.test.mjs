@@ -1106,3 +1106,111 @@ describe('Filter menus, where the platform lacks CSS anchor positioning', () => 
         assert.isAtLeast(m.top, b.bottom, 'the menu sits below its invoker');
     });
 });
+
+describe('Filters describing themselves', () => {
+    it('answers null while nothing is filtered on', async () => {
+        const [el] = await mount(`<ful-filter-text>Position</ful-filter-text>`);
+
+        assert.isNull(el.description);
+    });
+
+    it('carries the label, the operator and the operand', async () => {
+        const [el] = await mount(
+            `<ful-filter-text value='["CONTAINS","IGNORE_CASE","ab"]'>Position</ful-filter-text>`,
+        );
+
+        assert.deepEqual(el.description, {
+            label: 'Position',
+            operator: 'CONTAINS',
+            operands: ['ab'],
+        });
+    });
+
+    it('carries both operands of a BETWEEN', async () => {
+        const [el] = await mount(
+            `<ful-filter-local-date value='["BETWEEN","2024-01-01","2024-02-01"]'>When</ful-filter-local-date>`,
+        );
+
+        assert.deepEqual(el.description.operands, ['2024-01-01', '2024-02-01']);
+    });
+
+    it('describes only the first operand while the operator takes one', async () => {
+        const [el] = await mount(
+            `<ful-filter-number value='["GT","3"]'>Count</ful-filter-number>`,
+        );
+
+        assert.deepEqual(el.description, { label: 'Count', operator: 'GT', operands: ['3'] });
+    });
+
+    it('answers the boolean filter in the words its menu shows, not the token', async () => {
+        const [el] = await mount(`<ful-filter-boolean value='["EQ","true"]'>Active</ful-filter-boolean>`);
+
+        assert.deepEqual(el.description, { label: 'Active', operator: 'EQ', operands: ['Yes'] });
+    });
+
+    it('answers null for a boolean filter left on any', async () => {
+        const [el] = await mount(`<ful-filter-boolean>Active</ful-filter-boolean>`);
+
+        assert.isNull(el.description);
+    });
+});
+
+describe('The set membership filter', () => {
+    //an earlier block replaces the select loader for the rest of the file, so
+    //this one states its own vocabulary rather than inheriting that one
+    beforeEach(() => {
+        const labels = { A: 'Alpha', B: 'Beta' };
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: labels[k] ?? k })),
+                load: async () => Object.entries(labels).map(([key, label]) => ({ key, label })),
+            }),
+        });
+    });
+
+    it('contributes nothing while empty, so the table drops it', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind">Kind</ful-filter-in>`);
+
+        assert.isNull(el.value);
+        assert.isNull(el.description);
+    });
+
+    it('answers the chosen keys as an array', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" value="A,B">Kind</ful-filter-in>`);
+
+        assert.deepEqual(el.value, ['A', 'B']);
+    });
+
+    it('answers an array for a single choice, which a bare key would not', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" value="A">Kind</ful-filter-in>`);
+
+        assert.deepEqual(el.value, ['A']);
+    });
+
+    it('describes the chosen labels rather than the keys', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" value="A,B">Kind</ful-filter-in>`);
+        await settle();
+
+        assert.deepEqual(el.description, {
+            label: 'Kind',
+            operator: null,
+            operands: ['Alpha', 'Beta'],
+        });
+    });
+
+    it('is multiple whatever the markup says', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind">Kind</ful-filter-in>`);
+
+        assert.isTrue(el.multiple);
+    });
+
+    it('clears back to contributing nothing', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" value="A">Kind</ful-filter-in>`);
+
+        el.value = null;
+
+        assert.isNull(el.value);
+        assert.isNull(el.description);
+    });
+});

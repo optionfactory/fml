@@ -2,7 +2,7 @@ import { HttpClient } from '../httpc/index.mjs';
 import { Localization } from '../ftl/index.mjs';
 import { Checkbox } from './forms/checkbox.mjs';
 import { LocalDate, Instant, InputLocalDate, InputLocalTime, InputInstant } from './forms/temporals.mjs';
-import { BooleanFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter } from './forms/filters.mjs';
+import { BooleanFilter, InFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter } from './forms/filters.mjs';
 import { FormLoader, Form } from './forms/form.mjs';
 import { Input } from './forms/input.mjs';
 import { InputFile } from './forms/files.mjs';
@@ -83,6 +83,7 @@ class Plugin {
             .defineElement('ful-filter-number', NumberFilter)
             .defineElement('ful-filter-boolean', BooleanFilter)
             .defineElement('ful-filter-text', TextFilter)
+            .defineElement('ful-filter-in', InFilter)
             .defineElement('ful-select', Select)
             .defineElement('ful-dropdown', Dropdown)
             .defineComponent('loaders:select', SelectLoader)

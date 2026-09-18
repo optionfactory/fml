@@ -181,6 +181,119 @@ describe('SelectLoader', () => {
         localStorage.removeItem('POST@/rev-opts');
     });
 
+    it('gives ful-filter-in the same remote vocabulary a select gets', async () => {
+        const calls = stubHttp({ '/kinds': [['A', 'Alpha'], ['B', 'Beta']] });
+        const container = appended('<ful-filter-in src="/kinds" name="byKind">Kind</ful-filter-in>');
+        const filter = container.querySelector('ful-filter-in');
+        await Rendering.waitFor(filter);
+        await opened();
+
+        const dropdown = await open(filter);
+
+        assert.deepEqual(options(dropdown), ['Alpha', 'Beta']);
+        assert.lengthOf(calls, 1);
+        container.remove();
+    });
+
+    it('labels a filter preselected by key, so the description reads in words', async () => {
+        stubHttp({ '/kinds2': [['A', 'Alpha'], ['B', 'Beta']] });
+        const container = appended(
+            '<ful-filter-in src="/kinds2" name="byKind" value="A,B">Kind</ful-filter-in>',
+        );
+        const filter = container.querySelector('ful-filter-in');
+        await Rendering.waitFor(filter);
+        await opened();
+
+        assert.deepEqual(filter.value, ['A', 'B']);
+        assert.deepEqual(filter.description.operands, ['Alpha', 'Beta']);
+        container.remove();
+    });
+
+    it('caches a revisioned filter vocabulary across mounts, as a select does', async () => {
+        localStorage.removeItem('POST@/rev-kinds');
+        const calls = stubHttp({ '/rev-kinds': [['A', 'Alpha']] });
+
+        const first = appended('<ful-filter-in src="/rev-kinds" revision="r1" name="k">K</ful-filter-in>');
+        await Rendering.waitFor(first.querySelector('ful-filter-in'));
+        await opened();
+        await open(first.querySelector('ful-filter-in'));
+        assert.lengthOf(calls, 1);
+        first.remove();
+
+        const second = appended('<ful-filter-in src="/rev-kinds" revision="r1" name="k">K</ful-filter-in>');
+        await Rendering.waitFor(second.querySelector('ful-filter-in'));
+        await opened();
+        await open(second.querySelector('ful-filter-in'));
+
+        assert.lengthOf(calls, 1, 'the revisioned data came from local storage, not the network');
+        second.remove();
+        localStorage.removeItem('POST@/rev-kinds');
+    });
+
+    it('takes a valueless revision from the registry', async () => {
+        localStorage.removeItem('POST@/reg-rev');
+        registry.defineComponent('revision', 'r9');
+        const calls = stubHttp({ '/reg-rev': [['k1', 'One']] });
+
+        const first = await mount('src="/reg-rev" revision');
+        await open(first[0]);
+        assert.lengthOf(calls, 1);
+        first[1].remove();
+
+        const second = await mount('src="/reg-rev" revision');
+        await open(second[0]);
+
+        assert.lengthOf(calls, 1, 'the second mount read the registry revision out of local storage');
+        second[1].remove();
+        assert.isDefined(localStorage.getItem('POST@/reg-rev'));
+        localStorage.removeItem('POST@/reg-rev');
+        registry.defineComponent('revision', undefined);
+    });
+
+    it('calls a revision component that is a function', async () => {
+        localStorage.removeItem('POST@/fn-rev');
+        registry.defineComponent('revision', () => 'built-42');
+        stubHttp({ '/fn-rev': [['k1', 'One']] });
+
+        const [el, container] = await mount('src="/fn-rev" revision');
+        await open(el);
+
+        assert.include(localStorage.getItem('POST@/fn-rev') ?? '', 'built-42');
+        container.remove();
+        localStorage.removeItem('POST@/fn-rev');
+        registry.defineComponent('revision', undefined);
+    });
+
+    it('lets a written revision win over the registry', async () => {
+        localStorage.removeItem('POST@/won-rev');
+        registry.defineComponent('revision', 'from-registry');
+        stubHttp({ '/won-rev': [['k1', 'One']] });
+
+        const [el, container] = await mount('src="/won-rev" revision="written"');
+        await open(el);
+
+        assert.include(localStorage.getItem('POST@/won-rev') ?? '', 'written');
+        container.remove();
+        localStorage.removeItem('POST@/won-rev');
+        registry.defineComponent('revision', undefined);
+    });
+
+    it('does not cache, and says so, when a valueless revision has nothing to resolve', async () => {
+        localStorage.removeItem('POST@/no-rev');
+        registry.defineComponent('revision', undefined);
+        const calls = stubHttp({ '/no-rev': [['k1', 'One']] });
+
+        const first = await mount('src="/no-rev" revision');
+        await open(first[0]);
+        first[1].remove();
+        const second = await mount('src="/no-rev" revision');
+        await open(second[0]);
+
+        assert.lengthOf(calls, 2, 'nothing was cached');
+        assert.isNull(localStorage.getItem('POST@/no-rev'));
+        second[1].remove();
+    });
+
     it('asks the server per search and per key lookup when mode is chunked', async () => {
         const calls = stubHttp({ '/chunk-opts': [['k1', 'One']] });
 
