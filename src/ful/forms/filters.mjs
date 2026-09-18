@@ -33,8 +33,7 @@ const sensitivityLabel = (sensitivity) => t(`filters.sensitivity.${sensitivity}`
 const booleanValueLabel = (token) => t(token === '' ? 'filters.boolean.any' : `filters.boolean.${token}`);
 
 /**
- * What a filter is filtering on, for a summary drawn beside the table: the
- * operands are the words the reader chose, not the keys the wire carries.
+ * The operands are the words the reader chose, not the keys the wire carries.
  * @typedef {{ label: string|null, operator: string|null, operands: string[] }} FilterDescription
  */
 

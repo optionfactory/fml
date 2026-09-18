@@ -213,11 +213,6 @@ class SelectLoader {
             responseMapper: SelectLoader.#responseMapperFrom(el),
         });
     }
-    /**
-     * A page has one build to key its caches on, and every element asking for
-     * it by hand is a place to forget: an empty `revision` asks the registry
-     * for the one the page configured, where a written one still wins.
-     */
     static #revisionFrom(el) {
         const declared = el.declared('revision');
         if (declared !== '') {
@@ -860,10 +855,9 @@ class Select extends Field {
      */
     #close(commit = false) {
         this.#ddmenu.hide();
-        //emptying the box and leaving is a clear, not an abandoned search:
-        //redisplaying the label here would discard the edit without a word. Any
-        //other text is a search that matched nothing, and reverts. A multiple
-        //select keeps its box empty by design, so only a single one can mean it
+        //emptying the box and leaving is a clear: redisplaying the label would
+        //discard the edit without a word. A multiple select keeps its box empty
+        //by design, so only a single one can mean it
         if (commit && this.#editing && !this.#multiple && this.#input.value === '' && this.#values.size !== 0) {
             this.#values.clear();
             this.#changed();
@@ -881,11 +875,9 @@ class Select extends Field {
         return this.#ddmenu.show(() => this.#loader.load(this.#query()), [...this.#values.keys()]);
     }
     /**
-     * What the dropdown asks the loader for. Browsing is the whole vocabulary,
-     * not the label already chosen: the query is empty until the user types,
-     * which is what `#editing` tracks. The label stays in the box while that
-     * happens, a select showing nothing being indistinguishable from an empty
-     * one.
+     * Browsing is the whole vocabulary, not the label already chosen, and the
+     * label stays on screen while it happens: a select showing nothing reads as
+     * an empty one.
      */
     #query() {
         return this.#editing ? this.#input.value : '';

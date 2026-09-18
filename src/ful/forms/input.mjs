@@ -38,12 +38,7 @@ const compiled = (attr, pattern) =>
  */
 const inheritedAutocomplete = (el) => el.closest('form')?.getAttribute('autocomplete') ?? null;
 
-/**
- * The widget types fml adds over the platform's: a numeric keypad without the
- * separator, and one with it. Both render a text input, which is what gives up
- * the wheel-changes-the-value behaviour and the browser's refusal to show what
- * was actually typed, and costs the native min/max/step enforcement.
- */
+/** Rendering a text input is what costs these the native min/max/step enforcement. */
 const INPUT_MODES = { numeric: 'numeric', decimal: 'decimal' };
 
 const signed = (v, digits) => (v.startsWith('-') ? '-' : '') + digits(v);
@@ -78,8 +73,6 @@ const filterOf = (el) => {
         const re = compiled('reject', reject);
         return re && ((v) => v.replace(re, ''));
     }
-    //a numeric widget filters by what it is, where an author's keep or reject
-    //above says what it should be instead
     return NUMERIC_FILTERS[el._type()] ?? null;
 };
 
