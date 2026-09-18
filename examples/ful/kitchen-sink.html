@@ -90,6 +90,24 @@
             color: var(--ful-warning-color, var(--ful-accent-ink));
         }
 
+        #criteria-filters {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        #criteria-filters > * {
+            flex: 1 1 14rem;
+        }
+
+        .chip {
+            padding: 0.125rem 0.625rem;
+            border: var(--ful-border-width) solid var(--ful-border-color);
+            border-radius: 9999px;
+            font-size: 0.8125rem;
+        }
+
         #theme-custom {
             width: 100%;
             height: 8rem;
@@ -123,6 +141,10 @@
             <ful-input name="pin" type="password" value="hunter2">Password</ful-input>
             <ful-input name="text" type="textarea">Textarea</ful-input>
             <ful-input name="email" type="email" placeholder="you@example.com">Email</ful-input>
+            <ful-input name="quantity" type="numeric">Numeric (the integer keypad)</ful-input>
+            <ful-input name="price" type="decimal">Decimal (the separator keypad)</ful-input>
+            <ful-input name="count" type="numeric" v-type="number" value="7">Numeric, valued, answers a number</ful-input>
+            <ful-input name="amount" type="decimal" v-type="number" value="1,5">Decimal showing 1,5, answers 1.5</ful-input>
         </ful-form>
     </fieldset>
     <fieldset>
@@ -348,20 +370,61 @@
             <ful-filter-text name="qFrozen" disabled>Text disabled</ful-filter-text>
             <ful-filter-number name="howManyLocked" readonly>Number readonly</ful-filter-number>
             <ful-filter-boolean name="flagWrong" data-state="invalid">Boolean invalid</ful-filter-boolean>
+            <ful-filter-in name="tagLocked" value="red" readonly>
+                Tags readonly
+                <select slot="options">
+                    <option value="red">Red</option>
+                    <option value="green">Green</option>
+                </select>
+            </ful-filter-in>
+            <ful-filter-in name="tagFrozen" value="green" disabled>
+                Tags disabled
+                <select slot="options">
+                    <option value="red">Red</option>
+                    <option value="green">Green</option>
+                </select>
+            </ful-filter-in>
         </ful-form>
     </fieldset>
     <fieldset>
-        <legend>in-list</legend>
+        <legend>set membership</legend>
         <ful-form>
-            <ful-select multiple name="tag">
-                Tags (in-list)
+            <ful-filter-in name="tag">
+                Tags
                 <select slot="options">
                     <option value="red">Red</option>
                     <option value="green">Green</option>
                     <option value="blue">Blue</option>
                 </select>
-            </ful-select>
+            </ful-filter-in>
+            <ful-filter-in name="tagPicked" value="red,blue">
+                Tags, preselected
+                <select slot="options">
+                    <option value="red">Red</option>
+                    <option value="green">Green</option>
+                    <option value="blue">Blue</option>
+                </select>
+            </ful-filter-in>
         </ful-form>
+    </fieldset>
+    <fieldset>
+        <legend>criteria, painted from what the filters answer (on change, there being no table here: beside one, paint on submit:success)</legend>
+        <ful-form>
+            <div id="criteria-filters">
+                <ful-filter-text name="cName" value='["CONTAINS","IGNORE_CASE","ross"]'>Name</ful-filter-text>
+                <ful-filter-number name="cCount">Count</ful-filter-number>
+                <ful-filter-boolean name="cActive">Active</ful-filter-boolean>
+                <ful-filter-in name="cTag" value="green">
+                    Tags
+                    <select slot="options">
+                        <option value="red">Red</option>
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
+                    </select>
+                </ful-filter-in>
+            </div>
+        </ful-form>
+        <div id="criteria" class="row"></div>
     </fieldset>
 
     <h2>errors</h2>
@@ -599,6 +662,26 @@
         document.getElementById('sink-toast').addEventListener('click', () => {
             document.getElementById('sink-toasts').show('Saved (demo).', { severity: 'success' });
         });
+
+        const criteriaFilters = document.getElementById('criteria-filters');
+        const criteria = document.getElementById('criteria');
+        const chipText = ({ label, operator, operands }) => {
+            const shown = operator === null || operator === 'CONTAINS' ? '' : ` ${operator}`;
+            return `${label}${shown}: ${operands.join(', ')}`;
+        };
+        const paintCriteria = () => {
+            const active = [...criteriaFilters.children].map((f) => f.criterion).filter((c) => c);
+            criteria.replaceChildren(
+                ...active.map((c) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'chip';
+                    chip.textContent = chipText(c);
+                    return chip;
+                }),
+            );
+        };
+        criteriaFilters.addEventListener('change', paintCriteria);
+        document.addEventListener('ftl:ready', paintCriteria);
 
         const wizard = document.getElementById('sink-wizard');
         for (const button of wizard.querySelectorAll('[data-next]')) {

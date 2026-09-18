@@ -20,6 +20,7 @@
         }
         .filters > button {
             flex: none;
+            align-self: end;
         }
         .pill {
             display: inline-block;
@@ -48,6 +49,15 @@
             <ful-filter-number name="byCount">
                 Id
             </ful-filter-number>
+            <ful-filter-in name="byTypes">
+                Tipo
+                <select slot="options">
+                    <option value="type1">type1</option>
+                    <option value="type2">type2</option>
+                    <option value="type3">type3</option>
+                </select>
+            </ful-filter-in>
+            <button type="submit" class="ful-button">Filtra</button>
         </div>
         <template slot="schema">
             <schema>
@@ -66,7 +76,7 @@
     <script src="../markup.js"></script>
     <script>
         class MockDataLoader {
-            #mockdata = Array.from({ length: 100 }, (x, i) => ({ id: i + 1, types: ['type1', 'type2'], username: `test${i}@example.com`, date: '2025-01-01', active: i % 2 === 0 }));
+            #mockdata = Array.from({ length: 100 }, (x, i) => ({ id: i + 1, types: [`type${(i % 3) + 1}`], username: `test${i}@example.com`, date: '2025-01-01', active: i % 2 === 0 }));
             async load(pageRequest, sortRequest, filterRequest) {
                 await ful.Timing.sleep(500);
                 const compare = {
@@ -89,6 +99,10 @@
                     }
                     const active = filterRequest?.byActive;
                     if (active && !compare[active[0]](row.active, active[1] === 'true')) {
+                        return false;
+                    }
+                    const types = filterRequest?.byTypes;
+                    if (types && !row.types.some((t) => types.includes(t))) {
                         return false;
                     }
                     const at = filterRequest?.byAt;

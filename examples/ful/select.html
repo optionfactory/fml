@@ -127,6 +127,15 @@
         </ful-select>
     </fieldset>
 
+    <h2>a cached vocabulary</h2>
+    <p><code>revision</code> has three states. With no <code>revision</code> nothing is cached. With <code>revision="r7"</code> the fetched vocabulary is kept in local storage under <code>r7</code>, and a load under another revision evicts it. With a valueless <code>revision</code> it is kept under whatever the registry's <code>revision</code> component answers, which a page states once for every select on it. A valueless one with no component defined caches nothing and warns in the console.</p>
+    <fieldset>
+        <legend>a valueless revision, resolved by the registry</legend>
+        <ful-select name="cached" src="/api/statuses" revision preload>
+            Fetched once, then served from local storage
+        </ful-select>
+    </fieldset>
+
     <h2>the native baseline</h2>
     <fieldset>
         <legend>a plain select, for comparison</legend>
@@ -180,9 +189,29 @@
             }
         }
 
+        /** A mock of the endpoint behind src, answering the positional rows the default response mapper reads. */
+        class DemoHttpClient {
+            request() {
+                return {
+                    fetchJson: async () => {
+                        await new Promise((resolve) => setTimeout(resolve, 500));
+                        return [
+                            ['quoted', 'Quoted'],
+                            ['issued', 'Issued'],
+                            ['suspended', 'Suspended'],
+                            ['renewed', 'Renewed'],
+                            ['cancelled', 'Cancelled'],
+                            ['expired', 'Expired'],
+                        ];
+                    },
+                };
+            }
+        }
+
         ftl.registry
-            .plugin(new ful.Plugin())
+            .plugin(new ful.Plugin({ httpClient: new DemoHttpClient() }))
             .defineComponent('loaders:demo-options', DemoOptionsLoader)
+            .defineComponent('revision', 'r7')
             .configure();
     </script>
 </body>
