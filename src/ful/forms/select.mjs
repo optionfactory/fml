@@ -649,7 +649,7 @@ class Select extends Field {
                 return;
             }
             this.#abortdload();
-            this.#close();
+            this.#close(true);
         });
         this.#input.addEventListener('keydown', (e) => {
             if (!this._interactive()) {
@@ -835,7 +835,7 @@ class Select extends Field {
             }
             case 'Tab': {
                 this.#abortdload();
-                this.#close();
+                this.#close(true);
                 break;
             }
         }
@@ -851,11 +851,24 @@ class Select extends Field {
             }
             return;
         }
-        this.#browse();
-        this.#ddmenu.moveOrShow(forward, () => this.#loader.load(this.#input.value), [...this.#values.keys()]);
+        this.#ddmenu.moveOrShow(forward, () => this.#loader.load(this.#query()), [...this.#values.keys()]);
     }
-    #close() {
+    /**
+     * @param commit whether the user is leaving the field, which only a blur or
+     * a Tab is: Escape cancels, and closing the list or a claim landing leaves
+     * the edit in progress
+     */
+    #close(commit = false) {
         this.#ddmenu.hide();
+        //emptying the box and leaving is a clear, not an abandoned search:
+        //redisplaying the label here would discard the edit without a word. Any
+        //other text is a search that matched nothing, and reverts. A multiple
+        //select keeps its box empty by design, so only a single one can mean it
+        if (commit && this.#editing && !this.#multiple && this.#input.value === '' && this.#values.size !== 0) {
+            this.#values.clear();
+            this.#changed();
+            this.#syncBadges();
+        }
         this.#editing = false;
         this.#display();
     }
@@ -865,14 +878,17 @@ class Select extends Field {
      * highlighted.
      */
     #open() {
-        this.#browse();
-        return this.#ddmenu.show(() => this.#loader.load(this.#input.value), [...this.#values.keys()]);
+        return this.#ddmenu.show(() => this.#loader.load(this.#query()), [...this.#values.keys()]);
     }
-    #browse() {
-        if (this.#editing) {
-            return;
-        }
-        this.#input.value = '';
+    /**
+     * What the dropdown asks the loader for. Browsing is the whole vocabulary,
+     * not the label already chosen: the query is empty until the user types,
+     * which is what `#editing` tracks. The label stays in the box while that
+     * happens, a select showing nothing being indistinguishable from an empty
+     * one.
+     */
+    #query() {
+        return this.#editing ? this.#input.value : '';
     }
     #display() {
         const entry = this.#values.values().next().value;

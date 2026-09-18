@@ -2074,3 +2074,92 @@ describe('Select dropdown anchoring', () => {
         }
     });
 });
+
+describe('Clearing a single select', () => {
+    const OPTIONS = [
+        { key: 'k1', label: 'Alpha' },
+        { key: 'k2', label: 'Beta' },
+    ];
+    const vocabulary = {
+        prefetch: async () => {},
+        load: async () => OPTIONS,
+        exact: async (...keys) => keys.map((k) => OPTIONS.find((o) => o.key === k) ?? { key: k, label: k }),
+    };
+    const mount = (html) => mountSelect(html, vocabulary);
+    const press = async (input, code, options = {}) => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
+        await settle();
+    };
+    const typing = async (input, text) => {
+        input.value = text;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        await settle();
+    };
+
+    it('keeps showing the chosen label once the dropdown opens', async () => {
+        const [el] = await mount('<ful-select value="k1">pick</ful-select>');
+        const input = el.querySelector('input');
+
+        input.focus();
+        await press(input, 'ArrowDown', { altKey: true });
+
+        assert.strictEqual(input.value, 'Alpha', 'a select showing nothing reads as an empty one');
+        assert.strictEqual(el.value, 'k1');
+    });
+
+    it('commits an emptied box as a clear when the field is left', async () => {
+        const [el] = await mount('<ful-select value="k1">pick</ful-select>');
+        const input = el.querySelector('input');
+
+        input.focus();
+        await typing(input, '');
+        await press(input, 'Tab');
+
+        assert.isNull(el.value);
+        assert.strictEqual(input.value, '');
+    });
+
+    it('reverts an emptied box when the edit is cancelled', async () => {
+        const [el] = await mount('<ful-select value="k1">pick</ful-select>');
+        const input = el.querySelector('input');
+
+        input.focus();
+        await typing(input, '');
+        await press(input, 'Escape');
+
+        assert.strictEqual(el.value, 'k1');
+        assert.strictEqual(input.value, 'Alpha');
+    });
+
+    it('reverts a search that matched nothing, rather than clearing', async () => {
+        const [el] = await mount('<ful-select value="k1">pick</ful-select>');
+        const input = el.querySelector('input');
+
+        input.focus();
+        await typing(input, 'Alp');
+        await press(input, 'Tab');
+
+        assert.strictEqual(el.value, 'k1');
+        assert.strictEqual(input.value, 'Alpha');
+    });
+
+    it('keeps the value when the field is left untouched', async () => {
+        const [el] = await mount('<ful-select value="k1">pick</ful-select>');
+        const input = el.querySelector('input');
+
+        input.focus();
+        await press(input, 'Tab');
+
+        assert.strictEqual(el.value, 'k1');
+    });
+
+    it('does not read a multiple select, whose box is empty by design, as a clear', async () => {
+        const [el] = await mount('<ful-select multiple value="k1,k2">pick</ful-select>');
+        const input = el.querySelector('input');
+
+        input.focus();
+        await press(input, 'Tab');
+
+        assert.deepEqual(el.value, ['k1', 'k2']);
+    });
+});
