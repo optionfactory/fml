@@ -677,7 +677,6 @@ class Select extends Field {
             this.#editing = false;
             this.#values.set(this.#coerceKey(e.detail.entry.key), e.detail.entry);
             this.#changed();
-            this.#syncBadges();
             this.#input.focus();
             this.#ddmenu.hide();
             if (!this.#multiple) {
@@ -734,7 +733,6 @@ class Select extends Field {
         }
         this.#values.delete(key);
         this.#changed();
-        this.#syncBadges();
     }
     #chipKeydown(e, badge) {
         switch (e.code) {
@@ -858,12 +856,13 @@ class Select extends Field {
         //emptying the box and leaving is a clear: redisplaying the label would
         //discard the edit without a word. A multiple select keeps its box empty
         //by design, so only a single one can mean it
-        if (commit && this.#editing && !this.#multiple && this.#input.value === '' && this.#values.size !== 0) {
+        const cleared =
+            commit && this.#editing && !this.#multiple && this.#input.value === '' && this.#values.size !== 0;
+        this.#editing = false;
+        if (cleared) {
             this.#values.clear();
             this.#changed();
-            this.#syncBadges();
         }
-        this.#editing = false;
         this.#display();
     }
     /**
@@ -891,6 +890,9 @@ class Select extends Field {
         return [...this.#values.values()];
     }
     #changed() {
+        //settled before the event: a listener reading the control during it has to
+        //see the selection that caused it
+        this.#syncBadges();
         //the detail carries the keys the value property answers with, as every
         //other field's does, and the labeled selection beside them
         this._notifyChange({ entry: this.entry });
