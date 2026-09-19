@@ -41,6 +41,18 @@
         <label>After <ful-tooltip placement="right">placement="right" opens on the inline end side.</ful-tooltip></label>
     </fieldset>
     <fieldset>
+        <legend>a note holding more than a line: block content sits flush inside the padding</legend>
+        <label>What counts as eleven digits
+            <ful-tooltip>
+                <p>The country prefix is not part of the count:</p>
+                <ul>
+                    <li><code>IT01234567890</code> is eleven digits</li>
+                    <li><code>01234567890</code> is the same number</li>
+                </ul>
+            </ful-tooltip>
+        </label>
+    </fieldset>
+    <fieldset>
         <legend>the info slot: a field carrying its own explanation</legend>
         <ful-form>
             <ful-input name="vat" value="IT01234567890">
