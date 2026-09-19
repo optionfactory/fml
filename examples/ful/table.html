@@ -73,6 +73,29 @@
         </template>
     </ful-table>
     </fieldset>
+
+    <fieldset>
+        <legend>no rows: the localized default, and what the empty slot says instead</legend>
+        <ful-table loader="loaders:no-data" autoload>
+            <template slot="schema">
+                <schema>
+                    <column title="Id">{{ id }}</column>
+                    <column title="Nome">{{ username }}</column>
+                </schema>
+            </template>
+        </ful-table>
+        <ful-table loader="loaders:no-data" autoload>
+            <template slot="schema">
+                <schema>
+                    <column title="Id">{{ id }}</column>
+                    <column title="Nome">{{ username }}</column>
+                </schema>
+            </template>
+            <ful-icon slot="empty" name="inbox" aria-hidden="true"></ful-icon>
+            <p slot="empty">No shipments for this customer yet.</p>
+            <p slot="empty">They will appear here once the first booking is confirmed.</p>
+        </ful-table>
+    </fieldset>
     <script src="../markup.js"></script>
     <script>
         class MockDataLoader {
@@ -128,6 +151,7 @@
         ftl.registry
             .plugin(new ful.Plugin())
             .defineComponent("loaders:mock-data", MockDataLoader)
+            .defineComponent("loaders:no-data", { create: () => ({ load: async () => ({ size: 0, data: [] }) }) })
             .configure();
     </script>
 </body>

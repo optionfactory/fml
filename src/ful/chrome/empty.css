@@ -1,0 +1,24 @@
+@layer ful.components {
+    ful-empty {
+        display: block;
+        padding: 2rem 1rem;
+        color: var(--ful-color);
+        text-align: center;
+        opacity: 0.65;
+
+        & > ful-icon {
+            display: block;
+            width: 2rem;
+            height: 2rem;
+            margin: 0 auto 0.5rem;
+        }
+
+        & > :first-child {
+            margin-block-start: 0;
+        }
+
+        & > :last-child {
+            margin-block-end: 0;
+        }
+    }
+}

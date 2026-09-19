@@ -27,15 +27,21 @@
 
         & tbody[data-ref="initial"],
         & tbody[data-ref="loading"],
+        & tbody[data-ref="empty"],
         & tbody[data-ref="feedback"] {
             height: 360px;
-            padding: 1.5rem;
 
             & td {
                 & p {
                     margin-top: 1rem;
                 }
             }
+        }
+
+        /*the cell keeps the centring it has for the spinner and the error box,
+        and gives up its padding to the one that brings its own*/
+        & td[colspan]:has(> ful-empty) {
+            padding: 0;
         }
     }
 

@@ -277,7 +277,7 @@ describe('Select and dropdown keyboard interaction', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
-        const empty = selectEl.querySelector('ful-dropdown p[data-ref=empty]');
+        const empty = selectEl.querySelector('ful-dropdown [data-ref=empty]');
         assert.isFalse(empty.hidden, 'the message replaces the empty list');
         assert.strictEqual(empty.innerText, 'No results');
         assert.isTrue(selectEl.querySelector('menu').hidden, 'no empty listbox is exposed');
@@ -291,7 +291,7 @@ describe('Select and dropdown keyboard interaction', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
-        assert.isTrue(selectEl.querySelector('ful-dropdown p[data-ref=empty]').hidden);
+        assert.isTrue(selectEl.querySelector('ful-dropdown [data-ref=empty]').hidden);
         assert.isFalse(selectEl.querySelector('menu').hidden);
     });
 

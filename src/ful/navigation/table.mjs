@@ -357,6 +357,7 @@ class Table extends ParsedElement {
     static slots = true;
     static config = {
         searchIcon: 'search',
+        emptyIcon: 'inbox',
     };
     static template = `
         <ful-form data-tpl-if="slots.filters">
@@ -370,10 +371,21 @@ class Table extends ParsedElement {
                 <tbody data-ref="initial">
                     <tr>
                         <td data-tpl-colspan="schema.length">
-                            <div>
-                                <p data-tpl-if="config.searchIcon"><ful-icon data-tpl-name="config.searchIcon" aria-hidden="true"></ful-icon></p>
+                            <ful-empty>
+                                <ful-icon data-tpl-if="config.searchIcon" data-tpl-name="config.searchIcon" aria-hidden="true"></ful-icon>
                                 {{ #l10n:t('table.initial') }}
-                            </div>
+                            </ful-empty>
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody data-ref="empty" hidden>
+                    <tr>
+                        <td data-tpl-colspan="schema.length">
+                            <ful-empty data-tpl-if="slots.empty">{{{{ slots.empty }}}}</ful-empty>
+                            <ful-empty data-tpl-if="!slots.empty">
+                                <ful-icon data-tpl-if="config.emptyIcon" data-tpl-name="config.emptyIcon" aria-hidden="true"></ful-icon>
+                                {{ #l10n:t('table.no-data') }}
+                            </ful-empty>
                         </td>
                     </tr>
                 </tbody>
@@ -403,11 +415,6 @@ class Table extends ParsedElement {
     `;
     static templates = {
         row: `
-            <tr data-tpl-if="pageResponse.data.length == 0">
-                <td data-tpl-colspan="schema.length">
-                    {{ #l10n:t('table.no-data') }}
-                </td>
-            </tr>
             {{{{ schema.rowsTemplate.withOverlay({'rows': pageResponse.data}).render() }}}}
         `,
     };
@@ -416,6 +423,7 @@ class Table extends ParsedElement {
     #body;
     #loading;
     #noAutoload;
+    #empty;
     #feedback;
     #paginator;
     #sorters;
@@ -466,6 +474,7 @@ class Table extends ParsedElement {
         this.#body = table.querySelector(':scope > tbody');
         this.#loading = table.querySelector(':scope > tbody[data-ref=loading]');
         this.#noAutoload = table.querySelector(':scope > tbody[data-ref=initial]');
+        this.#empty = table.querySelector(':scope > tbody[data-ref=empty]');
         this.#feedback = table.querySelector(':scope > tbody[data-ref=feedback]');
         this.#paginator = Nodes.queryChildren(fragment, 'ful-pagination');
         this.replaceChildren(fragment);
@@ -556,6 +565,7 @@ class Table extends ParsedElement {
         this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
         this.#feedback.setAttribute('hidden', '');
         this.#noAutoload.setAttribute('hidden', '');
+        this.#empty.setAttribute('hidden', '');
         this.setAttribute('aria-busy', 'true');
         try {
             const pageResponse = await this.#loader.load(pageRequest, sortRequest, filterRequest);
@@ -635,6 +645,7 @@ class Table extends ParsedElement {
                 })
                 .render(),
         );
+        this.#empty.toggleAttribute('hidden', pageResponse.data.length !== 0);
         //one move, one repaint: the page and the count are the same state
         this.#paginator.update({ current: pageRequest.page, total: pages });
     }

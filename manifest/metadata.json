@@ -348,7 +348,8 @@
             "slots": {
                 "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
                 "caption": "The caption of the table.",
-                "footer": "Content rendered in the table footer."
+                "footer": "Content rendered in the table footer.",
+                "empty": "Shown in place of the rows when a load returns none, replacing the localized default message."
             },
             "events": {
                 "load:success": "Fired once a load has settled, after the rows are in place and the busy state is gone, carrying the page response and the three requests that asked for it. Not fired for a load a newer one superseded, which owns nothing.",

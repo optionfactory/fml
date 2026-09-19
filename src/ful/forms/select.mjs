@@ -262,7 +262,7 @@ class Dropdown extends ParsedElement {
     static slots = true;
     static template = `
         <ful-spinner class="centered" role="status" hidden><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
-        <p data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('dropdown.empty') }}</p>
+        <ful-empty data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('dropdown.empty') }}</ful-empty>
         <menu tabindex="-1" role="listbox" hidden></menu>
     `;
     static templates = {
@@ -284,7 +284,7 @@ class Dropdown extends ParsedElement {
             ? this.template('options')
             : Templates.fromFragment(slots.default);
         this.#spinner = fragment.querySelector('ful-spinner');
-        this.#empty = fragment.querySelector('p[data-ref=empty]');
+        this.#empty = fragment.querySelector('[data-ref=empty]');
         this.#menu = fragment.querySelector('menu');
         //the listbox is named so a combobox can point aria-controls and
         //aria-activedescendant at it: a reference to an unnamed element resolves

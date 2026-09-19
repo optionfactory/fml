@@ -122,11 +122,10 @@
             width: anchor-size(width);
         }
 
-        p[data-ref="empty"] {
-            margin: 0;
-            padding: 0.5rem 0.751rem;
+        ful-empty {
+            padding: 0.5rem 0.75rem;
             color: var(--ful-dropdown-color);
-            opacity: 0.65;
+            text-align: start;
         }
 
         menu {

@@ -217,7 +217,7 @@ describe('Table sorter layout', () => {
         assert.isBelow(
             headingDropsBy(tableEl.querySelector('thead ful-sorter')),
             4,
-            'the heading starts on the sorter\'s own first line, beside the arrow',
+            "the heading starts on the sorter's own first line, beside the arrow",
         );
     });
 
@@ -271,10 +271,7 @@ describe('Table revalidation', () => {
 
     it('keeps the rows on screen while a reload is in flight', async () => {
         let answer = null;
-        const [tableEl] = mount(
-            { load: async () => answer ?? { data: [{ a: 1 }, { a: 2 }], size: 2 } },
-            true,
-        );
+        const [tableEl] = mount({ load: async () => answer ?? { data: [{ a: 1 }, { a: 2 }], size: 2 } }, true);
         await Rendering.waitFor(tableEl);
         await settle();
         assert.strictEqual(rows(tableEl), 2, 'the first load filled the body');
@@ -361,7 +358,6 @@ describe('Table schema', () => {
 //the assertions on the pagination label read the english strings: the plugin
 //is configured with language 'en' above, so they do not depend on the locale
 //the browser happens to be launched with
-
 
 const mount = async (html) => {
     const container = appended(html);
@@ -687,7 +683,10 @@ describe('Pagination links', () => {
             .filter((a) => a.getAttribute('aria-current') === 'page')
             .map((a) => a.textContent.trim());
         assert.deepStrictEqual(current, ['2']);
-        assert.isFalse(pageLinks(el).some((a) => a.hasAttribute('disabled')), 'no page link is disabled');
+        assert.isFalse(
+            pageLinks(el).some((a) => a.hasAttribute('disabled')),
+            'no page link is disabled',
+        );
     });
 
     it('disables previous on the first page and next on the last one', async () => {
@@ -976,7 +975,9 @@ describe('In memory table loader', () => {
         const [tableEl] = await mountTable();
         await tableEl.withLoader((loader) => loader.update([{ a: 'b' }, {}, { a: 'a' }]));
         await tableEl.reload();
-        const loaded = await tableEl.withLoader((loader) => loader.load({ page: 0, size: 10 }, { sorter: 'a', order: 'asc' }, {}));
+        const loaded = await tableEl.withLoader((loader) =>
+            loader.load({ page: 0, size: 10 }, { sorter: 'a', order: 'asc' }, {}),
+        );
         assert.deepStrictEqual(
             loaded.data.map((row) => row.a),
             ['a', 'b', undefined],
@@ -1255,5 +1256,68 @@ describe('Table page-size', () => {
 
         assert.deepStrictEqual(requests.at(-1), { page: 0, size: 25 });
         assert.deepStrictEqual(sorts.at(-1), { sorter: 'a', order: 'asc' }, 'the declared sort survives');
+    });
+});
+
+describe('Table empty state', () => {
+    let answer;
+    let fails;
+    const mount = async (slots = '') => {
+        const container = appended(`
+            <ful-table autoload>
+                <template slot="schema"><schema><column title="A">{{ a }}</column></schema></template>
+                ${slots}
+            </ful-table>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        return tableEl;
+    };
+    const panel = (tableEl) => tableEl.querySelector('tbody[data-ref=empty]');
+    beforeEach(() => {
+        answer = { data: [], size: 0 };
+        fails = false;
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: async () => {
+                    if (fails) {
+                        throw new Error('boom');
+                    }
+                    return answer;
+                },
+            }),
+        });
+    });
+
+    it('stands a panel in for the rows when a load returns none, and takes it away when one returns some', async () => {
+        const tableEl = await mount();
+        assert.isFalse(panel(tableEl).hidden);
+        assert.strictEqual(panel(tableEl).querySelector('ful-empty').textContent.trim(), 'No elements found.');
+
+        answer = { data: [{ a: 'one' }], size: 1 };
+        await tableEl.reload();
+        assert.isTrue(panel(tableEl).hidden);
+        assert.deepStrictEqual(rowTexts(tableEl), ['one']);
+
+        answer = { data: [], size: 0 };
+        await tableEl.reload();
+        assert.isFalse(panel(tableEl).hidden, 'a table emptied by a filter says so again');
+    });
+
+    it('says what the empty slot says instead of the localized default', async () => {
+        const tableEl = await mount('<div slot="empty">No shipments for this customer yet.</div>');
+
+        const empty = panel(tableEl).querySelector('ful-empty');
+        assert.strictEqual(empty.textContent.trim(), 'No shipments for this customer yet.');
+        assert.notInclude(panel(tableEl).textContent, 'No elements found.', 'the default is not rendered beside it');
+    });
+
+    it('shows the failure alone: an emptied body is not also a result of none', async () => {
+        const tableEl = await mount();
+        fails = true;
+        await tableEl.reload().catch(() => {});
+
+        assert.isFalse(tableEl.querySelector('tbody[data-ref=feedback]').hidden);
+        assert.isTrue(panel(tableEl).hidden);
     });
 });
