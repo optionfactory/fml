@@ -646,6 +646,19 @@ describe('Pagination links', () => {
         assert.include(el.querySelector('[data-ref=index]').textContent, 'Page 1 of 1');
     });
 
+    it('tells the current page from the others by more than its aria-current claim', async () => {
+        const [el] = await mountPagination(`current="1" total="3"`);
+
+        const [other, current] = [...el.querySelectorAll('li[data-ref=page] button')];
+        assert.strictEqual(current.getAttribute('aria-current'), 'page');
+        assert.strictEqual(other.getAttribute('aria-current'), null);
+        assert.notStrictEqual(
+            getComputedStyle(current).backgroundColor,
+            getComputedStyle(other).backgroundColor,
+            'the claim is announced but not painted: the page being shown looks like every other link',
+        );
+    });
+
     it('renders one link per page when they all fit', async () => {
         const [el] = await mountPagination(`current="0" total="3"`);
 

@@ -411,6 +411,12 @@
             outline: 0;
             box-shadow: var(--ful-focus-box-shadow);
         }
+
+        & button[aria-current="page"] {
+            color: var(--ful-active-color);
+            background-color: var(--ful-active-bg);
+            border-color: var(--ful-active-bg);
+        }
     }
 
     ful-table-wrapper {
