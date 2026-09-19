@@ -10,7 +10,6 @@
         justify-content: start;
         align-items: center;
         column-gap: 0.5rem;
-        /*ful-choice sets a gap shorthand, and the label's margin is already the space*/
         row-gap: 0;
         padding: 0;
 

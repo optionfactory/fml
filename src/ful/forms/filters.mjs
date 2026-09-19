@@ -457,7 +457,6 @@ class BooleanFilter extends Field {
  */
 class InFilter extends Select {
     static attributes = ['operator'];
-    /** the selection as the array the wire takes, whether one key was chosen or many */
     #keys() {
         const chosen = super.value;
         if (this.multiple) {
@@ -478,8 +477,6 @@ class InFilter extends Select {
     set value(v) {
         const operator = this.declared('operator');
         let keys = v === null || v === undefined ? [] : Array.isArray(v) ? v : [v];
-        //what the getter answers has to be assignable back, and it carries the
-        //operator in front of the keys
         if (operator && keys[0] === operator) {
             keys = keys.slice(1);
         }
