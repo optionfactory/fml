@@ -53,8 +53,8 @@ body > h2 {
     border-block-end: 1px solid var(--ful-border-color, light-dark(#dee2e6, #495057));
 }
 
-/*page typography, kept out of the library's own boxes: these rules are unlayered
-and would beat the reset ful-note gives its content*/
+/*unlayered rules outrank every ful layer, so a bare `p` here would beat the
+margin reset ful-note gives its content*/
 :not(ful-note) > p {
     margin: 0.75rem 0;
     max-width: 70ch;
