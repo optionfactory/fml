@@ -198,7 +198,7 @@ describe('SelectLoader', () => {
     it('labels a filter preselected by key, so the criterion reads in words', async () => {
         stubHttp({ '/kinds2': [['A', 'Alpha'], ['B', 'Beta']] });
         const container = appended(
-            '<ful-filter-in src="/kinds2" name="byKind" value="A,B">Kind</ful-filter-in>',
+            '<ful-filter-in src="/kinds2" name="byKind" multiple value="A,B">Kind</ful-filter-in>',
         );
         const filter = container.querySelector('ful-filter-in');
         await Rendering.waitFor(filter);

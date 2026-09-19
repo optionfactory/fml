@@ -456,27 +456,41 @@ class BooleanFilter extends Field {
  * operator, differing only in what the server converts them to.
  */
 class InFilter extends Select {
-    async upgrade() {
-        //the snapshot is taken inside super.upgrade(), so an attribute this
-        //element does not let an author turn off has to be written before it
-        this.toggleAttribute('multiple', true);
-        await super.upgrade();
+    static attributes = ['operator'];
+    /** the selection as the array the wire takes, whether one key was chosen or many */
+    #keys() {
+        const chosen = super.value;
+        if (this.multiple) {
+            return chosen;
+        }
+        return chosen === null || chosen === undefined ? [] : [chosen];
     }
     get value() {
-        const keys = super.value;
+        const keys = this.#keys();
         //an empty set is no filter: the table drops a falsy value, where an
         //empty array would travel and match nothing
-        return keys.length === 0 ? null : keys;
+        if (keys.length === 0) {
+            return null;
+        }
+        const operator = this.declared('operator');
+        return operator ? [operator, ...keys] : keys;
     }
     set value(v) {
-        super.value = v ?? [];
+        const operator = this.declared('operator');
+        let keys = v === null || v === undefined ? [] : Array.isArray(v) ? v : [v];
+        //what the getter answers has to be assignable back, and it carries the
+        //operator in front of the keys
+        if (operator && keys[0] === operator) {
+            keys = keys.slice(1);
+        }
+        super.value = this.multiple ? keys : (keys[0] ?? null);
     }
     /** @returns {FilterCriterion|null} */
     get criterion() {
         return asCriterion(
             labelTextOf(this),
-            null,
-            (super.entry ?? []).map((e) => e.label),
+            this.declared('operator'),
+            [super.entry].flat().filter((e) => e).map((e) => e.label),
         );
     }
 }

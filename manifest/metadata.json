@@ -101,7 +101,7 @@
             }
         },
         "ful-filter-in": {
-            "description": "A ful-table filter over set membership, answering for both of data-jpa's set annotations: InEnum and InList take the same array of values and no operator, differing only in what the server converts them to. The vocabulary comes from wherever a select's does, slotted options or a loader, and the selection is always multiple, an empty one contributing nothing rather than an empty array.",
+            "description": "A ful-table filter over set membership, answering for both of data-jpa's set annotations: InEnum and InList take the same array of values and no operator, differing only in what the server converts them to. The vocabulary comes from wherever a select's does, slotted options or a loader, and the value is an array whether one key was chosen or several, an empty selection contributing nothing rather than an empty array. It picks one key unless multiple is declared, as a ful-select does.",
             "attributes": {
                 "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
                 "item-list": "Shows the selection as a ful-item-list under the control as well, in addition to the field itself (the label for a single select, the ful-badge chips when multiple).",
@@ -116,7 +116,8 @@
                 "name": "The field name the surrounding form submits the selection under.",
                 "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
                 "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
-                "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
+                "operator": "A fixed operator sent in front of the chosen keys, for the field a compare reads rather than a set: absent the value is the bare array an InEnum or an InList takes, present it is [operator, ...keys]. No menu is rendered either way, the operator being the author naming the server's comparison rather than a choice offered to whoever is filtering. The criterion reports it, so a chip can show it.",
+            "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
                 "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
                 "value": "Comma separated list of the selected keys. Empty contributes nothing, so the table drops the filter rather than sending an empty set."
             },

@@ -1177,7 +1177,7 @@ describe('The set membership filter', () => {
     });
 
     it('answers the chosen keys as an array', async () => {
-        const [el] = await mount(`<ful-filter-in name="byKind" value="A,B">Kind</ful-filter-in>`);
+        const [el] = await mount(`<ful-filter-in name="byKind" multiple value="A,B">Kind</ful-filter-in>`);
 
         assert.deepEqual(el.value, ['A', 'B']);
     });
@@ -1189,7 +1189,7 @@ describe('The set membership filter', () => {
     });
 
     it('gives the chosen labels rather than the keys', async () => {
-        const [el] = await mount(`<ful-filter-in name="byKind" value="A,B">Kind</ful-filter-in>`);
+        const [el] = await mount(`<ful-filter-in name="byKind" multiple value="A,B">Kind</ful-filter-in>`);
         await settle();
 
         assert.deepEqual(el.criterion, {
@@ -1199,10 +1199,41 @@ describe('The set membership filter', () => {
         });
     });
 
-    it('is multiple whatever the markup says', async () => {
-        const [el] = await mount(`<ful-filter-in name="byKind">Kind</ful-filter-in>`);
+    it('picks one key unless multiple is declared, as a select does', async () => {
+        const [single] = await mount(`<ful-filter-in name="byKind">Kind</ful-filter-in>`);
+        const [many] = await mount(`<ful-filter-in name="byKind" multiple>Kind</ful-filter-in>`);
 
-        assert.isTrue(el.multiple);
+        assert.isFalse(single.multiple);
+        assert.isTrue(many.multiple);
+    });
+
+    it('sends the declared operator in front of the keys, for the field a compare reads', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" operator="EQ" value="A">Kind</ful-filter-in>`);
+
+        assert.deepEqual(el.value, ['EQ', 'A']);
+    });
+
+    it('takes back what it answered, operator and all', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" operator="EQ">Kind</ful-filter-in>`);
+
+        el.value = ['EQ', 'B'];
+        assert.deepEqual(el.value, ['EQ', 'B'], 'the operator is not read back as a key');
+
+        el.value = 'A';
+        assert.deepEqual(el.value, ['EQ', 'A'], 'a bare key still assigns');
+    });
+
+    it('contributes nothing while empty even with an operator, so the table drops it', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" operator="EQ">Kind</ful-filter-in>`);
+
+        assert.isNull(el.value);
+    });
+
+    it('reports the operator in the criterion, so a chip can show it', async () => {
+        const [el] = await mount(`<ful-filter-in name="byKind" operator="NEQ" value="A">Kind</ful-filter-in>`);
+        await settle();
+
+        assert.deepEqual(el.criterion, { label: 'Kind', operator: 'NEQ', operands: ['Alpha'] });
     });
 
     it('clears back to contributing nothing', async () => {

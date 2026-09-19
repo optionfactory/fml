@@ -399,8 +399,16 @@
                     <option value="blue">Blue</option>
                 </select>
             </ful-filter-in>
-            <ful-filter-in name="tagPicked" value="red,blue">
-                Tags, preselected
+            <ful-filter-in name="tagPicked" multiple value="red,blue">
+                Tags, multiple and preselected
+                <select slot="options">
+                    <option value="red">Red</option>
+                    <option value="green">Green</option>
+                    <option value="blue">Blue</option>
+                </select>
+            </ful-filter-in>
+            <ful-filter-in name="tagEq" operator="EQ" value="green">
+                One tag with a fixed operator, sending ["EQ", "green"]
                 <select slot="options">
                     <option value="red">Red</option>
                     <option value="green">Green</option>
