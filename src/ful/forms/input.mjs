@@ -43,15 +43,22 @@ const INPUT_MODES = { numeric: 'numeric', decimal: 'decimal' };
 
 const signed = (v, digits) => (v.startsWith('-') ? '-' : '') + digits(v);
 
-const NUMERIC_FILTERS = {
-    numeric: (v) => signed(v, (t) => t.replace(/\D/g, '')),
+const NUMERIC_DIGITS = {
+    numeric: (t) => t.replace(/\D/g, ''),
     //one separator, the first: the rest are a slip while typing, not a value
-    decimal: (v) =>
-        signed(v, (t) => {
-            const kept = t.replace(/[^\d.,]/g, '');
-            const at = kept.search(/[.,]/);
-            return at === -1 ? kept : kept.slice(0, at + 1) + kept.slice(at + 1).replace(/[.,]/g, '');
-        }),
+    decimal: (t) => {
+        const kept = t.replace(/[^\d.,]/g, '');
+        const at = kept.search(/[.,]/);
+        return at === -1 ? kept : kept.slice(0, at + 1) + kept.slice(at + 1).replace(/[.,]/g, '');
+    },
+};
+
+const numericFilter = (type, unsigned) => {
+    const digits = NUMERIC_DIGITS[type];
+    if (!digits) {
+        return null;
+    }
+    return unsigned ? digits : (v) => signed(v, digits);
 };
 
 const warnedBoth = new WeakSet();
@@ -73,7 +80,7 @@ const filterOf = (el) => {
         const re = compiled('reject', reject);
         return re && ((v) => v.replace(re, ''));
     }
-    return NUMERIC_FILTERS[el._type()] ?? null;
+    return numericFilter(el._type(), el.declared('unsigned'));
 };
 
 /** A labelled text input over any native type or textarea; the temporal inputs are its subclasses. */
@@ -88,6 +95,7 @@ class Input extends Field {
         'reject',
         'uppercase:presence',
         'trim:presence',
+        'unsigned:presence',
         'autocomplete',
     ];
     static slots = true;

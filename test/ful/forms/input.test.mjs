@@ -814,6 +814,30 @@ describe('Numeric widget types', () => {
         assert.strictEqual(input.value, '-1234');
     });
 
+    it('refuses the minus in an unsigned numeric field', async () => {
+        const [, input] = await mount(`<ful-input type="numeric" unsigned>n</ful-input>`);
+
+        await type(input, '-12a3');
+
+        assert.strictEqual(input.value, '123');
+    });
+
+    it('refuses the minus in an unsigned decimal field while it still keeps one separator', async () => {
+        const [, input] = await mount(`<ful-input type="decimal" unsigned>d</ful-input>`);
+
+        await type(input, '-1,2,3');
+
+        assert.strictEqual(input.value, '1,23', 'unsigned narrows the type filter rather than replacing it');
+    });
+
+    it('lets a declared keep outrank unsigned, as it outranks the type', async () => {
+        const [, input] = await mount(`<ful-input type="numeric" unsigned keep="[0-9-]">n</ful-input>`);
+
+        await type(input, '-12a3');
+
+        assert.strictEqual(input.value, '-123');
+    });
+
     it('keeps one separator in a decimal field, and drops the rest', async () => {
         const [, input] = await mount(`<ful-input type="decimal">d</ful-input>`);
 

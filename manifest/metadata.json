@@ -11,6 +11,7 @@
             "required": "Marks the field as required for assistive technologies and shows the required marker on its label.",
             "trim": "Trims the value on the way out, leaving what was typed alone.",
             "type": "Any native input type, the literal textarea to render one, or numeric and decimal, which render a text input carrying that inputmode and filter what can be typed: numeric takes digits and a leading minus, decimal one separator as well, answering it as a dot whatever the keyboard offered. Neither enforces min, max or step, which the native number type still does. Defaults to number under v-type=number, and a declared type wins.",
+            "unsigned": "Refuses the leading minus a numeric or decimal field otherwise takes. It narrows the type's own filter rather than replacing it, so a decimal still keeps one separator and still answers with a dot. Meaningless on any other type, where the sign is the native control's business, and a declared keep or reject still outranks it.",
             "uppercase": "Upper-cases the value on the way out, leaving what was typed alone.",
             "v-type": "number decodes the value to a number on the way out: blank stays null and a value that does not decode is kept as it is.",
             "value": "The current value."
