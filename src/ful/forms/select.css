@@ -50,20 +50,6 @@
             }
         }
 
-        /*
-        the remove button is an affordance for a gesture both claims refuse, so
-        it goes under either one, and the row takes back the space it held
-        */
-        &[readonly] > ful-item-list button,
-        &:disabled > ful-item-list button {
-            display: none;
-        }
-
-        &[readonly] > ful-item-list > ful-item > div,
-        &:disabled > ful-item-list > ful-item > div {
-            padding-right: 0.5rem;
-        }
-
         &:disabled,
         &[readonly] {
             cursor: default;

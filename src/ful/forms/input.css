@@ -6,12 +6,23 @@
         }
     }
 
+    *:has(> ful-item-list):is([readonly], :disabled) {
+        & > ful-item-list button {
+            display: none;
+        }
+
+        & > ful-item-list > ful-item > div {
+            padding-right: 0.5rem;
+        }
+    }
+
     ful-item-list {
         --ful-item-list-item-color: var(--ful-active-color);
         --ful-item-list-item-border-radius: var(--ful-border-radius);
         --ful-item-list-item-bg: var(--ful-active-bg);
 
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         /*
         room for a focused row's outline to sit in: at the four pixels this was,
         the ring landed on the rows either side and read as a smudge between them

@@ -157,21 +157,5 @@
                 margin-bottom: 0;
             }
         }
-
-        /*
-        the remove button on each row goes the same way as the dropzone and the
-        picker button: it is an affordance for a gesture the field refuses while
-        a claim holds, and the row's name and size, which are what there is to
-        read, stay
-        */
-        &[readonly] > ful-item-list ful-item button,
-        &:disabled > ful-item-list ful-item button {
-            display: none;
-        }
-
-        &[readonly] > ful-item-list > ful-item > div,
-        &:disabled > ful-item-list > ful-item > div {
-            padding-right: 0.5rem;
-        }
     }
 }
