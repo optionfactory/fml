@@ -5,6 +5,19 @@
         box-sizing: border-box;
     }
 
+    /*
+     * The layout box is the element the author can select, the inner form being
+     * created by the render and never named in the markup. The pair is needed:
+     * a display on ful-form alone would lay out the form as its only child.
+     */
+    ful-form {
+        display: block;
+    }
+
+    ful-form > form {
+        display: contents;
+    }
+
     *:has(> ful-control-group) {
         display: block;
     }
