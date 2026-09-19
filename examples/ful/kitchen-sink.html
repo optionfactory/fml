@@ -196,6 +196,15 @@
 
     <h2>checkboxes and switches</h2>
     <fieldset>
+        <legend>.ful-stacked: the choice laid out like the fields beside it</legend>
+        <ful-form>
+            <ful-input name="stackedShipper" value="ACME">An input, for the height to match</ful-input>
+            <ful-checkbox class="ful-stacked" name="stackedBox">Stacked checkbox</ful-checkbox>
+            <ful-checkbox class="ful-stacked" name="stackedSwitch" type="switch">Stacked switch<ful-tooltip slot="info">the info slot rides the label</ful-tooltip></ful-checkbox>
+            <ful-checkbox name="besideBox">Unstacked, beside its label</ful-checkbox>
+        </ful-form>
+    </fieldset>
+    <fieldset>
         <legend>configurations</legend>
         <ful-form>
             <ful-checkbox name="unchecked">Unchecked</ful-checkbox>

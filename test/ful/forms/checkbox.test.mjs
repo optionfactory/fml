@@ -224,3 +224,43 @@ describe('Checkbox rendering', () => {
         assert.notInclude(elements, el.querySelector('input'), 'the inner input is detached by form=""');
     });
 });
+
+describe('Checkbox stacked layout', () => {
+    const heights = async (cls) => {
+        const container = appended(
+            `<div style="display:grid;grid-template-columns:1fr 1fr;align-items:start">
+                <ful-input name="i" value="x">Input</ful-input>
+                <ful-checkbox ${cls} name="c">Choice</ful-checkbox>
+            </div>`,
+        );
+        await Rendering.waitFor(container);
+        const input = container.querySelector('ful-input');
+        const choice = container.querySelector('ful-checkbox');
+        const box = (el) => el.getBoundingClientRect();
+        return {
+            container,
+            sameHeight: Math.round(box(input).height) === Math.round(box(choice).height),
+            labelsAligned:
+                Math.round(box(input.querySelector('label')).top) ===
+                Math.round(box(choice.querySelector('label')).top),
+            controlBelowLabel: box(choice.querySelector('input')).top >= box(choice.querySelector('label')).bottom,
+        };
+    };
+
+    it('stands a choice as tall as the input beside it, its label on the same line', async () => {
+        const stacked = await heights('class="ful-stacked"');
+
+        assert.isTrue(stacked.sameHeight, 'the field is as tall as an input in the same row');
+        assert.isTrue(stacked.labelsAligned, 'the labels share a line');
+        assert.isTrue(stacked.controlBelowLabel, 'the control sits under its label');
+        stacked.container.remove();
+    });
+
+    it('leaves the label beside the control without the class', async () => {
+        const plain = await heights('');
+
+        assert.isFalse(plain.sameHeight);
+        assert.isFalse(plain.controlBelowLabel, 'the control shares the label line');
+        plain.container.remove();
+    });
+});

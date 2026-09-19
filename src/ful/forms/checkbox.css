@@ -2,4 +2,32 @@
     *:has(> ful-choice) {
         display: block;
     }
+
+    .ful-stacked > ful-choice {
+        display: grid;
+        grid-template-columns: max-content auto;
+        grid-template-rows: auto minmax(calc(var(--ful-controls-height) + 2 * var(--ful-controls-border-width)), auto);
+        justify-content: start;
+        align-items: center;
+        column-gap: 0.5rem;
+        /*ful-choice sets a gap shorthand, and the label's margin is already the space*/
+        row-gap: 0;
+        padding: 0;
+
+        & > label {
+            grid-row: 1;
+            grid-column: 1;
+            display: inline-block;
+            flex: none;
+            margin: 0 0.25rem 0.5rem 0;
+            color: var(--ful-color);
+        }
+
+        & > input[type="checkbox"] {
+            grid-row: 2;
+            grid-column: 1 / -1;
+            justify-self: start;
+            font-size: 1.25em;
+        }
+    }
 }
