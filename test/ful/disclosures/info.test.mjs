@@ -727,9 +727,36 @@ describe('Dialog dismissal', () => {
         native.dispatchEvent(new Event('cancel', { cancelable: true }));
         assert.isTrue(native.open, 'Escape leaves it open, the button being gone');
 
+        native.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        assert.isTrue(native.open, 'and a click outside it is refused for the same reason');
+
         dialog.close('answered');
         assert.isFalse(native.open, 'a result still closes it');
     });
+    it('dismisses on a click outside the dialog, as the close button does', async () => {
+        const [dialog] = await mount('<ful-dialog header="Pick one">the body</ful-dialog>');
+        const native = dialog.querySelector('dialog');
+        const answered = dialog.ask();
+
+        native.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        assert.isFalse(native.open);
+        assert.deepStrictEqual(await answered, { dismissed: true, result: null, response: null });
+    });
+
+    it('stays open when a click inside the dialog merely ends over the backdrop', async () => {
+        const [dialog] = await mount('<ful-dialog header="Pick one"><p data-ref="body">the body</p></ful-dialog>');
+        const native = dialog.querySelector('dialog');
+        dialog.ask();
+
+        dialog.querySelector('[data-ref=body]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        assert.isTrue(native.open);
+        dialog.close('answered');
+    });
+
     it('renders no header at all under requires-answer with nothing to head it', async () => {
         const [dialog] = await mount('<ful-dialog requires-answer>the body</ful-dialog>');
 

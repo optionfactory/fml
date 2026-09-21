@@ -138,10 +138,18 @@ class Dialog extends ParsedElement {
             this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
             this.#settle(outcome);
         });
+        let pressedOutside = false;
+        this.#dialog.addEventListener('mousedown', (/** @type any */ e) => {
+            pressedOutside = e.target === this.#dialog;
+        });
         this.#dialog.addEventListener('click', (/** @type any */ e) => {
             const result = e.target.closest('button[data-result]')?.dataset.result;
             if (result !== undefined) {
                 this.#dialog.close(result);
+                return;
+            }
+            if (!requiresAnswer && pressedOutside && e.target === this.#dialog) {
+                this.#dialog.close('');
             }
         });
         //dismissal, not an answer: the waiters are settled with a dismissal, as

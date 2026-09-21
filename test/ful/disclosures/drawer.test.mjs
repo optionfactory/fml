@@ -148,6 +148,33 @@ describe('Drawer', () => {
         assert.deepStrictEqual(closes, [{ dismissed: true, response: null }]);
     });
 
+    it('dismisses on a click outside the panel, which the backdrop takes for the dialog', async () => {
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
+
+        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        drawer.open();
+        dialog.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await closed;
+        assert.isFalse(dialog.open);
+        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }], 'a backdrop click is a dismissal like any other');
+    });
+
+    it('stays open when a click inside it merely ends over the backdrop', async () => {
+        const [drawer] = await mount('<ful-drawer title="t"><p data-ref="body">body</p></ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        drawer.open();
+
+        //a selection dragged out of the panel: the press was inside, the release is not
+        drawer.querySelector('[data-ref=body]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        assert.isTrue(dialog.open);
+        drawer.close();
+    });
+
     it('closes on its own form succeeding, the close event carrying the response', async () => {
         const [drawer] = await mount(`
             <ful-drawer title="Edit" close-on-submit>

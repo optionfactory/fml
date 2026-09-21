@@ -53,6 +53,15 @@ class Drawer extends ParsedElement {
             this.#dialog.setAttribute('placement', placement);
         }
         fragment.querySelector('[data-ref=close]').addEventListener('click', () => this.close());
+        let pressedOutside = false;
+        this.#dialog.addEventListener('mousedown', (e) => {
+            pressedOutside = e.target === this.#dialog;
+        });
+        this.#dialog.addEventListener('click', (e) => {
+            if (pressedOutside && e.target === this.#dialog) {
+                this.close();
+            }
+        });
         this.#dialog.addEventListener('close', () => {
             this.dispatchEvent(
                 new CustomEvent('close', { detail: this.#answer ?? { dismissed: true, response: null } }),
