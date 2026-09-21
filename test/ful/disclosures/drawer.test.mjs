@@ -7,6 +7,11 @@ import { appended, settle as drain } from '../../harness.mjs';
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const settle = () => drain(20, 80);
+const closed = async (drawer) => {
+    const done = new Promise((resolve) => drawer.addEventListener('close', resolve, { once: true }));
+    drawer.close();
+    await done;
+};
 const mount = async (html) => {
     const container = appended(html);
     await Rendering.waitFor(container);
@@ -38,7 +43,7 @@ describe('Drawer', () => {
         drawer.open();
         assert.isTrue(dialog.open);
 
-        drawer.close();
+        await closed(drawer);
         assert.isFalse(dialog.open);
 
         container.querySelector('[dialog-target]').click();
@@ -305,6 +310,91 @@ describe('Drawer', () => {
         );
         drawer.close();
     });
+
+    it('slides out before it closes, the close event arriving once, after the animation', async () => {
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
+        drawer.open();
+
+        const done = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        drawer.close();
+        assert.isTrue(dialog.open, 'the panel is still on screen while it slides out');
+        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+        assert.deepStrictEqual(closes, [], 'nothing is announced before the panel has left');
+
+        drawer.close();
+        await done;
+        await settle();
+
+        assert.isFalse(dialog.open);
+        assert.isFalse(dialog.hasAttribute('closing'), 'the closing state leaves with the close');
+        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }], 'one close, not one per call');
+    });
+
+    it('slides out on Escape, which the platform delivers as a cancel', async () => {
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
+        drawer.open();
+
+        const done = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+        assert.isTrue(dialog.open, 'the platform close is refused so the drawer can animate its own');
+        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+
+        await done;
+        assert.isFalse(dialog.open);
+        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }]);
+    });
+
+    it('slides out on a backdrop dismissal and on its own form succeeding', async () => {
+        const [drawer] = await mount(`
+            <ful-drawer title="Edit" close-on-submit>
+                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+            </ful-drawer>`);
+        const dialog = drawer.querySelector('dialog');
+        const form = drawer.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
+
+        drawer.open();
+        const dismissed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        dialog.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+        await dismissed;
+
+        drawer.open();
+        await settle();
+        const saved = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        form.querySelector('button[type=submit]').click();
+        await new Promise((r) => setTimeout(r, 0));
+        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+        const { detail } = await saved;
+        assert.deepStrictEqual(detail, { dismissed: false, response: { id: 7 } });
+    });
+
+    it('is put back by a reopen during the slide out, rather than closing under it', async () => {
+        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail));
+        drawer.open();
+
+        drawer.close();
+        drawer.open();
+        assert.isFalse(dialog.hasAttribute('closing'));
+        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-in');
+
+        await settle();
+        await new Promise((r) => setTimeout(r, 300));
+
+        assert.isTrue(dialog.open, 'the abandoned slide out does not take the reopened drawer with it');
+        assert.deepStrictEqual(closes, []);
+        await closed(drawer);
+    });
 });
 
 describe('Drawer subclass reuse', () => {
@@ -346,14 +436,14 @@ describe('Drawer, the section:requested contract', () => {
         assert.deepStrictEqual(seen, [true]);
         assert.include(drawer.querySelector('[data-ref=content]').textContent, 'delivered');
 
-        drawer.close();
+        await closed(drawer);
         await settle();
         await drawer.update('title', async () => document.createElement('p'));
         drawer.open();
         await settle();
 
         assert.deepStrictEqual(seen, [true], 'update() owns its cycle, its open fires nothing');
-        drawer.close();
+        await closed(drawer);
         await settle();
 
         drawer.open();
@@ -380,7 +470,7 @@ describe('Drawer, the declarative content against update()', () => {
                 () => assert.fail('update rejects'),
                 () => undefined,
             );
-        drawer.close();
+        await closed(drawer);
         await settle();
 
         //the delivery is held open by the test rather than by a timer: a wait
@@ -415,7 +505,7 @@ describe('Drawer, the declarative content against update()', () => {
         AsyncEvents.asyncOn(drawer, 'section:requested', (e) => fired.push(e.detail.first));
         const waiting = drawer.update('title', () => new Promise(() => {}));
 
-        drawer.close();
+        await closed(drawer);
         await settle();
         drawer.open();
         await settle();

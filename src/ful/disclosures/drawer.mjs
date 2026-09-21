@@ -39,6 +39,12 @@ class Drawer extends ParsedElement {
     //a save answering with no body at all is still a save
     /** @type {{ dismissed: boolean, response: any }|null} */
     #answer = null;
+    #closing = false;
+    #slideOutEnded = (/** @type AnimationEvent */ e) => {
+        if (e.target === this.#dialog) {
+            this.#closeNow();
+        }
+    };
     render({ slots }) {
         const fragment = this.template()
             .withOverlay({ slots, title: this.declared('title') ?? '' })
@@ -61,6 +67,10 @@ class Drawer extends ParsedElement {
             if (pressedOutside && e.target === this.#dialog) {
                 this.close();
             }
+        });
+        this.#dialog.addEventListener('cancel', (e) => {
+            e.preventDefault();
+            this.close();
         });
         this.#dialog.addEventListener('close', () => {
             this.dispatchEvent(
@@ -147,10 +157,33 @@ class Drawer extends ParsedElement {
         this.#requests.request(this, this.#content, null, null)?.catch(() => undefined);
     }
     close() {
+        if (this.#closing || !this.#dialog.open) {
+            return;
+        }
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this.#dialog.close();
+            return;
+        }
+        this.#dialog.setAttribute('closing', '');
+        if (this.#dialog.getAnimations().length === 0) {
+            this.#closeNow();
+            return;
+        }
+        this.#closing = true;
+        this.#dialog.addEventListener('animationend', this.#slideOutEnded);
+    }
+    #closeNow() {
+        this.#stopSlidingOut();
         this.#dialog.close();
+    }
+    #stopSlidingOut() {
+        this.#closing = false;
+        this.#dialog.removeEventListener('animationend', this.#slideOutEnded);
+        this.#dialog.removeAttribute('closing');
     }
     /** Shows the modal, answering whether this call is the one that opened it. */
     #show() {
+        this.#stopSlidingOut();
         if (this.#dialog.open) {
             return false;
         }

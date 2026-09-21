@@ -34,6 +34,10 @@
             display: flex;
             flex-direction: column;
             animation: ful-drawer-slide-in 0.2s ease-out;
+
+            &[closing] {
+                animation: ful-drawer-slide-out 0.2s ease-in forwards;
+            }
         }
 
         & > header {
@@ -134,15 +138,27 @@
 
             &[open] {
                 animation-name: ful-drawer-slide-in-start;
+
+                &[closing] {
+                    animation-name: ful-drawer-slide-out-start;
+                }
             }
         }
 
         &:dir(rtl)[open] {
             animation-name: ful-drawer-slide-in-start;
+
+            &[closing] {
+                animation-name: ful-drawer-slide-out-start;
+            }
         }
 
         &[placement="start"]:dir(rtl)[open] {
             animation-name: ful-drawer-slide-in;
+
+            &[closing] {
+                animation-name: ful-drawer-slide-out;
+            }
         }
     }
 
@@ -155,6 +171,20 @@
 
     @keyframes ful-drawer-slide-in-start {
         from {
+            transform: translateX(-1rem);
+            opacity: 0;
+        }
+    }
+
+    @keyframes ful-drawer-slide-out {
+        to {
+            transform: translateX(1rem);
+            opacity: 0;
+        }
+    }
+
+    @keyframes ful-drawer-slide-out-start {
+        to {
             transform: translateX(-1rem);
             opacity: 0;
         }
