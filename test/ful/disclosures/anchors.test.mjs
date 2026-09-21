@@ -53,6 +53,43 @@ describe('The anchored popover fallback', () => {
     });
 });
 
+describe('The placing of a popover as it opens', () => {
+    it('is not shown until it can be measured', async () => {
+        //a note: centring on the invoker and lifting by its own height are the
+        //two placements that read the popover's size, and a popover measures
+        //zero until the platform has shown it
+        const invoker = document.createElement('button');
+        invoker.textContent = 'i';
+        invoker.style.margin = '300px 0 0 200px';
+        const note = document.createElement('div');
+        note.setAttribute('popover', 'manual');
+        note.setAttribute('placement', 'top');
+        note.style.width = '320px';
+        note.style.height = '200px';
+        document.body.append(invoker, note);
+        try {
+            withoutPlatformAnchors(() => Anchors.wire(invoker, note));
+
+            note.showPopover();
+            assert.strictEqual(
+                getComputedStyle(note).visibility,
+                'hidden',
+                'the showing itself paints nothing: the popover is still unmeasurable here',
+            );
+
+            await frames(2);
+            assert.notStrictEqual(getComputedStyle(note).visibility, 'hidden', 'and it is shown a frame later');
+            const here = note.getBoundingClientRect();
+            const there = invoker.getBoundingClientRect();
+            assert.closeTo(here.left + here.width / 2, there.left + there.width / 2, 1, 'centred on its invoker');
+            assert.isBelow(here.bottom, there.top + 1, 'and above it, by its own height');
+        } finally {
+            invoker.remove();
+            note.remove();
+        }
+    });
+});
+
 describe('Anchors.wire invoke and expanded', () => {
     it('points popovertarget at the popover and keeps aria-expanded in step', async () => {
         //an invoker and a plain list of links: no menu semantics, popovertarget

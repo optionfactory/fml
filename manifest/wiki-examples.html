@@ -286,7 +286,7 @@ const mount = async (html) => {
 
     // ===== 16: tooltip in the info slot
     d = await mount(`<ful-input name="vat">VAT number<ful-tooltip slot="info">the Italian VAT identifier: eleven digits, IT-prefixed.</ful-tooltip></ful-input>`);
-    ok('16 tooltip in info slot', d.querySelector('ful-tooltip button') !== null && d.querySelector('ful-note, .ful-note') !== null);
+    ok('16 tooltip in info slot', d.querySelector('ful-tooltip .ful-tip') !== null && d.querySelector('ful-note, .ful-note') !== null);
 
     // ===== 16: dialog with buttons slot -> ask() resolves with data-result
     d = await mount(`<ful-dialog id="confirm" header="Publish the ledger?">Once published, the entries are immutable.
@@ -296,7 +296,7 @@ const mount = async (html) => {
     await new Promise((r) => setTimeout(r, 80));
     dlg.querySelector('[data-result=published]').click();
     const res = await Promise.race([answer, new Promise((r) => setTimeout(() => r('TIMEOUT'), 1000))]);
-    ok('16 dialog ask() resolves with data-result', res === 'published', String(res));
+    ok('16 dialog ask() resolves with data-result', res?.result === 'published' && res?.dismissed === false, JSON.stringify(res));
 
     // ===== 16: toasts, both ways
     d = await mount(`<ful-toasts id="tst" timeout="60000"></ful-toasts>`);

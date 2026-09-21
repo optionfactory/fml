@@ -118,11 +118,22 @@ const unplace = (popover) => {
         'margin',
         'max-width',
         'width',
+        'visibility',
         '--ful-note-callout-inline',
         '--ful-note-callout-block',
     ]) {
         popover.style.removeProperty(property);
     }
+};
+
+const showOncePlaced = (popover, anchored) => {
+    popover.style.visibility = 'hidden';
+    requestAnimationFrame(() => {
+        if (popover.matches(':popover-open')) {
+            place(popover, anchored);
+        }
+        popover.style.removeProperty('visibility');
+    });
 };
 
 const reflow = () => {
@@ -223,10 +234,8 @@ class Anchors {
         }
         const anchored = { invoker, stretch };
         popover.addEventListener('beforetoggle', (/** @type any */ evt) => {
-            //placed before the showing, refined once laid out: the platform's
-            //centered or corner spot never paints
             if (evt.newState === 'open') {
-                place(popover, anchored);
+                showOncePlaced(popover, anchored);
             }
         });
         popover.addEventListener('toggle', (/** @type any */ evt) => {
