@@ -1612,7 +1612,7 @@ describe('Select dropdown opening', () => {
         const [selectEl] = await mount(
             `<ful-select value="k1">pick<ful-tooltip slot="info">a note</ful-tooltip></ful-select>`,
         );
-        const marker = selectEl.querySelector('ful-tooltip button');
+        const marker = selectEl.querySelector('ful-tooltip .ful-tip');
 
         marker.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         await opened();

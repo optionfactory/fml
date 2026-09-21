@@ -29,7 +29,7 @@ class Tooltip extends ParsedElement {
         icon: 'info-circle-fill',
     };
     static template = `
-        <button type="button" class="ful-tip" data-ref="trigger" data-tpl-aria-label="#l10n:t('info.tooltip')"><ful-icon data-tpl-name="icon ?? config.icon" aria-hidden="true"></ful-icon></button>
+        <span role="button" tabindex="0" class="ful-tip" data-ref="trigger" data-tpl-aria-label="#l10n:t('info.tooltip')"><ful-icon data-tpl-name="icon ?? config.icon" aria-hidden="true"></ful-icon></span>
         <ful-note popover data-ref="content">{{{{ slots.default }}}}</ful-note>
     `;
     render({ slots }) {

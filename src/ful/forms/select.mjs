@@ -575,7 +575,7 @@ class Select extends Field {
             //the select's: a tooltip marker slotted into `info`, a button a page
             //put in an affix. Without this, reading the note beside a select
             //also stole the focus and dropped the dropdown over the note
-            const elsewhere = e.target.closest('button, a[href], input, select, textarea');
+            const elsewhere = e.target.closest('button, [role="button"], a[href], input, select, textarea');
             if (elsewhere && elsewhere !== this.#input) {
                 return;
             }

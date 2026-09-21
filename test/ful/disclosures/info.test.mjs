@@ -28,7 +28,7 @@ describe('Tooltip', () => {
         const control = field.querySelector('input');
         const tooltip = field.querySelector('ful-tooltip');
         const note = tooltip.querySelector('[popover]');
-        const trigger = tooltip.querySelector('button');
+        const trigger = tooltip.querySelector('.ful-tip');
 
         const described = (control.getAttribute('aria-describedby') ?? '').split(' ');
         assert.include(described, note.id, 'the note is part of the description');
@@ -40,9 +40,34 @@ describe('Tooltip', () => {
         assert.isTrue(note.matches(':popover-open'));
         note.hidePopover();
     });
+    it('stays readable inside a disabled fieldset', async () => {
+        const [fs] = await mount(
+            '<fieldset disabled><ful-input name="vat">VAT<ful-tooltip slot="info">eleven digits</ful-tooltip></ful-input></fieldset>',
+        );
+        const tooltip = fs.querySelector('ful-tooltip');
+        const note = tooltip.querySelector('[popover]');
+        const trigger = tooltip.querySelector('.ful-tip');
+
+        assert.isFalse(trigger.matches(':disabled'), 'the marker is not a form control, so the fieldset does not reach it');
+        assert.strictEqual(trigger.tabIndex, 0, 'and it keeps its tab stop');
+
+        trigger.click();
+        assert.isTrue(note.matches(':popover-open'), 'a refused field still explains itself');
+        note.hidePopover();
+    });
+    it('opens the note from the keyboard', async () => {
+        const [tooltip] = await mount('<ful-tooltip>eleven digits</ful-tooltip>');
+        const note = tooltip.querySelector('[popover]');
+        const trigger = tooltip.querySelector('.ful-tip');
+
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        assert.isTrue(note.matches(':popover-open'), 'Enter opens it, as it would a button');
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+        assert.isFalse(note.matches(':popover-open'), 'and Space closes it again');
+    });
     it('keeps its tab stop where nothing took the note', async () => {
         const [tooltip] = await mount('<ful-tooltip describes>eleven digits</ful-tooltip>');
-        const trigger = tooltip.querySelector('button');
+        const trigger = tooltip.querySelector('.ful-tip');
 
         assert.strictEqual(trigger.tabIndex, 0, 'a note nothing carries stays reachable through the marker');
     });
@@ -54,18 +79,18 @@ describe('Tooltip', () => {
         const note = field.querySelector('ful-tooltip [popover]');
 
         assert.notInclude(control.getAttribute('aria-describedby').split(' '), note.id);
-        assert.strictEqual(field.querySelector('ful-tooltip button').tabIndex, 0);
+        assert.strictEqual(field.querySelector('ful-tooltip .ful-tip').tabIndex, 0);
     });
-    it('renders an icon button wired to a popover carrying the explanation', async () => {
+    it('renders an icon marker wired to a popover carrying the explanation', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         //the default placement is above, and the placing clamps into the
         //viewport rather than flipping, so the trigger needs room over it
         container.style.marginTop = '200px';
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const popover = tooltip.querySelector('[popover]');
 
         assert.strictEqual(button.getAttribute('aria-label'), 'More information');
-        assert.strictEqual(button.getAttribute('popovertarget'), popover.id);
+        assert.isNull(button.getAttribute('popovertarget'), 'a marker is not a form control, so it drives the note from script');
         assert.strictEqual(button.getAttribute('aria-expanded'), 'false');
         assert.include(popover.textContent, 'explains the label');
 
@@ -94,7 +119,7 @@ describe('Tooltip', () => {
 
     it('anchors the note on the side the placement attribute picks', async () => {
         const [tooltip] = await mount('<ful-tooltip placement="right">side note</ful-tooltip>');
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const popover = tooltip.querySelector('[popover]');
 
         button.click();
@@ -125,7 +150,7 @@ describe('Tooltip', () => {
         const ink = ctx.measureText('HEX');
         const textCentre = baseline + (ink.actualBoundingBoxDescent - ink.actualBoundingBoxAscent) / 2;
 
-        const button = label.querySelector('ful-tooltip button').getBoundingClientRect();
+        const button = label.querySelector('ful-tooltip .ful-tip').getBoundingClientRect();
 
         //vertical-align: middle alone puts it on the midpoint of the x-height,
         //about a tenth of an em low. The tolerance covers the whole pixel the
@@ -136,7 +161,7 @@ describe('Tooltip', () => {
     it('draws a callout pointing back at the trigger, which the popover overflow would otherwise clip', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         container.style.marginTop = '200px';
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
 
         button.click();
@@ -167,7 +192,7 @@ describe('Tooltip placement', () => {
     it('leaves the css gap between the note and the trigger, and keeps it on every later placing', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         container.style.marginTop = '200px';
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
         //read before the opening: the placing clears the margin it reads the gap
         //from. The closed note carries it as a top margin and the open one, above
@@ -196,7 +221,7 @@ describe('Tooltip placement', () => {
             '<div style="position:absolute;left:40px;top:120px"><ful-tooltip>a rather long explanation, long enough that it cannot be centred on a trigger this close to the edge</ful-tooltip></div>',
         );
         const tooltip = holder.querySelector('ful-tooltip');
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
 
         button.click();
@@ -221,7 +246,7 @@ describe('Tooltip placement', () => {
     it('places the note above the trigger by default, centered on it', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         container.style.margin = '200px 0 0 200px';
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
 
         button.click();
@@ -237,7 +262,7 @@ describe('Tooltip placement', () => {
     it('places the note below the trigger when the placement picks bottom', async () => {
         const [tooltip, container] = await mount('<ful-tooltip placement="bottom">side note</ful-tooltip>');
         container.style.margin = '200px 0 0 200px';
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
 
         button.click();
@@ -251,7 +276,7 @@ describe('Tooltip placement', () => {
     it("keeps an edge-hugging trigger's note clear of the viewport edge", async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         container.style.marginLeft = 'calc(100vw - 3rem)';
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
 
         button.click();
@@ -270,7 +295,7 @@ describe('Tooltip placement', () => {
         const spacer = document.createElement('div');
         spacer.style.height = '200vh';
         container.append(spacer);
-        const button = tooltip.querySelector('button');
+        const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
 
         button.click();

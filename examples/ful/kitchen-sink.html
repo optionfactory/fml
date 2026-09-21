@@ -532,6 +532,9 @@
         <legend>a tipped field, a dialog and a drawer</legend>
         <ful-form>
             <ful-input name="hinted" value="tab to the tip">A labelled input <ful-tooltip>the tooltip explains the field in one line, dismissed by Escape or an outside click.</ful-tooltip></ful-input>
+            <fieldset disabled>
+                <ful-input name="hintedDisabled" value="still explains itself">A field a claim refuses <ful-tooltip slot="info" describes>a disabled fieldset takes the gestures, not the explanation</ful-tooltip></ful-input>
+            </fieldset>
         </ful-form>
         <div class="row">
             <button type="button" class="ful-button" dialog-target="sink-dialog">Open the dialog</button>

@@ -106,4 +106,4 @@ One storage note, since caching outlives a session: `ful-select` caches a fetche
 
 ## Documentation
 
-[Check the documentation](https://github.com/optionfactory/fml/wiki) in the wiki.
+[Check the documentation](https://github.com/optionfactory/fml/wiki) in the wiki. The choices that constrain the whole library are written down in [docs/decisions](docs/decisions/README.md).

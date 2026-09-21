@@ -193,7 +193,22 @@ class Anchors {
         if (invoke) {
             //popovertarget needs a target that can be named
             popover.id = popover.id || uid;
-            invoker.setAttribute('popovertarget', popover.id);
+            if (invoker.localName === 'button' || invoker.localName === 'input') {
+                invoker.setAttribute('popovertarget', popover.id);
+            } else {
+                //a form control inside a disabled fieldset is disabled by the
+                //platform, which is right for a control and wrong for a marker
+                //that only opens something to read, so an invoker may be any
+                //element and drives the popover from script instead
+                invoker.addEventListener('click', () => popover.togglePopover());
+                invoker.addEventListener('keydown', (/** @type any */ evt) => {
+                    if (evt.key !== 'Enter' && evt.key !== ' ') {
+                        return;
+                    }
+                    evt.preventDefault();
+                    popover.togglePopover();
+                });
+            }
         }
         const anchor = `--${uid}`;
         invoker.style.anchorName = anchor;
