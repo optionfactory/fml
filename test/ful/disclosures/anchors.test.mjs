@@ -139,3 +139,102 @@ describe('Anchors.wire invoke and expanded', () => {
         }
     });
 });
+
+describe('The stretch placement of a dropdown', () => {
+    const bare = () => {
+        const dropdown = document.createElement('div');
+        dropdown.setAttribute('popover', 'manual');
+        dropdown.style.boxSizing = 'border-box';
+        dropdown.style.padding = '0';
+        dropdown.style.border = '0';
+        return dropdown;
+    };
+    const showStretched = async (invoker, dropdown) => {
+        withoutPlatformAnchors(() => Anchors.wire(invoker, dropdown, { stretch: true }));
+        const placed = new Promise((resolve) => dropdown.addEventListener('toggle', resolve, { once: true }));
+        dropdown.showPopover();
+        await placed;
+        await frames(2);
+    };
+    const cleanup = (invoker, dropdown, style) => {
+        if (dropdown.matches(':popover-open')) {
+            dropdown.hidePopover();
+        }
+        invoker.remove();
+        dropdown.remove();
+        style.remove();
+    };
+
+    it('is no wider than its max-width, however long its content', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'pick';
+        invoker.style.width = '40px';
+        const dropdown = bare();
+        dropdown.id = 'capped-dd';
+        dropdown.innerHTML = '<div style="width: 400px; height: 40px;"></div>';
+        const style = document.createElement('style');
+        style.textContent = '#capped-dd { max-width: 200px; }';
+        document.head.appendChild(style);
+        document.body.append(invoker, dropdown);
+        try {
+            await showStretched(invoker, dropdown);
+            assert.closeTo(dropdown.getBoundingClientRect().width, 200, 1, 'the content does not push past the cap');
+        } finally {
+            cleanup(invoker, dropdown, style);
+        }
+    });
+
+    it('is at least its invoker wide', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'pick';
+        invoker.style.width = '300px';
+        const dropdown = bare();
+        dropdown.textContent = 'x';
+        document.body.append(invoker, dropdown);
+        try {
+            await showStretched(invoker, dropdown);
+            assert.closeTo(dropdown.getBoundingClientRect().width, 300, 1, 'the invoker is matched at minimum');
+        } finally {
+            cleanup(invoker, dropdown, document.createElement('style'));
+        }
+    });
+
+    it('opens below its invoker while the viewport has room', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'pick';
+        invoker.style.position = 'fixed';
+        invoker.style.top = '20px';
+        invoker.style.left = '40px';
+        const dropdown = bare();
+        dropdown.innerHTML = '<div style="height: 100px;"></div>';
+        document.body.append(invoker, dropdown);
+        try {
+            await showStretched(invoker, dropdown);
+            const here = dropdown.getBoundingClientRect();
+            const there = invoker.getBoundingClientRect();
+            assert.isAtLeast(here.top, there.bottom - 1, 'below the invoker');
+            assert.closeTo(here.left, there.left, 1, 'start aligned with the invoker');
+        } finally {
+            cleanup(invoker, dropdown, document.createElement('style'));
+        }
+    });
+
+    it('flips above its invoker where the viewport leaves no room below', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'pick';
+        invoker.style.position = 'fixed';
+        invoker.style.bottom = '30px';
+        invoker.style.left = '40px';
+        const dropdown = bare();
+        dropdown.innerHTML = '<div style="height: 200px;"></div>';
+        document.body.append(invoker, dropdown);
+        try {
+            await showStretched(invoker, dropdown);
+            const here = dropdown.getBoundingClientRect();
+            const there = invoker.getBoundingClientRect();
+            assert.isAtMost(here.bottom, there.top + 1, 'above the invoker, not covering it');
+        } finally {
+            cleanup(invoker, dropdown, document.createElement('style'));
+        }
+    });
+});

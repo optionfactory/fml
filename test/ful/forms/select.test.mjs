@@ -2073,6 +2073,33 @@ describe('Select dropdown anchoring', () => {
             CSS.supports = supports;
         }
     });
+
+    it('grows past its control for a long option, capped at the dropdown max-width', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
+                load: async () => [{ key: 'k1', label: `Alpha ${'x'.repeat(300)}` }],
+            }),
+        });
+        const supports = CSS.supports;
+        CSS.supports = () => false;
+        try {
+            const container = appended(`<ful-select style="width: 120px"></ful-select>`);
+            const selectEl = container.querySelector('ful-select');
+            await Rendering.waitFor(selectEl);
+            await settle();
+            await open(selectEl);
+
+            const dd = selectEl.querySelector('ful-dropdown').getBoundingClientRect();
+            const group = selectEl.querySelector('ful-control-group').getBoundingClientRect();
+            assert.isAbove(dd.width, group.width, 'a long option is not cut to the control');
+            assert.isAtMost(dd.width, 481, 'the growth stops at the cap');
+            container.remove();
+        } finally {
+            CSS.supports = supports;
+        }
+    });
 });
 
 describe('Clearing a single select', () => {

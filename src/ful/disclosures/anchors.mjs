@@ -68,11 +68,18 @@ const place = (popover, anchored) => {
     popover.style.bottom = 'auto';
     popover.style.margin = '0';
     if (stretch) {
-        const width = Math.min(box.width, vw - 2 * PAD);
-        popover.style.width = `${width}px`;
+        popover.style.removeProperty('width');
+        popover.style.removeProperty('min-width');
+        popover.style.removeProperty('max-width');
+        const cap = Math.min(parseFloat(computed.maxWidth) || vw, vw - 2 * PAD);
+        popover.style.minWidth = `${Math.min(box.width, vw - 2 * PAD)}px`;
+        popover.style.maxWidth = `${cap}px`;
+        const width = popover.getBoundingClientRect().width;
         popover.style.left = `${clamp(box.left, PAD, vw - width - PAD)}px`;
         const height = popover.getBoundingClientRect().height;
-        popover.style.top = `${clamp(box.bottom + gap.top, PAD, vh - height - PAD)}px`;
+        const below = box.bottom + gap.top;
+        const top = below + height <= vh - PAD ? below : box.top - gap.bottom - height;
+        popover.style.top = `${clamp(top, PAD, vh - height - PAD)}px`;
         return;
     }
     //a popover wraps against the spot it lands on: the width is measured
@@ -117,6 +124,7 @@ const unplace = (popover) => {
         'bottom',
         'margin',
         'max-width',
+        'min-width',
         'width',
         'visibility',
         '--ful-note-callout-inline',
@@ -186,8 +194,10 @@ class Anchors {
      *   the popover, giving toggle and light dismiss with no script of your own
      * @param {boolean} [options.expanded] keeps the invoker's `aria-expanded` in
      *   step with the popover
-     * @param {boolean} [options.stretch] widens the popover to its invoker, which
-     *   is what a combobox dropdown wants
+     * @param {boolean} [options.stretch] widens the popover to at least its
+     *   invoker's width, capped by its own `max-width`, which is what a combobox
+     *   dropdown wants; it flips above the invoker where the viewport leaves no
+     *   room below
      * @param {boolean} [options.handPlace] places here on every platform rather
      *   than only as a fallback, which a popover asks for when it needs to know
      *   where its invoker ended up: the tooltip's note points a callout at it, and
