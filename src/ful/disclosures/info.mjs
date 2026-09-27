@@ -1,4 +1,4 @@
-import { Nodes, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes, Nodes, ParsedElement } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { describable } from '../descriptions.mjs';
 import { SectionRequests } from '../events/sections.mjs';
@@ -133,6 +133,15 @@ class Dialog extends ParsedElement {
         this.#body = fragment.querySelector('[data-ref=body]');
         this.#loading = fragment.querySelector('[data-ref=loading]');
         this.#error = fragment.querySelector('[data-ref=error]');
+        //a dialog is a named surface: a reader announces the heading on opening,
+        //which it cannot do unless the heading names the dialog. The name travels
+        //as a reference rather than as aria-label text, so it stays the heading's
+        //own however it is reworded
+        const heading = fragment.querySelector('h2');
+        if (heading) {
+            heading.id ||= Attributes.uid('ful-dialog-title');
+            this.#dialog.setAttribute('aria-labelledby', heading.id);
+        }
         this.#dialog.addEventListener('close', () => {
             const outcome = this.#outcome();
             this.dispatchEvent(new CustomEvent('close', { detail: outcome }));

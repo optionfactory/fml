@@ -1,4 +1,4 @@
-import { Nodes, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes, Nodes, ParsedElement } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 import { Failure } from '../../httpc/index.mjs';
@@ -51,6 +51,11 @@ class Drawer extends ParsedElement {
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#title = fragment.querySelector('[data-ref=title]');
+        //a named surface, like a dialog: the heading announces the drawer on
+        //opening only where it names it, and the reference survives every
+        //textContent update() writes into the heading
+        this.#title.id ||= Attributes.uid('ful-drawer-title');
+        this.#dialog.setAttribute('aria-labelledby', this.#title.id);
         this.#loading = fragment.querySelector('[data-ref=loading]');
         this.#error = fragment.querySelector('[data-ref=error]');
         this.#content = fragment.querySelector('[data-ref=content]');

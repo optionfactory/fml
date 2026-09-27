@@ -25,7 +25,8 @@ describe('Accessibility audit', () => {
         });
     });
 
-    const fixtures = /** @type [string, string][] */ ([
+    /** @type [string, string, ((container: HTMLElement) => void)?][] */
+    const fixtures = [
         ['ful-input', `<ful-input name="i" value="v">text</ful-input>`],
         ['ful-input textarea', `<ful-input type="textarea" name="ta">text</ful-input>`],
         ['ful-input-local-date', `<ful-input-local-date name="d">date</ful-input-local-date>`],
@@ -60,6 +61,22 @@ describe('Accessibility audit', () => {
         ['ful-tooltip', `<ful-tooltip name="t">a short explanation</ful-tooltip>`],
         ['ful-dialog', `<ful-dialog header="the header">body</ful-dialog>`],
         ['ful-drawer', `<ful-drawer title="the title">body</ful-drawer>`],
+        //audited open, where the name is read: a closed dialog is display:none,
+        //which axe skips, so the closed fixtures above say nothing about the name
+        [
+            'ful-dialog open',
+            `<ful-dialog header="the header">body</ful-dialog>`,
+            (c) => {
+                c.querySelector('ful-dialog').open();
+            },
+        ],
+        [
+            'ful-drawer open',
+            `<ful-drawer title="the title">body</ful-drawer>`,
+            (c) => {
+                c.querySelector('ful-drawer').open();
+            },
+        ],
         ['ful-toasts', `<ful-toasts></ful-toasts>`],
         [
             'ful-tabs',
@@ -90,15 +107,17 @@ describe('Accessibility audit', () => {
                 </template>
             </ful-table>`,
         ],
-    ]);
+    ];
 
-    for (const [name, html] of fixtures) {
+    for (const [name, html, prepare] of fixtures) {
         it(`passes the axe audit: ${name}`, async () => {
             const container = document.createElement('section');
             container.innerHTML = html;
             document.body.appendChild(container);
             await Rendering.waitForChildren(container);
             await settle();
+            //an openable surface is audited the way a reader meets it: open
+            prepare?.(container);
 
             const results = await axe.run(container);
             const summary = results.violations.map(

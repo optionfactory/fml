@@ -34,6 +34,17 @@ describe('Drawer', () => {
         );
     });
 
+    it('names the drawer through its heading', async () => {
+        const [drawer] = await mount('<ful-drawer title="the title">the body</ful-drawer>');
+        const heading = drawer.querySelector('[data-ref=title]');
+        assert.ok(heading.id, 'the heading is named');
+        assert.strictEqual(
+            drawer.querySelector('dialog').getAttribute('aria-labelledby'),
+            heading.id,
+            'the drawer is named by its heading',
+        );
+    });
+
     it('opens and closes, and any dialog-target element opens it too', async () => {
         const [drawer, container] = await mount(`
             <ful-drawer id="target-drawer" title="t">body</ful-drawer>

@@ -320,6 +320,19 @@ describe('Dialog', () => {
         assert.strictEqual(dialog.querySelector('[data-ref=acknowledge]').textContent, 'Got it');
     });
 
+    it('names the dialog through its heading', async () => {
+        const [named] = await mount('<ful-dialog header="the header">the body</ful-dialog>');
+        const native = named.querySelector('dialog');
+        const heading = named.querySelector('h2');
+        assert.ok(heading.id, 'the heading is named');
+        assert.strictEqual(native.getAttribute('aria-labelledby'), heading.id, 'the dialog is named by its heading');
+
+        //a headerless dialog has no heading to point at: the author names it
+        //through aria-label of their own
+        const [plain] = await mount('<ful-dialog>the body</ful-dialog>');
+        assert.isNull(plain.querySelector('dialog').getAttribute('aria-labelledby'));
+    });
+
     it('ask() answers with the acknowledge result', async () => {
         const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
