@@ -124,10 +124,14 @@ class CompareFilter extends Input {
             console.warn(`${this.localName}: operator fixes what operators offers a menu for, the plural is ignored`, this);
         }
         const vocabulary = this._vocabulary();
-        const preferred = vocabulary.includes(fixed)
-            ? fixed
-            : (console.warn(`${this.localName}: '${fixed}' is not one of its operators, the default is pinned instead`, this),
-              this._defaultOperator());
+        /** @type {string|null} */
+        let preferred = null;
+        if (vocabulary.includes(fixed)) {
+            preferred = fixed;
+        } else {
+            console.warn(`${this.localName}: '${fixed}' is not one of its operators, the default is pinned instead`, this);
+            preferred = this._defaultOperator();
+        }
         this._operator.allowed = [preferred];
         this._operator.fixed = true;
     }
@@ -328,10 +332,14 @@ class TextFilter extends CompareFilter {
         if (this.hasAttribute('sensitivities')) {
             console.warn('ful-filter-text: sensitivity fixes what sensitivities offers a menu for, the plural is ignored', this);
         }
-        const preferred = SENSITIVITIES.includes(fixed)
-            ? fixed
-            : (console.warn(`ful-filter-text: '${fixed}' is not one of its sensitivities, the default is pinned instead`, this),
-              'IGNORE_CASE');
+        /** @type {string|null} */
+        let preferred = null;
+        if (SENSITIVITIES.includes(fixed)) {
+            preferred = fixed;
+        } else {
+            console.warn(`ful-filter-text: '${fixed}' is not one of its sensitivities, the default is pinned instead`, this);
+            preferred = 'IGNORE_CASE';
+        }
         this._sensitivityButton.allowed = [preferred];
         this._sensitivityButton.fixed = true;
     }
