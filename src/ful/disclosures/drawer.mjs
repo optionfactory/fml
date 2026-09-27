@@ -14,7 +14,7 @@ import { wireTargets } from './targets.mjs';
  * it.
  */
 class Drawer extends ParsedElement {
-    static attributes = ['title', 'placement', 'close-on-submit:presence'];
+    static attributes = ['header', 'placement', 'close-on-submit:presence'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-drawer">
@@ -46,8 +46,14 @@ class Drawer extends ParsedElement {
         }
     };
     render({ slots }) {
+        //the drawer's title is `header`, as the dialog's is; `title` stays as a
+        //deprecated alias read once and dropped, it being the global html
+        //attribute whose advisory text would hover over the whole drawer for as
+        //long as it stayed on the host
+        const header = this.declared('header') ?? this.getAttribute('title');
+        this.removeAttribute('title');
         const fragment = this.template()
-            .withOverlay({ slots, title: this.declared('title') ?? '' })
+            .withOverlay({ slots, title: header ?? '' })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#title = fragment.querySelector('[data-ref=title]');
@@ -100,23 +106,30 @@ class Drawer extends ParsedElement {
         this.replaceChildren(fragment);
         wireTargets();
     }
-    get title() {
+    get header() {
         return this.#title.textContent;
     }
-    set title(v) {
+    set header(v) {
         this.#title.textContent = v ?? '';
     }
+    /** The header's first name, kept working for the property reader and writer. */
+    get title() {
+        return this.header;
+    }
+    set title(v) {
+        this.header = v;
+    }
     /**
-     * Opens the drawer under the given title and waits for the callback: a
+     * Opens the drawer under the given header and waits for the callback: a
      * resolved value paints the content section (which is returned), a
      * rejection paints the problems and travels to the caller, and an update
      * superseded by a newer one paints nothing.
      */
-    async update(title, cb) {
+    async update(header, cb) {
         //the claim detaches any update still in flight: its outcome belongs to
         //an abandoned opening and must neither be painted nor own the drawer
         const claim = this.#updates.take();
-        this.title = title;
+        this.header = header;
         this.#content.replaceChildren();
         this.#restChrome();
         this.#loading.removeAttribute('hidden');

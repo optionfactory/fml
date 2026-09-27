@@ -21,7 +21,7 @@ const mount = async (html) => {
 
 describe('Drawer', () => {
     it('renders the title, the localized close button and the slotted body', async () => {
-        const [drawer] = await mount('<ful-drawer title="the title">the body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="the title">the body</ful-drawer>');
 
         assert.strictEqual(drawer.querySelector('[data-ref=title]').textContent, 'the title');
         assert.strictEqual(drawer.querySelector('[data-ref=close]').getAttribute('aria-label'), 'Close');
@@ -35,7 +35,7 @@ describe('Drawer', () => {
     });
 
     it('names the drawer through its heading', async () => {
-        const [drawer] = await mount('<ful-drawer title="the title">the body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="the title">the body</ful-drawer>');
         const heading = drawer.querySelector('[data-ref=title]');
         assert.ok(heading.id, 'the heading is named');
         assert.strictEqual(
@@ -45,9 +45,19 @@ describe('Drawer', () => {
         );
     });
 
+    it('reads the deprecated title attribute once and drops it from the host', async () => {
+        const [drawer] = await mount('<ful-drawer title="the old name">the body</ful-drawer>');
+        assert.strictEqual(drawer.header, 'the old name', 'the alias title is read as the header');
+        assert.isFalse(drawer.hasAttribute('title'), 'the global title attribute leaves the host, so no tooltip hovers over the whole drawer');
+        assert.strictEqual(drawer.title, 'the old name', 'the property alias keeps answering');
+        drawer.title = 'reworded';
+        assert.strictEqual(drawer.header, 'reworded', 'the property alias keeps writing');
+    });
+
+
     it('opens and closes, and any dialog-target element opens it too', async () => {
         const [drawer, container] = await mount(`
-            <ful-drawer id="target-drawer" title="t">body</ful-drawer>
+            <ful-drawer id="target-drawer" header="t">body</ful-drawer>
             <button type="button" dialog-target="target-drawer">details</button>`);
         const dialog = drawer.querySelector('dialog');
 
@@ -63,8 +73,8 @@ describe('Drawer', () => {
     });
 
     it('opens on the inline end side by default, and on the start side when asked', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
-        const [side] = await mount('<ful-drawer title="t" placement="start">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
+        const [side] = await mount('<ful-drawer header="t" placement="start">body</ful-drawer>');
 
         drawer.open();
         side.open();
@@ -85,7 +95,7 @@ describe('Drawer', () => {
     });
 
     it('update() shows the loading state, then the delivered content', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">old</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">old</ful-drawer>');
         let deliver;
         const updated = drawer.update('Nuova controparte', () => new Promise((resolve) => (deliver = resolve)));
 
@@ -97,14 +107,14 @@ describe('Drawer', () => {
         deliver(form);
         const content = await updated;
 
-        assert.strictEqual(drawer.title, 'Nuova controparte');
+        assert.strictEqual(drawer.header, 'Nuova controparte');
         assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
         assert.isFalse(content.hasAttribute('hidden'));
         assert.strictEqual(content.querySelector('form'), form, 'update resolves with the content section');
     });
 
     it('update() reports a rejecting callback in the error section and rethrows', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const failure = new Failure('invalid', [
             { type: 'FIELD_ERROR', context: null, reason: 'must not be blank' },
             { type: 'GENERIC_PROBLEM', context: null, reason: 'start is after end' },
@@ -126,7 +136,7 @@ describe('Drawer', () => {
     });
 
     it('a superseded update owns nothing: its outcome is not painted, a newer one wins', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         let deliverFirst;
         const first = drawer.update('first', () => new Promise((resolve) => (deliverFirst = resolve)));
         const second = drawer.update('second', async () => {
@@ -152,7 +162,7 @@ describe('Drawer', () => {
     });
 
     it('answers with a close event, Escape included', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const closes = [];
         drawer.addEventListener('close', (e) => closes.push(e.detail));
 
@@ -165,7 +175,7 @@ describe('Drawer', () => {
     });
 
     it('dismisses on a click outside the panel, which the backdrop takes for the dialog', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const dialog = drawer.querySelector('dialog');
         const closes = [];
         drawer.addEventListener('close', (e) => closes.push(e.detail));
@@ -180,7 +190,7 @@ describe('Drawer', () => {
     });
 
     it('stays open when a click inside it merely ends over the backdrop', async () => {
-        const [drawer] = await mount('<ful-drawer title="t"><p data-ref="body">body</p></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t"><p data-ref="body">body</p></ful-drawer>');
         const dialog = drawer.querySelector('dialog');
         drawer.open();
 
@@ -193,7 +203,7 @@ describe('Drawer', () => {
 
     it('closes on its own form succeeding, the close event carrying the response', async () => {
         const [drawer] = await mount(`
-            <ful-drawer title="Edit" close-on-submit>
+            <ful-drawer header="Edit" close-on-submit>
                 <ful-form data-ref="edit">
                     <ful-input name="label" value="a">Label</ful-input>
                     <button type="submit">Save</button>
@@ -215,7 +225,7 @@ describe('Drawer', () => {
 
     it('a save answering with no body at all is still a save, not a dismissal', async () => {
         const [drawer] = await mount(`
-            <ful-drawer title="Edit" close-on-submit>
+            <ful-drawer header="Edit" close-on-submit>
                 <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
             </ful-drawer>`);
         const form = drawer.querySelector('ful-form');
@@ -233,7 +243,7 @@ describe('Drawer', () => {
 
     it('stays open on a failed submit, the form keeping the problems', async () => {
         const [drawer] = await mount(`
-            <ful-drawer title="Edit" close-on-submit>
+            <ful-drawer header="Edit" close-on-submit>
                 <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
             </ful-drawer>`);
         const form = drawer.querySelector('ful-form');
@@ -249,7 +259,7 @@ describe('Drawer', () => {
     });
 
     it('closes on a form update() delivered, the listener outliving every delivery', async () => {
-        const [drawer] = await mount('<ful-drawer title="Edit" close-on-submit></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="Edit" close-on-submit></ful-drawer>');
         const delivered = document.createElement('ful-form');
         delivered.innerHTML = '<ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button>';
 
@@ -269,7 +279,7 @@ describe('Drawer', () => {
 
     it('is not closed by a form of its own content: a table searching is not the drawer finishing', async () => {
         const [drawer] = await mount(`
-            <ful-drawer title="Pick" close-on-submit>
+            <ful-drawer header="Pick" close-on-submit>
                 <ful-table page-size="5">
                     <div slot="filters">
                         <ful-filter-text name="byName">Name</ful-filter-text>
@@ -288,7 +298,7 @@ describe('Drawer', () => {
 
     it('leaves a drawer that did not ask for it alone', async () => {
         const [drawer] = await mount(`
-            <ful-drawer title="Edit">
+            <ful-drawer header="Edit">
                 <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
             </ful-drawer>`);
         const form = drawer.querySelector('ful-form');
@@ -302,7 +312,7 @@ describe('Drawer', () => {
     });
 
     it('slides in from the inline end side, mirrored in rtl', async () => {
-        const [wrapper, rtlContainer] = await mount('<div dir="rtl"><ful-drawer title="t">body</ful-drawer></div>');
+        const [wrapper, rtlContainer] = await mount('<div dir="rtl"><ful-drawer header="t">body</ful-drawer></div>');
         const rtlDrawer = wrapper.querySelector('ful-drawer');
         rtlDrawer.open();
         assert.strictEqual(
@@ -312,7 +322,7 @@ describe('Drawer', () => {
         );
         rtlDrawer.close();
         rtlContainer.remove();
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         drawer.open();
         assert.strictEqual(
             getComputedStyle(drawer.querySelector('dialog')).animationName,
@@ -323,7 +333,7 @@ describe('Drawer', () => {
     });
 
     it('slides out before it closes, the close event arriving once, after the animation', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const dialog = drawer.querySelector('dialog');
         const closes = [];
         drawer.addEventListener('close', (e) => closes.push(e.detail));
@@ -345,7 +355,7 @@ describe('Drawer', () => {
     });
 
     it('slides out on Escape, which the platform delivers as a cancel', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const dialog = drawer.querySelector('dialog');
         const closes = [];
         drawer.addEventListener('close', (e) => closes.push(e.detail));
@@ -363,7 +373,7 @@ describe('Drawer', () => {
 
     it('slides out on a backdrop dismissal and on its own form succeeding', async () => {
         const [drawer] = await mount(`
-            <ful-drawer title="Edit" close-on-submit>
+            <ful-drawer header="Edit" close-on-submit>
                 <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
             </ful-drawer>`);
         const dialog = drawer.querySelector('dialog');
@@ -388,7 +398,7 @@ describe('Drawer', () => {
     });
 
     it('is put back by a reopen during the slide out, rather than closing under it', async () => {
-        const [drawer] = await mount('<ful-drawer title="t">body</ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const dialog = drawer.querySelector('dialog');
         const closes = [];
         drawer.addEventListener('close', (e) => closes.push(e.detail));
@@ -434,7 +444,7 @@ describe('Drawer subclass reuse', () => {
 
 describe('Drawer, the section:requested contract', () => {
     it('fires on the content when opened, not when update() owns the cycle', async () => {
-        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t"></ful-drawer>');
         const seen = [];
         AsyncEvents.asyncOn(drawer, 'section:requested', (e) => {
             seen.push(e.detail.first);
@@ -472,7 +482,7 @@ describe('Drawer, the declarative content against update()', () => {
     };
 
     it('rests the chrome update() left behind, the delivery landing on a visible content', async () => {
-        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t"></ful-drawer>');
         await drawer
             .update('title', async () => {
                 throw new Failure('invalid', [{ type: 'GENERIC', context: null, reason: 'nope' }]);
@@ -511,7 +521,7 @@ describe('Drawer, the declarative content against update()', () => {
     });
 
     it("a user reopen during an update's wait is a real open", async () => {
-        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t"></ful-drawer>');
         const fired = [];
         AsyncEvents.asyncOn(drawer, 'section:requested', (e) => fired.push(e.detail.first));
         const waiting = drawer.update('title', () => new Promise(() => {}));
@@ -527,7 +537,7 @@ describe('Drawer, the declarative content against update()', () => {
     });
 
     it('refresh re-fires the content request, its failures painted and swallowed', async () => {
-        const [drawer] = await mount('<ful-drawer title="t"></ful-drawer>');
+        const [drawer] = await mount('<ful-drawer header="t"></ful-drawer>');
         let fail = true;
         AsyncEvents.asyncOn(drawer, 'section:requested', () => {
             if (fail) {
@@ -547,7 +557,7 @@ describe('Drawer, the declarative content against update()', () => {
 describe('Drawer header slot', () => {
     it('renders slotted content in the header, before the title', async () => {
         const [el] = await mount(
-            '<ful-drawer title="Nave"><i slot="header" class="bi bi-water"></i>body</ful-drawer>',
+            '<ful-drawer header="Nave"><i slot="header" class="bi bi-water"></i>body</ful-drawer>',
         );
         const header = el.querySelector('header');
         const icon = header.querySelector('i');
@@ -561,14 +571,14 @@ describe('Drawer header slot', () => {
     });
 
     it('keeps it when the title changes, the title being set as text', async () => {
-        const [el] = await mount('<ful-drawer title="a"><i slot="header"></i>body</ful-drawer>');
+        const [el] = await mount('<ful-drawer header="a"><i slot="header"></i>body</ful-drawer>');
         await el.update('Dati Nave', async () => document.createElement('p'));
         assert.strictEqual(el.querySelector('header > h2').textContent, 'Dati Nave');
         assert.strictEqual(el.querySelectorAll('header > i').length, 1, 'the slot survives the title');
     });
 
     it('renders no stray node when nothing is slotted', async () => {
-        const [el] = await mount('<ful-drawer title="a">body</ful-drawer>');
+        const [el] = await mount('<ful-drawer header="a">body</ful-drawer>');
         assert.strictEqual(el.querySelector('header').firstElementChild.tagName, 'H2');
     });
 });

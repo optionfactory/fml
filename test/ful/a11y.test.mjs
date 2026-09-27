@@ -60,7 +60,7 @@ describe('Accessibility audit', () => {
         ['ful-spinner', `<ful-spinner name="sp">spin</ful-spinner>`],
         ['ful-tooltip', `<ful-tooltip name="t">a short explanation</ful-tooltip>`],
         ['ful-dialog', `<ful-dialog header="the header">body</ful-dialog>`],
-        ['ful-drawer', `<ful-drawer title="the title">body</ful-drawer>`],
+        ['ful-drawer', `<ful-drawer header="the title">body</ful-drawer>`],
         //audited open, where the name is read: a closed dialog is display:none,
         //which axe skips, so the closed fixtures above say nothing about the name
         [
@@ -72,7 +72,7 @@ describe('Accessibility audit', () => {
         ],
         [
             'ful-drawer open',
-            `<ful-drawer title="the title">body</ful-drawer>`,
+            `<ful-drawer header="the title">body</ful-drawer>`,
             (c) => {
                 c.querySelector('ful-drawer').open();
             },

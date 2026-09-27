@@ -87,21 +87,21 @@
     </fieldset>
 
     <h2>drawers</h2>
-    <p>The first one shows its slotted body, opened again by a <code>dialog-target</code>. The other two are driven through <code>update(title, callback)</code>: the drawer opens in a loading state, then shows either the content the callback delivers or the problems a rejection carries.</p>
+    <p>The first one shows its slotted body, opened again by a <code>dialog-target</code>. The other two are driven through <code>update(header, callback)</code>: the drawer opens in a loading state, then shows either the content the callback delivers or the problems a rejection carries.</p>
     <fieldset>
         <legend>one slotted, one delivered, one failing</legend>
         <button type="button" class="ful-button" dialog-target="static-drawer">Open the static one</button>
-        <ful-drawer id="static-drawer" title="Slotted content" placement="start">
+        <ful-drawer id="static-drawer" header="Slotted content" placement="start">
             This body was slotted in the markup: <code>update()</code> never ran on this drawer.
         </ful-drawer>
 
         <button type="button" class="ful-button" id="drawer-deliver">Deliver content</button>
-        <ful-drawer id="delivered-drawer" title="Replaced on open">
+        <ful-drawer id="delivered-drawer" header="Replaced on open">
             You should never see this: update() replaces the slotted body with the delivered content.
         </ful-drawer>
 
         <button type="button" class="ful-button ghost" id="drawer-fail">Fail the delivery</button>
-        <ful-drawer id="failing-drawer" title="A failing update"></ful-drawer>
+        <ful-drawer id="failing-drawer" header="A failing update"></ful-drawer>
     </fieldset>
 
     <h2>dialogs and drawers, delivered on open</h2>
@@ -111,7 +111,7 @@
         <button type="button" class="ful-button" dialog-target="async-dialog">Open the fed dialog</button>
         <ful-dialog id="async-dialog" header="Delivered on open"></ful-dialog>
         <button type="button" class="ful-button" dialog-target="async-drawer">Open the fed drawer</button>
-        <ful-drawer id="async-drawer" title="Delivered on open" placement="end"></ful-drawer>
+        <ful-drawer id="async-drawer" header="Delivered on open" placement="end"></ful-drawer>
     </fieldset>
 
     <h2>toasts</h2>

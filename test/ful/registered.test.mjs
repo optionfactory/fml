@@ -36,7 +36,7 @@ const ELEMENTS = [
     },
     {
         tag: 'ful-drawer',
-        html: `<ful-drawer title="the title">body</ful-drawer>`,
+        html: `<ful-drawer header="the title">body</ful-drawer>`,
         observed: {},
     },
     {

@@ -415,7 +415,7 @@ const mount = async (html) => {
         ok(`17 root token ${t} defined`, cs.getPropertyValue(t).trim().length > 0, cs.getPropertyValue(t).trim());
     }
     // the three component-scoped ones, and the selectors the page now names
-    d = await mount(`<ful-dialog header="h">x</ful-dialog><ful-drawer title="t">x</ful-drawer><ful-toasts timeout="60000"></ful-toasts>`);
+    d = await mount(`<ful-dialog header="h">x</ful-dialog><ful-drawer header="t">x</ful-drawer><ful-toasts timeout="60000"></ful-toasts>`);
     // the toasts rule is *:has(> ful-toast): the token exists only while a toast does
     d.querySelector('ful-toasts').show('x', { severity: 'info' });
     await new Promise((r) => setTimeout(r, 100));
