@@ -119,6 +119,63 @@ describe('Toasts', () => {
         assert.include(item.textContent, 'from anywhere');
     });
 
+    it('answers a show-toast event carrying no detail with silence, not a throw', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+
+        document.dispatchEvent(new CustomEvent('show-toast'));
+
+        assert.strictEqual(toasts.querySelectorAll('ful-toast').length, 0);
+    });
+
+    it('carries an action, whose click answers and retires the toast', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+        const answered = [];
+        const clicks = [];
+
+        const byCall = toasts.show('Block deleted', { action: { label: 'Undo', onClick: () => answered.push(1) } });
+        document.dispatchEvent(
+            new CustomEvent('show-toast', { detail: { message: 'Also deleted', action: { label: 'Undo', onClick: () => clicks.push(1) } } }),
+        );
+        const byEvent = [...toasts.querySelectorAll('ful-toast')].find((el) => el !== byCall);
+
+        for (const [item, log] of [
+            [byCall, answered],
+            [byEvent, clicks],
+        ]) {
+            const action = item.querySelector('button.ful-toast-action');
+            assert.strictEqual(action.textContent, 'Undo');
+            action.click();
+            assert.lengthOf(log, 1, 'the action answered');
+            assert.isTrue(item.classList.contains('ful-toast-out'), 'and the toast retired');
+        }
+    });
+
+    it('holds the timer while the toast is hovered, and lets it run again on leaving', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+
+        const item = toasts.show('waiting', { timeout: 60 });
+        item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.isFalse(item.classList.contains('ful-toast-out'), 'a hovered toast outlives its timer');
+
+        item.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.isTrue(item.classList.contains('ful-toast-out'), 'and retires once left');
+    });
+
+    it('holds the timer while the toast holds the focus', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+
+        const item = toasts.show('waiting', { timeout: 60 });
+        item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.isFalse(item.classList.contains('ful-toast-out'), 'a focused toast outlives its timer');
+
+        item.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.isTrue(item.classList.contains('ful-toast-out'));
+    });
+
     it('the show-toast listener is wired once: a second region does not double the toast, a removed one stops answering', async () => {
         const [first, firstContainer] = await mount('<ful-toasts id="first-region"></ful-toasts>');
         const [second] = await mount('<ful-toasts id="second-region"></ful-toasts>');

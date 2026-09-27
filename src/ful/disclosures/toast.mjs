@@ -30,6 +30,9 @@ class Toasts extends ParsedElement {
         if (!listenerWired) {
             listenerWired = true;
             document.addEventListener('show-toast', (/** @type any */ e) => {
+                if (!e.detail) {
+                    return;
+                }
                 for (const region of REGIONS) {
                     region.show(e.detail.message, e.detail);
                 }
@@ -41,8 +44,13 @@ class Toasts extends ParsedElement {
      * Appends a toast carrying the message (a Failure shows its problems'
      * reasons, one per line), severity picking the theme and the announcement,
      * the toast retiring through its own timer or its dismiss button.
+     *
+     * The timer holds while the toast is hovered or holds the focus, so an
+     * actionable toast waits for its reader: `action` is `{ label, onClick }`,
+     * a button beside the message whose click answers and retires. The same
+     * options travel in the `show-toast` event's detail.
      * @param {any} message
-     * @param {any} [options] severity and timeout
+     * @param {any} [options] severity, timeout and action
      * @returns {HTMLElement}
      */
     show(message, options = {}) {
@@ -59,14 +67,14 @@ class Toasts extends ParsedElement {
         icon.setAttribute('name', 'x-lg');
         icon.setAttribute('aria-hidden', 'true');
         dismiss.append(icon);
-        item.append(body, dismiss);
-        item.addEventListener('animationend', () => {
-            if (item.classList.contains('ful-toast-out')) {
-                item.remove();
-            }
-        });
+        item.append(body);
+        let remaining = options.timeout ?? this.#timeout;
+        let startedAt = performance.now();
+        let held = false;
+        let timer = 0;
         const retire = () => {
-            //the toast may hold the focus, on its own dismiss button: handing it
+            clearTimeout(timer);
+            //the toast may hold the focus, on its own buttons: handing it
             //back to the region keeps the reader somewhere rather than on <body>
             if (item.contains(document.activeElement)) {
                 /** @type HTMLElement */ (this).focus();
@@ -80,9 +88,46 @@ class Toasts extends ParsedElement {
                 item.remove();
             }
         };
+        if (options.action?.label) {
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'ful-toast-action';
+            action.textContent = String(options.action.label);
+            action.addEventListener('click', () => {
+                options.action.onClick?.();
+                retire();
+            });
+            item.append(action);
+        }
+        item.append(dismiss);
+        item.addEventListener('animationend', () => {
+            if (item.classList.contains('ful-toast-out')) {
+                item.remove();
+            }
+        });
+        const hold = () => {
+            if (held) {
+                return;
+            }
+            held = true;
+            clearTimeout(timer);
+            remaining = Math.max(0, remaining - (performance.now() - startedAt));
+        };
+        const release = () => {
+            if (!held) {
+                return;
+            }
+            held = false;
+            startedAt = performance.now();
+            timer = setTimeout(retire, remaining);
+        };
+        item.addEventListener('mouseenter', hold);
+        item.addEventListener('mouseleave', release);
+        item.addEventListener('focusin', hold);
+        item.addEventListener('focusout', release);
         dismiss.addEventListener('click', retire);
         this.append(item);
-        setTimeout(retire, options.timeout ?? this.#timeout);
+        timer = setTimeout(retire, remaining);
         return item;
     }
 }

@@ -373,7 +373,7 @@
             }
         },
         "ful-toasts": {
-            "description": "A transient feedback region, one per page: each show() (or a show-toast document event carrying the same detail) appends a toast that dismisses itself after its timeout, the element's timeout attribute or five seconds by default, and carries its own dismiss button. severity picks the theme and the announcement, info by default, success, warning and error, the error one announced as an alert; a Failure message shows its problems' reasons.",
+            "description": "A transient feedback region, one per page: each show() (or a show-toast document event carrying the same detail) appends a toast that dismisses itself after its timeout, the element's timeout attribute or five seconds by default, and carries its own dismiss button. severity picks the theme and the announcement, info by default, success, warning and error, the error one announced as an alert; a Failure message shows its problems' reasons. The timer holds while the toast is hovered or holds the focus, and action: { label, onClick } renders a button beside the message whose click answers and retires the toast, the same option travelling in the event detail.",
             "attributes": {
                 "timeout": "How long a toast stands before it retires, in milliseconds; 5000 when absent. A show() may override it per toast."
             },
