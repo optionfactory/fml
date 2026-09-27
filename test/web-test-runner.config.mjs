@@ -4,6 +4,7 @@ import peggy from 'peggy';
 export default {
     files: ['test/*/**/*.test.mjs'],
     nodeResolve: true,
+    browserLogs: process.env.FML_TEST_LOGS === '1',
     browsers: [
         playwrightLauncher({ product: 'chromium' }),
         playwrightLauncher({ product: 'firefox' }),

@@ -66,7 +66,7 @@
             "description": "A side panel drawer on the native dialog platform: a header with its title (the header attribute, or update()'s own) and close button, and a body that opens in a loading state, then shows either the content delivered by update(header, callback) (or the slotted one, when it is never updated) or the error a rejecting callback carries. placement picks the side, end by default, start its mirror. Any element carrying dialog-target set to its id opens it too.",
             "attributes": {
                 "placement": "Which edge the panel slides in from: end (the default) or start, following the page's writing direction.",
-                "header": "The drawer's title, shown in its header. Text only, and also what update() re-titles the panel with. The title attribute is a deprecated alias, read once at the upgrade and removed from the host, it being the global html attribute whose advisory text would otherwise hover over the whole drawer.",
+                "header": "The drawer's title, shown in its header. Text only, and also what update() re-titles the panel with.",
                 "close-on-submit": "For the drawer whose ending is a form succeeding rather than its close button being pressed: the form its content holds directly submitting successfully closes it, the close event carrying the response. Opt in, and its own form only, since a ful-table wraps its filters in a form of its own and searching one is not the drawer finishing."
             },
             "slots": {

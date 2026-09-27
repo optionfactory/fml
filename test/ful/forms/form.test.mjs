@@ -362,9 +362,11 @@ describe('Form submit outcome events', () => {
         const [outer, container] = await mount(`
             <ful-form id="outer-form" clear-invalid-on-change>
                 <ful-errors hidden></ful-errors>
+                <ful-spinner hidden></ful-spinner>
                 <ful-input name="status">outer</ful-input>
                 <ful-form id="inner-form">
                     <ful-errors hidden></ful-errors>
+                    <ful-spinner hidden></ful-spinner>
                     <ful-input name="status">inner</ful-input>
                     <button type="submit">inner go</button>
                 </ful-form>
@@ -395,8 +397,12 @@ describe('Form submit outcome events', () => {
         outer.spinner(true);
         assert.strictEqual(outerGo.getAttribute('aria-disabled'), 'true', 'its own button is held off');
         assert.isNull(innerGo.getAttribute('aria-disabled'), 'the inner form\'s button is not');
+        const [outerSpinner, innerSpinner] = outer.querySelectorAll('ful-spinner');
+        assert.isFalse(outerSpinner.hidden, 'its own spinner is up');
+        assert.isTrue(innerSpinner.hidden, 'the inner form\'s spinner is left alone');
         outer.spinner(false);
         assert.isNull(outerGo.getAttribute('aria-disabled'), 'and its own is restored');
+        assert.isTrue(outerSpinner.hidden, 'and its own spinner goes back down');
     });
 
     it('answers a field owning form, as a native control does', async () => {

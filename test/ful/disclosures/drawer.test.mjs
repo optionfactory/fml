@@ -45,15 +45,36 @@ describe('Drawer', () => {
         );
     });
 
-    it('reads the deprecated title attribute once and drops it from the host', async () => {
-        const [drawer] = await mount('<ful-drawer title="the old name">the body</ful-drawer>');
-        assert.strictEqual(drawer.header, 'the old name', 'the alias title is read as the header');
-        assert.isFalse(drawer.hasAttribute('title'), 'the global title attribute leaves the host, so no tooltip hovers over the whole drawer');
-        assert.strictEqual(drawer.title, 'the old name', 'the property alias keeps answering');
-        drawer.title = 'reworded';
-        assert.strictEqual(drawer.header, 'reworded', 'the property alias keeps writing');
+
+    it('closes at once where motion is not wanted', async () => {
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        const real = window.matchMedia;
+        /** @type any */ (window).matchMedia = (q) =>
+            String(q).includes('prefers-reduced-motion') ? { matches: true } : real.call(window, q);
+        try {
+            drawer.open();
+            drawer.close();
+
+            assert.isFalse(dialog.open, 'no animation is waited for');
+            assert.isFalse(dialog.hasAttribute('closing'), 'no closing state is written');
+        } finally {
+            window.matchMedia = real;
+        }
     });
 
+    it('closes without an out animation to wait for', async () => {
+        const [drawer, container] = await mount('<ful-drawer header="t">body</ful-drawer>');
+        const style = document.createElement('style');
+        style.textContent = 'dialog.ful-drawer { animation: none !important; }';
+        container.prepend(style);
+        const dialog = drawer.querySelector('dialog');
+
+        drawer.open();
+        drawer.close();
+
+        assert.isFalse(dialog.open, 'no animationend will ever come, the close lands at once');
+    });
 
     it('opens and closes, and any dialog-target element opens it too', async () => {
         const [drawer, container] = await mount(`

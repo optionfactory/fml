@@ -177,6 +177,35 @@ describe('The disabled attribute after the upgrade', () => {
         window.removeEventListener('error', onError);
     });
 
+    it('takes a value property write before the render without crashing, and applies it', async () => {
+        const uncaught = [];
+        const onError = (e) => {
+            uncaught.push(e.error ?? e.message);
+            e.preventDefault();
+        };
+        window.addEventListener('error', onError);
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                load: async () => [],
+                exact: async (...k) => k.map((v) => ({ key: v, label: v })),
+            }),
+        });
+        const container = appended('<ful-select name="a">l</ful-select>');
+        const selectEl = container.querySelector('ful-select');
+        selectEl.value = 'early';
+        await Rendering.waitFor(selectEl);
+        await settle();
+
+        assert.deepStrictEqual(uncaught, [], 'the property write does not crash the unrendered field');
+        assert.strictEqual(
+            selectEl.value,
+            null,
+            'the declared state wins, a property written before the render being unsupported',
+        );
+        window.removeEventListener('error', onError);
+    });
+
     it('an async _build renders the field once its pieces arrive', async () => {
         class SlowField extends Field {
             static slots = true;
@@ -207,8 +236,7 @@ describe('The disabled attribute after the upgrade', () => {
         assert.strictEqual(String(field.querySelector('input').value), 'late');
     });
 
-    it('a focus() asked before the render lands once the control exists', async () => {
-        let release;
+    it('a focus() asked before the render lands once the control exists', async () => {        let release;
         const gate = new Promise((r) => {
             release = r;
         });

@@ -46,14 +46,8 @@ class Drawer extends ParsedElement {
         }
     };
     render({ slots }) {
-        //the drawer's title is `header`, as the dialog's is; `title` stays as a
-        //deprecated alias read once and dropped, it being the global html
-        //attribute whose advisory text would hover over the whole drawer for as
-        //long as it stayed on the host
-        const header = this.declared('header') ?? this.getAttribute('title');
-        this.removeAttribute('title');
         const fragment = this.template()
-            .withOverlay({ slots, title: header ?? '' })
+            .withOverlay({ slots, title: this.declared('header') ?? '' })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#title = fragment.querySelector('[data-ref=title]');
@@ -111,13 +105,6 @@ class Drawer extends ParsedElement {
     }
     set header(v) {
         this.#title.textContent = v ?? '';
-    }
-    /** The header's first name, kept working for the property reader and writer. */
-    get title() {
-        return this.header;
-    }
-    set title(v) {
-        this.header = v;
     }
     /**
      * Opens the drawer under the given header and waits for the callback: a

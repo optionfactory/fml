@@ -70,7 +70,6 @@ class Toasts extends ParsedElement {
         item.append(body);
         let remaining = options.timeout ?? this.#timeout;
         let startedAt = performance.now();
-        let held = false;
         let timer = 0;
         const retire = () => {
             clearTimeout(timer);
@@ -105,21 +104,24 @@ class Toasts extends ParsedElement {
                 item.remove();
             }
         });
+        //the pointer and the focus hold independently: a count rather than a
+        //flag, so the pointer leaving while the focus stays keeps the hold
+        let holds = 0;
         const hold = () => {
-            if (held) {
-                return;
+            if (holds === 0) {
+                clearTimeout(timer);
+                remaining = Math.max(0, remaining - (performance.now() - startedAt));
             }
-            held = true;
-            clearTimeout(timer);
-            remaining = Math.max(0, remaining - (performance.now() - startedAt));
+            ++holds;
         };
         const release = () => {
-            if (!held) {
+            if (holds === 0) {
                 return;
             }
-            held = false;
-            startedAt = performance.now();
-            timer = setTimeout(retire, remaining);
+            if (--holds === 0) {
+                startedAt = performance.now();
+                timer = setTimeout(retire, remaining);
+            }
         };
         item.addEventListener('mouseenter', hold);
         item.addEventListener('mouseleave', release);

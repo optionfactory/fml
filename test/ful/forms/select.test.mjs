@@ -168,7 +168,7 @@ describe('Select and dropdown load failure handling', () => {
             'a failed open leaves the combobox collapsed',
         );
         assert.strictEqual(rejections.length, rejectionsBefore + 1);
-        assert.isTrue(errors.some((args) => String(args[0]).includes('boom')));
+        assert.isTrue(rejections.some((r) => String(r?.message ?? r).includes('boom')));
     });
 
     it('reports the rejection and keeps the requested keys when exact lookup fails', async () => {
@@ -1766,7 +1766,7 @@ describe('Select failed searches', () => {
         await new Promise((resolve) => setTimeout(resolve, 450));
 
         assert.isAbove(rejections.length, rejectionsBefore, 'the retried search failed again, as configured');
-        assert.isTrue(errors.some((args) => String(args[0]).includes('search backend down')));
+        assert.isTrue(rejections.some((r) => String(r?.message ?? r).includes('search backend down')));
     });
 });
 

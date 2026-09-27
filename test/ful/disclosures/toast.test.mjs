@@ -176,6 +176,21 @@ describe('Toasts', () => {
         assert.isTrue(item.classList.contains('ful-toast-out'));
     });
 
+    it('holds through overlapping pointer and focus, the last one leaving to re-arm', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+
+        const item = toasts.show('waiting', { timeout: 60 });
+        item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+        item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        item.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.isFalse(item.classList.contains('ful-toast-out'), 'the pointer leaving does not release a held focus');
+
+        item.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.isTrue(item.classList.contains('ful-toast-out'), 'the last hold leaving re-arms the timer');
+    });
+
     it('the show-toast listener is wired once: a second region does not double the toast, a removed one stops answering', async () => {
         const [first, firstContainer] = await mount('<ful-toasts id="first-region"></ful-toasts>');
         const [second] = await mount('<ful-toasts id="second-region"></ful-toasts>');

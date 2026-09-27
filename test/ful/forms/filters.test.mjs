@@ -967,6 +967,22 @@ describe('A fixed operator or sensitivity', () => {
             restore();
         }
     });
+
+    it('names a page declaring the fixed sensitivity beside its plural', async () => {
+        const [seen, restore] = warnings();
+        try {
+            const [el] = await mount(`<ful-filter-text sensitivity="CASE_SENSITIVE" sensitivities="IGNORE_CASE" name="f">t</ful-filter-text>`);
+            const input = el.querySelector('[data-ref=value1]');
+            input.value = 'needle';
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+
+            assert.isTrue(el.querySelector('[data-ref=sensitivity]').hidden, 'the fixed sensitivity leaves');
+            assert.deepStrictEqual(el.value, ['CONTAINS', 'CASE_SENSITIVE', 'needle'], 'the singular wins');
+            assert.isTrue(seen.some((w) => w.includes('sensitivities offers a menu for')), 'the confusion is reported');
+        } finally {
+            restore();
+        }
+    });
 });
 
 describe('TextFilter case sensitivity', () => {

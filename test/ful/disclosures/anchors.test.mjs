@@ -138,6 +138,33 @@ describe('Anchors.wire invoke and expanded', () => {
             menu.remove();
         }
     });
+
+    it('activates a non-button invoker from the keyboard', () => {
+        const invoker = document.createElement('span');
+        invoker.setAttribute('role', 'button');
+        invoker.tabIndex = 0;
+        const menu = document.createElement('ul');
+        menu.setAttribute('popover', '');
+        document.body.append(invoker, menu);
+        try {
+            withoutPlatformAnchors(() => Anchors.wire(invoker, menu, { invoke: true }));
+
+            invoker.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+            assert.isFalse(menu.matches(':popover-open'), 'a key that is not Enter or Space is left alone');
+
+            invoker.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            assert.isTrue(menu.matches(':popover-open'), 'Enter opens');
+
+            invoker.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+            assert.isFalse(menu.matches(':popover-open'), 'Space toggles it back');
+        } finally {
+            if (menu.matches(':popover-open')) {
+                menu.hidePopover();
+            }
+            invoker.remove();
+            menu.remove();
+        }
+    });
 });
 
 describe('The stretch placement of a dropdown', () => {

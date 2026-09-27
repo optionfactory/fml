@@ -164,8 +164,26 @@ describe('Input enter key inside a form', () => {
         });
     });
 
-    it('does not submit on Enter from a file field, whose Enter opens the picker', async () => {
-        const container = document.createElement('div');
+    it('Enter in a field no form owns submits nothing, and says nothing', async () => {
+        const [inputEl] = await mount('<ful-input name="lonely" value="x">lonely</ful-input>');
+        const errors = [];
+        const onError = (e) => {
+            errors.push(e.error ?? e.message);
+            e.preventDefault();
+        };
+        window.addEventListener('error', onError);
+        try {
+            enter(inputEl);
+            await settle();
+
+            assert.deepStrictEqual(errors, [], 'a field outside any form does not reach for one');
+            assert.deepStrictEqual(submits, [], 'and nothing was submitted');
+        } finally {
+            window.removeEventListener('error', onError);
+        }
+    });
+
+    it('does not submit on Enter from a file field, whose Enter opens the picker', async () => {        const container = document.createElement('div');
         container.innerHTML = `
             <ful-form>
                 <ful-input-file name="f">file</ful-input-file>

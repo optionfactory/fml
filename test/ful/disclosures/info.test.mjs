@@ -39,6 +39,8 @@ describe('Tooltip', () => {
         trigger.click();
         assert.isTrue(note.matches(':popover-open'));
         note.hidePopover();
+
+        assert.isFalse(field.describedBy(null), 'a field takes nothing rather than everything');
     });
     it('stays readable inside a disabled fieldset', async () => {
         const [fs] = await mount(
