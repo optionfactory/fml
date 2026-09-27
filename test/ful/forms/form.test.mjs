@@ -330,6 +330,34 @@ describe('Form submit outcome events', () => {
         assert.isFalse(warns.some((args) => String(args[0]).includes('failed to submit form')), 'a Failure is the reported outcome, not a warning on top of it');
     });
 
+    it('leaves the fields of another form alone, both their validity and their values', async () => {
+        const [outer, container] = await mount(`
+            <ful-form id="outer-form">
+                <ful-input name="status">outer</ful-input>
+                <ful-form id="inner-form">
+                    <ful-input name="status">inner</ful-input>
+                </ful-form>
+            </ful-form>`);
+        const inner = container.querySelector('#inner-form');
+        const [outerStatus, innerStatus] = container.querySelectorAll('ful-input');
+
+        inner.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'the inner one is wrong' }];
+        assert.strictEqual(innerStatus.querySelector('ful-field-error').innerText, 'the inner one is wrong');
+
+        outer.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'the outer one is wrong' }];
+
+        assert.strictEqual(outerStatus.querySelector('ful-field-error').innerText, 'the outer one is wrong');
+        assert.strictEqual(
+            innerStatus.querySelector('ful-field-error').innerText,
+            'the inner one is wrong',
+            'the outer form neither resets nor overwrites a field the inner form owns',
+        );
+
+        outer.values = { status: 'settled' };
+        assert.strictEqual(String(outerStatus.value), 'settled');
+        assert.strictEqual(innerStatus.value, null, 'and it does not write values into them either');
+    });
+
     it('shows a field problem carrying no context in the banner instead of crashing', async () => {
         stubLoader({
             prepare: async (v) => v,

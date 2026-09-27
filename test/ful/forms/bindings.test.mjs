@@ -393,7 +393,7 @@ describe('Bindings', () => {
 
         it('hands the composite the inner path, and the exact match an empty one', () => {
             const calls = [];
-            const composite = document.createElement('div');
+            const composite = document.createElement('input');
             composite.setAttribute('name', 'owner');
             composite.setCustomValidity = (reason, context) => calls.push([reason, context]);
             form.append(composite);

@@ -174,14 +174,35 @@ class Bindings {
     }
 
     static mutateIn(form, values) {
-        const names = Array.from(form.elements)
-            .map((el) => el.getAttribute('name'))
-            .filter((n) => n);
-        for (const [flattenedKey, value] of Object.entries(Bindings.flatten(values, '', new Set(names)))) {
-            for (const el of form.querySelectorAll(`[name='${CSS.escape(flattenedKey)}']`)) {
+        const named = Bindings.#named(form);
+        for (const [flattenedKey, value] of Object.entries(Bindings.flatten(values, '', new Set(named.keys())))) {
+            for (const el of named.get(flattenedKey) ?? []) {
                 Bindings.mutate(el, value);
             }
         }
+    }
+
+    /**
+     * The form's own named controls, by name: `form.elements`, the platform's
+     * association list, so a field in the subtree that belongs to another form
+     * (a nested form built by script, a `form` attribute pointing elsewhere) is
+     * not the caller's to touch, where a subtree query would have reached it.
+     */
+    static #named(form) {
+        const named = new Map();
+        for (const el of form.elements) {
+            const name = el.getAttribute('name');
+            if (!name) {
+                continue;
+            }
+            const bucket = named.get(name);
+            if (bucket) {
+                bucket.push(el);
+            } else {
+                named.set(name, [el]);
+            }
+        }
+        return named;
     }
 
     static errors(form, es, scrollOnError) {
@@ -194,9 +215,10 @@ class Bindings {
         const pinned = (e) => (e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT') && e.context;
         const fieldErrors = es.filter(pinned);
         const globalErrors = es.filter((e) => !pinned(e));
-        form.querySelectorAll(`[name]`).forEach((el) => {
-            el.setCustomValidity?.('');
-        });
+        const named = Bindings.#named(form);
+        for (const targets of named.values()) {
+            targets.forEach((el) => el.setCustomValidity?.(''));
+        }
         form.querySelectorAll('ful-errors').forEach((el) => {
             el.setAttribute('role', 'alert');
             el.replaceChildren();
@@ -208,7 +230,7 @@ class Bindings {
             const parts = name.split('.');
             for (let i = parts.length; i !== 0; --i) {
                 const prefix = parts.slice(0, i).join('.');
-                const targets = form.querySelectorAll(`[name='${CSS.escape(prefix)}']`);
+                const targets = named.get(prefix) ?? [];
                 if (targets.length === 0) {
                     continue;
                 }
