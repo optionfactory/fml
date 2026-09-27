@@ -86,6 +86,13 @@ class ChoiceButton {
     get pinned() {
         return this.#allowed.length < 2;
     }
+    /**
+     * The host's fixed claim: the button and its chrome leave while the value
+     * keeps answering, which is what a fixed operator asks of its glyph.
+     */
+    set fixed(fixed) {
+        this.#button.toggleAttribute('hidden', !!fixed);
+    }
     get value() {
         return this.#button.getAttribute('value');
     }

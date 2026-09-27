@@ -132,7 +132,8 @@
             "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them.",
+                "operator": "Fixes the operator for the element's life: no menu and no button render, and every tuple carries it. The plural is the menu's whitelist; declaring both warns, the singular winning, and an unknown name warns and pins the filter's default."
             },
             "slots": {},
             "events": {
@@ -143,7 +144,8 @@
             "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them.",
+                "operator": "Fixes the operator for the element's life: no menu and no button render, and every tuple carries it. The plural is the menu's whitelist; declaring both warns, the singular winning, and an unknown name warns and pins the filter's default."
             },
             "slots": {},
             "events": {
@@ -154,7 +156,8 @@
             "description": "A ful-table filter over numbers, with an operator such as GTE or BETWEEN. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "JSON tuple of the operator and its bound(s).",
-                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them."
+                "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them.",
+                "operator": "Fixes the operator for the element's life: no menu and no button render, and every tuple carries it. The plural is the menu's whitelist; declaring both warns, the singular winning, and an unknown name warns and pins the filter's default."
             },
             "slots": {},
             "events": {
@@ -166,7 +169,9 @@
             "attributes": {
                 "value": "JSON tuple of the operator, the sensitivity and the text.",
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN, CONTAINS, STARTS_WITH, ENDS_WITH. Defaults to all of them.",
-                "sensitivities": "Comma separated list of the case sensitivity modes, IGNORE_CASE, CASE_SENSITIVE. A single entry pins every emitted tuple to it."
+                "operator": "Fixes the operator for the element's life: no menu and no button render, and every tuple carries it. The plural is the menu's whitelist; declaring both warns, the singular winning, and an unknown name warns and pins the filter's default.",
+                "sensitivities": "Comma separated list of the case sensitivity modes, IGNORE_CASE, CASE_SENSITIVE. A single entry pins every emitted tuple to it.",
+                "sensitivity": "Fixes the case sensitivity for the element's life, on the operator's terms: the button leaves and every tuple carries it."
             },
             "slots": {},
             "events": {

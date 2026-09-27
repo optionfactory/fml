@@ -900,6 +900,75 @@ describe('Filter readonly and disabled', () => {
     });
 });
 
+describe('A fixed operator or sensitivity', () => {
+    const warnings = () => {
+        const seen = [];
+        const original = console.warn;
+        console.warn = (...args) => seen.push(args.map(String).join(' '));
+        return [seen, () => (console.warn = original)];
+    };
+
+    it('leaves the chrome and keeps answering the tuple: a search field', async () => {
+        const [el] = await mount(
+            `<ful-filter-text operator="CONTAINS" sensitivity="IGNORE_CASE" name="f">t</ful-filter-text>`,
+        );
+        const operator = el.querySelector('[data-ref=operator]');
+        const sensitivity = el.querySelector('[data-ref=sensitivity]');
+
+        assert.isTrue(operator.hidden, 'a fixed operator is not a choice');
+        assert.isTrue(sensitivity.hidden, 'nor is a fixed sensitivity');
+        assert.strictEqual(getComputedStyle(operator.closest('ful-affix')).display, 'none', 'the affix goes too, not an empty box');
+        assert.strictEqual(el.value, null, 'an empty field contributes nothing');
+
+        const input = el.querySelector('[data-ref=value1]');
+        input.value = 'needle';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        assert.deepStrictEqual(el.value, ['CONTAINS', 'IGNORE_CASE', 'needle'], 'the tuple still carries the fixed choices');
+    });
+
+    it('fixes a concrete filter to its operator, instant among them', async () => {
+        const [el] = await mount(`<ful-filter-instant operator="GTE" name="f">i</ful-filter-instant>`);
+        assert.isTrue(el.querySelector('[data-ref=operator]').hidden);
+        assert.strictEqual(getComputedStyle(el.querySelector('[data-ref=operator]').closest('ful-affix')).display, 'none');
+
+        el.value = ['GTE', '2024-03-15T10:30:00.000Z'];
+        assert.deepStrictEqual(el.value, ['GTE', '2024-03-15T10:30:00.000Z']);
+        el.value = ['LTE', '2024-03-15T10:30:00.000Z'];
+        assert.deepStrictEqual(el.value, ['GTE', '2024-03-15T10:30:00.000Z'], 'a fixed operator wins over the assignment');
+    });
+
+    it('pins the default where the name is unknown, and says so', async () => {
+        const [seen, restore] = warnings();
+        try {
+            const [el] = await mount(`<ful-filter-instant operator="WHENEVER" name="f">i</ful-filter-instant>`);
+            const input = el.querySelector('[data-ref=value1]');
+            input.value = '2024-03-15T10:30';
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+
+            assert.strictEqual(el.value[0], 'LTE', 'the filter default is the pin');
+            assert.match(String(el.value[1]), /^2024-03-15T/, 'the operand serializes as ever');
+            assert.isTrue(seen.some((w) => w.includes('WHENEVER')), 'the unknown name is named');
+        } finally {
+            restore();
+        }
+    });
+
+    it('names a page declaring the singular and the plural together', async () => {
+        const [seen, restore] = warnings();
+        try {
+            const [el] = await mount(`<ful-filter-text operator="EQ" operators="CONTAINS,STARTS_WITH" name="f">t</ful-filter-text>`);
+            const input = el.querySelector('[data-ref=value1]');
+            input.value = 'needle';
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+
+            assert.deepStrictEqual(el.value, ['EQ', 'IGNORE_CASE', 'needle'], 'the singular wins');
+            assert.isTrue(seen.some((w) => w.includes('the plural is ignored')), 'the confusion is reported');
+        } finally {
+            restore();
+        }
+    });
+});
+
 describe('TextFilter case sensitivity', () => {
     it('reports back the sensitivity it was given', async () => {
         const [el] = await mount(`<ful-filter-text value='["EQ","CASE_SENSITIVE","x"]'>t</ful-filter-text>`);

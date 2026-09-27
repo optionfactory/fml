@@ -52,6 +52,7 @@ const asCriterion = (label, operator, operands) => {
  */
 class CompareFilter extends Input {
     static observed = ['value:json', 'operators:csv'];
+    static attributes = ['operator'];
     static OPERATORS = COMPARE_OPERATORS;
     static DEFAULT_OPERATOR = 'EQ';
     static template = `
@@ -102,10 +103,33 @@ class CompareFilter extends Input {
         if (this._operator.value === null) {
             this._showDefaultOperator();
         }
+        this.#fixOperator();
         //the second operand mirrors the claims like the first one does, and the
         //freeze reaches the operator and sensitivity buttons, whose popovers an
         //input's readOnly cannot touch
         return { ...pieces, freeze: this._container, also: [this._value2] };
+    }
+    /**
+     * The singular `operator` fixes the operator for the element's life: not a
+     * choice, so no menu and no button, every tuple carrying it. The plural is
+     * the menu's whitelist; declaring both is a confused page and says so,
+     * the singular winning, and an unknown name warns and pins the default.
+     */
+    #fixOperator() {
+        const fixed = this.declared('operator');
+        if (fixed === null) {
+            return;
+        }
+        if (this.hasAttribute('operators')) {
+            console.warn(`${this.localName}: operator fixes what operators offers a menu for, the plural is ignored`, this);
+        }
+        const vocabulary = this._vocabulary();
+        const preferred = vocabulary.includes(fixed)
+            ? fixed
+            : (console.warn(`${this.localName}: '${fixed}' is not one of its operators, the default is pinned instead`, this),
+              this._defaultOperator());
+        this._operator.allowed = [preferred];
+        this._operator.fixed = true;
     }
     _showDefaultOperator() {
         const preferred = this._defaultOperator();
@@ -143,6 +167,9 @@ class CompareFilter extends Input {
         return this._operator ? this._operator.allowed : this._declaredOperators;
     }
     set operators(declared) {
+        if (this.declared('operator') !== null) {
+            return;
+        }
         if (!this._operator) {
             this._declaredOperators = ChoiceButton.narrow(declared, this._vocabulary());
             return;
@@ -246,6 +273,7 @@ class NumberFilter extends CompareFilter {
 /** The compare filter over text, carrying a case sensitivity beside the operator. */
 class TextFilter extends CompareFilter {
     static observed = ['sensitivities:csv'];
+    static attributes = ['sensitivity'];
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
@@ -289,7 +317,23 @@ class TextFilter extends CompareFilter {
         );
         this._sensitivityButton.allowed = null;
         this._sensitivityButton.value = SENSITIVITIES[0];
+        this.#fixSensitivity();
         return pieces;
+    }
+    #fixSensitivity() {
+        const fixed = this.declared('sensitivity');
+        if (fixed === null) {
+            return;
+        }
+        if (this.hasAttribute('sensitivities')) {
+            console.warn('ful-filter-text: sensitivity fixes what sensitivities offers a menu for, the plural is ignored', this);
+        }
+        const preferred = SENSITIVITIES.includes(fixed)
+            ? fixed
+            : (console.warn(`ful-filter-text: '${fixed}' is not one of its sensitivities, the default is pinned instead`, this),
+              'IGNORE_CASE');
+        this._sensitivityButton.allowed = [preferred];
+        this._sensitivityButton.fixed = true;
     }
     _choices() {
         return [...super._choices(), this._sensitivityButton].filter((c) => c);
@@ -302,6 +346,9 @@ class TextFilter extends CompareFilter {
         return this._sensitivityButton ? this._sensitivityButton.allowed : this._declaredSensitivities;
     }
     set sensitivities(declared) {
+        if (this.declared('sensitivity') !== null) {
+            return;
+        }
         if (!this._sensitivityButton) {
             this._declaredSensitivities = ChoiceButton.narrow(declared, SENSITIVITIES);
             return;
