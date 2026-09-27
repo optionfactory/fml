@@ -2104,6 +2104,7 @@ describe('Select dropdown anchoring', () => {
 
 describe('Clearing a single select', () => {
     const OPTIONS = [
+        { key: '', label: 'None' },
         { key: 'k1', label: 'Alpha' },
         { key: 'k2', label: 'Beta' },
     ];
@@ -2178,6 +2179,24 @@ describe('Clearing a single select', () => {
         await press(input, 'Tab');
 
         assert.strictEqual(el.value, 'k1');
+    });
+
+    it('reads a present but empty value attribute as the empty key', async () => {
+        const [el] = await mount('<ful-select value="">pick</ful-select>');
+        assert.strictEqual(el.value, '', 'the empty key, not no selection');
+        await settle();
+        assert.strictEqual(el.querySelector('input').value, 'None');
+    });
+
+    it('an absent value attribute stays no selection', async () => {
+        const [el] = await mount('<ful-select>pick</ful-select>');
+        assert.strictEqual(el.value, null);
+        assert.strictEqual(el.querySelector('input').value, '');
+    });
+
+    it('a multiple select reads an empty value attribute as no keys', async () => {
+        const [el] = await mount('<ful-select multiple value="">pick</ful-select>');
+        assert.deepStrictEqual(el.value, []);
     });
 
     it('does not read a multiple select, whose box is empty by design, as a clear', async () => {

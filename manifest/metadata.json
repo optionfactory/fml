@@ -320,7 +320,7 @@
                 "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
                 "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
                 "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
-                "value": "The selected keys, comma separated, whether or not the select is multiple. A key given here is trimmed and cannot contain a comma; assign such a key through the property instead. The property answers a key for a single select and an array for a multiple one."
+                "value": "The selected keys, comma separated, whether or not the select is multiple. A key given here is trimmed and cannot contain a comma; assign such a key through the property instead. The property answers a key for a single select and an array for a multiple one. A single select reads a present but empty attribute as the empty key, the one an <option value=\"\"> carries, where an absent attribute means no selection; a multiple select reads it as no keys."
             },
             "slots": {
                 "dropdown": "Replaces the template used to render the options."

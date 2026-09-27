@@ -470,6 +470,12 @@ class Select extends Field {
     //`set value` normalizes a list of one to a single key, and the getter answers a
     //scalar for a single select, so nothing downstream has to know which it was
     static observed = ['multiple:presence', 'item-list:presence', 'value:csv'];
+    unmarshal(attr, str) {
+        if (attr === 'value' && str === '' && !this.hasAttribute('multiple')) {
+            return [''];
+        }
+        return super.unmarshal(attr, str);
+    }
     static slots = true;
     //a manual popover: the combobox keeps the focus on its input and owns
     //the whole lifecycle (typing, arrows, blur, Escape, Tab), so no light

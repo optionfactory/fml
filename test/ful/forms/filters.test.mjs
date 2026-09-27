@@ -785,6 +785,28 @@ describe('Filters and selects together', () => {
             'no operator wraps the keys: the in-list contract',
         );
     });
+
+    it('a single ful-filter-in reads a present but empty value attribute as the empty key', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+                load: async () => [
+                    { key: '', label: 'Unset' },
+                    { key: 'DOG', label: 'Dog' },
+                ],
+            }),
+        });
+        const container = document.createElement('div');
+        container.innerHTML = '<ful-filter-in value="">status</ful-filter-in>';
+        document.body.appendChild(container);
+        const el = container.querySelector('ful-filter-in');
+        await Rendering.waitFor(el);
+        await settle();
+
+        assert.deepStrictEqual(el.value, [''], 'the empty key is a criterion, not no filter');
+        container.remove();
+    });
 });
 
 describe('Filter readonly and disabled', () => {
