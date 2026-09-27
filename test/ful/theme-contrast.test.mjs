@@ -52,6 +52,10 @@ const TEXT = [
     ['--ful-active-color', '--ful-active-bg'],
     ['--ful-error-color', '--ful-error-bg'],
     ['--ful-warning-color', '--ful-warning-bg'],
+    ['--ful-error-color', '--ful-bg'],
+    ['--ful-warning-color', '--ful-bg'],
+    ['--ful-color', '--ful-error-bg'],
+    ['--ful-color', '--ful-warning-bg'],
 ];
 
 describe('Theme contrast', () => {

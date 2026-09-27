@@ -297,6 +297,7 @@ The breaking changes, each detailed in its area below:
 
 #### ful: theme, chrome and accessibility
 
+- [BUG] the error and warning tokens follow the page's scheme: `--ful-error-color`, `--ful-error-bg`, `--ful-error-border-color` and the three `--ful-warning-*` are `light-dark()` pairs like the rest of the theme, where they were light-only values, so an error ink read as text on a dark page held about 1.3:1 and a tinted surface washed out in the other direction. The dark sides are Bootstrap's own dark pairings (`#ea868f` on `#2c0b0e`, `#ffda6a` on `#332701`), and the contrast suite now covers the tokens on the page's surfaces in both schemes, not only each pair on itself
 - [NEW] `ful-empty` is a style-only tag for content that is not there: the table's initial panel, the table's no-rows panel and the dropdown's no-results line are all one now. It centres and mutes its content, sizes a leading `ful-icon` and trims the outer margins of what it holds, so a slot carrying a paragraph and a list needs no css. Page css keyed on `ful-dropdown p[data-ref="empty"]` moves to `ful-dropdown ful-empty`
 - [ENH] a `ful-item-list` spaces its rows half a rem apart, where four pixels left a focused row's ring landing on the rows either side, reading as a smudge between them rather than as a ring around one. The margins that hold the list off the control above it follow the same measure
 

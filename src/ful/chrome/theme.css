@@ -58,13 +58,13 @@
         --ful-invalid-border-color: var(--ful-invalid-color);
         --ful-invalid-box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ful-invalid-color) 25%, transparent);
 
-        --ful-error-color: #58151c;
-        --ful-error-bg: #f8d7da;
-        --ful-error-border-color: #f1aeb5;
+        --ful-error-color: light-dark(#58151c, #ea868f);
+        --ful-error-bg: light-dark(#f8d7da, #2c0b0e);
+        --ful-error-border-color: light-dark(#f1aeb5, #842029);
 
-        --ful-warning-color: #664d03;
-        --ful-warning-bg: #fff3cd;
-        --ful-warning-border-color: #ffe69c;
+        --ful-warning-color: light-dark(#664d03, #ffda6a);
+        --ful-warning-bg: light-dark(#fff3cd, #332701);
+        --ful-warning-border-color: light-dark(#ffe69c, #997404);
 
         --ful-scrollbar-bg: var(--ful-disabled-bg);
         --ful-scrollbar-thumb-bg: var(--ful-active-bg);
