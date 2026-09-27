@@ -207,6 +207,39 @@ describe('The disabled attribute after the upgrade', () => {
         assert.strictEqual(String(field.querySelector('input').value), 'late');
     });
 
+    it('a focus() asked before the render lands once the control exists', async () => {
+        let release;
+        const gate = new Promise((r) => {
+            release = r;
+        });
+        class GatedField extends Field {
+            static slots = true;
+            static template = '<input form="">';
+            async _build() {
+                await gate;
+                const fragment = this.template().render();
+                return { fragment, control: fragment.querySelector('input'), error: null };
+            }
+            get value() {
+                return null;
+            }
+            set value(_v) {}
+        }
+        registry.defineElement('x-gated-field', GatedField);
+
+        const container = appended('<x-gated-field name="a">l</x-gated-field>');
+        const field = container.querySelector('x-gated-field');
+        assert.isFalse(field.rendered, 'the field is still building');
+        field.focus();
+        assert.notStrictEqual(document.activeElement, field, 'the waiting host itself takes no focus');
+
+        release();
+        await Rendering.waitFor(field);
+        await settle();
+        assert.isTrue(document.activeElement === field.querySelector('input'), 'the control is focused once it exists');
+        container.remove();
+    });
+
     it('a field that never implements _build says so by name', async () => {
         class NoBuildField extends Field {}
         registry.defineElement('x-no-build-field', NoBuildField);

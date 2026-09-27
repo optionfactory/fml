@@ -35,6 +35,7 @@ class Field extends ParsedElement {
     /** the role the element internals carry, 'presentation' unless the control is its own */
     static ROLE = 'presentation';
     #control;
+    #pendingFocus = null;
     #described;
     #descriptions = [];
     #errorId = null;
@@ -122,6 +123,11 @@ class Field extends ParsedElement {
             this._requestSubmit();
         });
         this.replaceChildren(fragment);
+        if (this.#pendingFocus !== null) {
+            const options = this.#pendingFocus;
+            this.#pendingFocus = null;
+            control.focus(options);
+        }
     }
     /**
      * The platform's own rule for which control Enter submits from, measured on
@@ -189,7 +195,11 @@ class Field extends ParsedElement {
         }
     }
     focus(options) {
-        this.#control?.focus(options);
+        if (this.#control) {
+            this.#control.focus(options);
+            return;
+        }
+        this.#pendingFocus = options ?? {};
     }
     /**
      * Clears or reports one validation problem: the text lands on the field's
