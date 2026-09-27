@@ -117,7 +117,7 @@ class Field extends ParsedElement {
             //only where the platform cannot: a control still associated with the
             //form, an author's own input in a slot among them, submits on its own
             //and would otherwise submit twice
-            if (target.form === this.internals.form || !Field.#submitsOnEnter(target)) {
+            if (target.form === this.form || !Field.#submitsOnEnter(target)) {
                 return;
             }
             this._requestSubmit();
@@ -226,9 +226,13 @@ class Field extends ParsedElement {
         this.internals.setValidity({ customError: true }, ' ');
         this.#fieldError.innerText = error;
     }
+    /** The form the platform associated the field with, null outside one: a native control's own `form`. */
+    get form() {
+        return this.internals.form;
+    }
     /** Submits the associated form through its first submitter, as Enter on a native control would. */
     _requestSubmit() {
-        const form = this.internals.form;
+        const form = this.form;
         if (!form) {
             return;
         }

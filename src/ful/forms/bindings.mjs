@@ -208,10 +208,15 @@ class Bindings {
     static errors(form, es, scrollOnError) {
         //focus management announces the error of the field it lands on through
         //aria-describedby: a live region on top of that would read everything twice,
-        //so the polite announcement exists only when nothing takes the focus
-        form.querySelectorAll('ful-field-error').forEach((el) => {
-            el.setAttribute('aria-live', scrollOnError ? 'off' : 'polite');
-        });
+        //so the polite announcement exists only when nothing takes the focus.
+        //The regions and the banner belong to the form whose subtree holds them
+        //nearest: a nested form's are not this form's to touch
+        const ofForm = (el) => el.closest('form') === form;
+        Array.from(form.querySelectorAll('ful-field-error'))
+            .filter(ofForm)
+            .forEach((el) => {
+                el.setAttribute('aria-live', scrollOnError ? 'off' : 'polite');
+            });
         const pinned = (e) => (e.type === 'FIELD_ERROR' || e.type === 'INVALID_FORMAT') && e.context;
         const fieldErrors = es.filter(pinned);
         const globalErrors = es.filter((e) => !pinned(e));
@@ -220,6 +225,9 @@ class Bindings {
             targets.forEach((el) => el.setCustomValidity?.(''));
         }
         form.querySelectorAll('ful-errors').forEach((el) => {
+            if (!ofForm(el)) {
+                return;
+            }
             el.setAttribute('role', 'alert');
             el.replaceChildren();
             el.setAttribute('hidden', '');
@@ -250,6 +258,9 @@ class Bindings {
         });
         const bannered = [...globalErrors, ...unmatched];
         form.querySelectorAll('ful-errors').forEach((el) => {
+            if (!ofForm(el)) {
+                return;
+            }
             const hel = /** @type HTMLElement} */ (el);
             if (bannered.length === 0) {
                 hel.innerText = '';
@@ -264,7 +275,8 @@ class Bindings {
         if (es.length === 0 || !scrollOnError) {
             return;
         }
-        Array.from(form.querySelectorAll(`:invalid`))
+        Array.from(form.elements)
+            .filter((el) => el.matches(':invalid'))
             .sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y)[0]
             ?.focus();
     }

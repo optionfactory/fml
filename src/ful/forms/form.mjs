@@ -132,6 +132,11 @@ class Form extends ParsedElement {
         );
         if (this.declared('clear-invalid-on-change')) {
             this.addEventListener('change', (/** @type any */ evt) => {
+                //a form-associated custom element carries no `form` property of
+                //its own: the owner reads through the internals it attached
+                if ((evt.target.form ?? evt.target.internals?.form) !== this.form) {
+                    return;
+                }
                 evt.target.setCustomValidity?.('');
             });
         }
@@ -249,6 +254,9 @@ class Form extends ParsedElement {
         //same way, and a form that only dimmed its button said it to no one
         Attributes.set(this, 'aria-busy', spin ? 'true' : null);
         this.querySelectorAll('ful-spinner').forEach((el) => {
+            if (el.closest('form') !== this.form) {
+                return;
+            }
             const hel = /** @type HTMLElement */ (el);
             if (spin) {
                 this.#announce(hel);
@@ -259,7 +267,7 @@ class Form extends ParsedElement {
         });
         this.querySelectorAll('input,button').forEach((el) => {
             const hel = /** @type HTMLButtonElement|HTMLInputElement */ (el);
-            if (hel.type !== 'submit' && hel.type !== 'reset') {
+            if (hel.form !== this.form || (hel.type !== 'submit' && hel.type !== 'reset')) {
                 return;
             }
             if (spin) {

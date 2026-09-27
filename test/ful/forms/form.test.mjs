@@ -358,6 +358,60 @@ describe('Form submit outcome events', () => {
         assert.strictEqual(innerStatus.value, null, 'and it does not write values into them either');
     });
 
+    it('leaves another form its banner, its pinned problems and its buttons', async () => {
+        const [outer, container] = await mount(`
+            <ful-form id="outer-form" clear-invalid-on-change>
+                <ful-errors hidden></ful-errors>
+                <ful-input name="status">outer</ful-input>
+                <ful-form id="inner-form">
+                    <ful-errors hidden></ful-errors>
+                    <ful-input name="status">inner</ful-input>
+                    <button type="submit">inner go</button>
+                </ful-form>
+                <button type="submit">outer go</button>
+            </ful-form>`);
+        const inner = container.querySelector('#inner-form');
+        const [outerStatus, innerStatus] = container.querySelectorAll('ful-input');
+        const [outerBanner, innerBanner] = outer.querySelectorAll('ful-errors');
+        const [innerGo, outerGo] = outer.querySelectorAll('button');
+
+        inner.errors = [{ type: 'GENERIC_ERROR', reason: 'the inner one is wrong' }];
+        outer.errors = [{ type: 'GENERIC_ERROR', reason: 'the outer one is wrong' }];
+
+        assert.strictEqual(outerBanner.innerText, 'the outer one is wrong');
+        assert.strictEqual(innerBanner.innerText, 'the inner one is wrong', 'the outer form does not fill or wipe the inner banner');
+
+        inner.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'inner problem' }];
+        outer.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'outer problem' }];
+        innerStatus.dispatchEvent(new Event('change', { bubbles: true }));
+        assert.strictEqual(
+            innerStatus.querySelector('ful-field-error').innerText,
+            'inner problem',
+            'a change in the inner form is not the outer form clearing anything',
+        );
+        outerStatus.dispatchEvent(new Event('change', { bubbles: true }));
+        assert.strictEqual(outerStatus.querySelector('ful-field-error').innerText, '', 'the outer form still clears its own');
+
+        outer.spinner(true);
+        assert.strictEqual(outerGo.getAttribute('aria-disabled'), 'true', 'its own button is held off');
+        assert.isNull(innerGo.getAttribute('aria-disabled'), 'the inner form\'s button is not');
+        outer.spinner(false);
+        assert.isNull(outerGo.getAttribute('aria-disabled'), 'and its own is restored');
+    });
+
+    it('answers a field owning form, as a native control does', async () => {
+        const [outer, container] = await mount(`
+            <ful-form id="outer-form">
+                <ful-input name="status">outer</ful-input>
+            </ful-form>
+            <ful-input name="lonely">lonely</ful-input>`);
+        const inForm = container.querySelector('#outer-form ful-input');
+        const lonely = container.querySelector('ful-input[name=lonely]');
+
+        assert.strictEqual(inForm.form, outer.form, 'the associated form, the native one the field sits in');
+        assert.strictEqual(lonely.form, null, 'null outside any form');
+    });
+
     it('shows a field problem carrying no context in the banner instead of crashing', async () => {
         stubLoader({
             prepare: async (v) => v,
