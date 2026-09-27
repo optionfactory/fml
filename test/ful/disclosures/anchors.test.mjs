@@ -238,3 +238,102 @@ describe('The stretch placement of a dropdown', () => {
         }
     });
 });
+
+describe('Anchors.show, the one-shot placement', () => {
+    const bare = () => {
+        const popover = document.createElement('div');
+        popover.setAttribute('popover', 'manual');
+        popover.style.boxSizing = 'border-box';
+        popover.style.padding = '0';
+        popover.style.border = '0';
+        return popover;
+    };
+    const placed = async (popover, anchor, options) => {
+        Anchors.show(popover, anchor, options);
+        await frames(2);
+        return popover.getBoundingClientRect();
+    };
+    const cleanup = (anchor, popover) => {
+        if (popover.matches(':popover-open')) {
+            popover.hidePopover();
+        }
+        anchor?.remove?.();
+        popover.remove();
+    };
+
+    it('places a shared popover below its anchor element, start aligned', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'open';
+        invoker.style.position = 'fixed';
+        invoker.style.top = '60px';
+        invoker.style.left = '80px';
+        const popover = bare();
+        popover.innerHTML = '<div style="width: 120px; height: 80px;"></div>';
+        document.body.append(invoker, popover);
+        try {
+            const here = await placed(popover, invoker);
+            const there = invoker.getBoundingClientRect();
+            assert.isTrue(popover.matches(':popover-open'), 'the popover is shown');
+            assert.closeTo(here.left, there.left, 1, 'start aligned');
+            assert.isAtLeast(here.top, there.bottom - 1, 'below the anchor');
+        } finally {
+            cleanup(invoker, popover);
+        }
+    });
+
+    it('takes a rectangle for an anchor, one read out of an iframe among them', async () => {
+        const popover = bare();
+        popover.innerHTML = '<div style="width: 100px; height: 50px;"></div>';
+        document.body.append(popover);
+        try {
+            const here = await placed(popover, new DOMRect(200, 150, 60, 30));
+            assert.closeTo(here.left, 200, 1);
+            assert.closeTo(here.top, 180, 1, 'below the rectangle');
+        } finally {
+            cleanup(null, popover);
+        }
+    });
+
+    it('honours the gap and flips above where no room is left below', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'open';
+        invoker.style.position = 'fixed';
+        invoker.style.bottom = '40px';
+        invoker.style.left = '80px';
+        const popover = bare();
+        popover.innerHTML = '<div style="width: 100px; height: 150px;"></div>';
+        document.body.append(invoker, popover);
+        try {
+            const here = await placed(popover, invoker, { flip: true, gap: 6 });
+            const there = invoker.getBoundingClientRect();
+            assert.closeTo(here.bottom, there.top - 6, 1, 'above the anchor, at the gap');
+
+            const clamped = await placed(popover, invoker, { gap: 6 });
+            assert.isAbove(clamped.bottom, there.top, 'without flip it never moves above the anchor');
+            assert.isAtMost(clamped.bottom, document.documentElement.clientHeight + 1, 'it stays in the viewport');
+        } finally {
+            cleanup(invoker, popover);
+        }
+    });
+
+    it('places an already-open popover without showing it again', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'open';
+        invoker.style.position = 'fixed';
+        invoker.style.top = '60px';
+        invoker.style.left = '10px';
+        const popover = bare();
+        popover.innerHTML = '<div style="width: 100px; height: 50px;"></div>';
+        document.body.append(invoker, popover);
+        try {
+            popover.showPopover();
+            const first = await placed(popover, invoker);
+            assert.closeTo(first.left, 10, 1);
+            invoker.style.left = '300px';
+            const second = await placed(popover, invoker);
+            assert.closeTo(second.left, 300, 1, 'a shared popover follows whoever opened it last');
+        } finally {
+            cleanup(invoker, popover);
+        }
+    });
+});

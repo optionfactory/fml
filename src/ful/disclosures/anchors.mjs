@@ -263,6 +263,57 @@ class Anchors {
             window.addEventListener('resize', schedule);
         }
     }
+    /**
+     * Shows and places a popover beside an anchor, once: the popover shared by
+     * many invokers, each open handing over its own anchor, and an anchor that
+     * is a rectangle rather than an element, one read out of an iframe being
+     * the case a paired invoker could not cover. No pairing, no reflow
+     * following, no close wiring: closing is the caller's, or the platform's
+     * for a light-dismissing popover.
+     *
+     * The placement is the menus' own geometry, below the anchor and
+     * start-aligned, clamped into the viewport; `flip` moves it above the
+     * anchor where the viewport leaves no room below, as the css
+     * `position-try-fallbacks` the paired popovers declare. A popover not
+     * already open is shown before it is placed, so the first position anybody
+     * sees is the right one.
+     *
+     * @param {HTMLElement} popover the `[popover]` element to show, or an
+     *   already-shown element to place
+     * @param {Element|DOMRect} anchor the element, or the rectangle, to place
+     *   beside
+     * @param {object} [options]
+     * @param {boolean} [options.flip] place above the anchor where no room is
+     *   left below
+     * @param {number} [options.gap] the distance from the anchor, in pixels
+     * @returns {HTMLElement} the popover
+     */
+    static show(popover, anchor, { flip = false, gap = 0 } = {}) {
+        const placeShown = () => {
+            const box = anchor instanceof Element ? anchor.getBoundingClientRect() : anchor;
+            const viewport = document.documentElement;
+            const here = popover.getBoundingClientRect();
+            const below = box.bottom + gap;
+            const above = box.top - gap - here.height;
+            const top = flip && below + here.height > viewport.clientHeight - PAD && above >= PAD ? above : below;
+            popover.style.right = 'auto';
+            popover.style.bottom = 'auto';
+            popover.style.margin = '0';
+            popover.style.left = `${clamp(box.left, PAD, Math.max(PAD, viewport.clientWidth - here.width - PAD))}px`;
+            popover.style.top = `${clamp(top, PAD, Math.max(PAD, viewport.clientHeight - here.height - PAD))}px`;
+        };
+        if (popover.matches(':popover-open') || typeof popover.showPopover !== 'function') {
+            placeShown();
+            return popover;
+        }
+        popover.style.visibility = 'hidden';
+        popover.showPopover();
+        requestAnimationFrame(() => {
+            placeShown();
+            popover.style.removeProperty('visibility');
+        });
+        return popover;
+    }
 }
 
 export { Anchors };
