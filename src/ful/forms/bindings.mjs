@@ -222,7 +222,9 @@ class Bindings {
         const globalErrors = es.filter((e) => !pinned(e));
         const named = Bindings.#named(form);
         for (const targets of named.values()) {
-            targets.forEach((el) => el.setCustomValidity?.(''));
+            targets.forEach((el) => {
+                el.setCustomValidity?.('');
+            });
         }
         form.querySelectorAll('ful-errors').forEach((el) => {
             if (!ofForm(el)) {

@@ -53,7 +53,7 @@ class Plugin {
         const httpClient =
             this.#httpClient ?? HttpClient.builder().withCsrfToken().withRedirectOnUnauthorized('/').build();
         //the fallback chain is baked here: en, the active language, the consumer's own strings
-        const language = this.#language.split('-')[0];
+        const language = this.#language.split('-')[0].toLowerCase();
         const l10n = { ...BUILTIN.en, ...BUILTIN[language], ...this.#translations };
         registry
             .defineModule('l10n', Localization)

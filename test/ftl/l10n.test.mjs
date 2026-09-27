@@ -24,8 +24,37 @@ describe('Localization.t', () => {
         assert.strictEqual(call('hello.positional', 'Ada', 'Grace'), 'Hello Ada and Grace');
     });
 
-    it('returns the key itself when the translations do not carry it', () => {
-        assert.strictEqual(call('hello.nope'), 'hello.nope');
+    it('returns the key itself when the translations do not carry it', async () => {
+        const warned = [];
+        const original = console.warn;
+        console.warn = (...args) => warned.push(args.map(String).join(' '));
+        try {
+            assert.strictEqual(call('hello.nope'), 'hello.nope');
+            assert.strictEqual(
+                call('valueOf'),
+                'valueOf',
+                'an inherited name is not a message: the key comes back, as for any other miss',
+            );
+            assert.isTrue(warned.some((w) => w.includes('missing message "valueOf"')));
+        } finally {
+            console.warn = original;
+        }
+    });
+
+    it('does not read an inherited name as a placeholder argument', () => {
+        const warned = [];
+        const original = console.warn;
+        console.warn = (...args) => warned.push(args.map(String).join(' '));
+        try {
+            assert.strictEqual(
+                call('hello.missingarg', Object.create({ who: 'inherited' })),
+                'Hi {who}',
+                'a {who} reached only through the prototype chain is an argument nobody passed',
+            );
+            assert.isTrue(warned.some((w) => w.includes('wants {who}')));
+        } finally {
+            console.warn = original;
+        }
     });
 
     it('selects the plural form through the count argument', () => {

@@ -478,6 +478,15 @@ class BooleanFilter extends Field {
         this._operator.value = this._operator.pinned ? this._operator.allowed[0] : v[0];
         this._value.value = v[1] ?? '';
     }
+    formResetCallback() {
+        super.formResetCallback();
+        if (!this.hasAttribute('value')) {
+            const allowed = this._operator.allowed;
+            this._operator.value = allowed.includes(BooleanFilter.DEFAULT_OPERATOR)
+                ? BooleanFilter.DEFAULT_OPERATOR
+                : allowed[0];
+        }
+    }
     /** @returns {FilterCriterion|null} */
     get criterion() {
         const token = this._value.value;

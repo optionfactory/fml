@@ -52,26 +52,21 @@ function ful_report_error(evt) {
      * @returns {string|undefined} The extracted error message string, or undefined.
      */
     function message() {
-        if (evt.message) {
-            return evt.message;
-        }
         const thrown = evt.reason ?? evt.error;
-        if (!thrown?.message) {
+        const head = evt.message ?? thrown?.message;
+        if (!head) {
             return undefined;
         }
-        // a thrown error carries its context on `cause`, which neither the message
-        // nor the stack includes: without walking it the report says where the
-        // failure surfaced and never what caused it
-        const parts = [];
+        const parts = [head];
         const seen = [];
-        for (let e = thrown; e && parts.length < 6 && seen.indexOf(e) === -1; e = e.cause) {
+        for (let e = thrown?.cause; e && parts.length < 6 && seen.indexOf(e) === -1; e = e.cause) {
             seen.push(e);
             if (!e.message) {
                 break;
             }
-            parts.push(parts.length === 0 ? e.message : `Caused by: ${e.message}`);
+            parts.push(`Caused by: ${e.message}`);
         }
-        if (thrown.truncated) {
+        if (thrown?.truncated) {
             parts.push('Caused by: … outer frames omitted');
         }
         return parts.join('\n');

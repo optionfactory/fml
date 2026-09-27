@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { registry, Rendering } from '../../src/ftl/index.mjs';
+import { ParsedElement, Registry, registry, Rendering } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/index.mjs';
 import en from '../../src/ful/l10n/en.mjs';
 import itTranslations from '../../src/ful/l10n/it.mjs';
@@ -170,5 +170,26 @@ describe('Built-in messages are data, not markup', () => {
         assert.include(cell.textContent, '<b id="l10n-escape">start searching</b>');
         assert.isNull(document.getElementById('l10n-escape'), 'the markup must not have become an element');
 
+    });
+});
+
+describe('Plugin language matching', () => {
+    it("takes the tag's case as carrying nothing", async () => {
+        const reg = new Registry();
+        const define = reg.defineElement.bind(reg);
+        reg.defineElement = (tag, klass) => (customElements.get(tag) ? reg : define(tag, klass));
+        reg.plugin(new Plugin({ language: 'IT' })).configure();
+        class Probe extends ParsedElement {
+            static template = '{{ #l10n:t("dialog.close") }}';
+            render() {
+                this.replaceChildren(this.template().render());
+            }
+        }
+        reg.defineElement('x-l10n-probe', Probe);
+        const container = appended('<x-l10n-probe></x-l10n-probe>');
+        await reg.ready();
+
+        assert.strictEqual(container.textContent, 'Chiudi', 'an upper-cased tag bakes the Italian messages');
+        container.remove();
     });
 });

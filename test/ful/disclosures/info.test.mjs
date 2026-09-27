@@ -833,7 +833,9 @@ describe('Dialog, refresh', () => {
 describe('Dialog.ask and Dialog.confirm', () => {
     const shown = () => document.body.querySelector(':scope > ful-dialog');
     afterEach(() => {
-        document.querySelectorAll('body > ful-dialog').forEach((el) => el.remove());
+        document.querySelectorAll('body > ful-dialog').forEach((el) => {
+            el.remove();
+        });
     });
 
     it('ask builds, shows, answers and removes a transient dialog', async () => {

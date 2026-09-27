@@ -67,7 +67,7 @@ class Localization {
      */
     static t(key, ...args) {
         const messages = this.l10n ?? {};
-        let message = messages[key];
+        let message = Object.prototype.hasOwnProperty.call(messages, key) ? messages[key] : undefined;
         if (message === undefined) {
             warnOnce(`missing message "${key}"`);
             return key;
@@ -90,7 +90,7 @@ class Localization {
         if (args.length === 1 && isPlainObject(args[0])) {
             const named = args[0];
             return message.replace(PLACEHOLDER, (literal, name) => {
-                if (!(name in named)) {
+                if (!Object.prototype.hasOwnProperty.call(named, name)) {
                     warnOnce(`message "${key}" wants {${name}}`);
                     return literal;
                 }

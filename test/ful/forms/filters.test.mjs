@@ -708,6 +708,22 @@ describe('BooleanFilter tuples', () => {
         assert.strictEqual(el.querySelector('[data-ref=value]').tagName, 'BUTTON');
     });
 
+    it('a reset restores the default operator, like its siblings', async () => {
+        const container = appended('<form><ful-filter-boolean name="f">b</ful-filter-boolean></form>');
+        const el = container.querySelector('ful-filter-boolean');
+        await Rendering.waitFor(el);
+        await settle();
+
+        el.value = ['NEQ', 'true'];
+        assert.deepStrictEqual(el.value, ['NEQ', 'true']);
+
+        container.querySelector('form').reset();
+        await settle();
+
+        assert.isNull(el.value, 'the token resets');
+        assert.strictEqual(el.querySelector('[data-ref=operator]').getAttribute('value'), 'EQ', 'and the operator with it');
+    });
+
     it('emits the operator with the picked token', async () => {
         const [el] = await mount('');
         const button = el.querySelector('[data-ref=value]');
