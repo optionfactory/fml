@@ -299,12 +299,19 @@ class Dropdown extends ParsedElement {
                 this.hide();
                 return;
             }
+            if (li.hasAttribute('aria-disabled')) {
+                return;
+            }
             this.#change(li);
         });
         this.replaceChildren(fragment);
     }
     #selected() {
-        return this.#menu?.querySelector('[selected]') ?? this.#menu?.firstElementChild ?? null;
+        return (
+            this.#menu?.querySelector('[selected]:not([aria-disabled])') ??
+            this.#menu?.querySelector('li:not([aria-disabled])') ??
+            null
+        );
     }
     #highlight(li) {
         if (!li) {
@@ -336,11 +343,20 @@ class Dropdown extends ParsedElement {
         const data = values.map((entry, index) => ({ index, ...entry }));
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
         for (const [index, li] of [...this.#menu.children].entries()) {
-            const picked = keys.some((r) => r == values[index]?.key);
+            const entry = values[index];
+            const picked = keys.some((r) => r == entry?.key);
             li.toggleAttribute('picked', picked);
             //what is picked is what aria-selected means for a listbox: a tint alone
             //says it to whoever can see it and to no one else
             li.setAttribute('aria-selected', picked ? 'true' : 'false');
+            //metadata.disabled refuses the entry, metadata.reason saying why
+            const disabled = !!entry?.metadata?.disabled;
+            li.toggleAttribute('aria-disabled', disabled);
+            if (disabled && entry.metadata.reason) {
+                li.setAttribute('title', String(entry.metadata.reason));
+            } else {
+                li.removeAttribute('title');
+            }
         }
         this.#empty.toggleAttribute('hidden', values.length !== 0);
         this.#menu.toggleAttribute('hidden', values.length === 0);
@@ -414,15 +430,25 @@ class Dropdown extends ParsedElement {
         if (this.shown) {
             const selected = this.#selected();
             const candidate = selected?.[`${forward ? 'next' : 'previous'}ElementSibling`];
-            if (selected && candidate) {
-                this.#highlight(candidate);
+            const target = candidate ? this.#walk(candidate, forward) : null;
+            if (selected && target) {
+                this.#highlight(target);
             }
             return;
         }
         await this.show(loader, keys);
     }
+    #walk(from, forward) {
+        for (let li = from; li; li = li[`${forward ? 'next' : 'previous'}ElementSibling`]) {
+            if (!li.hasAttribute('aria-disabled')) {
+                return li;
+            }
+        }
+        return null;
+    }
     jump(first) {
-        const target = first ? this.#menu.firstElementChild : this.#menu.lastElementChild;
+        const edge = first ? this.#menu.firstElementChild : this.#menu.lastElementChild;
+        const target = this.#walk(edge, first);
         if (target) {
             this.#highlight(target);
         }
@@ -432,9 +458,14 @@ class Dropdown extends ParsedElement {
         if (!selected) {
             return;
         }
-        const lis = Array.from(this.#menu.children);
-        const step = this.#page();
-        const target = lis[Math.max(0, Math.min(lis.length - 1, lis.indexOf(selected) + (forward ? step : -step)))];
+        let target = selected;
+        for (let i = 0; i !== this.#page(); ++i) {
+            const next = this.#walk(target[`${forward ? 'next' : 'previous'}ElementSibling`], forward);
+            if (!next) {
+                break;
+            }
+            target = next;
+        }
         this.#highlight(target);
     }
     #page() {

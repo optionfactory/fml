@@ -2018,6 +2018,81 @@ describe('Select attributes during the async render window', () => {
     });
 });
 
+describe('Disabled options', () => {
+    const VOCABULARY = [
+        { key: 'locked', label: 'Locked', metadata: { disabled: true, reason: 'it has children' } },
+        { key: 'free', label: 'Free' },
+        { key: 'sealed', label: 'Sealed', metadata: { disabled: true } },
+    ];
+    const mount = () =>
+        mountSelect('<ful-select>pick</ful-select>', {
+            prefetch: async () => {},
+            exact: async (...keys) => keys.map((k) => VOCABULARY.find((v) => v.key === k) ?? { key: k, label: k }),
+            load: async () => VOCABULARY,
+        });
+    const keydown = (input, code, options = {}) => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
+    };
+
+    it('marks the disabled rows and shows their reason', async () => {
+        const [selectEl] = await mount();
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        await settle();
+
+        const [locked, free, sealed] = selectEl.querySelectorAll('menu li');
+        assert.isTrue(locked.hasAttribute('aria-disabled'), 'metadata.disabled refuses the entry');
+        assert.strictEqual(locked.getAttribute('title'), 'it has children', 'metadata.reason says why');
+        assert.isFalse(free.hasAttribute('aria-disabled'));
+        assert.isTrue(sealed.hasAttribute('aria-disabled'));
+        assert.isFalse(sealed.hasAttribute('title'), 'no reason, no title');
+    });
+
+    it('opens on the first enabled option and never walks onto a disabled one', async () => {
+        const [selectEl] = await mount();
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        await settle();
+        const highlighted = () => selectEl.querySelector('menu li[selected]')?.textContent.trim();
+
+        assert.strictEqual(highlighted(), 'Free', 'the first enabled option, not the first row');
+
+        keydown(input, 'ArrowUp');
+        assert.strictEqual(highlighted(), 'Free', 'backwards stops before the disabled first row');
+        keydown(input, 'ArrowDown');
+        assert.strictEqual(highlighted(), 'Free', 'forwards stops before the disabled last row');
+        keydown(input, 'Home');
+        assert.strictEqual(highlighted(), 'Free', 'Home walks in past the disabled edge');
+        keydown(input, 'End');
+        assert.strictEqual(highlighted(), 'Free', 'End walks in past the disabled edge');
+        keydown(input, 'PageDown');
+        assert.strictEqual(highlighted(), 'Free', 'a page walk refuses the disabled rows too');
+
+        keydown(input, 'Enter');
+        assert.strictEqual(selectEl.value, 'free', 'the highlighted enabled option is the answer');
+    });
+
+    it('refuses a click on a disabled row and takes the enabled one beside it', async () => {
+        const [selectEl] = await mount();
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        await settle();
+        const [locked, free] = selectEl.querySelectorAll('menu li');
+        const dropdown = selectEl.querySelector('ful-dropdown');
+
+        locked.click();
+        await settle();
+        assert.isTrue(dropdown.shown, 'a refused row leaves the dropdown open');
+        assert.strictEqual(selectEl.value, null, 'and the selection alone');
+
+        free.click();
+        await settle();
+        assert.isFalse(dropdown.shown);
+        assert.strictEqual(selectEl.value, 'free');
+    });
+});
+
 describe('Select dropdown anchoring', () => {
     const mount = async () => {
         const container = appended(`<ful-select></ful-select>`);

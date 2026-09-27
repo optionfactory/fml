@@ -79,7 +79,7 @@
             }
         },
         "ful-dropdown": {
-            "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. Rarely used on its own.",
+            "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. An entry whose metadata.disabled is truthy is refused: its row carries aria-disabled and metadata.reason as its title, the arrows and Home/End walk past it, and a click on it changes nothing. Rarely used on its own.",
             "attributes": {
                 "listbox": "The id to give the listbox, so a host can point aria-controls and aria-activedescendant at it before this element upgrades."
             },

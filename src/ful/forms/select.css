@@ -148,7 +148,12 @@
             cursor: pointer;
         }
 
-        li:hover,
+        li[aria-disabled='true'] {
+            color: var(--ful-muted-color);
+            cursor: default;
+        }
+
+        li:not([aria-disabled='true']):hover,
         li[selected] {
             color: var(--ful-dropdown-color);
             background-color: var(--ful-dropdown-selected-bg);
@@ -159,7 +164,7 @@
             box-shadow: inset 0.2rem 0 0 var(--ful-dropdown-active-bg);
         }
 
-        li:active {
+        li:not([aria-disabled='true']):active {
             color: #fff;
             background-color: var(--ful-dropdown-active-bg);
         }
