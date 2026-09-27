@@ -197,8 +197,9 @@ class Form extends ParsedElement {
             );
             if (e instanceof Failure) {
                 this.errors = e.problems;
+            } else {
+                console.warn('failed to submit form', this, 'reason:', e);
             }
-            console.warn('failed to submit form', this, 'reason:', e);
         } finally {
             this.#submitting = false;
             this.spinner(false);

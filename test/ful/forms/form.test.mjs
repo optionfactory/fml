@@ -327,6 +327,7 @@ describe('Form submit outcome events', () => {
         assert.strictEqual(input.validationMessage, 'must not be blank');
         assert.strictEqual(errors.textContent, 'the whole thing is wrong');
         assert.isFalse(errors.hasAttribute('hidden'));
+        assert.isFalse(warns.some((args) => String(args[0]).includes('failed to submit form')), 'a Failure is the reported outcome, not a warning on top of it');
     });
 
     it('shows a field problem carrying no context in the banner instead of crashing', async () => {
