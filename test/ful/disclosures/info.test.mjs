@@ -827,3 +827,77 @@ describe('Dialog, refresh', () => {
         assert.strictEqual(dialog.querySelector('[data-ref=body] > .ful-section-error'), null);
     });
 });
+
+describe('Dialog.ask and Dialog.confirm', () => {
+    const shown = () => document.body.querySelector(':scope > ful-dialog');
+    afterEach(() => {
+        document.querySelectorAll('body > ful-dialog').forEach((el) => el.remove());
+    });
+
+    it('ask builds, shows, answers and removes a transient dialog', async () => {
+        const asked = Dialog.ask('Publish?', 'It goes live now.', [
+            ['later', 'Later'],
+            ['publish', 'Publish', 'ful-button'],
+        ]);
+        await settle();
+        const dialog = shown();
+        assert.ok(dialog, 'the dialog is in the page');
+        assert.include(dialog.querySelector('[data-ref=body]').textContent, 'It goes live now.');
+        assert.strictEqual(
+            dialog.querySelector('dialog').getAttribute('aria-labelledby'),
+            dialog.querySelector('h2').id,
+            'the transient dialog is named through its heading',
+        );
+        const [later, publish] = dialog.querySelectorAll('footer button[data-result]');
+        assert.strictEqual(later.textContent, 'Later');
+        assert.strictEqual(later.className, '');
+        assert.strictEqual(publish.textContent, 'Publish');
+        assert.strictEqual(publish.className, 'ful-button');
+        assert.isTrue(dialog.querySelector('dialog').open);
+
+        publish.click();
+        assert.deepStrictEqual(await asked, { dismissed: false, result: 'publish', response: null });
+        assert.isNull(shown(), 'the transient dialog is removed once answered');
+    });
+
+    it('ask never reads a string body as markup', async () => {
+        const asked = Dialog.ask('Watch out', '<img src=x onerror=window.__leaked=1>');
+        await settle();
+        assert.isNull(shown().querySelector('[data-ref=body] img'), 'the string is text');
+
+        shown().querySelector('[data-result=acknowledged]').click();
+        assert.deepStrictEqual(await asked, { dismissed: false, result: 'acknowledged', response: null });
+    });
+
+    it('ask takes a node for a body of markup', async () => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = 'from a node';
+        const asked = Dialog.ask('Q', paragraph);
+        await settle();
+        assert.include(shown().querySelector('[data-ref=body]').textContent, 'from a node');
+
+        shown().querySelector('[data-result=acknowledged]').click();
+        await asked;
+    });
+
+    it('confirm answers true on confirm, false on cancel and on dismissal', async () => {
+        const confirmed = Dialog.confirm('Delete this page?', 'It is removed from client sites.', { confirm: 'Delete' });
+        await settle();
+        const [cancel, confirm] = shown().querySelectorAll('footer button[data-result]');
+        assert.strictEqual(cancel.textContent, 'Cancel', 'the localized default');
+        assert.strictEqual(confirm.textContent, 'Delete');
+
+        confirm.click();
+        assert.isTrue(await confirmed);
+
+        const cancelled = Dialog.confirm('Delete this page?', 'x');
+        await settle();
+        shown().querySelector('[data-result=cancel]').click();
+        assert.isFalse(await cancelled, 'the cancel button is a no');
+
+        const dismissed = Dialog.confirm('Delete this page?', 'x');
+        await settle();
+        shown().querySelector('header button[data-ref=close]').click();
+        assert.isFalse(await dismissed, 'a dismissal is a no');
+    });
+});

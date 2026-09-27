@@ -33,6 +33,8 @@ export default {
     'info.tooltip': 'More information',
     'dialog.acknowledge': 'Got it',
     'dialog.close': 'Close',
+    'dialog.confirm': 'Confirm',
+    'dialog.cancel': 'Cancel',
     'drawer.close': 'Close',
     'spinner.loading': 'Loading…',
     'toast.region': 'Notifications',

@@ -1,4 +1,4 @@
-import { Attributes, Nodes, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes, Localization, Nodes, ParsedElement, Rendering } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { describable } from '../descriptions.mjs';
 import { SectionRequests } from '../events/sections.mjs';
@@ -308,6 +308,69 @@ class Dialog extends ParsedElement {
         this.#error?.setAttribute('hidden', '');
         this.#loading?.setAttribute('hidden', '');
         this.#body?.removeAttribute('hidden');
+    }
+    /**
+     * Asks a question in a dialog of the page's own, resolving with its outcome
+     * and removing the element afterwards: the element stays the author's when
+     * the question lives in the page, while a question asked from a button had
+     * to build, render, show, answer and clean up by hand.
+     *
+     * The body is text or a node: a string is never read as markup, an
+     * `innerHTML` sink being a thing the library does not carry. Each button is
+     * a `[result, label, className?]` tuple, rendered as its answer.
+     * @param {string} header
+     * @param {string|Node} body
+     * @param {[string, string, string?][]} [buttons]
+     * @returns {Promise<DialogOutcome>}
+     */
+    static async ask(header, body, buttons = []) {
+        const dialog = document.createElement('ful-dialog');
+        dialog.setAttribute('header', header);
+        if (typeof body === 'string') {
+            dialog.textContent = body;
+        } else if (body) {
+            dialog.append(body);
+        }
+        //buttons are slotted only when there are any: the acknowledge button
+        //is the answer of a question asked without choices of its own
+        if (buttons.length > 0) {
+            const choices = document.createElement('template');
+            choices.setAttribute('slot', 'buttons');
+            for (const [result, label, className] of buttons) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.result = result;
+                if (className) {
+                    button.className = className;
+                }
+                button.textContent = label;
+                choices.content.append(button);
+            }
+            dialog.append(choices);
+        }
+        document.body.append(dialog);
+        try {
+            await Rendering.waitFor(dialog);
+            return await /** @type {Dialog} */ (dialog).ask();
+        } finally {
+            dialog.remove();
+        }
+    }
+    /**
+     * Asks a yes/no question, resolving with the confirm button's answer:
+     * the cancel button, the close button and Escape all answer false, a
+     * dismissal being the negative.
+     * @param {string} header
+     * @param {string|Node} body
+     * @param {{ confirm?: string, cancel?: string }} [labels] overriding the localized defaults
+     * @returns {Promise<boolean>}
+     */
+    static async confirm(header, body, labels = {}) {
+        const outcome = await Dialog.ask(header, body, [
+            ['cancel', labels.cancel ?? Localization.of().t('dialog.cancel')],
+            ['confirm', labels.confirm ?? Localization.of().t('dialog.confirm'), 'ful-button'],
+        ]);
+        return !outcome.dismissed && outcome.result === 'confirm';
     }
 }
 

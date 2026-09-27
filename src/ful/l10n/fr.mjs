@@ -36,6 +36,8 @@ export default {
     'info.tooltip': 'Plus d’informations',
     'dialog.acknowledge': 'J’ai compris',
     'dialog.close': 'Fermer',
+    'dialog.confirm': 'Confirmer',
+    'dialog.cancel': 'Annuler',
     'drawer.close': 'Fermer',
     'spinner.loading': 'Chargement…',
     'toast.region': 'Notifications',

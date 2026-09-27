@@ -46,7 +46,7 @@
             }
         },
         "ful-dialog": {
-            "description": "A modal dialog on the native platform: header, body and buttons, the header attribute naming its heading, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which answer with how the dialog ended, or through update(callback), which opens it on a loading state and then shows either what the callback delivered or the problems of a rejection. Longer explanations belong here, shorter ones in ful-tooltip.",
+            "description": "A modal dialog on the native platform: header, body and buttons, the header attribute naming its heading, opened by any element carrying dialog-target set to its id, or programmatically through open()/ask(), which answer with how the dialog ended, or through update(callback), which opens it on a loading state and then shows either what the callback delivered or the problems of a rejection. Longer explanations belong here, shorter ones in ful-tooltip. Dialog.ask(header, body, buttons) and Dialog.confirm(header, body, labels) ask a question in a transient one, building, showing, answering and removing the element themselves; a confirm's cancel, close and Escape all answer the negative.",
             "attributes": {
                 "header": "The dialog's title, shown in its header. Text only; slot content into the body instead for anything richer.",
                 "requires-answer": "For the dialog that must be answered: the close button is not rendered and Escape is refused, so the only way out is a button carrying a result. Both, since a close button withheld while Escape still worked would be decoration rather than a rule.",
