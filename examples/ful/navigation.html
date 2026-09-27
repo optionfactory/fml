@@ -288,7 +288,7 @@
             wizard.move('verify');
         });
 
-        byId('tabs').addEventListener('change', (e) => {
+        byId('tabs').addEventListener('tabs:change', (e) => {
             byId('wizard-output').textContent = `tabs change: active ${e.detail.active}, previous ${e.detail.previous}`;
         });
 

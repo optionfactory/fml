@@ -48,7 +48,7 @@ describe('Tabs', () => {
     it('moves the active panel by click and by property, answering with change', async () => {
         const tabs = await mount(markup);
         const changes = [];
-        tabs.addEventListener('change', (e) => changes.push(e.detail));
+        tabs.addEventListener('tabs:change', (e) => changes.push(e.detail));
 
         tabs.querySelectorAll('button')[1].click();
         assert.strictEqual(tabs.active, 1);

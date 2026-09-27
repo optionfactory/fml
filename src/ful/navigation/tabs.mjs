@@ -107,7 +107,7 @@ class Tabs extends ParsedElement {
         this.#active = index;
         this.reflectTo('active', index);
         if (this.rendered && index !== previous) {
-            this.dispatchEvent(new CustomEvent('change', { detail: { active: index, previous } }));
+            this.dispatchEvent(new CustomEvent('tabs:change', { detail: { active: index, previous } }));
         }
         if (this.#panels.length > 0 && (index !== previous || !this.rendered)) {
             //the activation is the reader's own gesture: the chrome reports a
