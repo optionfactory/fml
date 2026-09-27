@@ -1317,6 +1317,14 @@ describe('Table empty state', () => {
         assert.isFalse(panel(tableEl).hidden, 'a table emptied by a filter says so again');
     });
 
+    it('renders the empty slot per load, with the filter request in scope', async () => {
+        const tableEl = await mount(`<template slot="empty"><p>{{ filterRequest.q ?? 'No pages yet' }}</p></template>`);
+        assert.include(panel(tableEl).textContent, 'No pages yet');
+
+        await tableEl.resetWithFilter({ q: 'zzz' });
+        assert.include(panel(tableEl).textContent, 'zzz', 'the empty state tells the two apart');
+    });
+
     it('says what the empty slot says instead of the localized default', async () => {
         const tableEl = await mount('<div slot="empty">No shipments for this customer yet.</div>');
 

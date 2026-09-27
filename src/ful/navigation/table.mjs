@@ -1,4 +1,4 @@
-import { Attributes, Fragments, Nodes, ParsedElement, Rendering } from '../../ftl/index.mjs';
+import { Attributes, Fragments, Nodes, ParsedElement, Rendering, Templates } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { Failure } from '../../httpc/index.mjs';
 
@@ -381,7 +381,7 @@ class Table extends ParsedElement {
                 <tbody data-ref="empty" hidden>
                     <tr>
                         <td data-tpl-colspan="schema.length">
-                            <ful-empty data-tpl-if="slots.empty">{{{{ slots.empty }}}}</ful-empty>
+                            <ful-empty data-tpl-if="slots.empty" data-ref="empty-authors"></ful-empty>
                             <ful-empty data-tpl-if="!slots.empty">
                                 <ful-icon data-tpl-if="config.emptyIcon" data-tpl-name="config.emptyIcon" aria-hidden="true"></ful-icon>
                                 {{ #l10n:t('table.no-data') }}
@@ -424,6 +424,8 @@ class Table extends ParsedElement {
     #loading;
     #noAutoload;
     #empty;
+    #emptyAuthors;
+    #emptyTemplate;
     #feedback;
     #paginator;
     #sorters;
@@ -475,6 +477,9 @@ class Table extends ParsedElement {
         this.#loading = table.querySelector(':scope > tbody[data-ref=loading]');
         this.#noAutoload = table.querySelector(':scope > tbody[data-ref=initial]');
         this.#empty = table.querySelector(':scope > tbody[data-ref=empty]');
+        this.#emptyAuthors = this.#empty.querySelector('ful-empty[data-ref=empty-authors]');
+        this.#emptyTemplate =
+            slots.empty && !Fragments.isBlank(slots.empty) ? Templates.fromFragment(slots.empty) : null;
         this.#feedback = table.querySelector(':scope > tbody[data-ref=feedback]');
         this.#paginator = Nodes.queryChildren(fragment, 'ful-pagination');
         this.replaceChildren(fragment);
@@ -646,6 +651,15 @@ class Table extends ParsedElement {
                 .render(),
         );
         this.#empty.toggleAttribute('hidden', pageResponse.data.length !== 0);
+        if (this.#emptyTemplate && pageResponse.data.length === 0) {
+            //rendered per load, the rows' own scope: the empty state can say
+            //whether nothing was ever there or the filters matched nothing
+            this.#emptyAuthors.replaceChildren(
+                this.#emptyTemplate
+                    .withOverlay({ schema: this.#schema, pageRequest, filterRequest, pageResponse })
+                    .render(),
+            );
+        }
         //one move, one repaint: the page and the count are the same state
         this.#paginator.update({ current: pageRequest.page, total: pages });
     }
