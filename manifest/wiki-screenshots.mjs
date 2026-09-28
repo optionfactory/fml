@@ -35,6 +35,25 @@ const only = (id) => p.evaluate((keep) => {
 }, id);
 const all = () => p.evaluate(() => { for (const s of document.querySelectorAll('.shot')) s.hidden = false; });
 
+/** The rectangle around a block and the popover it opened, which is placed against the viewport rather than inside it. */
+const around = (block, popover, pad = 8) =>
+    p.evaluate(
+        ([b, o, m]) => {
+            const boxes = [document.querySelector(b), document.querySelector(o)]
+                .filter(Boolean)
+                .map((el) => el.getBoundingClientRect());
+            const left = Math.max(0, Math.min(...boxes.map((r) => r.left)) - m);
+            const top = Math.max(0, Math.min(...boxes.map((r) => r.top)) - m);
+            return {
+                x: left,
+                y: top,
+                width: Math.max(...boxes.map((r) => r.right)) + m - left,
+                height: Math.max(...boxes.map((r) => r.bottom)) + m - top,
+            };
+        },
+        [block, popover, pad],
+    );
+
 // the filter, closed and with its operator menu open: the mark on the choice the
 // button holds is the half a shot of the closed field cannot show
 await shot('#shot-filter', 'filter.png');
@@ -59,11 +78,13 @@ await all();
 await p.waitForTimeout(200);
 
 // tooltip: open the popover
+await only('shot-tooltip');
 await p.click('#shot-tooltip ful-tooltip .ful-tip');
 await p.waitForTimeout(300);
-await p.screenshot({ path: `${out}/tooltip.png`, clip: { x: 24, y: 24, width: 620, height: 150 } });
+await p.screenshot({ path: `${out}/tooltip.png`, clip: await around('#shot-tooltip', 'ful-note') });
 console.log('wrote tooltip.png');
 await p.keyboard.press('Escape');
+await all();
 await p.waitForTimeout(200);
 
 await only('shot-dialog');
