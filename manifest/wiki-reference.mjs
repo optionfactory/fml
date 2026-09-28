@@ -38,7 +38,7 @@ const FAMILIES = [
             'ful-filter-in',
         ],
     ],
-    ['Disclosures', ['ful-tooltip', 'ful-dialog', 'ful-drawer', 'ful-toasts']],
+    ['Disclosures', ['ful-tooltip', 'ful-dialog', 'ful-drawer', 'ful-menu', 'ful-toasts']],
     ['Navigation', ['ful-tabs', 'ful-accordion', 'ful-wizard']],
 ];
 

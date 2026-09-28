@@ -77,6 +77,13 @@ describe('Accessibility audit', () => {
                 c.querySelector('ful-drawer').open();
             },
         ],
+        [
+            'ful-menu open',
+            `<button id="a11y-menu-invoker">More</button><ful-menu for="a11y-menu-invoker"><button>History</button><hr><button>Export</button></ful-menu>`,
+            (c) => {
+                c.querySelector('ful-menu').showPopover();
+            },
+        ],
         ['ful-toasts', `<ful-toasts></ful-toasts>`],
         [
             'ful-tabs',

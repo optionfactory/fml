@@ -298,6 +298,31 @@ const mount = async (html) => {
     const res = await Promise.race([answer, new Promise((r) => setTimeout(() => r('TIMEOUT'), 1000))]);
     ok('16 dialog ask() resolves with data-result', res?.result === 'published' && res?.dismissed === false, JSON.stringify(res));
 
+    // ===== 16: ful-menu, the roles and the keyboard
+    d = await mount(`<button id="more">More</button><ful-menu for="more"><button data-action="history">History</button><button data-action="shortcuts">Keyboard shortcuts</button></ful-menu>`);
+    const invoker = d.querySelector('#more');
+    const menu = d.querySelector('ful-menu');
+    ok('16 menu takes the menu roles', menu.getAttribute('role') === 'menu' && invoker.getAttribute('aria-haspopup') === 'menu'
+       && [...menu.querySelectorAll('button')].every((b) => b.getAttribute('role') === 'menuitem'));
+    invoker.click();
+    await new Promise((r) => setTimeout(r, 80));
+    const onFirst = document.activeElement?.dataset?.action;
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', bubbles: true, cancelable: true }));
+    ok('16 menu opens on its first item and walks with the arrows',
+       onFirst === 'history' && document.activeElement?.dataset?.action === 'shortcuts',
+       `${onFirst} then ${document.activeElement?.dataset?.action}`);
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true, cancelable: true }));
+    ok('16 Escape puts the focus back on the invoker', document.activeElement === invoker, document.activeElement?.id);
+    menu.hidePopover();
+
+    // ===== 16: Anchors.show places before it returns, so a focus lands
+    d = await mount(`<button id="shared-invoker">open</button><div popover id="shared-pop"><button id="shared-item">inside</button></div>`);
+    const shared = d.querySelector('#shared-pop');
+    ful.Anchors.show(shared, d.querySelector('#shared-invoker'), { flip: true, gap: 4 });
+    shared.querySelector('button').focus();
+    ok('16 Anchors.show lets the next line take the focus', document.activeElement?.id === 'shared-item', document.activeElement?.id);
+    shared.hidePopover();
+
     // ===== 16: toasts, both ways
     d = await mount(`<ful-toasts id="tst" timeout="60000"></ful-toasts>`);
     const toasts = d.querySelector('ful-toasts');

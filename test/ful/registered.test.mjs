@@ -40,6 +40,11 @@ const ELEMENTS = [
         observed: {},
     },
     {
+        tag: 'ful-menu',
+        html: `<ful-menu for="registered-menu-invoker"><button>History</button></ful-menu><button id="registered-menu-invoker">More</button>`,
+        observed: {},
+    },
+    {
         tag: 'ful-toasts',
         html: `<ful-toasts></ful-toasts>`,
         observed: {},

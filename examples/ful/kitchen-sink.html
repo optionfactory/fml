@@ -527,9 +527,9 @@
     </fieldset>
 
     <h2>disclosures</h2>
-    <p>Tooltips, dialogs and drawers on the native popover and dialog platforms: focus trapping, Escape and light dismiss come for free. The tip explains the field below; the dialog and the drawer open by their triggers.</p>
+    <p>Tooltips, dialogs, drawers and menus on the native popover and dialog platforms: focus trapping, Escape and light dismiss come for free. The tip explains the field below; the dialog, the drawer and the menu open by their triggers.</p>
     <fieldset>
-        <legend>a tipped field, a dialog and a drawer</legend>
+        <legend>a tipped field, a dialog, a drawer and a menu</legend>
         <ful-form>
             <ful-input name="hinted" value="tab to the tip">A labelled input <ful-tooltip>the tooltip explains the field in one line, dismissed by Escape or an outside click.</ful-tooltip></ful-input>
             <fieldset disabled>
@@ -546,6 +546,16 @@
         <ful-drawer id="sink-drawer" header="A side panel" placement="start">
             The slotted body of the drawer, shown when update() never replaced it.
         </ful-drawer>
+        <div class="row">
+            <button type="button" class="ful-button" id="sink-menu-invoker">More</button>
+            <output id="sink-menu-result">the command you pick appears here</output>
+        </div>
+        <ful-menu for="sink-menu-invoker">
+            <button data-action="history">History</button>
+            <button data-action="shortcuts">Keyboard shortcuts</button>
+            <hr>
+            <button data-action="export" disabled>Export (refused)</button>
+        </ful-menu>
     </fieldset>
 
     <h2>toasts</h2>
@@ -679,6 +689,13 @@
                 { type: 'FIELD_ERROR', context: 'tos', reason: 'the terms must be accepted' },
                 { type: 'GENERIC', context: null, reason: 'The server rejected the submission (demo).' },
             ];
+        });
+
+        document.querySelector('ful-menu').addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (action) {
+                document.getElementById('sink-menu-result').textContent = `picked: ${action}`;
+            }
         });
 
         document.getElementById('sink-toast').addEventListener('click', () => {

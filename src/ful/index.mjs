@@ -42,6 +42,8 @@ export { Tooltip, Dialog } from './disclosures/info.mjs';
 import './disclosures/info.css';
 export { Drawer } from './disclosures/drawer.mjs';
 import './disclosures/drawer.css';
+export { Menu } from './disclosures/menu.mjs';
+import './disclosures/menu.css';
 export { Toasts } from './disclosures/toast.mjs';
 import './disclosures/toast.css';
 export { Tabs } from './navigation/tabs.mjs';

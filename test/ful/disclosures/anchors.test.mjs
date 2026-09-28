@@ -91,6 +91,43 @@ describe('The placing of a popover as it opens', () => {
 });
 
 describe('Anchors.wire invoke and expanded', () => {
+    it('reveals a hand-placed popover in time for a focus from its toggle listener', async () => {
+        const invoker = document.createElement('button');
+        const menu = document.createElement('ul');
+        menu.setAttribute('popover', '');
+        menu.innerHTML = '<li><button id="item-in-the-menu">A</button></li>';
+        document.body.append(invoker, menu);
+        try {
+            withoutPlatformAnchors(() => Anchors.wire(invoker, menu));
+            const item = /** @type HTMLElement */ (menu.querySelector('button'));
+            const landed = new Promise((resolve) =>
+                menu.addEventListener(
+                    'toggle',
+                    () => {
+                        item.focus();
+                        resolve(document.activeElement?.id);
+                    },
+                    { once: true },
+                ),
+            );
+
+            menu.showPopover();
+
+            assert.strictEqual(
+                await landed,
+                'item-in-the-menu',
+                'the popover was measurable and visible by the toggle',
+            );
+        } finally {
+            if (menu.matches(':popover-open')) {
+                menu.hidePopover();
+            }
+            invoker.remove();
+            menu.remove();
+        }
+    });
+
+
     it('points popovertarget at the popover and keeps aria-expanded in step', async () => {
         //an invoker and a plain list of links: no menu semantics, popovertarget
         //carrying the toggle and the light dismiss
@@ -338,6 +375,32 @@ describe('Anchors.show, the one-shot placement', () => {
             const clamped = await placed(popover, invoker, { gap: 6 });
             assert.isAbove(clamped.bottom, there.top, 'without flip it never moves above the anchor');
             assert.isAtMost(clamped.bottom, document.documentElement.clientHeight + 1, 'it stays in the viewport');
+        } finally {
+            cleanup(invoker, popover);
+        }
+    });
+
+    it('is placed before it returns, so a caller can move the focus into it on the next line', async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'open';
+        invoker.style.position = 'fixed';
+        invoker.style.top = '60px';
+        invoker.style.left = '80px';
+        const popover = bare();
+        popover.innerHTML = '<button id="inside-the-popover">inside</button>';
+        document.body.append(invoker, popover);
+        try {
+            Anchors.show(popover, invoker);
+            const inside = /** @type HTMLElement */ (popover.querySelector('button'));
+            inside.focus();
+
+            assert.strictEqual(
+                document.activeElement?.id,
+                'inside-the-popover',
+                'the focus asked for right after the show lands',
+            );
+            const here = popover.getBoundingClientRect();
+            assert.closeTo(here.left, invoker.getBoundingClientRect().left, 1, 'and it is already in place');
         } finally {
             cleanup(invoker, popover);
         }

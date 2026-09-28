@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>ful disclosures: tooltip, dialog, drawer, toasts</title>
+    <title>ful disclosures: tooltip, dialog, drawer, menu, toasts</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link href="../../dist/ful.css" rel="stylesheet">
@@ -29,7 +29,7 @@
 
 <body>
     <h1>ful disclosures and toasts</h1>
-    <p>Everything here runs on the native platform: tooltips are popovers, dialogs and drawers are <code>&lt;dialog&gt;</code>s with their focus trapping and Escape handling, toasts are a live region. The library wires them, <code>dist/ful.css</code> paints them.</p>
+    <p>Everything here runs on the native platform: tooltips and menus are popovers, dialogs and drawers are <code>&lt;dialog&gt;</code>s with their focus trapping and Escape handling, toasts are a live region. The library wires them, <code>dist/ful.css</code> paints them.</p>
 
     <h2>tooltips</h2>
     <p>An icon button toggling a short explanation: placement picks the side, the default is below. Light dismiss, Escape and the <code>aria-expanded</code> accounting come from the wiring.</p>
@@ -114,6 +114,32 @@
         <ful-drawer id="async-drawer" header="Delivered on open" placement="end"></ful-drawer>
     </fieldset>
 
+    <h2>menus</h2>
+    <p>A button and the commands it opens. <code>for</code> names the invoker; the items are the buttons written inside the menu, which the element marks and takes out of the tab order. Open it and walk it with the arrows, Home and End, type a letter to jump, Enter to activate, Escape to close with the focus back on the button. The second menu is the same element against an invoker further down the page.</p>
+    <fieldset>
+        <legend>a menu of commands, one of them refused, and a separator</legend>
+        <div class="row">
+            <button type="button" class="ful-button" id="more">More</button>
+            <output id="menu-result">the command you pick appears here</output>
+        </div>
+        <ful-menu for="more">
+            <button data-action="history">History</button>
+            <button data-action="shortcuts">Keyboard shortcuts</button>
+            <button data-action="duplicate">Duplicate</button>
+            <hr>
+            <button data-action="export" disabled>Export (refused)</button>
+            <a href="#menus" data-action="permalink">Permalink</a>
+        </ful-menu>
+    </fieldset>
+    <fieldset>
+        <legend>a menu whose items the page fills after the render</legend>
+        <div class="row">
+            <button type="button" class="ful-button" id="recent">Recent</button>
+            <button type="button" class="ful-button ghost" id="add-recent">Add one more</button>
+        </div>
+        <ful-menu for="recent"></ful-menu>
+    </fieldset>
+
     <h2>toasts</h2>
     <p>One <code>ful-toasts</code> region per page. Each toast announces itself by severity, carries its own dismiss button and retires on its timer. Anything in the page can raise one through the <code>show-toast</code> document event, and a <code>Failure</code> shows its problems.</p>
     <ful-toasts id="toasts" timeout="8000"></ful-toasts>
@@ -170,6 +196,25 @@
                 byId('toasts').show(`a ${button.dataset.toast} toast`, { severity: button.dataset.toast });
             });
         }
+
+        document.querySelector('ful-menu[for=more]').addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (action) {
+                byId('menu-result').textContent = `picked: ${action}`;
+            }
+        });
+
+        let recent = 0;
+        const recentMenu = document.querySelector('ful-menu[for=recent]');
+        const addRecent = () => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.textContent = `Document ${++recent}`;
+            recentMenu.append(item);
+        };
+        addRecent();
+        addRecent();
+        byId('add-recent').addEventListener('click', addRecent);
 
         byId('toast-from-event').addEventListener('click', () => {
             document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'raised without any reference to the region', severity: 'success' } }));

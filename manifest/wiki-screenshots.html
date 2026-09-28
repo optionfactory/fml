@@ -6,6 +6,7 @@
  .shot { width: 520px; padding: 20px; }
  #shot-tooltip { padding: 20px; width: 300px; }
  #shot-filter { padding: 20px; width: 480px; }
+ #shot-menu { padding: 20px; width: 340px; }
  #shot-toasts { width: 420px; }
  label.inline { display: flex; align-items: center; gap: .375rem; font-weight: 600; }
  #shot-files ful-item .filerow { display: flex; align-items: center; gap: .6rem; width: 100%; }
@@ -28,6 +29,16 @@
       <ful-tooltip slot="info" placement="right">eleven digits, IT-prefixed.</ful-tooltip>
     </ful-input>
   </ful-form>
+</div>
+
+<div class="shot" id="shot-menu">
+  <button type="button" class="ful-button" id="shot-menu-invoker">More</button>
+  <ful-menu for="shot-menu-invoker">
+    <button data-action="history">History</button>
+    <button data-action="shortcuts">Keyboard shortcuts</button>
+    <hr>
+    <button data-action="export" disabled>Export (refused)</button>
+  </ful-menu>
 </div>
 
 <div class="shot" id="shot-dialog">

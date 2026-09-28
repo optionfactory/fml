@@ -78,6 +78,14 @@
                 "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems."
             }
         },
+        "ful-menu": {
+            "description": "A menu of commands on the native popover platform: the invoker named by for toggles it, light dismiss and Escape come from the browser, and the element adds the menu semantics and the keyboard protocol (roving focus with the arrows, Home and End, type-ahead, Enter and Space to activate, Escape and every close handing the focus back to the invoker). The items are the buttons and links written inside it, kept as they are and given their menuitem role; activation is the item's own click, which the menu only follows by closing.",
+            "attributes": {
+                "for": "The id of the invoker the menu belongs to: it toggles the menu, carries aria-haspopup and aria-expanded, and takes the focus back when the menu closes. Read once at the upgrade, so the invoker must already be in the page by then."
+            },
+            "slots": {},
+            "events": {}
+        },
         "ful-dropdown": {
             "description": "The options popup of a ful-select, with a localized no-results message when the search matches nothing. An entry whose metadata.disabled is truthy is refused: its row carries aria-disabled and metadata.reason as its title, the arrows and Home/End walk past it, and a click on it changes nothing. Rarely used on its own.",
             "attributes": {

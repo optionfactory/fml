@@ -33,6 +33,21 @@ describe('ChoiceButton', () => {
         );
     });
 
+    it('walks its items with the arrows, on the menu protocol it shares with ful-menu', () => {
+        const { menu, choice } = build({ vocabulary: ['asc', 'desc'] });
+        choice.allowed = ['asc', 'desc'];
+        const [first, second] = [...menu.querySelectorAll('a')];
+
+        first.focus();
+        first.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', bubbles: true, cancelable: true }));
+        assert.strictEqual(document.activeElement, second);
+
+        second.dispatchEvent(new KeyboardEvent('keydown', { code: 'End', bubbles: true, cancelable: true }));
+        assert.strictEqual(document.activeElement, second);
+        second.dispatchEvent(new KeyboardEvent('keydown', { code: 'Home', bubbles: true, cancelable: true }));
+        assert.strictEqual(document.activeElement, first);
+    });
+
     it('splits the item into glyph and word once either is given', () => {
         const { menu, choice } = build({
             vocabulary: ['asc'],

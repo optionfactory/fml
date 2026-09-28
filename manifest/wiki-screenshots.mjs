@@ -47,8 +47,19 @@ await p.keyboard.press('Escape');
 await all();
 await p.waitForTimeout(200);
 
+// the menu, open on its first item: the roving focus is what a shot of a closed
+// invoker cannot show
+await only('shot-menu');
+await p.click('#shot-menu-invoker');
+await p.waitForTimeout(300);
+await p.screenshot({ path: `${out}/menu.png`, clip: { x: 20, y: 20, width: 260, height: 210 } });
+console.log('wrote menu.png');
+await p.keyboard.press('Escape');
+await all();
+await p.waitForTimeout(200);
+
 // tooltip: open the popover
-await p.click('#shot-tooltip ful-tooltip button');
+await p.click('#shot-tooltip ful-tooltip .ful-tip');
 await p.waitForTimeout(300);
 await p.screenshot({ path: `${out}/tooltip.png`, clip: { x: 24, y: 24, width: 620, height: 150 } });
 console.log('wrote tooltip.png');

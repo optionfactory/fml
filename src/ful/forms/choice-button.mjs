@@ -1,5 +1,6 @@
 import { Attributes } from '../../ftl/index.mjs';
 import { Anchors } from '../disclosures/anchors.mjs';
+import { wireMenuKeys } from '../disclosures/menu-keys.mjs';
 
 /**
  * An invoker button paired with the `ul[popover][role=menu]` that follows it:
@@ -7,9 +8,9 @@ import { Anchors } from '../disclosures/anchors.mjs';
  *
  * It fills the menu from a vocabulary, wires it the first time more than one
  * choice survives the whitelist, pins the button to a static glyph when a
- * single one does, owns the roving focus and the Escape/Enter handling, and
- * keeps the button's value, glyph and aria-label in step. A pick that changes
- * the value calls back; the host decides what that means.
+ * single one does, takes the shared menu keyboard protocol, and keeps the
+ * button's value, glyph and aria-label in step. A pick that changes the value
+ * calls back; the host decides what that means.
  *
  * The button's `value` attribute is the store, as it is for a native control:
  * the menu protocol finds the current item by it, and nothing mirrors it.
@@ -167,64 +168,10 @@ class ChoiceButton {
         return Array.from(this.#menu.querySelectorAll('li > a'), (a) => /** @type HTMLAnchorElement */ (a));
     }
     #wire() {
-        const button = this.#button;
-        const menu = this.#menu;
-        Anchors.wire(button, menu, { prefix: 'ful-filter-menu', invoke: true, expanded: true });
-        menu.addEventListener('toggle', (/** @type any */ evt) => {
-            if (evt.newState !== 'open') {
-                //give the invoker back the focus the menu had borrowed, without
-                //stealing it from wherever else the close came from
-                if (menu.contains(document.activeElement)) {
-                    button.focus();
-                }
-                return;
-            }
-            const items = this.#items();
-            (items.find((a) => a.getAttribute('value') === this.value) ?? items[0])?.focus();
-        });
-        menu.addEventListener('keydown', (evt) => {
-            const target = /** @type HTMLElement */ (evt.target);
-            const item = /** @type HTMLAnchorElement | null */ (target.closest('li > a'));
-            if (!item) {
-                return;
-            }
-            const items = this.#items();
-            const at = items.indexOf(item);
-            switch (evt.code) {
-                case 'ArrowDown': {
-                    evt.preventDefault();
-                    items[(at + 1) % items.length]?.focus();
-                    break;
-                }
-                case 'ArrowUp': {
-                    evt.preventDefault();
-                    items[(at - 1 + items.length) % items.length]?.focus();
-                    break;
-                }
-                case 'Home': {
-                    evt.preventDefault();
-                    items[0]?.focus();
-                    break;
-                }
-                case 'End': {
-                    evt.preventDefault();
-                    items[items.length - 1]?.focus();
-                    break;
-                }
-                case 'Enter':
-                case 'Space': {
-                    evt.preventDefault();
-                    item.click();
-                    button.focus();
-                    break;
-                }
-                case 'Escape': {
-                    //the platform's close request hides the menu, the focus is placed
-                    //on the invoker before the focused item is detached from it
-                    button.focus();
-                    break;
-                }
-            }
+        Anchors.wire(this.#button, this.#menu, { prefix: 'ful-filter-menu', invoke: true, expanded: true });
+        wireMenuKeys(this.#button, this.#menu, {
+            items: () => this.#items(),
+            current: () => this.#items().find((a) => a.getAttribute('value') === this.value),
         });
     }
 }

@@ -10,6 +10,7 @@ import { RadioGroup } from './forms/radio.mjs';
 import { SelectLoader, Dropdown, Select } from './forms/select.mjs';
 import { Tooltip, Dialog } from './disclosures/info.mjs';
 import { Drawer } from './disclosures/drawer.mjs';
+import { Menu } from './disclosures/menu.mjs';
 import { Toasts } from './disclosures/toast.mjs';
 import { Tabs } from './navigation/tabs.mjs';
 import { Accordion } from './disclosures/accordion.mjs';
@@ -61,6 +62,7 @@ class Plugin {
             .defineElement('ful-tooltip', Tooltip)
             .defineElement('ful-dialog', Dialog)
             .defineElement('ful-drawer', Drawer)
+            .defineElement('ful-menu', Menu)
             .defineElement('ful-toasts', Toasts)
             .defineElement('ful-tabs', Tabs)
             .defineElement('ful-accordion', Accordion)

@@ -33,6 +33,7 @@ describe('Element metadata', function () {
             'disclosures/accordion',
             'disclosures/drawer',
             'disclosures/info',
+            'disclosures/menu',
             'disclosures/toast',
             'forms/bindings',
             'forms/checkbox',

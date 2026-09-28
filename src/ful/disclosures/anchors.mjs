@@ -136,7 +136,7 @@ const unplace = (popover) => {
 
 const showOncePlaced = (popover, anchored) => {
     popover.style.visibility = 'hidden';
-    requestAnimationFrame(() => {
+    queueMicrotask(() => {
         if (popover.matches(':popover-open')) {
             place(popover, anchored);
         }
@@ -275,8 +275,9 @@ class Anchors {
      * start-aligned, clamped into the viewport; `flip` moves it above the
      * anchor where the viewport leaves no room below, as the css
      * `position-try-fallbacks` the paired popovers declare. A popover not
-     * already open is shown before it is placed, so the first position anybody
-     * sees is the right one.
+     * already open is shown and placed before the call returns, so the first
+     * position anybody sees is the right one and the caller can move the focus
+     * into it on the next line.
      *
      * @param {HTMLElement} popover the `[popover]` element to show, or an
      *   already-shown element to place
@@ -302,16 +303,10 @@ class Anchors {
             popover.style.left = `${clamp(box.left, PAD, Math.max(PAD, viewport.clientWidth - here.width - PAD))}px`;
             popover.style.top = `${clamp(top, PAD, Math.max(PAD, viewport.clientHeight - here.height - PAD))}px`;
         };
-        if (popover.matches(':popover-open') || typeof popover.showPopover !== 'function') {
-            placeShown();
-            return popover;
+        if (typeof popover.showPopover === 'function' && !popover.matches(':popover-open')) {
+            popover.showPopover();
         }
-        popover.style.visibility = 'hidden';
-        popover.showPopover();
-        requestAnimationFrame(() => {
-            placeShown();
-            popover.style.removeProperty('visibility');
-        });
+        placeShown();
         return popover;
     }
 }
