@@ -2041,11 +2041,28 @@ describe('Disabled options', () => {
         await settle();
 
         const [locked, free, sealed] = selectEl.querySelectorAll('menu li');
-        assert.isTrue(locked.hasAttribute('aria-disabled'), 'metadata.disabled refuses the entry');
+        assert.strictEqual(locked.getAttribute('aria-disabled'), 'true', 'metadata.disabled refuses the entry');
         assert.strictEqual(locked.getAttribute('title'), 'it has children', 'metadata.reason says why');
         assert.isFalse(free.hasAttribute('aria-disabled'));
-        assert.isTrue(sealed.hasAttribute('aria-disabled'));
+        assert.strictEqual(sealed.getAttribute('aria-disabled'), 'true');
         assert.isFalse(sealed.hasAttribute('title'), 'no reason, no title');
+    });
+
+    it('reports a refused row as disabled to a reader and to the stylesheet', async () => {
+        const [selectEl] = await mount();
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        await settle();
+
+        const [locked, free] = selectEl.querySelectorAll('menu li');
+        //an empty aria-disabled reads as the default, so the value is what carries the refusal
+        assert.isTrue(locked.matches('[aria-disabled="true"]'), 'the row the stylesheet mutes');
+        assert.isFalse(free.matches('[aria-disabled="true"]'));
+        assert.notStrictEqual(
+            getComputedStyle(locked).color,
+            getComputedStyle(free).color,
+            'a refused row does not read as an ordinary choice',
+        );
     });
 
     it('opens on the first enabled option and never walks onto a disabled one', async () => {

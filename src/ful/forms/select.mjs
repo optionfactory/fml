@@ -299,7 +299,7 @@ class Dropdown extends ParsedElement {
                 this.hide();
                 return;
             }
-            if (li.hasAttribute('aria-disabled')) {
+            if (li.matches('[aria-disabled="true"]')) {
                 return;
             }
             this.#change(li);
@@ -308,8 +308,8 @@ class Dropdown extends ParsedElement {
     }
     #selected() {
         return (
-            this.#menu?.querySelector('[selected]:not([aria-disabled])') ??
-            this.#menu?.querySelector('li:not([aria-disabled])') ??
+            this.#menu?.querySelector('[selected]:not([aria-disabled="true"])') ??
+            this.#menu?.querySelector('li:not([aria-disabled="true"])') ??
             null
         );
     }
@@ -351,7 +351,11 @@ class Dropdown extends ParsedElement {
             li.setAttribute('aria-selected', picked ? 'true' : 'false');
             //metadata.disabled refuses the entry, metadata.reason saying why
             const disabled = !!entry?.metadata?.disabled;
-            li.toggleAttribute('aria-disabled', disabled);
+            if (disabled) {
+                li.setAttribute('aria-disabled', 'true');
+            } else {
+                li.removeAttribute('aria-disabled');
+            }
             if (disabled && entry.metadata.reason) {
                 li.setAttribute('title', String(entry.metadata.reason));
             } else {
@@ -440,7 +444,7 @@ class Dropdown extends ParsedElement {
     }
     #walk(from, forward) {
         for (let li = from; li; li = li[`${forward ? 'next' : 'previous'}ElementSibling`]) {
-            if (!li.hasAttribute('aria-disabled')) {
+            if (!li.matches('[aria-disabled="true"]')) {
                 return li;
             }
         }
