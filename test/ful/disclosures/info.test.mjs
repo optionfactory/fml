@@ -884,6 +884,40 @@ describe('Dialog.ask and Dialog.confirm', () => {
         await asked;
     });
 
+    it('dresses the dialog with the class it is given, as a declared one is', async () => {
+        const asked = Dialog.ask('Wide question', 'body', [['ok', 'OK']], { className: 'widest' });
+        await settle();
+        assert.isTrue(shown().closest('ful-dialog').classList.contains('widest'));
+
+        shown().querySelector('[data-result=ok]').click();
+        await asked;
+    });
+
+    it('takes a button the caller built, beside the tuples', async () => {
+        const spacer = document.createElement('span');
+        spacer.className = 'spacer';
+        const mine = document.createElement('button');
+        mine.type = 'button';
+        mine.dataset.result = 'mine';
+        mine.setAttribute('aria-label', 'the long name a tuple cannot carry');
+        mine.textContent = 'Mine';
+        const asked = Dialog.ask('Q', 'body', [['cancel', 'Cancel'], spacer, mine]);
+        await settle();
+        const footer = shown().querySelector('footer');
+        assert.deepEqual(
+            [...footer.children].map((el) => el.localName),
+            ['button', 'span', 'button'],
+            'the caller\'s nodes keep their place among the tuples',
+        );
+        assert.strictEqual(
+            footer.querySelector('[data-result=mine]').getAttribute('aria-label'),
+            'the long name a tuple cannot carry',
+        );
+
+        footer.querySelector('[data-result=mine]').click();
+        assert.deepEqual(await asked, { dismissed: false, result: 'mine', response: null });
+    });
+
     it('confirm answers true on confirm, false on cancel and on dismissal', async () => {
         const confirmed = Dialog.confirm('Delete this page?', 'It is removed from client sites.', { confirm: 'Delete' });
         await settle();

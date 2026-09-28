@@ -317,15 +317,22 @@ class Dialog extends ParsedElement {
      *
      * The body is text or a node: a string is never read as markup, an
      * `innerHTML` sink being a thing the library does not carry. Each button is
-     * a `[result, label, className?]` tuple, rendered as its answer.
+     * a `[result, label, className?]` tuple rendered as its answer, or a node
+     * the caller has built itself, which is how a button carries anything a
+     * tuple cannot say and how a footer gets a spacer.
      * @param {string} header
      * @param {string|Node} body
-     * @param {[string, string, string?][]} [buttons]
+     * @param {([string, string, string?]|Node)[]} [buttons]
+     * @param {{ className?: string }} [options] `className` dresses the dialog,
+     *   the way a declared `ful-dialog` is given one to size it
      * @returns {Promise<DialogOutcome>}
      */
-    static async ask(header, body, buttons = []) {
+    static async ask(header, body, buttons = [], { className } = {}) {
         const dialog = document.createElement('ful-dialog');
         dialog.setAttribute('header', header);
+        if (className) {
+            dialog.className = className;
+        }
         if (typeof body === 'string') {
             dialog.textContent = body;
         } else if (body) {
@@ -336,12 +343,17 @@ class Dialog extends ParsedElement {
         if (buttons.length > 0) {
             const choices = document.createElement('template');
             choices.setAttribute('slot', 'buttons');
-            for (const [result, label, className] of buttons) {
+            for (const choice of buttons) {
+                if (choice instanceof Node) {
+                    choices.content.append(choice);
+                    continue;
+                }
+                const [result, label, buttonClass] = choice;
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.dataset.result = result;
-                if (className) {
-                    button.className = className;
+                if (buttonClass) {
+                    button.className = buttonClass;
                 }
                 button.textContent = label;
                 choices.content.append(button);
@@ -363,13 +375,19 @@ class Dialog extends ParsedElement {
      * @param {string} header
      * @param {string|Node} body
      * @param {{ confirm?: string, cancel?: string }} [labels] overriding the localized defaults
+     * @param {{ className?: string }} [options] as `ask` takes them
      * @returns {Promise<boolean>}
      */
-    static async confirm(header, body, labels = {}) {
-        const outcome = await Dialog.ask(header, body, [
-            ['cancel', labels.cancel ?? Localization.of().t('dialog.cancel')],
-            ['confirm', labels.confirm ?? Localization.of().t('dialog.confirm'), 'ful-button'],
-        ]);
+    static async confirm(header, body, labels = {}, options = {}) {
+        const outcome = await Dialog.ask(
+            header,
+            body,
+            [
+                ['cancel', labels.cancel ?? Localization.of().t('dialog.cancel')],
+                ['confirm', labels.confirm ?? Localization.of().t('dialog.confirm'), 'ful-button'],
+            ],
+            options,
+        );
         return !outcome.dismissed && outcome.result === 'confirm';
     }
 }
