@@ -292,6 +292,11 @@ class Dropdown extends ParsedElement {
         //from the host when it gave one, since it has to set aria-controls before
         //this element upgrades
         this.#menu.id = this.declared('listbox') || Attributes.uid('ful-listbox');
+        this.#menu.addEventListener('mousedown', (evt) => {
+            if (evt.target.closest('li')) {
+                evt.preventDefault();
+            }
+        });
         this.#menu.addEventListener('click', (evt) => {
             evt.stopPropagation();
             const li = evt.target.closest('li');

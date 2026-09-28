@@ -2090,6 +2090,24 @@ describe('Disabled options', () => {
         assert.strictEqual(selectEl.value, 'free', 'the highlighted enabled option is the answer');
     });
 
+    it('refuses the press on an entry, so the combobox keeps the focus', async () => {
+        const [selectEl] = await mount();
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        await settle();
+
+        const press = (el) => {
+            const evt = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+            el.dispatchEvent(evt);
+            return evt.defaultPrevented;
+        };
+        const [locked, free] = selectEl.querySelectorAll('menu li');
+        const menu = selectEl.querySelector('menu');
+        assert.isTrue(press(locked), 'a refused entry would otherwise strand the focus on the menu');
+        assert.isTrue(press(free), 'and an enabled one moves it just the same');
+        assert.isFalse(press(menu), 'the menu itself is left alone, so its scrollbar still drags');
+    });
+
     it('refuses a click on a disabled row and takes the enabled one beside it', async () => {
         const [selectEl] = await mount();
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
