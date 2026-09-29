@@ -44,6 +44,24 @@ describe('Form busy state', () => {
         assert.strictEqual(spinner.textContent.trim(), '', 'the label does not linger in a hidden region');
     });
 
+    it('reveals a spinner before writing its label, so a screen reader announces it', async () => {
+        const form = await mountForm(`<ful-form><ful-spinner hidden></ful-spinner></ful-form>`);
+        const spinner = form.querySelector('ful-spinner');
+        const observer = new MutationObserver(() => {});
+        observer.observe(spinner, { attributes: true, childList: true, characterData: true, subtree: true });
+
+        form.spinner(true);
+
+        const records = observer.takeRecords();
+        observer.disconnect();
+        form.spinner(false);
+        const revealed = records.findIndex((r) => r.type === 'attributes' && r.attributeName === 'hidden');
+        const written = records.findIndex((r) => r.type === 'childList' || r.type === 'characterData');
+        assert.notStrictEqual(revealed, -1);
+        assert.notStrictEqual(written, -1);
+        assert.isBelow(revealed, written);
+    });
+
     it('leaves an authored spinner label and role alone', async () => {
         const form = await mountForm(
             `<ful-form><ful-spinner role="alert" hidden><span class="ful-sr-only">Saving the policy</span></ful-spinner></ful-form>`,
@@ -545,6 +563,26 @@ describe('Form submitted values', () => {
         assert.deepStrictEqual(submitted, [{ name: 'ann', action: 'save' }]);
     });
 
+    it('submits from a button while a field is still marked invalid', async () => {
+        stubLoader({
+            prepare: async (v) => v,
+            submit: async () => ({}),
+            transform: async (r) => r,
+        });
+        const [form] = await mount(`
+            <ful-form>
+                <input name="name" value="ann">
+                <button type="submit" id="go">go</button>
+            </ful-form>`);
+        form.querySelector('input').setCustomValidity('already taken');
+
+        const done = new Promise((resolve) => form.addEventListener('submit:success', resolve, { once: true }));
+        form.querySelector('#go').click();
+
+        assert.strictEqual(form.getAttribute('aria-busy'), 'true', 'the browser did not block the submit');
+        await done;
+    });
+
     it('round-trips nested values through the values property, empty fields reading back as null', async () => {
         const [form] = await mount(`
             <ful-form>
@@ -745,6 +783,32 @@ describe('Form reset and validity', () => {
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
         assert.strictEqual(input.validationMessage, '');
+    });
+
+    it('clears on change a form-associated element that has no form property of its own', async () => {
+        if (!customElements.get('test-bare-associated')) {
+            customElements.define(
+                'test-bare-associated',
+                class extends HTMLElement {
+                    static formAssociated = true;
+                    validity = 'invalid';
+                    constructor() {
+                        super();
+                        this.internals = this.attachInternals();
+                    }
+                    setCustomValidity(message) {
+                        this.validity = message;
+                    }
+                },
+            );
+        }
+        const [form] = await mount(`
+            <ful-form clear-invalid-on-change><test-bare-associated name="bare"></test-bare-associated></ful-form>`);
+        const bare = form.querySelector('test-bare-associated');
+
+        bare.dispatchEvent(new Event('change', { bubbles: true }));
+
+        assert.strictEqual(bare.validity, '');
     });
 
     it('keeps a field custom validity on change when clear-invalid-on-change is absent', async () => {

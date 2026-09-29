@@ -1,13 +1,22 @@
-/** Field wiring: extracting and filling values, pinning problems to the fields they name. */
+/**
+ * Moves values between a form's named controls and a nested object, and pins
+ * problems onto the controls they name. Works on any native form, not only
+ * the one inside a `ful-form`. Every method reads the controls through
+ * `form.elements`, so a control in the subtree that belongs to another form
+ * (a nested form, a `form` attribute pointing elsewhere) is never read,
+ * written or marked.
+ */
 class Bindings {
     /**
-     * Flattens a nested object into dotted keys, stopping wherever `stops` names
-     * a key: a field named `address` takes the whole object, while one named
-     * `address.city` takes the leaf.
+     * Flattens a nested object into dotted keys, array indexes becoming numeric
+     * segments (`a.0.b`). It does not descend below a key that `stops` names, so
+     * with a field named `address` the whole object is kept under `address`,
+     * while with one named `address.city` the leaf is kept under `address.city`.
+     * A null value is kept as a leaf.
      * @param {{ [x: string]: any; }} obj
-     * @param {string} prefix
-     * @param {Set<String>} stops - the names the form actually has fields for
-     * @return {{ [x: string]: any; }}
+     * @param {string} prefix prepended to every key, `''` at the root
+     * @param {Set<string>} stops the dotted keys to keep whole
+     * @returns {{ [x: string]: any; }} a flat object keyed by dotted path
      */
     static flatten(obj, prefix, stops) {
         return Object.keys(obj).reduce((acc, k) => {
@@ -21,22 +30,24 @@ class Bindings {
         }, {});
     }
 
-    /**
-     * Walking a dotted name would otherwise descend into `Object.prototype`:
-     * `__proto__` passes the `typeof === 'object'` test below and becomes the
-     * walk's target, so `providePath({}, '__proto__.x', v)` would write on every
-     * object in the page. A field name reaching here is author markup, but it can
-     * be bound from data through `data-tpl-name` and `providePath` is public, so
-     * the segments that can reach the prototype chain are refused outright rather
-     * than left to the caller to prove unreachable.
-     */
     static #FORBIDDEN = new Set(['__proto__', 'prototype', 'constructor']);
     /**
      * Writes a value into an object at a dotted path, creating the intermediate
-     * objects and arrays the path implies. A numeric segment makes an array.
-     * @param {any} result
-     * @param {string} path - a field name, `a.b` or `a[0].b`
+     * objects and arrays the path implies: a numeric segment makes its container
+     * an array. Brackets are not parsed, so `a[0]` is a plain key.
+     *
+     * An undefined value declares the path without filling it: an entry already
+     * there is kept, a missing one is set to null. A scalar or a null left on the
+     * path by a shorter overlapping name (`a` written before `a.b`) is replaced
+     * by a container, so the longer name wins whichever order they arrive in.
+     * @param {any} result the object or array to write into
+     * @param {string} path a dotted name such as `a.b` or `a.0.b`
      * @param {any} value
+     * @returns {any} the root written into, to be used in place of `result`: a
+     * new array replaces it when the first segment is numeric and `result` is
+     * not an array
+     * @throws {Error} when a segment is `__proto__`, `prototype` or `constructor`,
+     * before anything is written
      */
     static providePath(result, path, value) {
         const keys = path.split('.').map((k) => (/^[0-9]+$/.test(k) ? +k : k));
@@ -58,14 +69,9 @@ class Bindings {
                 }
             }
             if (i === keys.length - 1) {
-                //an undefined value declares the path without filling it: an entry
-                //already there is left alone, a missing one is created null
                 current[ckey] = value !== undefined ? value : ckey in current ? current[ckey] : null;
                 return result;
             }
-            //an overlapping name (a before a.b) leaves a scalar or a null here:
-            //the later, more specific name rebuilds the container, exactly as the
-            //reverse order always replaced the container with the scalar
             if (typeof current[ckey] !== 'object' || current[ckey] === null) {
                 current[ckey] = {};
             }
@@ -74,12 +80,19 @@ class Bindings {
         }
     }
     /**
-     * Reads one control's value the way its kind demands: an unchecked radio
-     * answers undefined so it contributes nothing, a checkbox answers its
-     * checked state, a multiple select answers its selected values, and a blank
-     * native control answers null rather than an empty string.
+     * Reads one control's value by its kind. The kind is read from the `type`
+     * attribute and the tag, so a ful element answers its own `value`.
+     *
+     * - a radio answers its `value` when checked and undefined otherwise
+     * - a checkbox answers its `checked` state
+     * - `data-ful-bind-type="boolean"` decodes the value: a radio answers
+     *   whether its value is `'true'`, any other control answers null when
+     *   blank and whether its value is `'true'` otherwise
+     * - a multiple select answers the array of its selected values
+     * - a native input, select or textarea answers null when blank
+     * - anything else answers its `value` unchanged
      * @param {Element & {dataset?: any} & {checked?: boolean} & {value?: any}} el
-     * @returns {any} the value, or undefined where the control contributes none
+     * @returns {any} the value; undefined for an unchecked radio
      */
     static extract(el) {
         if (el.getAttribute('type') === 'radio') {
@@ -104,35 +117,34 @@ class Bindings {
     }
 
     /**
-     * Reads every named, enabled control of a form into a nested object, the
-     * dotted field names deciding its shape.
-     * @param {HTMLFormElement} form
-     * @param {HTMLElement} [submitter]
-     * @returns
-     */
-    /**
-     * Whether a control is one of a form's buttons, whose name travels only when it
-     * is the one that submitted.
      * @param {Element & {type?: string}} el
      */
     static #submits(el) {
         return el.type === 'submit' || el.type === 'reset' || el.type === 'button';
     }
+    /**
+     * Reads the form's named controls into a nested object, the dotted names
+     * deciding its shape (see `providePath`) and each value read by `extract`.
+     * Controls are read in document order, so of two overlapping names the
+     * later one decides. A control is skipped when it has no `name`, when it
+     * matches `:disabled` (its own `disabled` or a disabled fieldset's), or when
+     * it is a submit, reset or plain button. The submitter is the exception to
+     * both of the last two: it contributes its name and value even while
+     * disabled.
+     * @param {HTMLFormElement} form
+     * @param {HTMLElement} [submitter] the button that submitted, when there is one
+     * @returns {any} the nested values; an array when the first segment of a name is numeric
+     * @throws {Error} when a name has a segment `providePath` refuses
+     */
     static extractFrom(form, submitter) {
         let result = {};
         for (const el of form.elements) {
             if (!el.hasAttribute('name')) {
                 continue;
             }
-            //a form submits the name of the button that submitted it and of no other,
-            //which is the platform's own rule. It used to fall out of the spinner
-            //having disabled every button by the time the values were read, so the
-            //affordance was quietly load-bearing for the payload
             if (Bindings.#submits(el) && el !== submitter) {
                 continue;
             }
-            //the submitter is exempt from the disabled check: a form holds its buttons
-            //off while submitting, and its own submitter still names a value
             if (el.matches(':disabled') && el !== submitter) {
                 continue;
             }
@@ -146,16 +158,19 @@ class Bindings {
     }
 
     /**
-     * Writes a value into one control, the inverse of `extract`: a radio is
-     * checked when its own value matches, a checkbox takes the value as its
-     * checked state, and a multiple select selects the options the list names.
+     * Writes a value into one control, the inverse of `extract`.
+     *
+     * - a radio is checked when `raw` is not null and its `value` attribute
+     *   equals `String(raw)`, so a number or a boolean matches its text
+     * - a checkbox takes `raw` as its `checked` state
+     * - a multiple select selects the options whose value is in `raw`, compared
+     *   as text: an array selects each entry, a scalar selects one, null selects none
+     * - anything else takes `raw` as its `value`
      * @param {Element & {dataset?: any} & {checked?: boolean} & {value?: any}} el
-     * @param {any} raw the value as it arrived, coerced per control kind
+     * @param {any} raw
      */
     static mutate(el, raw) {
         if (el.getAttribute('type') === 'radio') {
-            //values are matched as strings, as ful-radio-group does: extract decodes
-            //boolean radios, and payloads carry numbers where the attribute is text
             el.checked = raw != null && el.getAttribute('value') === String(raw);
             return;
         }
@@ -173,6 +188,15 @@ class Bindings {
         el.value = raw;
     }
 
+    /**
+     * Writes a nested object onto the form's named controls: the object is
+     * flattened with the control names as stops (see `flatten`), and each key
+     * is written by `mutate` into every control carrying exactly that name. A
+     * key naming no control is ignored, and a control the object does not name
+     * keeps its value.
+     * @param {HTMLFormElement} form
+     * @param {{ [x: string]: any; }} values
+     */
     static mutateIn(form, values) {
         const named = Bindings.#named(form);
         for (const [flattenedKey, value] of Object.entries(Bindings.flatten(values, '', new Set(named.keys())))) {
@@ -183,10 +207,8 @@ class Bindings {
     }
 
     /**
-     * The form's own named controls, by name: `form.elements`, the platform's
-     * association list, so a field in the subtree that belongs to another form
-     * (a nested form built by script, a `form` attribute pointing elsewhere) is
-     * not the caller's to touch, where a subtree query would have reached it.
+     * @param {HTMLFormElement} form
+     * @returns {Map<string, any[]>} the controls of `form.elements` grouped by name
      */
     static #named(form) {
         const named = new Map();
@@ -205,12 +227,36 @@ class Bindings {
         return named;
     }
 
+    /**
+     * Shows problems on the form, replacing whatever the previous call showed.
+     *
+     * Every named control's custom validity is first cleared. A problem whose
+     * `type` is `FIELD_ERROR` or `INVALID_FORMAT` and whose `context` is not
+     * empty is pinned to a control: brackets in the context are turned into
+     * dots (`users[0].name` becomes `users.0.name`), and the longest leading
+     * part of it that names a control wins, so an exact field takes the problem
+     * alone and a composite field named for a prefix catches the problems of its
+     * subtree. Each control of that name gets `setCustomValidity(reason, rest)`,
+     * `rest` being the remainder of the path (`''` on an exact match) that a
+     * composite can use to route the problem to an inner control.
+     *
+     * Every other problem, and a field problem naming no control, is shown in
+     * each `ful-errors` banner of the form: the banner gets `role="alert"`, is
+     * revealed and holds the reasons one per line. With no such problem the
+     * banner is emptied and hidden.
+     *
+     * Each `ful-field-error` of the form gets `aria-live="off"` when
+     * `scrollOnError` is set, since focusing the field announces its error, and
+     * `aria-live="polite"` otherwise. With `scrollOnError` and at least one
+     * problem, the topmost `:invalid` control is focused.
+     *
+     * A banner or `ful-field-error` belongs to the nearest enclosing form, so
+     * those of a nested form are left alone.
+     * @param {HTMLFormElement} form
+     * @param {{ type: string; context?: string | null; reason: string; }[]} es the problems, as an httpc `Failure` carries them
+     * @param {boolean} scrollOnError
+     */
     static errors(form, es, scrollOnError) {
-        //focus management announces the error of the field it lands on through
-        //aria-describedby: a live region on top of that would read everything twice,
-        //so the polite announcement exists only when nothing takes the focus.
-        //The regions and the banner belong to the form whose subtree holds them
-        //nearest: a nested form's are not this form's to touch
         const ofForm = (el) => el.closest('form') === form;
         Array.from(form.querySelectorAll('ful-field-error'))
             .filter(ofForm)
@@ -228,7 +274,7 @@ class Bindings {
         }
         const unmatched = [];
         fieldErrors.forEach((e) => {
-            const name = e.context.replace(/\[/g, '.').replace(/\]\./g, '.').replace(/\]/g, '');
+            const name = /** @type {string} */ (e.context).replace(/\[/g, '.').replace(/\]\./g, '.').replace(/\]/g, '');
             const parts = name.split('.');
             for (let i = parts.length; i !== 0; --i) {
                 const prefix = parts.slice(0, i).join('.');
@@ -236,18 +282,12 @@ class Bindings {
                 if (targets.length === 0) {
                     continue;
                 }
-                //the most specific name wins: the walk exists so a composite field
-                //owning a whole subtree catches its inner contexts, not so an outer
-                //field doubles a problem an exact one already shows. The remaining
-                //path rides along ('' on an exact match), so a composite can route
-                //the problem to the inner control it names
                 const context = parts.slice(i).join('.');
                 targets.forEach((input) => {
                     input.setCustomValidity?.(e.reason, context);
                 });
                 return;
             }
-            //a context naming no field must not vanish: it reads in the banner
             unmatched.push(e);
         });
         const bannered = [...globalErrors, ...unmatched];
@@ -255,23 +295,20 @@ class Bindings {
             if (!ofForm(el)) {
                 return;
             }
-            const hel = /** @type HTMLElement} */ (el);
+            const hel = /** @type {HTMLElement} */ (el);
             el.setAttribute('role', 'alert');
             if (bannered.length === 0) {
                 el.replaceChildren();
                 el.setAttribute('hidden', '');
                 return;
             }
-            //revealed before it is filled: a live region mutated while hidden and
-            //shown afterwards is announced unreliably, the change having happened
-            //where nothing was watching
             el.removeAttribute('hidden');
             hel.innerText = bannered.map((e) => e.reason).join('\n');
         });
         if (es.length === 0 || !scrollOnError) {
             return;
         }
-        Array.from(form.elements)
+        /** @type {HTMLElement[]} */ (Array.from(form.elements))
             .filter((el) => el.matches(':invalid'))
             .sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y)[0]
             ?.focus();

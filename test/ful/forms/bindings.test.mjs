@@ -414,6 +414,22 @@ describe('Bindings', () => {
             expect(inputName.validationMessage).to.equal('Invalid name', 'the exact match routes nowhere deeper');
         });
 
+        it('reveals the banner before filling it, so a screen reader announces the text', () => {
+            fulErrors.setAttribute('hidden', '');
+            const observer = new MutationObserver(() => {});
+            observer.observe(fulErrors, { attributes: true, childList: true, characterData: true, subtree: true });
+
+            Bindings.errors(form, [{ type: 'GLOBAL', context: '', reason: 'Server unavailable' }], false);
+
+            const records = observer.takeRecords();
+            observer.disconnect();
+            const revealed = records.findIndex((r) => r.type === 'attributes' && r.attributeName === 'hidden');
+            const filled = records.findIndex((r) => r.type === 'childList' || r.type === 'characterData');
+            expect(revealed).to.not.equal(-1);
+            expect(filled).to.not.equal(-1);
+            expect(revealed).to.be.lessThan(filled);
+        });
+
         it('shows a field error naming no field in the banner instead of dropping it', () => {
             Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'ghost.field', reason: 'Nowhere to pin' }], false);
 

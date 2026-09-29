@@ -7,35 +7,43 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
  *
  * A subclass owns its template, its value semantics and its change events. It
  * implements `_build(conf)`, which builds its dom and returns the pieces the
- * base drives: the control, the error region, the label, and the optional
- * `claims`, `announces`, `freeze` and `also`. The base does the wiring,
- * the mounting and the application of the declared state. Nothing in the base
- * is there to be called from a subclass's build.
+ * base drives (see `_build`), and the `value` pair. The base wires the pieces,
+ * mounts the fragment and applies the declared state. Nothing in the base is
+ * there to be called from a subclass's build.
  *
- * The pieces are the contract: the claim setters, the validity protocol and
- * the aria wiring all act on them, so a field with no native control returns a
- * focusable piece of its own chrome as the control. The getters and `focus()`
- * are the only members that tolerate a not-yet-rendered element, where page
- * code may read a claim or ask for the focus before the upgrade; the
- * properties go live only after the render, as ParsedElement documents. The
- * base references no ful vocabulary, only what its subclasses return to it.
+ * The claim setters, the validity protocol and the aria wiring all act on the
+ * pieces, so a field with no native control returns a focusable piece of its
+ * own chrome as the control. The claim getters and `focus()` are the only
+ * members that tolerate a not yet rendered element; the other members need the
+ * pieces and so work only after the render.
+ *
+ * The inner controls carry `form=""`, so the host is the only element the form
+ * sees. Enter pressed in an inner `<input>` of any type but `file`, `button`,
+ * `submit`, `reset` and `image` submits the field's form through
+ * `_requestSubmit()`, as Enter in a native input would. It does not when a
+ * listener inside the field already called `preventDefault()` on the keydown,
+ * while an input method is composing, or when the input is still associated
+ * with the form itself and so submits on its own.
  */
 class Field extends ParsedElement {
     static formAssociated = true;
     /**
-     * The claim attributes and the value are observed here so every field,
-     * including the custom ones, keeps them live after the upgrade: the
-     * attribute is a third way to author a claim, beside the markup and the
-     * property,
-     * exactly as a native input's. The value defaults to the string mapper and
-     * every field with its own vocabulary overrides it (`value:bool`,
-     * `value:csv`, `value:json`).
+     * The claim attributes and the value, observed so that every field,
+     * including a custom one that never lists them, keeps them live after the
+     * upgrade. A subclass's own `static observed` adds to this list. The value
+     * is read with the string mapper; a field with another vocabulary redeclares
+     * it with its own (`value:bool`, `value:csv`, `value:json`).
+     * @type {string[]}
      */
     static observed = ['disabled:presence', 'readonly:presence', 'required:presence', 'value'];
-    /** the role the element internals carry, 'presentation' unless the control is its own */
+    /**
+     * The role set on the element internals at construction. A field whose host
+     * is the widget itself overrides it, as `RadioGroup` does with `'radiogroup'`.
+     * @type {string}
+     */
     static ROLE = 'presentation';
     #control;
-    #pendingFocus = null;
+    #pendingFocus = /** @type {FocusOptions | null} */ (null);
     #described;
     #descriptions = [];
     #errorId = null;
@@ -43,18 +51,15 @@ class Field extends ParsedElement {
     #claims;
     #announces;
     #also = [];
+    /** Sets the internals' role from the subclass's `static ROLE`. */
     constructor() {
         super();
-        //the base attached the internals: the platform allows one call per element
         this.internals.role = /** @type {typeof Field} */ (this.constructor).ROLE;
     }
-    /** every element the claims mirror onto: the claim target, then the extra controls */
     #mirrors() {
         return [this.#claims ?? this.#control, ...this.#also].filter((el) => el);
     }
     /**
-     * Takes what the build produced: keeps the pieces the base drives, wires the
-     * aria and the label, and mounts the fragment.
      * @param {{fragment: any, control: any, error?: any, label?: any, described?: any,
      *          claims?: any, announces?: any, freeze?: any, also?: any[]}} pieces
      */
@@ -75,11 +80,6 @@ class Field extends ParsedElement {
         this.#announces = announces;
         this.#also = also;
         if (freeze) {
-            //a field with no usable native readOnly freezes by refusing the
-            //gesture, not by inerting its subtree: inert takes the whole thing out
-            //of the accessibility tree, so a readonly checkbox, radio group, filter
-            //or file list was on screen and unreadable. Capturing, so it lands
-            //before the control's own handlers and the platform's activation
             freeze.addEventListener(
                 'click',
                 (evt) => {
@@ -90,33 +90,20 @@ class Field extends ParsedElement {
                 true,
             );
         }
-        //the description lands on the control, or on the host where there is no
-        //single control to describe (a radio group's legend names its fieldset)
         this.#described = described ?? control;
         if (error) {
-            //named for what it is, the generic id being for whoever brings no name
             error.id = error.id || Attributes.uid('ful-field-error');
             this.#errorId = error.id;
         }
-        //anything handed over before the field had a target lands here
         this.#describe();
         if (label) {
             Field.#name(this, label, control);
         }
-        //the platform's implicit submission, stood in for where the field's own
-        //protocol took it away: the inner controls carry form="", so Enter in one
-        //of them reaches no form and the platform submits nothing. Listening on the
-        //host rather than the control means every listener the control has already
-        //ran, so preventDefault is what it says: a ful-select accepting the
-        //highlighted entry has consumed the key and no submit follows
         this.addEventListener('keydown', (evt) => {
             if (evt.key !== 'Enter' || evt.defaultPrevented || evt.isComposing) {
                 return;
             }
             const target = /** @type {HTMLInputElement} */ (evt.target);
-            //only where the platform cannot: a control still associated with the
-            //form, an author's own input in a slot among them, submits on its own
-            //and would otherwise submit twice
             if (target.form === this.form || !Field.#submitsOnEnter(target)) {
                 return;
             }
@@ -130,41 +117,33 @@ class Field extends ParsedElement {
         }
     }
     /**
-     * The platform's own rule for which control Enter submits from, measured on
-     * Chromium, Firefox and WebKit: every input but the file picker and the
-     * button-shaped ones, the checkbox and the radio included. A textarea takes
-     * the newline, a select takes the key for its own list, and a button is
-     * activated by it.
+     * @param {EventTarget} el
+     * @returns {boolean} whether Enter in `el` submits a form on the platform
      */
     static #submitsOnEnter(el) {
         return el instanceof HTMLInputElement && !['file', 'button', 'submit', 'reset', 'image'].includes(el.type);
     }
     /**
-     * Adds an element to the accessible description of the field's control and
-     * answers whether the field took it.
+     * Adds an element to the accessible description of the field and answers
+     * whether the field took it.
      *
-     * A field takes one whenever it is offered, before its own render as
-     * readily as after: content slotted into a field is a custom element of its
-     * own and may upgrade on either side of the field it stands in, which
-     * happens in both directions in practice, a tooltip beating an async select
-     * to its render while losing to a plain input. A description handed over
-     * early waits here and is written the moment the field has somewhere to
-     * write it, so the caller never has to know the order.
+     * The field takes a description before its own render as readily as after:
+     * one handed over early is written as soon as the field has rendered, so the
+     * caller does not need to know which of the two upgraded first. The element
+     * is given an id (`ful-described-*`) when it has none, is added once however
+     * often it is offered, and is referenced from the `aria-describedby`
+     * attribute of the `described` piece (the control by default). The
+     * descriptions come in the order they were offered, the error region always
+     * last.
      *
-     * The reference lands on the element handed over rather than on a wrapper
-     * around it: a hidden element is included in a description only where it is
-     * named directly, and content that reaches the description through a
-     * wrapper is skipped while it is hidden. A popover closed until someone
-     * opens it is exactly that, so the caller passes the popover itself.
-     *
-     * An attribute rather than `ariaDescribedByElements`: the property reflects
-     * to nothing, so the description would live in the accessibility tree alone
-     * and vanish entirely on a browser without aria element reflection.
+     * Pass the element that carries the words rather than a wrapper around it:
+     * a hidden element is part of a description only where it is referenced
+     * directly, so a popover that is closed until opened must be passed itself.
      *
      * This is the field's half of the description protocol; `describable` in
      * `ful/descriptions.mjs` is the half the content uses to find the field.
-     * @param {HTMLElement} el
-     * @returns {boolean}
+     * @param {HTMLElement | null | undefined} el
+     * @returns {boolean} false only when `el` is missing
      */
     describedBy(el) {
         if (!el) {
@@ -179,12 +158,6 @@ class Field extends ParsedElement {
         this.#describe();
         return true;
     }
-    /**
-     * Writes the description the field has collected, the error region last:
-     * the standing explanations are what the field always says, the problem is
-     * the news. The field owns the attribute outright rather than appending to
-     * whatever is there, so the order does not depend on who arrived when.
-     */
     #describe() {
         if (!this.#described) {
             return;
@@ -194,6 +167,12 @@ class Field extends ParsedElement {
             this.#described.setAttribute('aria-describedby', ids.join(' '));
         }
     }
+    /**
+     * Moves the focus to the `control` piece. Asked before the render, the
+     * request is kept (the last one wins) and applied once the control is
+     * mounted.
+     * @param {FocusOptions} [options]
+     */
     focus(options) {
         if (this.#control) {
             this.#control.focus(options);
@@ -202,21 +181,24 @@ class Field extends ParsedElement {
         this.#pendingFocus = options ?? {};
     }
     /**
-     * Clears or reports one validation problem: the text lands on the field's
-     * live region and the state on the element internals, driving `:invalid`
-     * styling. Validation is the server's: the submit travels regardless, and
-     * the problems come back pinned here. The error mapping pins on the most
-     * specific field name a problem's context reaches, handing over the
-     * remaining path ('' on an exact match): the base ignores it, a composite
-     * field owning a whole subtree overrides to route the problem to the inner
-     * control it names.
-     * @param {string} [error]
-     * @param {string} [context] the path below this field's name, '' when exact
+     * Clears or reports one validation problem. A message sets a custom error on
+     * the element internals, which makes the host match `:invalid`, renders the
+     * message into the `error` piece and sets `aria-invalid="true"` on the
+     * `announces` piece, or on the `control` when the field announces nowhere.
+     * An empty or missing message clears all three.
+     *
+     * Validation is the server's: the submit is sent regardless, and the form's
+     * error mapping calls this with the problems that come back. It calls the
+     * field with the most specific name a problem's context reaches and passes
+     * the rest of the path as `context`. The base ignores `context`; a composite
+     * field owning a whole subtree overrides this to route the message to the
+     * inner control the path names.
+     *
+     * Needs the render: before it there is no error region to write to.
+     * @param {string} [error] the message, empty or missing to clear
+     * @param {string} [context] the path below this field's name, '' on an exact match
      */
     setCustomValidity(error, context) {
-        //the state rides the control the reader focuses, not only the element
-        //internals: the host's role is presentation for most fields, so a
-        //validity set there announces nothing where the caret actually is
         Attributes.set(this.#announces ?? this.#control, 'aria-invalid', error ? 'true' : null);
         if (!error) {
             this.internals.setValidity({});
@@ -226,11 +208,21 @@ class Field extends ParsedElement {
         this.internals.setValidity({ customError: true }, ' ');
         this.#fieldError.innerText = error;
     }
-    /** The form the platform associated the field with, null outside one: a native control's own `form`. */
+    /**
+     * The form the platform associated the field with, as a native control's
+     * own `form`.
+     * @returns {HTMLFormElement | null} null outside a form
+     */
     get form() {
         return this.internals.form;
     }
-    /** Submits the associated form through its first submitter, as Enter on a native control would. */
+    /**
+     * Submits the associated form with `requestSubmit`, so constraint validation
+     * and the `submit` event run as for a user's submit. The submitter is the
+     * first enabled `button` or `input` of type `submit` in the form whose own
+     * `form` is that form; with none the form is submitted without one. Does
+     * nothing outside a form.
+     */
     _requestSubmit() {
         const form = this.form;
         if (!form) {
@@ -242,12 +234,13 @@ class Field extends ParsedElement {
         form.requestSubmit([...candidates].find((el) => el.type === 'submit' && el.form === form));
     }
     /**
-     * Dispatches the field's change event: bubbling, not cancelable, the value
-     * in the detail. Every field announces through this one method, and the detail
-     * always carries the field's own `value`, so a listener can rely on
-     * `el.value === evt.detail.value` whatever the field is. A field with more to
-     * say adds keys beside it; none can replace it.
-     * @param {Record<string, any>} [extras]
+     * Dispatches the field's `change` event on the host: bubbling, not
+     * cancelable, with `{ value: this.value, ...extras }` as the detail. Call it
+     * for a change the user made. Every field in the library announces through this method and
+     * passes no `value` key in `extras`, so a listener can rely on
+     * `el.value === evt.detail.value`. The extras are spread after `value`, so a
+     * `value` key among them would replace it.
+     * @param {Record<string, any>} [extras] further detail keys beside `value`
      */
     _notifyChange(extras = {}) {
         this.dispatchEvent(
@@ -258,31 +251,11 @@ class Field extends ParsedElement {
             }),
         );
     }
-    /** The html elements a label's `for` may point at, `input[type=hidden]` excepted. */
     static #LABELABLE = new Set(['BUTTON', 'INPUT', 'METER', 'OUTPUT', 'PROGRESS', 'SELECT', 'TEXTAREA']);
     /**
-     * Names the control from the field's label, natively wherever the platform
-     * allows it.
-     *
-     * `for` and `id` are the form the dom itself carries, so the association is
-     * there for anything reading the markup rather than the accessibility tree:
-     * an audit tool, the browser's autofill, a translation pass. It also makes
-     * the label's click reach the control the way it does in a plain form, which
-     * is focus for a text control and activation for a checkbox, so the field
-     * needs no handler of its own.
-     *
-     * A control the platform will not let a label target, a composite carrying
-     * `role="radiogroup"` among them, takes `aria-labelledby` instead. That is an
-     * attribute too, so the association is equally visible; what it does not carry
-     * is the label's click, which is why the handler stays on that path only.
-     *
-     * Neither branch uses `ariaLabelledByElements`. The property reflects to no
-     * attribute, so the name lived in the accessibility tree alone: nothing reading
-     * the dom saw it, and on a browser without aria element reflection the
-     * assignment is a silent expando and the field has no name at all.
-     * @param {any} field
+     * @param {Field} field
      * @param {HTMLElement} label
-     * @param {any} control
+     * @param {HTMLElement} control
      */
     static #name(field, label, control) {
         const labelable =
@@ -292,7 +265,6 @@ class Field extends ParsedElement {
                 label.id = Attributes.uid('ful-label');
             }
             control.setAttribute('aria-labelledby', label.id);
-            //aria-labelledby carries the name but not the label's click
             label.addEventListener('click', () => field.focus());
             return;
         }
@@ -302,20 +274,21 @@ class Field extends ParsedElement {
         label.setAttribute('for', control.id);
     }
     /**
-     * Whether the field's chrome should answer a gesture. Badges, dropzones,
-     * menus and labels are not form controls, so their handlers must ask the
-     * effective state: matches(':disabled') covers the fieldset ancestry the
-     * disabled property deliberately does not reflect, readonly the field's
-     * own claim.
+     * Whether the field's own chrome should act on a gesture. Badges, dropzones,
+     * menus and labels are not form controls, so the platform does not disable
+     * them: every handler on them asks this first. False while the host matches
+     * `:disabled`, which covers a disabled `<fieldset>` ancestry as well as the
+     * claim, or while the readonly claim holds.
+     * @returns {boolean}
      */
     _interactive() {
         return !this.matches(':disabled') && !this.readonly;
     }
     /**
-     * The field's value: every concrete field owns its semantics and overrides
-     * this pair. The base pair exists so the form integration (the reset
-     * protocol among others) has a member to write through; a custom field
-     * forgetting its own keeps the base's inert one.
+     * The field's value, `null` when empty. Every concrete field overrides the
+     * pair with its own semantics; the form extraction, `values =` assignment,
+     * the `change` detail and `formResetCallback` all go through it. The base
+     * pair reads `undefined` and ignores writes.
      * @type {any}
      */
     get value() {
@@ -323,85 +296,72 @@ class Field extends ParsedElement {
     }
     set value(v) {}
     /**
-     * A reset restores the field's declared value, as a native control's reset
-     * restores its markup default: the `value` attribute goes back through the
-     * element's own mapper and value setter, so every field resets through its
-     * own semantics. A field whose value is not attribute backed overrides this.
+     * Restores the declared value on a form reset, as a native control restores
+     * its markup default: the current `value` attribute is decoded with the
+     * element's own mapper and written through the `value` setter. A field whose
+     * value is not attribute backed overrides this.
      */
     formResetCallback() {
         this.value = this.unmarshal('value', this.getAttribute('value'));
     }
     /**
-     * The disabled protocol follows the semantics of a native form control:
+     * The field's own disabled claim, which follows a native form control:
      *
-     * - the `disabled` attribute on the host is the field's own claim, and nothing
-     *   but its author ever writes or removes it, in markup or through the
-     *   property. The framework never claims on the form's behalf, so there is
-     *   nothing to unclaim and nothing to lose: a field declared disabled inside
-     *   a disabled `<fieldset>` stays disabled when the fieldset comes back,
-     *   exactly like a native input keeps its attribute.
-     * - the effective state is the claim OR a disabled fieldset ancestry, which
-     *   the platform maintains on its own: `:disabled` matches both, a disabled
-     *   field is left out of the submitted values, and the inner native controls
-     *   are reached by the ancestry as descendants of the fieldset.
-     * - the property reflects the claim only, like a native input's: a field
-     *   disabled by its ancestry reads `false` while `matches(':disabled')`
-     *   tells the effective state. Un-claiming inside a disabled fieldset
-     *   cannot enable the field.
-     * - the inner controls mirror the claim and nothing else: the ancestry state
-     *   is never written anywhere, so it can never go stale, and the browser
-     *   composes the two on its own when it disables and re-enables a fieldset's
-     *   descendants. Subclass setters call super for the claim, then reach their
-     *   own controls, which mirror the claim like a native input's would.
-     *
-     * Because of this, formDisabledCallback carries nothing the framework needs
-     * to apply, and the protocol does not define it.
+     * - the `disabled` attribute on the host is the claim. Only the author writes
+     *   or removes it, in markup or through this property; the library never
+     *   claims on a form's or fieldset's behalf. A field declared disabled inside
+     *   a disabled `<fieldset>` stays disabled when the fieldset is re-enabled.
+     * - the effective state is the claim or a disabled `<fieldset>` ancestry:
+     *   `:disabled` matches both, and a disabled field is left out of the
+     *   submitted values.
+     * - the property reads the claim only: a field disabled by its ancestry reads
+     *   `false` while `matches(':disabled')` is true. Removing the claim inside a
+     *   disabled fieldset does not enable the field.
+     * - writing it sets or removes the `disabled` attribute on the `claims`
+     *   piece (the control by default) and on every `also` control. The
+     *   ancestry is never written anywhere: the browser disables those controls
+     *   as descendants of the fieldset. A subclass setter calls super, then
+     *   reaches any further controls of its own.
+     * @type {boolean}
      */
     get disabled() {
-        //the claim only, like a native input: the effective state, claim or disabled
-        //ancestry, is what :disabled matches
         return this.hasAttribute('disabled');
     }
     set disabled(d) {
-        //the claim belongs to the author alone, nothing else ever writes it
         this.reflectTo('disabled', d);
-        //the adopted pieces mirror the claim as a native input would: a disabled
-        //fieldset ancestry is left to the browser, which reaches them as
-        //descendants of the fieldset and re-enables them on its own
         for (const el of this.#mirrors()) {
             el.toggleAttribute('disabled', d);
         }
     }
     /**
-     * A field is readonly through its control's native readOnly when it has one:
-     * the control stays focusable and its text selectable, only editing is off.
-     * Fields whose chrome must freeze too (popovers, buttons, label clicks) name
-     * a `freeze` piece instead, whose gestures the base refuses while the claim
-     * holds; the claim reflects on the host either way.
+     * The readonly claim, read from the host attribute. Writing it sets
+     * `readOnly` on the `claims` piece (the control by default) and on every
+     * `also` control, sets `aria-readonly` on the `announces` piece, and
+     * reflects the attribute. A text control stays focusable and selectable
+     * with only editing off. A field whose control has no usable native
+     * `readOnly` names a `freeze` piece, whose clicks are cancelled while the
+     * claim holds.
+     * @type {boolean}
      */
     get readonly() {
-        //the host attribute is the claim, as it is for disabled: every setter
-        //reflects it, so one read answers however the field freezes
         return this.hasAttribute('readonly');
     }
     set readonly(v) {
         for (const el of this.#mirrors()) {
             el.readOnly = v;
         }
-        //announced on the element whose role accepts it, not on whatever the
-        //claims happen to ride: aria-readonly on a fieldset is dropped as invalid
         if (this.#announces) {
             Attributes.set(this.#announces, 'aria-readonly', v ? 'true' : null);
         }
         this.reflectTo('readonly', v);
     }
     /**
-     * A field is required through aria: the claim reflects on the host, the
-     * announcement lives on the adopted control.
+     * The required claim, read from the host attribute. Writing it sets
+     * `aria-required` on the `announces` piece and reflects the attribute; no
+     * native `required` is set, since validation is the server's.
+     * @type {boolean}
      */
     get required() {
-        //the claim, like disabled and readonly: the host attribute rather than
-        //the projection, which a field with no role to announce on never carries
         return this.hasAttribute('required');
     }
     set required(d) {
@@ -411,11 +371,11 @@ class Field extends ParsedElement {
         this.reflectTo('required', d);
     }
     /**
-     * The field's render is the base's: the subclass builds its dom in `_build`
-     * and hands back what it built, the base wiring the pieces, mounting the
-     * fragment and applying the declared state. Nothing in the base is there to
-     * be called from a subclass's build. `_build` may be async; a field that
-     * builds synchronously stays so.
+     * Calls `_build(conf)` and wires the pieces it answers. When `_build`
+     * returns a promise the pieces are wired once it settles; a field that
+     * builds synchronously renders synchronously.
+     * @param {{ slots: Record<string, DocumentFragment> | undefined }} conf
+     * @returns {void | Promise<void>}
      */
     render(conf) {
         const built = /** @type {any} */ (this._build(conf));
@@ -426,32 +386,44 @@ class Field extends ParsedElement {
         return undefined;
     }
     /**
-     * Builds the field's dom and answers the pieces the base drives. The one
-     * method a concrete field implements beside its value pair, and the only
-     * place its dom is created; the base does the wiring and the mounting.
+     * Builds the field's dom and answers the pieces the base drives, or a
+     * promise of them. The one method a concrete field implements beside its
+     * value pair, and the only place its dom is created. A subclass extending
+     * another field's build spreads the pieces it answered and overrides the
+     * keys it owns.
      *
-     * - `fragment` is mounted on the host
-     * - `control` is the focusable target: focus, the aria and, by default, all
-     *   three claims reach it
-     * - `error` is the field's live region
-     * - `label`, when given, names the control and focuses it on click
-     * - `described` moves the description off the control and onto another
-     *   element, the host where no single control can carry it: the error
-     *   region and anything `describedBy` is later handed both land there
-     * - `claims` moves the three claims onto a wrapper the field disables as a
-     *   whole, leaving focus and aria on the control
-     * - `announces` is the element whose role carries `aria-readonly` and
-     *   `aria-required`, the host where the widget role lives there; `null` for a
-     *   field whose control has no role that accepts them
-     * - `freeze` is for a field with no usable native readOnly: the readonly
-     *   claim refuses the gestures inside it, leaving it focusable and readable
-     * - `also` are further controls mirroring disabled and readOnly beside the
-     *   first
-     *
-     * A subclass extending another field's build spreads the pieces it answered
-     * and overrides the keys it owns.
-     * @param {{slots: any}} conf
-     * @returns {any}
+     * - `fragment` (required) replaces the host's children.
+     * - `control` (required) is the focus target of `focus()`. By default it also
+     *   carries the description, `aria-invalid`, `aria-readonly`,
+     *   `aria-required`, and the mirrored `disabled` and `readOnly`.
+     * - `error` (required) is the live region `setCustomValidity` writes into.
+     *   It is given an id (`ful-field-error-*`) when it has none and is always
+     *   the last entry of the description.
+     * - `label` names the control. For a labelable control (`button`, `input`
+     *   other than hidden, `meter`, `output`, `progress`, `select`, `textarea`)
+     *   the control is given an id when it has none and the label's `for`
+     *   points at it, so a click on the label does what it does in a plain
+     *   form. For any other control the label is given an id, the control's
+     *   `aria-labelledby` points at it, and a click on the label calls `focus()`.
+     * - `described` carries `aria-describedby` in place of the control: the
+     *   host, for a field with no single control to describe.
+     * - `claims` receives the mirrored `disabled` and `readOnly` in place of the
+     *   control, for a wrapper such as a `<fieldset>` the field disables as a
+     *   whole. Focus and the aria stay on the control.
+     * - `announces` carries `aria-readonly`, `aria-required` and `aria-invalid`
+     *   in place of the control: the host, where the widget role lives there.
+     *   `null` for a field whose control has no role that accepts
+     *   `aria-readonly` and `aria-required`; `aria-invalid` then goes on the
+     *   control.
+     * - `freeze` is for a field with no usable native `readOnly`: a capturing
+     *   click listener on it cancels the default action of every click inside
+     *   it while the readonly claim holds. It stays focusable and in the
+     *   accessibility tree.
+     * - `also` are further controls that mirror `disabled` and `readOnly`
+     *   beside the claim target.
+     * @param {{ slots: Record<string, DocumentFragment> | undefined }} conf
+     * @returns {any} the pieces, or a promise of them
+     * @throws {Error} when the subclass does not implement it
      */
     _build(conf) {
         throw new Error(`${this.constructor.name} must implement _build`);

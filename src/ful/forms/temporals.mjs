@@ -3,32 +3,39 @@ import { Input } from './input.mjs';
 
 const blankAsNull = (v) => (v === '' ? null : v);
 
-/** Formats the yyyy-mm-dd date in its content in the page's locale, or the one its locale attribute names. */
+/**
+ * Formats the yyyy-mm-dd date in its content as a numeric date, in the locale
+ * its `locale` attribute names, else the page's, else the platform default.
+ * Blank content, or content that does not name a date, renders the `default`
+ * attribute, or nothing without one.
+ */
 class LocalDate extends ParsedElement {
     static attributes = ['locale', 'default'];
     render() {
         const content = this.textContent.trim();
         const [y, m, d] = content.split('-').map(Number);
         const parsed = content === '' ? null : new Date(y, m - 1, d);
-        //content that does not name a date renders like none: formatting an
-        //invalid date would throw and fail the upgrade over a template hole
         if (parsed === null || Number.isNaN(parsed.getTime())) {
             this.replaceChildren(this.declared('default') ?? '');
             return;
         }
-        //the attribute wins, then the page's locale, then the platform default
         const { date } = Localization.of({ locale: this.declared('locale') ?? undefined });
         this.replaceChildren(date(parsed, { year: 'numeric', month: 'numeric', day: 'numeric' }));
     }
 }
 
-/** Formats the ISO instant in its content in the page's locale and timezone. */
+/**
+ * Formats the ISO instant in its content as a numeric date and 24 hour time
+ * with seconds, in the page's timezone and in the locale chosen as ful-local-date
+ * chooses it. Blank content, or content that does not name an instant, renders
+ * the `default` attribute, or nothing without one. A date-only value is read as
+ * local midnight of that day.
+ */
 class Instant extends ParsedElement {
     static attributes = ['locale', 'default'];
     render() {
         const content = this.textContent.trim();
         const parsed = content === '' ? null : new Date(Instant.isoToLocal(content));
-        //content that does not name an instant renders like none, as ful-local-date
         if (parsed === null || Number.isNaN(parsed.getTime())) {
             this.replaceChildren(this.declared('default') ?? '');
             return;
@@ -46,11 +53,16 @@ class Instant extends ParsedElement {
             }),
         );
     }
-    //a date-only value names a calendar day, not a utc midnight: it is read in
-    //the page's timezone, so the day it names is the day it lands on
     static #parse(v) {
         return /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00`) : new Date(v);
     }
+    /**
+     * Converts an ISO instant to the `yyyy-mm-ddThh:mm:ss.sss` wall clock time
+     * a datetime-local input takes, in the page's timezone. A date-only value is
+     * read as local midnight of the day it names, not as UTC midnight.
+     * @param {string} iso
+     * @returns {string} with NaN fields for a value that does not parse
+     */
     static isoToLocal(iso) {
         const d = Instant.#parse(iso);
         const pad = (n, v) => String(v).padStart(n, '0');
@@ -58,35 +70,60 @@ class Instant extends ParsedElement {
         const time = `${pad(2, d.getHours())}:${pad(2, d.getMinutes())}:${pad(2, d.getSeconds())}.${pad(3, d.getMilliseconds())}`;
         return `${date}T${time}`;
     }
+    /**
+     * Converts a datetime-local wall clock time in the page's timezone to a UTC
+     * ISO instant. A date-only value is read as local midnight of that day.
+     * @param {string} local
+     * @returns {string|null} null for a value that does not parse
+     */
     static localToIso(local) {
         const d = Instant.#parse(local);
         return Number.isNaN(d.getTime()) ? null : d.toISOString();
     }
 }
 
-/** A date input whose bounds accept a date, now, or an offset such as +1d. */
+/**
+ * A date input whose `min` and `max` accept a yyyy-mm-dd date, `now` for
+ * today, or an offset from today such as `+1d`, `-2m` or `+1y` (days, months,
+ * years). A month offset landing past the end of the target month takes its
+ * last day. Anything else is passed to the input unchanged. The `step`
+ * attribute is applied before `min` and `max`.
+ */
 class InputLocalDate extends Input {
-    //declaration order is the application order: step first, since on a time
-    //input min and max are snapped to its grid
     static observed = ['step', 'min', 'max'];
     _type() {
         return 'date';
     }
+    /**
+     * The resolved lower bound, a yyyy-mm-dd date or whatever the input was given.
+     * @returns {string|null} null when unset
+     */
     get min() {
         return blankAsNull(this._input.min);
     }
+    /** @param {string|null} v a date, `now` or an offset; null or blank removes the bound */
     set min(v) {
         this._input.min = InputLocalDate.#fromIsoOrOffset(v);
     }
+    /**
+     * The resolved upper bound, a yyyy-mm-dd date or whatever the input was given.
+     * @returns {string|null} null when unset
+     */
     get max() {
         return blankAsNull(this._input.max);
     }
+    /** @param {string|null} v a date, `now` or an offset; null or blank removes the bound */
     set max(v) {
         this._input.max = InputLocalDate.#fromIsoOrOffset(v);
     }
+    /**
+     * The input's native step, in days on a date input and in seconds on a time input.
+     * @returns {string|null} null when unset
+     */
     get step() {
         return blankAsNull(this._input.step);
     }
+    /** @param {string|null} v */
     set step(v) {
         this._input.step = v ?? '';
     }
@@ -94,8 +131,6 @@ class InputLocalDate extends Input {
         if (!v) {
             return '';
         }
-        //the offset is subtracted before formatting so the iso date is the local
-        //calendar day, which toISOString alone would shift to utc
         const formatLocalDate = (date) =>
             new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
         if (v === 'now') {
@@ -130,28 +165,40 @@ class InputLocalDate extends Input {
     }
 }
 
-/** A time input whose bounds accept a time, now, or an hour or minute offset, snapped to the step grid. */
+/**
+ * A time input whose `min` and `max` accept a hh:mm time, `now`, or an offset
+ * from now such as `+2h` or `-30m` (hours, minutes: `m` is minutes here, not
+ * months), wrapping around midnight. A bound resolved from `now` or an offset
+ * is floored to the `step` grid (60 seconds when unset), so that the values
+ * on the grid stay valid, and carries seconds only when the step is not whole
+ * minutes. A literal bound, and anything else, is passed to the input unchanged.
+ */
 class InputLocalTime extends InputLocalDate {
     _type() {
         return 'time';
     }
+    /**
+     * The resolved lower bound, a time or whatever the input was given.
+     * @returns {string|null} null when unset
+     */
     get min() {
         return blankAsNull(this._input.min);
     }
+    /** @param {string|null} v a time, `now` or an offset; null or blank removes the bound */
     set min(v) {
         this._input.min = this.#fromNowOrOffset(v);
     }
+    /**
+     * The resolved upper bound, a time or whatever the input was given.
+     * @returns {string|null} null when unset
+     */
     get max() {
         return blankAsNull(this._input.max);
     }
+    /** @param {string|null} v a time, `now` or an offset; null or blank removes the bound */
     set max(v) {
         this._input.max = this.#fromNowOrOffset(v);
     }
-    /**
-     * Resolves `now` and hour or minute offsets against the current time, wrapping
-     * around midnight. `m` is minutes here, unlike the date offsets of the parent where
-     * it is months: months mean nothing on a time. Anything else is passed through.
-     */
     #fromNowOrOffset(v) {
         if (!v) {
             return '';
@@ -173,10 +220,6 @@ class InputLocalTime extends InputLocalDate {
         }
         return InputLocalTime.#snapped(resolved, Number(this._input.step) || 60);
     }
-    /**
-     * Truncates a time to the step grid: min anchors that grid, so a bound that is not
-     * on it makes every value on it invalid.
-     */
     static #snapped(date, stepSeconds) {
         const pad = (n) => String(n).padStart(2, '0');
         const seconds = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
@@ -187,36 +230,59 @@ class InputLocalTime extends InputLocalDate {
     }
 }
 
-/** A datetime input whose value is read and written as an ISO instant. */
+/**
+ * A datetime-local input whose value and bounds are read and written as UTC
+ * ISO instants, shown as wall clock time in the page's timezone. A date-only
+ * value is read as local midnight of that day.
+ */
 class InputInstant extends Input {
-    //declaration order is the application order: step first, since on a time
-    //input min and max are snapped to its grid
     static observed = ['step', 'min', 'max'];
     _type() {
         return 'datetime-local';
     }
+    /**
+     * The entered time as a UTC ISO instant.
+     * @returns {string|null} null when empty or when the input holds text that does not parse
+     */
     get value() {
         return Instant.localToIso(this._input.value);
     }
+    /** @param {string|null|undefined} v an ISO instant; a falsy value empties the input */
     set value(v) {
         this._input.value = v ? Instant.isoToLocal(v) : '';
     }
+    /**
+     * The lower bound as a UTC ISO instant.
+     * @returns {string|null} null when unset
+     */
     get min() {
         return Instant.localToIso(this._input.min);
     }
+    /** @param {string|null} v an ISO instant; a falsy value removes the bound */
     set min(v) {
         this._input.min = v ? Instant.isoToLocal(v) : '';
     }
+    /**
+     * The upper bound as a UTC ISO instant.
+     * @returns {string|null} null when unset
+     */
     get max() {
         return Instant.localToIso(this._input.max);
     }
+    /** @param {string|null} v an ISO instant; a falsy value removes the bound */
     set max(v) {
         this._input.max = v ? Instant.isoToLocal(v) : '';
     }
+    /**
+     * The input's native step, in seconds.
+     * @returns {string|null} null when unset
+     */
     get step() {
         return blankAsNull(this._input.step);
     }
+    /** @param {string|null} v */
     set step(v) {
+
         this._input.step = v ?? '';
     }
 }

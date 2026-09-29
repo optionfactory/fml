@@ -535,6 +535,23 @@ describe('InputFile warning dismissal', () => {
         assert.isNull(el.querySelector('ful-field-warning'), 'the expired warning leaves the DOM');
         assert.deepStrictEqual(selected(el), [], 'the rejected pick is not resurrected by the dismissal');
     });
+
+    it('removes a warning after WARNING_TIMEOUT even when its animation never ends', async () => {
+        const InputFile = customElements.get('ful-input-file');
+        const timeout = InputFile.WARNING_TIMEOUT;
+        InputFile.WARNING_TIMEOUT = 20;
+        try {
+            const [el] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
+            pick(el, file('b.txt'));
+            assert.lengthOf(warnings(el), 1);
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            assert.deepStrictEqual(warnings(el), []);
+        } finally {
+            InputFile.WARNING_TIMEOUT = timeout;
+        }
+    });
 });
 
 describe('InputFile stray clicks', () => {
@@ -645,6 +662,15 @@ describe('InputFile disabled and readonly claims', () => {
             } else {
                 assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the chrome is frozen');
             }
+        });
+
+        it(`keeps a drop from reaching the browser's default handling while ${claim}`, async () => {
+            const [el] = await mount(`<ful-input-file ${attribute}>files</ful-input-file>`);
+            const dropped = new DragEvent('drop', { dataTransfer: transfer(file('z.txt')), cancelable: true });
+
+            el.querySelector('[data-ref=dropzone]').dispatchEvent(dropped);
+
+            assert.isTrue(dropped.defaultPrevented);
         });
     }
     it('drops the picker button while readonly, the input taking back its padding', async () => {

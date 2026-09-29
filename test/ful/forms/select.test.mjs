@@ -988,6 +988,21 @@ describe('Select selection removal', () => {
         );
     });
 
+    it('shows a change listener the badges and items of the selection that caused it', async () => {
+        const [selectEl] = await mount(`<ful-select multiple item-list value="k1,k2,k3"></ful-select>`);
+        const seen = [];
+        selectEl.addEventListener('change', () =>
+            seen.push({
+                badges: badges(selectEl).map((b) => b.getAttribute('value')),
+                items: items(selectEl).map((i) => i.getAttribute('data-key')),
+            }),
+        );
+
+        click(badges(selectEl)[1]);
+
+        assert.deepStrictEqual(seen, [{ badges: ['k1', 'k3'], items: ['k1', 'k3'] }]);
+    });
+
     it('drops the entry whose item remove button was clicked', async () => {
         const [selectEl] = await mount(`<ful-select multiple item-list value="k1,k2,k3"></ful-select>`);
         const changes = [];

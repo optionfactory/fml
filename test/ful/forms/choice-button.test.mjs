@@ -61,4 +61,15 @@ describe('ChoiceButton', () => {
         assert.include(item.textContent, '↑');
         assert.include(item.textContent, 'Ascending');
     });
+
+    it('links the button to its menu again when a pin is lifted', () => {
+        const { button, menu, choice } = build({ vocabulary: ['asc', 'desc'] });
+        choice.allowed = ['asc', 'desc'];
+        choice.allowed = ['asc'];
+        assert.isNull(button.getAttribute('popovertarget'), 'a pinned button opens nothing');
+
+        choice.allowed = ['asc', 'desc'];
+
+        assert.strictEqual(button.getAttribute('popovertarget'), menu.id);
+    });
 });

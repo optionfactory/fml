@@ -1,9 +1,18 @@
 import { Attributes } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
-/** A checkbox, or a switch under the type=switch claim. */
+/**
+ * A checkbox, or a switch with the `switch` role under `type="switch"`. The
+ * label is the default slot, pointed at the input with `for` and `id`, so a
+ * click on it toggles the value. Every `input-*` attribute is forwarded onto
+ * the input. The input's native `change` is stopped and republished as the
+ * field's own. Readonly freezes the whole choice, label included: no click
+ * inside it toggles the value while the claim holds.
+ */
 class Checkbox extends Field {
+    /** @type {string[]} */
     static attributes = ['type'];
+    /** @type {string[]} */
     static observed = ['value:bool'];
     static slots = true;
     static template = `
@@ -16,6 +25,10 @@ class Checkbox extends Field {
     `;
     #container;
     #input;
+    /**
+     * @param {{ slots: Record<string, DocumentFragment> | undefined }} conf
+     * @returns {any} the pieces, the `ful-choice` container being the `freeze` piece
+     */
     _build({ slots }) {
         const isSwitch = this.declared('type') === 'switch';
         const fragment = this.template().withOverlay({ slots, isSwitch }).render();
@@ -26,12 +39,7 @@ class Checkbox extends Field {
             evt.stopPropagation();
             this._notifyChange();
         });
-        //the base points the label at the input with for/id, so the click toggles
-        //the way it does in a plain form: the input's own change listener above
-        //carries the notification, and readonly is refused by the freeze below
         const label = fragment.querySelector('label');
-        //a checkbox has no editable text to preserve, so readonly freezes the
-        //whole choice, label click included: the container is the frozen piece
         return {
             fragment,
             control: this.#input,
@@ -40,6 +48,11 @@ class Checkbox extends Field {
             freeze: this.#container,
         };
     }
+    /**
+     * Whether the box is checked. The `value` attribute is read with the `bool`
+     * mapper, where only the text `true` means checked.
+     * @type {boolean}
+     */
     get value() {
         return this.#input.checked;
     }

@@ -1,8 +1,6 @@
 import { Attributes, BoundedCache } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
-//a null entry is a pattern that did not compile: cached like any other so the
-//warning is printed once rather than for every field declaring it
 const patternCache = new BoundedCache(100);
 const compiled = (attr, pattern) =>
     patternCache.getOrCompute(`${attr}:${pattern}`, () => {
@@ -14,38 +12,14 @@ const compiled = (attr, pattern) =>
         }
     });
 
-/**
- * The keystroke filter an input declares, as one function of the text.
- *
- * `keep` names the characters that survive and `reject` the ones that do not,
- * which are the same statement from either side: `keep="[0-9]"` and
- * `reject="[^0-9]"` both leave the digits. Keeping is the one worth reaching for,
- * the rejecting spelling of an allowed set being a double negative.
- */
-/**
- * The autofill token a field inherits from the form around it.
- *
- * A control is rendered with `form=""` so that the host is the only thing that
- * submits, which also leaves it without a form owner, and the platform resolves
- * `autocomplete` through the form owner. So a form declaring it reaches nothing
- * on its own and the field reads the setting off the form element instead.
- *
- * The `form` a `ful-form` renders answers here, the host copying its token onto
- * it, and a plain `form` around ful fields answers too: the platform meant the
- * same thing by it, and its inheritance is broken here for the same reason. An
- * ancestor always upgrades before its descendants, so the rendered form is in
- * place by the time a field of its own builds.
- */
 const inheritedAutocomplete = (el) => el.closest('form')?.getAttribute('autocomplete') ?? null;
 
-/** Rendering a text input is what costs these the native min/max/step enforcement. */
 const INPUT_MODES = { numeric: 'numeric', decimal: 'decimal' };
 
 const signed = (v, digits) => (v.startsWith('-') ? '-' : '') + digits(v);
 
 const NUMERIC_DIGITS = {
     numeric: (t) => t.replace(/\D/g, ''),
-    //one separator, the first: the rest are a slip while typing, not a value
     decimal: (t) => {
         const kept = t.replace(/[^\d.,]/g, '');
         const at = kept.search(/[.,]/);
@@ -69,8 +43,6 @@ const filterOf = (el) => {
     }
     if (keep !== null) {
         const re = compiled('keep', keep);
-        //every match, concatenated: the attribute is a pattern rather than a
-        //character class, so the kept text cannot be found by negating it
         return re && ((v) => (v.match(re) ?? []).join(''));
     }
     if (reject !== null) {
@@ -80,11 +52,38 @@ const filterOf = (el) => {
     return numericFilter(el._type(), el.declared('unsigned'));
 };
 
-/** A labelled text input over any native type or textarea; the temporal inputs are its subclasses. */
+/**
+ * A labelled text input over any native input type, or a `<textarea>` under
+ * `type="textarea"`; the temporal inputs are its subclasses. The label is the
+ * default slot, `info` follows it, and `before` and `after` are rendered as
+ * affixes around the control. Every `input-*` attribute is forwarded onto the
+ * control, after everything the field sets there, so it has the last word.
+ *
+ * `type`, `v-type`, `keep`, `reject`, `uppercase`, `trim`, `unsigned` and
+ * `autocomplete` are configuration: read once at the upgrade, so a later write
+ * to them changes nothing. `placeholder` stays live.
+ *
+ * - `type="numeric"` and `type="decimal"` render a text input carrying that
+ *   `inputmode`, so the native `min`, `max` and `step` do not apply. Typing is
+ *   filtered to digits and a leading minus; a decimal also keeps its first `.`
+ *   or `,` and drops any later one; `unsigned` drops the minus.
+ * - `keep` and `reject` are regular expressions filtering what is typed:
+ *   `keep` leaves every match, concatenated, and `reject` removes every match.
+ *   Either replaces the type's own filter, and `keep` wins over `reject` with a
+ *   warning. A pattern that does not compile is warned about once and filters
+ *   nothing. The caret stays next to the same character when text before it
+ *   is removed.
+ * - `autocomplete` is put on the control. Without one the field takes the
+ *   `autocomplete` attribute of the nearest enclosing `<form>`, which the
+ *   platform does not pass on because the control carries `form=""`.
+ * - `uppercase`, `trim` and `v-type` shape the value as it is read; see `value`.
+ *
+ * The control's native `change` is stopped and republished as the field's own.
+ */
 class Input extends Field {
+    /** @type {string[]} */
     static observed = ['placeholder'];
-    //configuration: the control is built from them and the value getter reads them,
-    //but none of them is meant to change once the element is up
+    /** @type {string[]} */
     static attributes = [
         'type',
         'v-type',
@@ -107,28 +106,38 @@ class Input extends Field {
         </ful-control-group>
         <ful-field-error></ful-field-error>
     `;
+    /**
+     * The inner control, set by `_build`: the `<input>`, or the `<textarea>`
+     * under `type="textarea"`. A subclass reads and writes it for the
+     * attributes it adds. Typed `any` so that a subclass can treat it as the
+     * one of the two it renders.
+     * @type {any}
+     */
     _input;
+    /**
+     * The type the field renders, which a subclass overrides to wrap another
+     * native type. The base answers the declared `type`, else `number` under
+     * `v-type="number"`, else `text`. It is also what selects the keystroke
+     * filter of `numeric` and `decimal` and the separator handling of `value`.
+     * @returns {string}
+     */
     _type() {
-        //a numeric value wants the numeric widget (decimal normalization, the
-        //right keyboard): v-type=number defaults the type, a declared one wins
         return this.declared('type') ?? (this.declared('v-type') === 'number' ? 'number' : 'text');
     }
+    /**
+     * @param {{ slots: Record<string, DocumentFragment> | undefined }} conf
+     * @returns {{fragment: DocumentFragment, control: any, error: Element | null, label: HTMLLabelElement | null}}
+     */
     _build({ slots }) {
         const declared = this._type();
         const mode = INPUT_MODES[declared];
-        //a numeric widget is a text input: the type names the keyboard, not the
-        //control, so the rendered markup stays valid html
         const type = mode ? 'text' : declared;
         const fragment = this.template().withOverlay({ type, slots }).render();
         this._input = fragment.querySelector(':is(ful-control-group, ful-control) > :is(input, textarea)');
         if (mode) {
-            //before the passthrough, which stays the last word
             Attributes.set(this._input, 'inputmode', mode);
         }
 
-        //the browser reads autocomplete off the control it is classifying, so the
-        //field's own token, or the form's where it declares none, is put there.
-        //Set before the passthrough, which stays the last word
         Attributes.set(
             this._input,
             'autocomplete',
@@ -148,11 +157,8 @@ class Input extends Field {
             const start = evt.target.selectionStart;
             evt.target.value = after;
             if (start === null) {
-                //email, number and the date types have no selection to restore
                 return;
             }
-            //the caret keeps its place among the characters that survived, so only the
-            //ones stripped before it count
             const caret = strip(before.slice(0, start)).length;
             evt.target.setSelectionRange(caret, caret);
         });
@@ -167,6 +173,16 @@ class Input extends Field {
             label: fragment.querySelector('label'),
         };
     }
+    /**
+     * The control's text, shaped in this order: upper cased under `uppercase`,
+     * trimmed under `trim`, `null` when that leaves it empty, every `,` read as
+     * `.` for `type="decimal"`, and decoded to a number under
+     * `v-type="number"`, where text that does not decode is answered as it is.
+     * Writing `null`, `undefined` or `''` empties the control; anything else is
+     * written as its string. Answers a `string`, a `number` or `null`; typed
+     * `any` because subclasses answer other values.
+     * @type {any}
+     */
     get value() {
         const uppercase = this.declared('uppercase');
         const trim = this.declared('trim');
@@ -176,11 +192,8 @@ class Input extends Field {
         if (trimmed === '') {
             return null;
         }
-        //the wire carries a dot wherever the comma is what the keyboard shows
         const normalized = this._type() === 'decimal' ? trimmed.replaceAll(',', '.') : trimmed;
         if (this.declared('v-type') === 'number') {
-            //typed values are an explicit opt in, as the select's k-type: blank
-            //stays null, and a value that does not decode is kept as it is
             const n = Number(normalized);
             return Number.isNaN(n) ? normalized : n;
         }
@@ -189,13 +202,18 @@ class Input extends Field {
     set value(value) {
         this._input.value = value === '' || value === undefined ? null : value;
     }
+    /**
+     * The control's placeholder, `null` when there is none. The control always
+     * carries one, a single space standing in for none, so `:placeholder-shown`
+     * matches an empty control and a floating label can rely on it; the blank
+     * one is neither answered here nor reflected onto the host.
+     * @type {string | null}
+     */
     get placeholder() {
         const v = this._input.getAttribute('placeholder');
         return v === ' ' ? null : v;
     }
     set placeholder(d) {
-        //without a placeholder :placeholder-shown never matches, and floating labels
-        //rely on it, so a blank one stands in for none
         Attributes.set(this._input, 'placeholder', d ?? ' ');
         this.reflectTo('placeholder', d);
     }

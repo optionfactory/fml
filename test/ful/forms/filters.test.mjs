@@ -1183,6 +1183,15 @@ describe('BooleanFilter interactions', () => {
         assert.deepStrictEqual(seen, []);
     });
 
+    it('writes no aria-readonly or aria-required on the value button, whose role accepts neither', async () => {
+        const [el] = await mount('readonly required');
+        const button = el.querySelector('[data-ref=value]');
+
+        assert.isTrue(el.readonly && el.required, 'the claims reflect on the host');
+        assert.isFalse(button.hasAttribute('aria-readonly'));
+        assert.isFalse(button.hasAttribute('aria-required'));
+    });
+
     it('hands its focus to the value button', async () => {
         const [el] = await mount('');
 

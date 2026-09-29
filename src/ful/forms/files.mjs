@@ -1,15 +1,40 @@
 import { Fragments, Localization, Templates } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
-/** A file input with an optional dropzone and item list, enforcing the size and count limits it declares. */
+/**
+ * A file input with an optional dropzone and item list, enforcing the type,
+ * size and count limits it declares.
+ *
+ * The `dropzone` and `item-list` attributes show the dropzone and the list of
+ * chosen files. A `dropzone` slot replaces the default dropzone's content, and
+ * an `items` slot holding a template replaces the stock item, rendered with the
+ * same `files` overlay so that it reads the File objects it lists. Clicking the
+ * dropzone opens the picker, and the host carries a `dragover` attribute while
+ * a drag hovers it. A drop selects the files it carries, ignoring entries that
+ * are not files; a drop with no file, or with several on a field that is not
+ * `multiple`, changes nothing.
+ *
+ * Every selection, picked, dropped or assigned, goes through the constraints
+ * in order: `accept` and `max-file-size` drop the files they refuse,
+ * `max-total-size` and `max-files` clear the whole selection. Each violation
+ * shows a warning. The change event fires for a pick, a drop and a removal
+ * through an item's button; the `files`, `file` and `value` setters are silent,
+ * like a native input's.
+ *
+ * While disabled or readonly, the picker, the dropzone and the item removals
+ * do nothing, and a drop still does not reach the browser's default handling.
+ */
 class InputFile extends Input {
-    /** how long a warning stands before the field retires it, matching the css fade */
+    /**
+     * Milliseconds a warning stays before the field removes it, whether or not
+     * its css animation ran; read each time a warning is shown.
+     * @type {number}
+     */
     static WARNING_TIMEOUT = 5000;
     /**
-     * A FileList holding exactly these files. The platform gives no way to
-     * build one but through a DataTransfer, and every place that narrows a
-     * selection rebuilt it by hand: five loops and three empty ones.
+     * Builds a FileList holding exactly these files, the form `files` takes.
      * @param {Iterable<File>} [files]
+     * @returns {FileList}
      */
     static list(files = []) {
         const dt = new DataTransfer();
@@ -27,8 +52,6 @@ class InputFile extends Input {
         'max-files:number',
         'max-file-size:number',
         'max-total-size:number',
-        //re-declared so it lands after the constraints: assigning a value
-        //validates the selection against them
         'value',
     ];
     #accept;
@@ -70,8 +93,6 @@ class InputFile extends Input {
         const pieces = super._build(conf);
         const fragment = pieces.fragment;
         this.#items = fragment.querySelector('ful-item-list');
-        //a slotted template replaces the stock item, the way a select's does: the
-        //overlay is the same, so a custom item still reads the File it renders
         this.#itemstemplate =
             conf.slots?.items && !Fragments.isBlank(conf.slots.items) ? Templates.fromFragment(conf.slots.items) : null;
         this.#dropzone = fragment.querySelector('[data-ref=dropzone]');
@@ -92,8 +113,6 @@ class InputFile extends Input {
                 return;
             }
             this.files = InputFile.list([...this.files].filter((f, i) => i !== idx));
-            //the removal is the user's own gesture: it reports through change as the
-            //picker's selection does, while the files setter stays silent like a native one
             this._notifyChange();
         });
         this.#dropzone.addEventListener('click', (e) => {
@@ -113,8 +132,6 @@ class InputFile extends Input {
         this.#dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             this.toggleAttribute('dragover', false);
-            //the drop's default stays suppressed whatever the claims say: a
-            //disabled field must not turn into a navigation target
             if (!this._interactive()) {
                 return;
             }
@@ -124,24 +141,13 @@ class InputFile extends Input {
                 return;
             }
             this.files = InputFile.list(files);
-            //a drop is the user's own gesture too: a native file input receiving
-            //one fires change on its own
             this._notifyChange();
         });
         this._input.addEventListener('change', (e) => {
             this.#update();
         });
-        //a file input has no native freeze: readOnly does nothing to it, so the
-        //control group is the frozen piece and the base's refusal of the click is
-        //what keeps the picker shut. The dropzone and the item removals are
-        //guarded on their own handlers
         return { ...pieces, freeze: this.#group };
     }
-    /**
-     * Re-reads the selection: the constraints run in order over what is there,
-     * each dropping what it refuses, and the warnings and the item list are
-     * rendered from what survives. Every path that changes the files ends here.
-     */
     #update() {
         this.setCustomValidity();
         this.#warnings.replaceChildren();
@@ -151,20 +157,19 @@ class InputFile extends Input {
         this.#ensureFilesCount();
         (this.#itemstemplate ?? this.template('items')).withOverlay({ files: this.files }).renderTo(this.#items);
     }
+    /**
+     * Shows a warning in the field's polite live region: the localized message
+     * for an l10n key and its arguments. It is removed when its animation ends,
+     * or after `WARNING_TIMEOUT` milliseconds at the latest. The warnings are
+     * cleared whenever the selection changes.
+     * @param {string} key
+     * @param {Record<string, any>} [args]
+     */
     warning(key, args) {
         this.template('warning').withOverlay({ key, args }).appendTo(this.#warnings);
-        //the field retires its own warnings: the css fade is decoration, and a
-        //theme that drops the keyframe, or a host stylesheet disabling animations,
-        //used to leave them on screen until the next selection
         const warning = /** @type HTMLElement */ (this.#warnings.lastElementChild);
         setTimeout(() => warning.remove(), InputFile.WARNING_TIMEOUT);
     }
-    /**
-     * The native accept vocabulary: a dot-prefixed extension matches the file
-     * name's suffix, a mime type (parameters stripped) matches the file's type,
-     * and image/*, audio/*, video/* match their whole family. Anything else
-     * matches nothing, as the native attribute ignores it.
-     */
     #acceptable(file) {
         const name = file.name.toLowerCase();
         return this.#accept.some((token) => {
@@ -224,89 +229,166 @@ class InputFile extends Input {
         this._input.files = InputFile.list();
     }
 
+    /**
+     * The accepted types, also set on the native input for its picker. A token
+     * is a dot-prefixed extension matched against the end of the file name, a
+     * mime type matched against the file's type with any parameters ignored, or
+     * a family such as `image/*`; case is ignored, and any other token matches
+     * nothing. A file matching no token is dropped with a warning; an empty list
+     * accepts every file. Enforced from the next selection on.
+     * @returns {string[]}
+     */
     get accept() {
         return this.#accept;
     }
+    /** @param {string[]} vs */
     set accept(vs) {
         this._input.accept = vs.join(',');
         this.#accept = vs;
         this.reflectTo('accept', vs);
     }
+    /**
+     * Whether the field takes several files; a single-file field ignores a drop of several.
+     * @returns {boolean}
+     */
     get multiple() {
         return this._input.multiple;
     }
+    /** @param {boolean} v */
     set multiple(v) {
         this._input.multiple = v;
         this.reflectTo('multiple', v);
     }
+    /**
+     * The selected files, after the constraints.
+     * @returns {FileList}
+     */
     get files() {
         return this._input.files;
     }
+    /**
+     * Replaces the selection and runs the constraints over it, refreshing the
+     * warnings and the item list, without firing change.
+     * @param {FileList} vs
+     */
     set files(vs) {
         this._input.files = vs;
         this.#update();
     }
+    /**
+     * The first selected file.
+     * @returns {File|null}
+     */
     get file() {
         return this.files[0] ?? null;
     }
+    /**
+     * Replaces the selection with this one file, or empties it, as `files` does.
+     * @param {File|null|undefined} v
+     */
     set file(v) {
         this.files = InputFile.list(v ? [v] : []);
     }
+    /**
+     * The names of the selected files: an array when `multiple`, otherwise the
+     * one name or null.
+     * @returns {string[]|string|null}
+     */
     get value() {
         const names = Array.from(this._input.files).map((f) => f.name);
         return this.multiple ? names : (names[0] ?? null);
     }
+    /**
+     * Empties the selection for a falsy value and ignores any other, since a
+     * file name cannot select a file.
+     * @param {any} v
+     */
     set value(v) {
         if (v) {
             return;
         }
         this.files = InputFile.list();
     }
+    /** Empties the selection, as a native file input's reset does, whatever the `value` attribute says. */
     formResetCallback() {
-        //a file selection's default is empty, as the platform's own reset: a
-        //declared filename cannot be restored programmatically
         this.value = null;
     }
+    /**
+     * The size of the selected files together, in bytes.
+     * @returns {number}
+     */
     get totalsize() {
         return Array.from(this.files).reduce((a, f) => a + f.size, 0);
     }
     #maxFiles;
+    /**
+     * The most files a selection may hold; a larger selection is cleared
+     * entirely with a warning. Enforced from the next selection on.
+     * @returns {number|null} null for no limit
+     */
     get maxFiles() {
         return this.#maxFiles;
     }
+    /** @param {number|null} v */
     set maxFiles(v) {
         this.#maxFiles = v;
         this.reflectTo('max-files', v);
     }
     #maxFileSize;
+    /**
+     * The largest size one file may have, in bytes; a larger file is dropped
+     * from the selection with a warning. Enforced from the next selection on.
+     * @returns {number|null} null for no limit
+     */
     get maxFileSize() {
         return this.#maxFileSize;
     }
+    /** @param {number|null} v */
     set maxFileSize(v) {
         this.#maxFileSize = v;
         this.reflectTo('max-file-size', v);
     }
     #maxTotalSize;
+    /**
+     * The largest size the selected files may have together, in bytes; a
+     * larger selection is cleared entirely with a warning. Enforced from the
+     * next selection on.
+     * @returns {number|null} null for no limit
+     */
     get maxTotalSize() {
         return this.#maxTotalSize;
     }
+    /** @param {number|null} v */
     set maxTotalSize(v) {
         this.#maxTotalSize = v;
         this.reflectTo('max-total-size', v);
     }
     #useItemList;
+    /**
+     * Whether the chosen files are listed, each with a button removing it; the
+     * stylesheet shows the list from the reflected `item-list` attribute.
+     * @returns {boolean}
+     */
     get itemList() {
         return this.#useItemList;
     }
+    /** @param {boolean} v */
     set itemList(v) {
         this.#useItemList = v;
         this.reflectTo('item-list', v);
     }
     #useDropzone;
+    /**
+     * Whether the dropzone is shown; the stylesheet shows it from the reflected
+     * `dropzone` attribute.
+     * @returns {boolean}
+     */
     get dropzone() {
         return this.#useDropzone;
     }
+    /** @param {boolean} v */
     set dropzone(v) {
+
         this.#useDropzone = v;
         this.reflectTo('dropzone', v);
     }

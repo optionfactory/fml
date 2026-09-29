@@ -451,6 +451,20 @@ describe('Input keep and reject', () => {
         }
     });
 
+    it('warns once for a malformed pattern however many fields declare it', async () => {
+        const originalWarn = console.warn;
+        const warns = [];
+        console.warn = (...args) => warns.push(args);
+        try {
+            await mount(`<ful-input keep="(once">l</ful-input>`);
+            await mount(`<ful-input keep="(once">l</ful-input>`);
+
+            assert.lengthOf(warns, 1);
+        } finally {
+            console.warn = originalWarn;
+        }
+    });
+
     it('reads the filter once, at the upgrade, like the rest of its configuration', async () => {
         const [el] = await mount(`<ful-input keep="[0-9]">l</ful-input>`);
         assert.strictEqual(type(el, 'a1').value, '1');
@@ -760,6 +774,19 @@ describe('Naming the control from the label', () => {
     });
 });
 
+describe('Field validity', () => {
+    it('marks the control the caret is in as invalid, and clears it with the message', async () => {
+        const [el] = await mount(`<ful-input name="a">l</ful-input>`);
+        const input = el.querySelector('input');
+
+        el.setCustomValidity('wrong');
+        assert.strictEqual(input.getAttribute('aria-invalid'), 'true');
+
+        el.setCustomValidity('');
+        assert.isNull(input.getAttribute('aria-invalid'));
+    });
+});
+
 describe('Field descriptions', () => {
     it('takes a description offered before it has anywhere to write it', async () => {
         //content slotted into a field upgrades on either side of the field
@@ -828,6 +855,12 @@ describe('Numeric widget types', () => {
         assert.strictEqual(numeric.getAttribute('inputmode'), 'numeric');
         assert.strictEqual(decimal.getAttribute('type'), 'text');
         assert.strictEqual(decimal.getAttribute('inputmode'), 'decimal');
+    });
+
+    it('lets an input- passthrough replace the keyboard the type names', async () => {
+        const [, input] = await mount(`<ful-input type="numeric" input-inputmode="tel">n</ful-input>`);
+
+        assert.strictEqual(input.getAttribute('inputmode'), 'tel');
     });
 
     it('leaves type=number on the native widget', async () => {

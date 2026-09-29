@@ -3,13 +3,20 @@ import { Failure } from '../../httpc/index.mjs';
 import { Bindings } from './bindings.mjs';
 import { AsyncEvents } from '../events/async.mjs';
 
-/** Submits a form's values as json to a url, mapping the request and the response through the configured mappers. */
+/** Sends a form's request as a json body to a url, mapping the request and the response through the configured mappers. */
 class RemoteJsonFormLoader {
     #http;
     #url;
     #method;
     #requestMapper;
     #responseMapper;
+    /**
+     * @param {{ request(method: string, url: string): { json(body: any): { fetch(): Promise<any> } } }} http the `http-client` component
+     * @param {string} url
+     * @param {string} method
+     * @param {(value: any, form: Form) => any} requestMapper
+     * @param {(value: any, form: Form) => any} responseMapper
+     */
     constructor(http, url, method, requestMapper, responseMapper) {
         this.#http = http;
         this.#url = url;
@@ -17,12 +24,29 @@ class RemoteJsonFormLoader {
         this.#requestMapper = requestMapper;
         this.#responseMapper = responseMapper;
     }
+    /**
+     * @param {any} values
+     * @param {Form} form
+     * @returns {any} what the request mapper returns
+     */
     prepare(values, form) {
         return this.#requestMapper(values, form);
     }
+    /**
+     * @param {any} request
+     * @param {Form} form
+     * @returns {Promise<any>} what the client's `fetch()` resolves to: with the
+     * library's client, the `Response` of a 2xx status, rejecting with an
+     * `HttpClientError` (a `Failure`) otherwise
+     */
     async submit(request, form) {
         return await this.#http.request(this.#method, this.#url).json(request).fetch();
     }
+    /**
+     * @param {any} response
+     * @param {Form} form
+     * @returns {any} what the response mapper returns
+     */
     transform(response, form) {
         return this.#responseMapper(response, form);
     }
@@ -32,17 +56,37 @@ class RemoteJsonFormLoader {
 class LocalFormLoader {
     #requestMapper;
     #responseMapper;
+    /**
+     * @param {(value: any, form: Form) => any} requestMapper
+     * @param {(value: any, form: Form) => any} responseMapper
+     */
     constructor(requestMapper, responseMapper) {
         this.#requestMapper = requestMapper;
         this.#responseMapper = responseMapper;
     }
+    /**
+     * @param {any} values
+     * @param {Form} form
+     * @returns {Promise<any>} what the request mapper returns or resolves to
+     */
     async prepare(values, form) {
         return await this.#requestMapper(values, form);
     }
+    /**
+     * Sends nothing.
+     * @param {any} request
+     * @param {Form} form
+     * @param {any} response what a `submit:requested` listener answered
+     * @returns {Promise<any>} `response`, unchanged
+     */
     async submit(request, form, response) {
-        //nothing to send: whatever a submit:requested listener answered is the response
         return response;
     }
+    /**
+     * @param {any} response
+     * @param {Form} form
+     * @returns {Promise<any>} what the response mapper returns or resolves to
+     */
     async transform(response, form) {
         return await this.#responseMapper(response, form);
     }
@@ -65,6 +109,15 @@ class LocalFormLoader {
  * A rejection from any of the three is reported as a `submit:failure`.
  */
 class FormLoader {
+    /**
+     * The `request-mapper` and `response-mapper` attributes name registry
+     * components called as `(value, form)`; each defaults to the identity. A
+     * remote loader sends through the `http-client` component, with the
+     * `method` attribute or `POST`.
+     * @param {Form} el the form submitting
+     * @param {unknown} [conf] not read
+     * @returns {LocalFormLoader | RemoteJsonFormLoader}
+     */
     static create(el, conf) {
         const http = el.component('http-client');
         const requestMapper = el.declared('request-mapper') ? el.component(el.declared('request-mapper')) : (v) => v;
@@ -79,13 +132,25 @@ class FormLoader {
 }
 
 /**
- * Wraps its fields in a native form, extracts their values on submit and hands
- * them to a loader (loaders:form, or the action url as a json post),
- * announcing failures through the errors setter.
+ * Moves its children into a native `<form novalidate>`, extracts their values
+ * on submit and hands them to a loader, reporting problems through `errors`.
+ * Being `novalidate`, the form submits whatever the validity of its fields:
+ * the browser does not block a submit on a field still marked invalid.
+ *
+ * Attributes on the host starting with `form-` are forwarded, without the
+ * prefix, to the native form. `autocomplete` is copied onto the native form as
+ * well and stays on the host, the fields reading it from either.
+ * `clear-invalid-on-change` clears the custom validity of a field of this form
+ * when a `change` event bubbles from it; the field's form is read from its
+ * `form` property, or from `internals.form` for a form-associated element
+ * that has none. `scroll-on-error` is passed to `Bindings.errors` as
+ * `scrollOnError`.
+ *
+ * A native submit, by a button or by Enter in a field, is stopped and runs
+ * `submit` instead.
  */
 class Form extends ParsedElement {
-    //every one of these says how the form is built and submits, not what it holds:
-    //the loader is named the same way ful-select and ful-table name theirs
+    /** Read once at the upgrade: changing one afterwards has no effect. */
     static attributes = [
         'action',
         'method',
@@ -96,18 +161,14 @@ class Form extends ParsedElement {
         'scroll-on-error:presence',
         'autocomplete',
     ];
+    /** The native form holding the fields, created by the render. */
     form;
+    /** Builds the native form and moves the element's children into it. */
     render() {
         const form = document.createElement('form');
         this.form = form;
-        //the submit must travel regardless of validity: the server is the validation
-        //authority, and the browser's own gate would block a resubmit behind
-        //internals messages custom elements have no default UI for
         form.setAttribute('novalidate', '');
         Attributes.forward('form-', this, form);
-        //the fields read it off whichever of the two they reach first, which depends
-        //on whether they upgraded before or after this render: they cannot read it
-        //off their own control, which carries form="" and so has no form owner
         Attributes.set(form, 'autocomplete', this.declared('autocomplete'));
         form.replaceChildren(...this.childNodes);
         form.addEventListener('submit', async (e) => {
@@ -115,9 +176,6 @@ class Form extends ParsedElement {
             e.stopPropagation();
             await this.submit(e.submitter ?? undefined);
         });
-        //an aria-disabled control keeps its focus and its name, so the platform still
-        //activates it: the refusal has to be ours, and capturing puts it ahead of
-        //every listener the author registered on the button itself
         this.addEventListener(
             'click',
             (evt) => {
@@ -132,8 +190,6 @@ class Form extends ParsedElement {
         );
         if (this.declared('clear-invalid-on-change')) {
             this.addEventListener('change', (/** @type any */ evt) => {
-                //a form-associated custom element carries no `form` property of
-                //its own: the owner reads through the internals it attached
                 if ((evt.target.form ?? evt.target.internals?.form) !== this.form) {
                     return;
                 }
@@ -144,12 +200,35 @@ class Form extends ParsedElement {
     }
     #submitting = false;
     /**
-     * Submits once: a submit while one is in flight is dropped before the
-     * values are even extracted, so nothing fires and nothing travels; the
-     * settled exchange re-arms the form. A write must not double behind a
-     * second Enter or a programmatic call racing the first.
-     * @param {HTMLElement} [submitter]
-     * @returns
+     * Runs the submit pipeline, with the spinner up for its whole length:
+     *
+     * 1. builds the loader: the component the `loader` attribute names
+     *    (`loaders:form` by default), called as `create(form)`
+     * 2. extracts the values with `Bindings.extractFrom` and has the loader
+     *    `prepare` them into the request
+     * 3. fires a cancelable `submit` with `{ submitter, values, request }`.
+     *    Cancelling it ends the submit there, reporting nothing and leaving the
+     *    problems shown; a listener may replace `values` or `request` on the detail
+     * 4. clears the problems shown
+     * 5. fires `submit:requested` through `AsyncEvents.fireAsync` in `pipeline`
+     *    mode: at most one async listener, whose answer is handed to the
+     *    loader's `submit` as its third argument. A listener may replace
+     *    `request` on the detail
+     * 6. has the loader `submit` the request and `transform` the response
+     * 7. fires `submit:success` with `{ submitter, values, request, response }`,
+     *    `response` being the transformed one
+     *
+     * Anything thrown from step 1 on, a missing loader or a throwing mapper
+     * included, fires `submit:failure` with `{ submitter, values, request,
+     * exception }` instead; the returned promise does not reject. A `Failure`
+     * has its problems shown through `errors`, anything else is logged with
+     * `console.warn`. The `values` of both outcome events are the extracted
+     * ones, not a replacement a `submit` listener put on its detail.
+     *
+     * A call while a submit is in flight returns at once, doing nothing.
+     * @param {HTMLElement} [submitter] the button that submitted, if any; it is
+     * the only button whose name and value are submitted
+     * @returns {Promise<void>} settling once the submit has finished, whatever its outcome
      */
     async submit(submitter) {
         if (this.#submitting) {
@@ -157,9 +236,6 @@ class Form extends ParsedElement {
         }
         this.#submitting = true;
         this.spinner(true);
-        //one try: building the loader and preparing the request are as much part of a
-        //submit as sending it, and a mapper that throws is how a caller reports a
-        //problem with the values
         let values;
         let request;
         try {
@@ -210,17 +286,12 @@ class Form extends ParsedElement {
             this.spinner(false);
         }
     }
-    /** The native reset, routing every field through its own value semantics. */
+    /** Resets the native form, each field returning to its default value. */
     reset() {
         this.form.reset();
     }
     #spinning = 0;
     /**
-     * Reveals a spinner and gives it something to read. A spinner is a style-only
-     * tag: the glyph is its own pseudo-element and the text is the author's, so one
-     * carrying no text is a live region with nothing to announce. The label is
-     * appended only where the author wrote none, and it is filled after the reveal,
-     * a region mutated while hidden being announced unreliably.
      * @param {HTMLElement} el
      */
     #announce(el) {
@@ -235,10 +306,25 @@ class Form extends ParsedElement {
         el.append(label);
         label.textContent = Localization.of().t('spinner.loading');
     }
-    /** Shows the spinners and holds the submit buttons off, overlapping spins sharing one claim. */
+    /**
+     * Marks the form busy or releases it. Calls nest: only the first
+     * `spinner(true)` and the matching last `spinner(false)` act, so a caller's
+     * own spin may wrap a submit.
+     *
+     * Busy, the host carries `aria-busy="true"` and each `ful-spinner` of this
+     * form is revealed; one without text of its own is given `role="status"`
+     * (unless it has a role) and a visually hidden localized `spinner.loading`
+     * label. Each submit and reset button of this form is held off with
+     * `aria-disabled="true"`, keeping its focus, and a click on it is refused
+     * ahead of any listener on the button. Holding the buttons off does not
+     * stop a programmatic `submit`.
+     *
+     * Released, the spinners are hidden and lose the label they were given, and
+     * each held button gets back the `aria-disabled` it had. A button that
+     * joined the form while it was busy keeps its own state.
+     * @param {boolean} spin
+     */
     spinner(spin) {
-        //spins can overlap (a caller's own spin may wrap a submit): only the
-        //outermost one saves and restores the button states
         if (spin) {
             ++this.#spinning;
             if (this.#spinning !== 1) {
@@ -250,8 +336,6 @@ class Form extends ParsedElement {
                 return;
             }
         }
-        //the form is the busy region: the table and the async sections say so the
-        //same way, and a form that only dimmed its button said it to no one
         Attributes.set(this, 'aria-busy', spin ? 'true' : null);
         this.querySelectorAll('ful-spinner').forEach((el) => {
             if (el.closest('form') !== this.form) {
@@ -271,15 +355,9 @@ class Form extends ParsedElement {
                 return;
             }
             if (spin) {
-                //aria-disabled, not disabled: the submitter is almost always the
-                //focused element when a submit starts, and disabling what holds the
-                //focus drops it to the body, losing the user's place mid transaction.
-                //The refusal is the capturing handler below, and #submitting is the
-                //guard that actually makes a second submit a no-op
                 hel.dataset.wd = hel.getAttribute('aria-disabled') ?? '';
                 hel.setAttribute('aria-disabled', 'true');
             } else {
-                //a button that joined mid-spin was never saved: its authored state stands
                 if (hel.dataset.wd === undefined) {
                     return;
                 }
@@ -288,14 +366,28 @@ class Form extends ParsedElement {
             }
         });
     }
-    /** The values of the fields the form contains, extracted and filled back through Bindings. */
+    /**
+     * Writes a nested object onto the fields of this form through
+     * `Bindings.mutateIn`: fields the object does not name keep their values.
+     * @param {{ [x: string]: any; }} vs
+     */
     set values(vs) {
         Bindings.mutateIn(this.form, vs);
     }
+    /**
+     * The fields of this form read into a nested object by
+     * `Bindings.extractFrom`, with no submitter, so no button contributes.
+     * @returns {any}
+     */
     get values() {
         return Bindings.extractFrom(this.form);
     }
-    /** Pins problems to the fields they name, the banner taking the nameless ones. */
+    /**
+     * Shows problems through `Bindings.errors`, replacing the ones shown
+     * before: each is pinned to the field it names, and the rest go to the
+     * form's `ful-errors` banners. An empty array clears them.
+     * @param {{ type: string; context?: string | null; reason: string; }[]} es
+     */
     set errors(es) {
         Bindings.errors(this.form, es, this.declared('scroll-on-error'));
     }

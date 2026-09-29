@@ -16,7 +16,14 @@ import { wireMenuKeys } from '../disclosures/menu-keys.mjs';
  * the menu protocol finds the current item by it, and nothing mirrors it.
  */
 class ChoiceButton {
-    /** The declared choices narrowed to a vocabulary; an empty or unknown set means all of it. */
+    /**
+     * The declared choices narrowed to a vocabulary, in the declared order.
+     * When none of them is in the vocabulary, or none is declared, the answer
+     * is a copy of the whole vocabulary.
+     * @param {string[] | null | undefined} declared
+     * @param {string[]} vocabulary
+     * @returns {string[]}
+     */
     static narrow(declared, vocabulary) {
         const narrowed = (declared ?? []).filter((choice) => vocabulary.includes(choice));
         return narrowed.length > 0 ? narrowed : [...vocabulary];
@@ -33,9 +40,20 @@ class ChoiceButton {
     #claimed = false;
     #wired = false;
     /**
+     * Takes the button's next sibling as its menu and listens for picks on it.
+     * The menu is neither filled nor wired until `allowed` is first written.
+     *
+     * A click on an item, while `interactive()` answers true, sets the value,
+     * hides the menu and, when the value changed, calls `onPick`.
      * @param {HTMLElement} button the invoker, whose next sibling is its menu
      * @param {{vocabulary: string[], glyphs?: Record<string,string>, labelFor?: (v: string) => string,
      *          display?: ((v: string) => string)|null, interactive?: () => boolean, onPick?: (v: string) => void}} conf
+     *        `vocabulary` lists every choice; `glyphs` maps a choice to its compact
+     *        glyph; `labelFor` answers the localized word, used as the button's
+     *        `aria-label` and beside the glyph in the menu (the choice itself by
+     *        default); `display` answers the button's text (by default the glyph,
+     *        or the choice where it has none); `interactive` is asked before a
+     *        pick is taken; `onPick` receives a pick that changed the value
      */
     constructor(
         button,
@@ -46,8 +64,6 @@ class ChoiceButton {
         this.#vocabulary = vocabulary;
         this.#glyphs = glyphs;
         this.#labelFor = labelFor;
-        //the button shows the compact glyph by default; a menu whose choices have
-        //no glyph shows the word instead
         this.#display = display ?? ((choice) => glyphs[choice] ?? choice);
         this.#interactive = interactive;
         this.#onPick = onPick;
@@ -67,7 +83,14 @@ class ChoiceButton {
             }
         });
     }
-    /** The choices the host declared, narrowed to the vocabulary; an empty or unknown set means all of it. */
+    /**
+     * The choices the menu offers. Writing it narrows the declared set with
+     * `narrow`, refills the menu, wires the popover and the menu keyboard the
+     * first time more than one choice is allowed, and updates the button's
+     * disabled state and popup attributes. When one choice is left the button
+     * is pinned and the value is set to it.
+     * @type {string[]}
+     */
     get allowed() {
         return this.#allowed;
     }
@@ -83,42 +106,49 @@ class ChoiceButton {
             this.value = this.#allowed[0];
         }
     }
-    /** A single surviving choice pins the button: a static glyph, no popup, and every read answers it. */
+    /**
+     * Whether fewer than two choices are allowed. A pinned button is disabled,
+     * opens no menu and shows the single choice as its value.
+     * @returns {boolean}
+     */
     get pinned() {
         return this.#allowed.length < 2;
     }
     /**
-     * The host's fixed claim: the button and its chrome leave while the value
-     * keeps answering, which is what a fixed operator asks of its glyph.
+     * The host's fixed claim: hides the button with the `hidden` attribute
+     * while `value` keeps answering.
+     * @param {boolean} fixed
      */
     set fixed(fixed) {
         this.#button.toggleAttribute('hidden', !!fixed);
     }
+    /**
+     * The current choice, stored as the button's `value` attribute, where the
+     * menu keyboard also finds it. Writing it sets the button's text from
+     * `display`, its `aria-label` from `labelFor`, and `aria-checked` on the
+     * menu item carrying it. It does not call `onPick`.
+     * @type {string | null}
+     */
     get value() {
         return this.#button.getAttribute('value');
     }
     set value(choice) {
-        this.#button.setAttribute('value', choice);
-        //the button carries the compact glyph, announced through its label: the
-        //menu is where the localized words live
+        this.#button.setAttribute('value', /** @type {string} */ (choice));
         this.#button.textContent = this.#display(choice);
         Attributes.set(this.#button, 'aria-label', this.#labelFor(choice));
         this.#mark();
     }
-    /**
-     * Marks the item the button currently holds, which is what a menu of one
-     * choice among several owes the reader: the glyph on the button says which
-     * one it is only to somebody who already knows the glyphs. The items are
-     * `menuitemradio`, so the state is `aria-checked` rather than the
-     * `aria-selected` a listbox would use, and the stylesheet draws it off that.
-     */
     #mark() {
         const current = this.value;
         for (const item of this.#items()) {
             item.setAttribute('aria-checked', String(item.getAttribute('value') === current));
         }
     }
-    /** The host's disabled claim, composed with the pin: lifting one cannot lift the other. */
+    /**
+     * The host's disabled claim. The button is disabled while either the claim
+     * or the pin holds, so lifting one does not enable it while the other holds.
+     * @param {boolean} claimed
+     */
     set claimed(claimed) {
         this.#claimed = claimed;
         this.#sync();
@@ -129,8 +159,6 @@ class ChoiceButton {
                 const li = document.createElement('li');
                 li.setAttribute('role', 'none');
                 const a = document.createElement('a');
-                //one choice among several, which is what a radio item is: the
-                //state belongs on the item, not on the button alone
                 a.setAttribute('role', 'menuitemradio');
                 a.setAttribute('tabindex', '-1');
                 a.setAttribute('value', choice);
@@ -159,8 +187,6 @@ class ChoiceButton {
         if (pinned) {
             this.#button.removeAttribute('popovertarget');
         } else if (this.#menu.id) {
-            //the menu is wired once, its link is what a pin may break: lifting the
-            //pin re-links the invoker to the menu it already owns
             this.#button.setAttribute('popovertarget', this.#menu.id);
         }
     }

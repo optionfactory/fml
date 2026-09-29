@@ -26,14 +26,16 @@ const SENSITIVITY_GLYPHS = {
     CASE_SENSITIVE: 'Aa',
 };
 
-/** the labels live in the built-in translations, resolved through the same localization every template uses */
 const { t } = Localization.of();
 const operatorLabel = (op) => t(`filters.op.${op}`);
 const sensitivityLabel = (sensitivity) => t(`filters.sensitivity.${sensitivity}`);
 const booleanValueLabel = (token) => t(token === '' ? 'filters.boolean.any' : `filters.boolean.${token}`);
 
 /**
- * The operands are the words the reader chose, not the keys the wire carries.
+ * What a filter currently filters on, in the words a reader sees: the text of
+ * its label, the operator in force (null for a set membership filter declaring
+ * none) and the non-empty operands as text. The operands are what the controls
+ * show, such as a select's labels, not the keys the value carries.
  * @typedef {{ label: string|null, operator: string|null, operands: string[] }} FilterCriterion
  */
 
@@ -49,6 +51,17 @@ const asCriterion = (label, operator, operands) => {
  * The shared shape of every operator-and-operands filter: an operator menu, one
  * or two operands of the type the subclass declares, and a tuple that mirrors
  * the data-jpa compare annotations.
+ *
+ * The value is `[operator, operand]`, or `[operator, from, to]` for BETWEEN,
+ * the only operator that shows the second operand. The `operators` attribute
+ * whitelists the menu; the `operator` attribute fixes the operator for the
+ * element's life instead, hiding its button, and every tuple then carries it.
+ * Declaring both warns and the singular wins; a fixed name outside the
+ * vocabulary warns and fixes the default operator.
+ *
+ * Both operands mirror the disabled and readonly claims, and readonly also
+ * refuses the clicks that would open the operator menu. The change event fires
+ * when either operand changes or a different operator is picked.
  */
 class CompareFilter extends Input {
     static observed = ['value:json', 'operators:csv'];
@@ -90,10 +103,7 @@ class CompareFilter extends Input {
                 this._notifyChange();
             },
         });
-        //the default operator below reads the whitelist, so it is resolved here
-        //rather than waiting for the base's declared pass
         this.operators = this.declared('operators');
-        //Input.render only re-dispatches changes coming from the first operand
         this._value2.addEventListener('change', (evt) => {
             evt.stopPropagation();
             this._notifyChange();
@@ -102,17 +112,8 @@ class CompareFilter extends Input {
             this._showDefaultOperator();
         }
         this.#fixOperator();
-        //the second operand mirrors the claims like the first one does, and the
-        //freeze reaches the operator and sensitivity buttons, whose popovers an
-        //input's readOnly cannot touch
         return { ...pieces, freeze: this._container, also: [this._value2] };
     }
-    /**
-     * The singular `operator` fixes the operator for the element's life: not a
-     * choice, so no menu and no button, every tuple carrying it. The plural is
-     * the menu's whitelist; declaring both is a confused page and says so,
-     * the singular winning, and an unknown name warns and pins the default.
-     */
     #fixOperator() {
         const fixed = this.declared('operator');
         if (fixed === null) {
@@ -138,36 +139,70 @@ class CompareFilter extends Input {
         const allowed = this._operator.allowed;
         this._showOperator(allowed.includes(preferred) ? preferred : allowed[0]);
     }
+    /**
+     * Restores the declared `value` tuple, operator included, as a field reset
+     * does. Without a `value` attribute it empties the operands and also shows
+     * the default operator again, or the first whitelisted one where the
+     * default is not allowed.
+     */
     formResetCallback() {
-        //a declared tuple restores its operator through the base's assignment; a
-        //valueless reset also brings the operator back to the default it rendered with
         super.formResetCallback();
         if (!this.hasAttribute('value')) {
             this._showDefaultOperator();
         }
     }
+    /**
+     * The native input type both operands render with.
+     * @returns {string}
+     */
     _type() {
         return 'text';
     }
+    /**
+     * Converts an operand from its input's value to the form the tuple carries.
+     * @param {string} v
+     * @returns {string|null}
+     */
     _serialize(v) {
         return v;
     }
+    /**
+     * Converts an operand from the tuple to the value its input shows.
+     * @param {string} v
+     * @returns {string}
+     */
     _deserialize(v) {
         return v;
     }
+    /**
+     * The operator shown on render and after a valueless reset, when the whitelist allows it.
+     * @returns {string}
+     */
     _defaultOperator() {
         return 'EQ';
     }
+    /**
+     * Every operator the filter knows, which `operators` narrows.
+     * @returns {string[]}
+     */
     _vocabulary() {
         return COMPARE_OPERATORS;
     }
     _declaredOperators;
+    /**
+     * The operators the menu offers, narrowed to the vocabulary: an empty list,
+     * or one where no name is known, offers all of it. A single operator pins
+     * the button, and an assigned tuple then carries that operator whatever it
+     * names. An assignment made before the upgrade is held narrowed and
+     * answered back until the render, when the `operators` attribute is applied
+     * over it, an absent attribute meaning the whole vocabulary. Assignments are
+     * ignored while the `operator` attribute fixes the operator.
+     * @returns {string[]|undefined} undefined before the upgrade when nothing was assigned
+     */
     get operators() {
-        //a page may whitelist before the upgrade: the narrowed set is held until
-        //the button exists, and the declared attribute lands over it when the
-        //base applies the declared state
         return this._operator ? this._operator.allowed : this._declaredOperators;
     }
+    /** @param {string[]|null} declared */
     set operators(declared) {
         if (this.declared('operator') !== null) {
             return;
@@ -179,9 +214,22 @@ class CompareFilter extends Input {
         this._operator.allowed = declared;
         this._syncBetween();
     }
+    /**
+     * The filter's tuple, `[operator, operand]` or `[operator, from, to]` for
+     * BETWEEN, each operand converted by `_serialize` (an ISO instant for the
+     * instant filter). Null while any operand the operator uses is empty.
+     * @returns {any[]|null}
+     */
     get value() {
         return this._tuple();
     }
+    /**
+     * Shows a tuple: the operator it names, unless a pinned or fixed operator
+     * replaces it, and its operands, an operand missing from a shorter tuple
+     * leaving its input empty. Null or undefined empties both operands and
+     * keeps the operator.
+     * @param {any[]|null|undefined} v
+     */
     set value(v) {
         this._applyTuple(v);
     }
@@ -197,11 +245,8 @@ class CompareFilter extends Input {
             return;
         }
         const [declared, ...values] = v;
-        //a pinned operator wins over whatever the tuple carries
         const operator = this._operator.pinned ? this._operator.allowed[0] : declared;
         this._showOperator(operator);
-        //a tuple shorter than the operands leaves the missing ones empty: the DOM
-        //would stringify a nullish assignment to "undefined"
         this._value1.value = values[0] ? this._deserialize(values[0]) : (values[0] ?? '');
         this._value2.value = values[1] ? this._deserialize(values[1]) : (values[1] ?? '');
     }
@@ -209,13 +254,16 @@ class CompareFilter extends Input {
         this._operator.value = operator;
         this._syncBetween();
     }
-    /** only a BETWEEN carries a second operand */
+    /** Shows the second operand only while the operator is BETWEEN. */
     _syncBetween() {
         this._value2.toggleAttribute('hidden', this._operator.value !== 'BETWEEN');
     }
     /**
-     * The operands as shown rather than as serialized: a date filter describes
-     * what is in its control, not the iso string it sends.
+     * The operator and the operands the operator uses, as their inputs show
+     * them rather than as serialized: a date filter describes what is in its
+     * control, not the ISO string it sends. Null while every one of those
+     * operands is empty, so a BETWEEN with one bound answers that bound while
+     * its value is still null.
      * @returns {FilterCriterion|null}
      */
     get criterion() {
@@ -224,24 +272,37 @@ class CompareFilter extends Input {
     #operands() {
         return this._operator.value === 'BETWEEN' ? [this._value1.value, this._value2.value] : [this._value1.value];
     }
+    /**
+     * The field's own disabled claim. Setting it disables both operands and
+     * every menu button the filter composes; a button pinned to one choice
+     * stays disabled when the claim is lifted.
+     * @returns {boolean}
+     */
     get disabled() {
         return super.disabled;
     }
+    /** @param {boolean} d */
     set disabled(d) {
-        //the claim and both operands are the base's; the chrome buttons are not,
-        //frozen by a pin, disabled by the claim, or both
         super.disabled = d;
         for (const choice of this._choices()) {
             choice.claimed = d;
         }
     }
-    /** every menu button the filter composes, so one claim reaches them all */
+    /**
+     * The menu buttons the filter composes, which the disabled claim reaches. A
+     * subclass adding a menu appends its own to the base's.
+     * @returns {ChoiceButton[]}
+     */
     _choices() {
         return [this._operator].filter((c) => c);
     }
 }
 
-/** The compare filter over ISO instants, defaulting to LTE. */
+/**
+ * The compare filter over ISO instants, defaulting to LTE. The operands are
+ * shown as local date and time in the page's timezone and carried in the tuple
+ * as UTC ISO instants.
+ */
 class InstantFilter extends CompareFilter {
     _defaultOperator() {
         return 'LTE';
@@ -271,7 +332,17 @@ class NumberFilter extends CompareFilter {
     }
 }
 
-/** The compare filter over text, carrying a case sensitivity beside the operator. */
+/**
+ * The compare filter over text, defaulting to CONTAINS and adding CONTAINS,
+ * STARTS_WITH and ENDS_WITH to the compare operators.
+ *
+ * Its tuple carries a case sensitivity after the operator, `[operator,
+ * sensitivity, operand]` or `[operator, sensitivity, from, to]`, the
+ * sensitivity being IGNORE_CASE (the default) or CASE_SENSITIVE and switched
+ * through a second menu. The `sensitivities` attribute whitelists that menu and
+ * `sensitivity` fixes one mode, with the same rules and warnings as
+ * `operators` and `operator`.
+ */
 class TextFilter extends CompareFilter {
     static observed = ['sensitivities:csv'];
     static attributes = ['sensitivity'];
@@ -300,9 +371,6 @@ class TextFilter extends CompareFilter {
     _vocabulary() {
         return TEXT_OPERATORS;
     }
-    //the sensitivity is carried through from whoever set the value, switched
-    //through its own menu, or pinned to the single mode the sensitivities
-    //attribute whitelists
     _sensitivityButton;
     _build(conf) {
         const pieces = super._build(conf);
@@ -347,9 +415,17 @@ class TextFilter extends CompareFilter {
         return this._sensitivityButton.value;
     }
     _declaredSensitivities;
+    /**
+     * The sensitivities the menu offers, narrowed to IGNORE_CASE and
+     * CASE_SENSITIVE: an empty list, or one where no name is known, offers both.
+     * When the mode shown leaves the list, the first listed one is shown. Held
+     * before the upgrade and ignored under a fixed `sensitivity`, as `operators` is.
+     * @returns {string[]|undefined} undefined before the upgrade when nothing was assigned
+     */
     get sensitivities() {
         return this._sensitivityButton ? this._sensitivityButton.allowed : this._declaredSensitivities;
     }
+    /** @param {string[]|null} declared */
     set sensitivities(declared) {
         if (this.declared('sensitivity') !== null) {
             return;
@@ -364,10 +440,22 @@ class TextFilter extends CompareFilter {
             this._sensitivityButton.value = this._sensitivityButton.allowed[0];
         }
     }
+    /**
+     * The tuple with the sensitivity after the operator, `[operator,
+     * sensitivity, ...operands]`. Null while any operand the operator uses is empty.
+     * @returns {any[]|null}
+     */
     get value() {
         const tuple = this._tuple();
         return tuple == null ? null : [tuple[0], this._sensitivity, ...tuple.slice(1)];
     }
+    /**
+     * Shows a tuple as the compare filter does, reading the sensitivity at
+     * index 1. A sensitivity the whitelist does not allow leaves the current
+     * one in place. Null or undefined empties the operands and keeps the
+     * operator and the sensitivity.
+     * @param {any[]|null|undefined} v
+     */
     set value(v) {
         if (v == null) {
             this._applyTuple(v);
@@ -378,10 +466,12 @@ class TextFilter extends CompareFilter {
         }
         this._applyTuple([v[0], ...v.slice(2)]);
     }
+    /**
+     * Restores the declared `value` tuple, sensitivity included. Without a
+     * `value` attribute it also shows the default operator and IGNORE_CASE
+     * again, or the first whitelisted mode where IGNORE_CASE is not allowed.
+     */
     formResetCallback() {
-        //a declared tuple restores its sensitivity through the value assignment;
-        //a valueless reset brings it back to the default it rendered with, the
-        //class default normalized against the whitelist
         super.formResetCallback();
         if (!this.hasAttribute('value')) {
             const allowed = this._sensitivityButton.allowed;
@@ -393,11 +483,30 @@ class TextFilter extends CompareFilter {
 const BOOLEAN_VALUES = ['', 'true', 'false'];
 const BOOLEAN_VALUE_GLYPHS = { true: '✓', false: '✗' };
 
-/** The boolean filter: an EQ or NEQ operator and an any/yes/no menu. */
+/**
+ * The boolean filter: an EQ or NEQ operator menu and a value menu of any, yes
+ * and no, the value button showing the localized word.
+ *
+ * The value is `[operator, 'true']` or `[operator, 'false']`, null while the
+ * value menu is on any. The `operators` attribute whitelists the operator menu
+ * as on the compare filters. The disabled claim reaches the value button and
+ * both menus, and readonly refuses the clicks that would open them. The
+ * required and readonly claims reflect on the host only: no `aria-required` or
+ * `aria-readonly` is written, since the value button's role accepts neither.
+ */
 class BooleanFilter extends Field {
     static observed = ['value:json', 'operators:csv'];
     static slots = true;
+    /**
+     * The operators the filter knows, which `operators` narrows.
+     * @type {string[]}
+     */
     static OPERATORS = ['EQ', 'NEQ'];
+    /**
+     * The operator shown on render and after a valueless reset, or the first
+     * whitelisted one where the whitelist excludes it.
+     * @type {string}
+     */
     static DEFAULT_OPERATOR = 'EQ';
     static template = `
         <label>{{{{ slots.default }}}}</label>
@@ -428,7 +537,6 @@ class BooleanFilter extends Field {
             interactive: () => this._interactive(),
             onPick: () => this._notifyChange(),
         });
-        //the value button carries the word rather than a glyph: 'any' has none
         this._value = new ChoiceButton(valueButton, {
             vocabulary: BOOLEAN_VALUES,
             glyphs: BOOLEAN_VALUE_GLYPHS,
@@ -449,18 +557,22 @@ class BooleanFilter extends Field {
             control: valueButton,
             error: fragment.querySelector('ful-field-error'),
             label: fragment.querySelector('label'),
-            //a button accepts neither aria-readonly nor aria-required
             announces: null,
             freeze: this._container,
         };
     }
     _declaredOperators;
+    /**
+     * The operators the menu offers, narrowed to EQ and NEQ: an empty list, or
+     * one where no name is known, offers both, and a single one pins the
+     * button. Held before the upgrade and replaced by the `operators` attribute
+     * at the render, as on the compare filters.
+     * @returns {string[]|undefined} undefined before the upgrade when nothing was assigned
+     */
     get operators() {
-        //a page may whitelist before the upgrade: the narrowed set is held until
-        //the button exists, and the declared attribute lands over it when the
-        //base applies the declared state
         return this._operator ? this._operator.allowed : this._declaredOperators;
     }
+    /** @param {string[]|null} declared */
     set operators(declared) {
         if (!this._operator) {
             this._declaredOperators = ChoiceButton.narrow(declared, this._vocabulary());
@@ -468,21 +580,35 @@ class BooleanFilter extends Field {
         }
         this._operator.allowed = declared;
     }
+    /** @returns {string[]} */
     _vocabulary() {
         return BooleanFilter.OPERATORS;
     }
+    /**
+     * `[operator, token]`, the token being 'true' or 'false'; null while the value menu is on any.
+     * @returns {string[]|null}
+     */
     get value() {
         return this._value.value === '' ? null : [this._operator.value, this._value.value];
     }
+    /**
+     * Shows a tuple: its operator, unless a pinned operator replaces it, and its
+     * token, a missing token meaning any. Null or undefined sets the value menu
+     * back to any and keeps the operator.
+     * @param {any[]|null|undefined} v
+     */
     set value(v) {
         if (v == null) {
             this._value.value = '';
             return;
         }
-        //a pinned operator wins over whatever the tuple carries
         this._operator.value = this._operator.pinned ? this._operator.allowed[0] : v[0];
         this._value.value = v[1] ?? '';
     }
+    /**
+     * Restores the declared `value` tuple. Without a `value` attribute it sets
+     * the value menu back to any and also shows the default operator again.
+     */
     formResetCallback() {
         super.formResetCallback();
         if (!this.hasAttribute('value')) {
@@ -492,19 +618,29 @@ class BooleanFilter extends Field {
                 : allowed[0];
         }
     }
-    /** @returns {FilterCriterion|null} */
+    /**
+     * The operator and the localized word the value menu shows, not the token.
+     * Null while the value menu is on any.
+     * @returns {FilterCriterion|null}
+     */
     get criterion() {
         const token = this._value.value;
         return asCriterion(labelTextOf(this), this._operator.value, [
             token === '' ? '' : booleanValueLabel(token),
         ]);
     }
+    /**
+     * The field's own disabled claim. Setting it disables the value button and
+     * both menu buttons; an operator button pinned to one choice stays disabled
+     * when the claim is lifted.
+     * @returns {boolean}
+     */
     get disabled() {
         return super.disabled;
     }
+    /** @param {boolean} d */
     set disabled(d) {
         super.disabled = d;
-        //the menu buttons are frozen by a pin, disabled by the claim, or both
         for (const choice of [this._operator, this._value].filter((c) => c)) {
             choice.claimed = d;
         }
@@ -514,7 +650,9 @@ class BooleanFilter extends Field {
 /**
  * Set membership over a select's vocabulary, answering for both of data-jpa's
  * set annotations: InEnum and InList take the same bare array of values and no
- * operator, differing only in what the server converts them to.
+ * operator, differing only in what the server converts them to. A declared
+ * `operator` attribute is sent in front of the keys instead, for a server field
+ * that reads the set through a compare.
  */
 class InFilter extends Select {
     static attributes = ['operator'];
@@ -525,16 +663,28 @@ class InFilter extends Select {
         }
         return chosen === null || chosen === undefined ? [] : [chosen];
     }
+    /**
+     * The chosen keys as an array, a single choice included, led by the
+     * declared `operator` when there is one. Null while nothing is chosen, so
+     * that a table drops the filter instead of sending an empty set that
+     * matches nothing.
+     * @returns {any[]|null}
+     */
     get value() {
         const keys = this.#keys();
-        //an empty set is no filter: the table drops a falsy value, where an
-        //empty array would travel and match nothing
         if (keys.length === 0) {
             return null;
         }
         const operator = this.declared('operator');
         return operator ? [operator, ...keys] : keys;
     }
+    /**
+     * Selects the keys of an array or a single bare key; a leading element equal
+     * to the declared `operator` is dropped first, so the filter takes back what
+     * it answered. A single select takes the first key. Null or undefined clears
+     * the selection.
+     * @param {any} v
+     */
     set value(v) {
         const operator = this.declared('operator');
         let keys = v === null || v === undefined ? [] : Array.isArray(v) ? v : [v];
@@ -543,12 +693,19 @@ class InFilter extends Select {
         }
         super.value = this.multiple ? keys : (keys[0] ?? null);
     }
-    /** @returns {FilterCriterion|null} */
+    /**
+     * The declared operator, or null, and the labels of the chosen entries. Null
+     * while nothing is chosen.
+     * @returns {FilterCriterion|null}
+     */
     get criterion() {
         return asCriterion(
             labelTextOf(this),
             this.declared('operator'),
-            [super.entry].flat().filter((e) => e).map((e) => e.label),
+            [super.entry]
+                .flat()
+                .filter((e) => e)
+                .map((e) => /** @type {{ label: string }} */ (e).label),
         );
     }
 }
