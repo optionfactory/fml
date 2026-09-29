@@ -226,14 +226,6 @@ class Bindings {
                 el.setCustomValidity?.('');
             });
         }
-        form.querySelectorAll('ful-errors').forEach((el) => {
-            if (!ofForm(el)) {
-                return;
-            }
-            el.setAttribute('role', 'alert');
-            el.replaceChildren();
-            el.setAttribute('hidden', '');
-        });
         const unmatched = [];
         fieldErrors.forEach((e) => {
             const name = e.context.replace(/\[/g, '.').replace(/\]\./g, '.').replace(/\]/g, '');
@@ -264,8 +256,10 @@ class Bindings {
                 return;
             }
             const hel = /** @type HTMLElement} */ (el);
+            el.setAttribute('role', 'alert');
             if (bannered.length === 0) {
-                hel.innerText = '';
+                el.replaceChildren();
+                el.setAttribute('hidden', '');
                 return;
             }
             //revealed before it is filled: a live region mutated while hidden and

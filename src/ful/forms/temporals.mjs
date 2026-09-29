@@ -1,6 +1,8 @@
 import { ParsedElement, Localization } from '../../ftl/index.mjs';
 import { Input } from './input.mjs';
 
+const blankAsNull = (v) => (v === '' ? null : v);
+
 /** Formats the yyyy-mm-dd date in its content in the page's locale, or the one its locale attribute names. */
 class LocalDate extends ParsedElement {
     static attributes = ['locale', 'default'];
@@ -71,22 +73,19 @@ class InputLocalDate extends Input {
         return 'date';
     }
     get min() {
-        const v = this._input.min;
-        return v === '' ? null : v;
+        return blankAsNull(this._input.min);
     }
     set min(v) {
         this._input.min = InputLocalDate.#fromIsoOrOffset(v);
     }
     get max() {
-        const v = this._input.max;
-        return v === '' ? null : v;
+        return blankAsNull(this._input.max);
     }
     set max(v) {
         this._input.max = InputLocalDate.#fromIsoOrOffset(v);
     }
     get step() {
-        const v = this._input.step;
-        return v === '' ? null : v;
+        return blankAsNull(this._input.step);
     }
     set step(v) {
         this._input.step = v ?? '';
@@ -137,15 +136,13 @@ class InputLocalTime extends InputLocalDate {
         return 'time';
     }
     get min() {
-        const v = this._input.min;
-        return v === '' ? null : v;
+        return blankAsNull(this._input.min);
     }
     set min(v) {
         this._input.min = this.#fromNowOrOffset(v);
     }
     get max() {
-        const v = this._input.max;
-        return v === '' ? null : v;
+        return blankAsNull(this._input.max);
     }
     set max(v) {
         this._input.max = this.#fromNowOrOffset(v);
@@ -217,8 +214,7 @@ class InputInstant extends Input {
         this._input.max = v ? Instant.isoToLocal(v) : '';
     }
     get step() {
-        const v = this._input.step;
-        return v === '' ? null : v;
+        return blankAsNull(this._input.step);
     }
     set step(v) {
         this._input.step = v ?? '';

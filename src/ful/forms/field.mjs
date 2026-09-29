@@ -420,13 +420,10 @@ class Field extends ParsedElement {
     render(conf) {
         const built = /** @type {any} */ (this._build(conf));
         if (built instanceof Promise) {
-            return built.then((pieces) => this.#settle(pieces));
+            return built.then((pieces) => this.#wire(pieces));
         }
-        this.#settle(built);
+        this.#wire(built);
         return undefined;
-    }
-    #settle(pieces) {
-        this.#wire(pieces);
     }
     /**
      * Builds the field's dom and answers the pieces the base drives. The one

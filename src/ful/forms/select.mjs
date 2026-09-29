@@ -5,6 +5,12 @@ import { Field } from './field.mjs';
 import { VersionedLocalStorage } from '../storage.mjs';
 import { Timing } from '../timing.mjs';
 
+const byKeys = (entries, keys) => entries.filter(({ key }) => keys.some((r) => r == key));
+//includes would coerce a nullish needle to the string "undefined": no needle
+//means no filter, as the empty search the combobox opens with
+const byLabel = (entries, needle) =>
+    entries.filter(({ label }) => (label ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
+
 /**
  * Fetches a select's whole vocabulary from a url and serves every later read
  * from it. Concurrent callers share one request, the options may be cached in
@@ -17,8 +23,9 @@ class RemoteLoader {
     #responseMapper;
     #prefetch;
     #revision;
-    #data;
-    #inFlight;
+    #data = null;
+    /** @type {Promise<void>|null} */
+    #inFlight = null;
     #configs = new Claims();
     constructor({ http, url, method, responseMapper, prefetch, revision }) {
         this.#http = http;
@@ -27,8 +34,6 @@ class RemoteLoader {
         this.#responseMapper = responseMapper;
         this.#prefetch = prefetch;
         this.#revision = revision;
-        this.#data = null;
-        this.#inFlight = null;
     }
     async prefetch() {
         if (!this.#prefetch) {
@@ -37,14 +42,10 @@ class RemoteLoader {
         await this.#ensureFetched();
     }
     async exact(...keys) {
-        const data = await this.#ensureFetched();
-        return data.filter(({ key }) => keys.some((r) => r == key));
+        return byKeys(await this.#ensureFetched(), keys);
     }
     async load(needle) {
-        const data = await this.#ensureFetched();
-        //includes would coerce a nullish needle to the string "undefined": no
-        //needle means no filter, as the empty search the combobox opens with
-        return data.filter(({ label }) => (label ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
+        return byLabel(await this.#ensureFetched(), needle);
     }
     /**
      * Drops the cached vocabulary so the next question refetches it. Any fetch
@@ -152,11 +153,10 @@ class InMemoryLoader {
     /** The vocabulary is the data itself: update replaces it, so there is nothing to drop. */
     async invalidate() {}
     exact(...keys) {
-        return this.#data.filter(({ key }) => keys.some((r) => r == key));
+        return byKeys(this.#data, keys);
     }
     load(needle) {
-        //no needle means no filter, as in RemoteLoader
-        return this.#data.filter(({ label }) => (label ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
+        return byLabel(this.#data, needle);
     }
 }
 

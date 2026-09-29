@@ -53,8 +53,6 @@ const asCriterion = (label, operator, operands) => {
 class CompareFilter extends Input {
     static observed = ['value:json', 'operators:csv'];
     static attributes = ['operator'];
-    static OPERATORS = COMPARE_OPERATORS;
-    static DEFAULT_OPERATOR = 'EQ';
     static template = `
         <label>{{{{ slots.default }}}}</label>
         {{{{ slots.info }}}}
@@ -189,7 +187,7 @@ class CompareFilter extends Input {
     }
     _tuple() {
         const operator = this._operator.value;
-        const values = operator === 'BETWEEN' ? [this._value1.value, this._value2.value] : [this._value1.value];
+        const values = this.#operands();
         return values.some((v) => v === '') ? null : [operator, ...values.map((v) => this._serialize(v))];
     }
     _applyTuple(v) {
@@ -221,11 +219,10 @@ class CompareFilter extends Input {
      * @returns {FilterCriterion|null}
      */
     get criterion() {
-        const operands =
-            this._operator.value === 'BETWEEN'
-                ? [this._value1.value, this._value2.value]
-                : [this._value1.value];
-        return asCriterion(labelTextOf(this), this._operator.value, operands);
+        return asCriterion(labelTextOf(this), this._operator.value, this.#operands());
+    }
+    #operands() {
+        return this._operator.value === 'BETWEEN' ? [this._value1.value, this._value2.value] : [this._value1.value];
     }
     get disabled() {
         return super.disabled;
