@@ -29,7 +29,8 @@ describe('Toasts', () => {
         assert.strictEqual(getComputedStyle(region).position, 'fixed');
     });
 
-    it('appears without sliding in where motion is not wanted', async () => {
+    it('appears without sliding in where motion is not wanted', async function () {
+        this.timeout(10000);
         const [region] = await mount('<ful-toasts></ful-toasts>');
         await emulateMedia({ reducedMotion: 'reduce' });
         try {

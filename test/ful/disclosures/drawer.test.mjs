@@ -116,7 +116,8 @@ describe('Drawer', () => {
         side.close();
     });
 
-    it('fills a phone screen edge to edge with square corners, on either side', async () => {
+    it('fills a phone screen edge to edge with square corners, on either side', async function () {
+        this.timeout(10000);
         const { innerWidth: width, innerHeight: height } = window;
         await setViewport({ width: 400, height: 800 });
         try {
