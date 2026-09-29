@@ -628,7 +628,9 @@ class Table extends ParsedElement {
      */
     set src(value) {
         this.reflectTo('src', value ?? null);
-        this.#rebuildIfChanged();
+        if (this.#followAttributes() && this.#loadRequested) {
+            this.reload();
+        }
     }
     /**
      * The http method the default loader sends with, reflected as the `method`
@@ -645,25 +647,44 @@ class Table extends ParsedElement {
      */
     set method(value) {
         this.reflectTo('method', value ?? null);
-        this.#rebuildIfChanged();
+        if (this.#followAttributes() && this.#loadRequested) {
+            this.reload();
+        }
+    }
+    /**
+     * Writes `src` and `method` together and loads once: the loader is built
+     * again for the pair when either changed, the page going back to the first
+     * one as a single write of either does, and the table then reloads as
+     * `reload()` does, whether or not they changed. Unlike a write of either,
+     * it loads a table that has not loaded yet.
+     * @param {{ src?: string|null, method?: string|null }} attributes a name
+     * left out keeps its value, null removes the attribute
+     * @returns {Promise<void>} as `load`
+     */
+    async reconfigure(attributes) {
+        for (const name of ['src', 'method']) {
+            if (name in attributes) {
+                this.reflectTo(name, attributes[name] ?? null);
+            }
+        }
+        this.#followAttributes();
+        return await this.reload();
     }
     #buildLoader() {
         this.#builtFrom = { src: this.getAttribute('src'), method: this.getAttribute('method') };
         this.#loader = this.component(this.declared('loader') ?? 'loaders:table').create(this);
     }
-    #rebuildIfChanged() {
+    /** @returns {boolean} whether the loader was built again */
+    #followAttributes() {
         if (
             this.getAttribute('src') === this.#builtFrom.src &&
             this.getAttribute('method') === this.#builtFrom.method
         ) {
-            return;
+            return false;
         }
         this.#buildLoader();
         this.#latestRequest = { ...this.#latestRequest, pageRequest: { ...this.#latestRequest.pageRequest, page: 0 } };
-        if (!this.#loadRequested) {
-            return;
-        }
-        this.reload();
+        return true;
     }
     /**
      * @param {{ slots: Record<string, DocumentFragment> }} c

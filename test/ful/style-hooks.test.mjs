@@ -266,9 +266,26 @@ describe('Style hooks', () => {
 
         assert.strictEqual(
             getComputedStyle(container.querySelector('ful-table-wrapper > table')).borderCollapse,
-            'collapse',
+            'separate',
         );
         assert.strictEqual(getComputedStyle(container.querySelector('ful-pagination-bar > ul')).display, 'flex');
         assert.strictEqual(getComputedStyle(container.querySelector('ful-pagination-bar button')).minWidth, '36px');
+    });
+
+    it('keeps the table headers in view, opaque, while the rows scroll under them', () => {
+        const rows = Array.from({ length: 40 }, (x, i) => `<tr><td>${i}</td></tr>`).join('');
+        const container = attach(`
+            <div style="height: 120px; overflow: auto">
+                <div>
+                    <ful-table-wrapper><table><thead><tr><th>h</th></tr></thead><tbody>${rows}</tbody></table></ful-table-wrapper>
+                </div>
+            </div>`);
+        const box = container.firstElementChild;
+        const th = container.querySelector('th');
+
+        box.scrollTop = 300;
+
+        assert.strictEqual(th.getBoundingClientRect().top, box.getBoundingClientRect().top);
+        assert.notStrictEqual(getComputedStyle(th).backgroundColor, 'rgba(0, 0, 0, 0)');
     });
 });

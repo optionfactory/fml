@@ -19,7 +19,7 @@ const byLabel = (entries, needle) =>
 /**
  * Fetches a select's whole vocabulary from a url and serves every later read
  * from it. Concurrent callers share one request, the options may be cached in
- * local storage under a revision, and reconfiguring the url discards both.
+ * local storage under a revision, and invalidating discards both.
  */
 class RemoteLoader {
     #http;
@@ -48,7 +48,7 @@ class RemoteLoader {
      * Fetches the vocabulary now when the loader was built with prefetch, and
      * does nothing otherwise.
      * @returns {Promise<void>}
-     * @throws when the fetch fails, or when a reconfiguration supersedes it
+     * @throws when the fetch fails, or when an invalidation supersedes it
      */
     async prefetch() {
         if (!this.#prefetch) {
@@ -60,7 +60,7 @@ class RemoteLoader {
      * The entries whose key loosely equals one of the keys, in vocabulary order.
      * @param {...any} keys
      * @returns {Promise<SelectEntry[]>}
-     * @throws when the fetch fails, or when a reconfiguration supersedes it
+     * @throws when the fetch fails, or when an invalidation supersedes it
      */
     async exact(...keys) {
         return byKeys(await this.#ensureFetched(), keys);
@@ -70,7 +70,7 @@ class RemoteLoader {
      * for a nullish or empty needle.
      * @param {string|null} [needle]
      * @returns {Promise<SelectEntry[]>}
-     * @throws when the fetch fails, or when a reconfiguration supersedes it
+     * @throws when the fetch fails, or when an invalidation supersedes it
      */
     async load(needle) {
         return byLabel(await this.#ensureFetched(), needle);
@@ -86,15 +86,6 @@ class RemoteLoader {
         this.#configs.invalidate();
         this.#data = null;
         this.#inFlight = null;
-    }
-    /**
-     * Points the loader at another url, invalidating first.
-     * @param {string} url
-     * @returns {Promise<void>}
-     */
-    async reconfigureUrl(url) {
-        await this.invalidate();
-        this.#url = url;
     }
     async #ensureFetched() {
         if (this.#data === null) {
@@ -115,7 +106,7 @@ class RemoteLoader {
             await this.#inFlight;
         }
         if (this.#data === null) {
-            throw new Error('superseded by a reconfiguration');
+            throw new Error('superseded by an invalidation');
         }
         return this.#data;
     }
@@ -159,14 +150,6 @@ class PartialRemoteLoader {
      * @returns {Promise<void>}
      */
     async invalidate() {}
-    /**
-     * Points every later query at another url.
-     * @param {string} url
-     * @returns {Promise<void>}
-     */
-    async reconfigureUrl(url) {
-        this.#url = url;
-    }
     /**
      * Asks the endpoint for the entries of the keys, sent as repeated `k`
      * parameters.
@@ -916,9 +899,8 @@ class Select extends Field {
         });
     }
     /**
-     * Hands the loader to the callback, for runtime reconfigurations such as
-     * `reconfigureUrl(url)` on a remote loader or `update(entries)` on an
-     * in-memory one.
+     * Hands the loader to the callback, for runtime changes such as
+     * `update(entries)` on an in-memory loader.
      * @template T
      * @param {(loader: any) => T|Promise<T>} fn
      * @returns {Promise<T>} what the callback answers
@@ -935,12 +917,8 @@ class Select extends Field {
      * change does not survive it, and one it still knows keeps its place with a
      * fresh label. The badges and items follow, and no `change` is dispatched.
      *
-     * Where the vocabulary lives at a different address, write `src` instead,
-     * which builds the loader for the new url and reloads:
-     *
-     *     citta.addEventListener('change', () => {
-     *         cap.src = `/api/cap?citta=${citta.value}`;
-     *     });
+     * Where the vocabulary lives at a different address, write `src` or call
+     * `reconfigure`, which build the loader for the new url and reload.
      * @returns {Promise<void>}
      * @throws what the loader's invalidate, prefetch or key lookup throws
      */
@@ -976,7 +954,9 @@ class Select extends Field {
      */
     set src(value) {
         this.reflectTo('src', value ?? null);
-        this.#rebuildIfChanged();
+        if (this.#followAttributes()) {
+            this.reload();
+        }
     }
     /**
      * The http method the default loader sends, reflected as the `method`
@@ -993,7 +973,40 @@ class Select extends Field {
      */
     set method(value) {
         this.reflectTo('method', value ?? null);
-        this.#rebuildIfChanged();
+        if (this.#followAttributes()) {
+            this.reload();
+        }
+    }
+    /**
+     * Writes `src` and `method` together and reloads once: the loader is built
+     * again for the pair when either changed, as a single write of either does,
+     * and the select then reloads as `reload()` does, whether or not they
+     * changed.
+     *
+     *     citta.addEventListener('change', () => {
+     *         cap.reconfigure({ src: `/api/cap?citta=${citta.value}` }, { notify: true });
+     *     });
+     * @param {{ src?: string|null, method?: string|null }} attributes a name
+     * left out keeps its value, null removes the attribute
+     * @param {{ notify?: boolean }} [options] `notify` dispatches `change` when
+     * the reload dropped a selected key, so a form or a table filtered by the
+     * select sees the value it lost; nothing is dispatched otherwise
+     * @returns {Promise<void>} settling once the reload has
+     * @throws what the loader's invalidate, prefetch or key lookup throws
+     */
+    async reconfigure(attributes, { notify = false } = {}) {
+        for (const name of ['src', 'method']) {
+            if (name in attributes) {
+                this.reflectTo(name, attributes[name] ?? null);
+            }
+        }
+        this.#followAttributes();
+        const before = [...this.#values.keys()];
+        await this.reload();
+        const after = [...this.#values.keys()];
+        if (notify && after.length !== before.length) {
+            this._notifyChange({ entry: this.entry });
+        }
     }
     #buildLoader() {
         this.#builtFrom = { src: this.getAttribute('src'), method: this.getAttribute('method') };
@@ -1001,17 +1014,18 @@ class Select extends Field {
             options: this.#options,
         });
     }
-    #rebuildIfChanged() {
+    /** @returns {boolean} whether the loader was built again */
+    #followAttributes() {
         if (
             this.getAttribute('src') === this.#builtFrom.src &&
             this.getAttribute('method') === this.#builtFrom.method
         ) {
-            return;
+            return false;
         }
         this.#abortdload();
         this.#close();
         this.#buildLoader();
-        this.reload();
+        return true;
     }
     #badges() {
         return Array.from(this.#control.querySelectorAll(':scope > ful-badge'));

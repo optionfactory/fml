@@ -1213,6 +1213,30 @@ describe('Remote table loader', () => {
         assert.strictEqual(calls[0].url, '/api/other');
     });
 
+    it('asks once, from the first page, when reconfigure changes src and method together', async () => {
+        const [tableEl] = await mountRemote(`src="/api/rows" page-size="25"`);
+        await tableEl.load({ page: 3, size: 25 }, null, {});
+        calls = [];
+
+        await tableEl.reconfigure({ src: '/api/other', method: 'POST' });
+
+        assert.strictEqual(calls.length, 1);
+        assert.strictEqual(calls[0].method, 'POST');
+        assert.strictEqual(calls[0].url, '/api/other');
+        assert.deepStrictEqual(calls[0].params, { page: 0, size: 25, sort: null, filters: null });
+    });
+
+    it('loads a table that has not loaded yet when reconfigured', async () => {
+        const [tableEl] = await mountRemote(`src="/api/rows"`);
+
+        await tableEl.reconfigure({ src: '/api/other' });
+
+        assert.deepStrictEqual(
+            calls.map((c) => c.url),
+            ['/api/other'],
+        );
+    });
+
     it('ignores a write that does not change the url', async () => {
         const [tableEl] = await mountRemote(`src="/api/rows"`);
         await tableEl.reload();

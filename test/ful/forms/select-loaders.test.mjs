@@ -372,25 +372,6 @@ describe('SelectLoader runtime updates', () => {
             <option value="k1">One</option>
             <option value="k2">Two</option>
         </select>`;
-    const stubHttp = (responses) => {
-        const calls = [];
-        registry.defineComponent('http-client', {
-            request(method, url) {
-                const record = { method, url };
-                calls.push(record);
-                return {
-                    async fetchJson() {
-                        const body = responses[url];
-                        if (body === undefined) {
-                            throw new Error(`no canned response for ${url}`);
-                        }
-                        return body;
-                    },
-                };
-            },
-        });
-        return calls;
-    };
     const mount = async (attributes = '', body = '') => {
         const container = appended(`<ful-select ${attributes}>${body}</ful-select>`);
         const selectEl = container.querySelector('ful-select');
@@ -410,27 +391,6 @@ describe('SelectLoader runtime updates', () => {
 
         await selectEl.withLoader((loader) => loader.update([{ key: 'k9', label: 'Nine', metadata: undefined }]));
         assert.deepStrictEqual(options(await open(selectEl)), ['Nine']);
-    });
-
-    it('refetches from the new url after reconfigureUrl, instead of serving the stale cache', async () => {
-        const calls = stubHttp({
-            '/before': [['k1', 'One']],
-            '/after': [['k2', 'Two']],
-        });
-        const [selectEl] = await mount('src="/before"');
-        const close = () => keydown(selectEl.querySelector('input'), 'ArrowUp', { altKey: true });
-
-        assert.deepStrictEqual(options(await open(selectEl)), ['One']);
-        close();
-        assert.lengthOf(calls, 1);
-
-        await selectEl.withLoader((loader) => loader.reconfigureUrl('/after'));
-        assert.deepStrictEqual(options(await open(selectEl)), ['Two'], 'the new url answered the next open');
-        assert.lengthOf(calls, 2);
-        assert.deepStrictEqual(
-            calls.map((c) => c.url),
-            ['/before', '/after'],
-        );
     });
 });
 
@@ -473,15 +433,15 @@ describe('SelectLoader fetch discipline', () => {
         assert.lengthOf(calls, 1, 'the served answers never hit the network again');
     });
 
-    it('discards the outcome of a fetch superseded by a reconfiguration', async () => {
+    it('discards the outcome of a fetch superseded by an invalidation', async () => {
         const { calls, pending } = deferredHttp();
-        const loader = remoteLoader({ url: '/old', prefetch: true });
+        const loader = remoteLoader({ url: '/v', prefetch: true });
 
         const stale = loader.prefetch().then(
             () => assert.fail('the superseded prefetch rejects'),
             (e) => String(e),
         );
-        loader.reconfigureUrl('/new');
+        loader.invalidate();
         pending[0].resolve([['k1', 'Old']]);
         assert.match(await stale, /superseded/);
 
@@ -490,19 +450,19 @@ describe('SelectLoader fetch discipline', () => {
         pending[1].resolve([['k2', 'New']]);
         await fresh;
         assert.deepStrictEqual(await loader.load('new'), [{ key: 'k2', label: 'New', metadata: undefined }]);
-        assert.deepStrictEqual(await loader.exact('k1'), [], 'the old url answer was never stored');
+        assert.deepStrictEqual(await loader.exact('k1'), [], 'the superseded answer was never stored');
         assert.lengthOf(calls, 2);
     });
 
-    it('rejects a caller whose fetch a reconfiguration superseded, instead of crashing', async () => {
+    it('rejects a caller whose fetch an invalidation superseded, instead of crashing', async () => {
         const { calls, pending } = deferredHttp();
-        const loader = remoteLoader({ url: '/old' });
+        const loader = remoteLoader({ url: '/v' });
 
         const superseded = loader.exact('k1').then(
             () => assert.fail('the superseded lookup rejects'),
             (e) => String(e),
         );
-        loader.reconfigureUrl('/new');
+        loader.invalidate();
         pending[0].resolve([['k1', 'Old']]);
         assert.match(await superseded, /superseded/);
 
@@ -511,12 +471,9 @@ describe('SelectLoader fetch discipline', () => {
         assert.deepStrictEqual(
             await next,
             [{ key: 'k1', label: 'New', metadata: undefined }],
-            'the next caller is served from the new url',
+            'the next caller is served by a fresh fetch',
         );
-        assert.deepStrictEqual(
-            calls.map((c) => c.url),
-            ['/old', '/new'],
-        );
+        assert.lengthOf(calls, 2);
     });
 
     it('serves the fetched options when the cache write hits a full quota', async () => {
@@ -673,20 +630,6 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 1, 'the chips follow the selection');
     });
 
-    it('points a chunked loader at another url, which it had no way to be told before', async () => {
-        const calls = stub({ '/a': [['k1', 'From a']], '/b': [['k1', 'From b']] });
-        const selectEl = await mount('src="/a" mode="chunked" value="k1"');
-        await settle();
-        assert.strictEqual(selectEl.entry.label, 'From a');
-
-        await selectEl.withLoader((l) => l.reconfigureUrl('/b'));
-        await selectEl.reload();
-        await settle();
-
-        assert.strictEqual(selectEl.entry.label, 'From b');
-        assert.include(calls, '/b');
-    });
-
     it('reloads a slotted vocabulary too, so a caller never asks which loader it has', async () => {
         const selectEl = await mount(
             'multiple value="k1,k2"',
@@ -817,6 +760,117 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         await settle();
 
         assert.strictEqual(calls.length, before);
+    });
+
+    it('builds the loader once and asks once when reconfigure changes src and method together', async () => {
+        const requests = [];
+        registry.defineComponent('http-client', {
+            request(method, url) {
+                requests.push(`${method} ${url}`);
+                return {
+                    param() {
+                        return this;
+                    },
+                    async fetchJson() {
+                        return [['k1', url]];
+                    },
+                };
+            },
+        });
+        const selectEl = await mount('src="/a" value="k1"');
+        await settle();
+        requests.length = 0;
+
+        await selectEl.reconfigure({ src: '/b', method: 'GET' });
+
+        assert.deepStrictEqual(requests, ['GET /b']);
+        assert.strictEqual(selectEl.entry.label, '/b');
+        assert.strictEqual(selectEl.getAttribute('src'), '/b');
+        assert.strictEqual(selectEl.getAttribute('method'), 'GET');
+    });
+
+    it('keeps the attribute reconfigure leaves out, and removes the one it passes as null', async () => {
+        stub({ '/b': [['k1', 'One']] });
+        const selectEl = await mount('src="/a" method="GET"');
+        await settle();
+
+        await selectEl.reconfigure({ src: '/b' });
+        assert.strictEqual(selectEl.getAttribute('method'), 'GET');
+
+        await selectEl.reconfigure({ method: null });
+        assert.isFalse(selectEl.hasAttribute('method'));
+        assert.strictEqual(selectEl.getAttribute('src'), '/b');
+    });
+
+    it('dispatches change under notify when the reconfigured vocabulary drops a selected key', async () => {
+        stub({
+            '/a': [
+                ['k1', 'One'],
+                ['k2', 'Two'],
+            ],
+            '/b': [['k2', 'Two']],
+        });
+        const selectEl = await mount('src="/a" multiple value="k1,k2"');
+        await settle();
+        const details = [];
+        selectEl.addEventListener('change', (e) => details.push(e.detail.value));
+
+        await selectEl.reconfigure({ src: '/b' }, { notify: true });
+
+        assert.deepStrictEqual(details, [['k2']]);
+    });
+
+    it('dispatches nothing under notify when every selected key survives', async () => {
+        stub({ '/a': [['k1', 'One']], '/b': [['k1', 'Uno']] });
+        const selectEl = await mount('src="/a" value="k1"');
+        await settle();
+        let changes = 0;
+        selectEl.addEventListener('change', () => ++changes);
+
+        await selectEl.reconfigure({ src: '/b' }, { notify: true });
+
+        assert.strictEqual(changes, 0);
+        assert.strictEqual(selectEl.entry.label, 'Uno');
+    });
+
+    it('dispatches nothing without notify, even when a selected key is dropped', async () => {
+        stub({ '/a': [['k1', 'One']], '/b': [] });
+        const selectEl = await mount('src="/a" value="k1"');
+        await settle();
+        let changes = 0;
+        selectEl.addEventListener('change', () => ++changes);
+
+        await selectEl.reconfigure({ src: '/b' });
+
+        assert.strictEqual(selectEl.value, null);
+        assert.strictEqual(changes, 0);
+    });
+
+    it('rejects reconfigure with what the lookup at the new src throws', async () => {
+        registry.defineComponent('http-client', {
+            request(method, url) {
+                return {
+                    param() {
+                        return this;
+                    },
+                    async fetchJson() {
+                        if (url === '/broken') {
+                            throw new Error('down');
+                        }
+                        return [['k1', 'One']];
+                    },
+                };
+            },
+        });
+        const selectEl = await mount('src="/a" value="k1"');
+        await settle();
+
+        const outcome = await selectEl.reconfigure({ src: '/broken' }).then(
+            () => 'resolved',
+            (e) => e.message,
+        );
+
+        assert.strictEqual(outcome, 'down');
     });
 
     it('gives ful-filter-in the same live src', async () => {

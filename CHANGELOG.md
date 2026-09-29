@@ -31,6 +31,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - the `value` attribute is a comma separated list of keys for a single select too, split and trimmed: a key carrying a comma or surrounding spaces is assigned through the property. A single select reads `value=""` as the empty key
 - `ful-dropdown`'s `change` detail is `{ index, entry }`, where it was `{ index, data }` with a tuple; the active option is reported through an `activechange` event, and `aria-selected` marks the picked options rather than the highlighted one
 - a disabled `ful-select` with `item-list` keeps its control group, dimmed; only readonly hides it
+- the remote loaders' `reconfigureUrl(url)` is gone: write the select's `src`, or call `select.reconfigure({ src })`, which builds the loader for the new url and reloads the selection
 
 **ful-input and ful-input-file**
 
@@ -167,7 +168,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 #### ful-select
 
 - [NEW] an entry whose `metadata.disabled` is truthy is shown with `aria-disabled="true"` and `metadata.reason` as its title, and cannot be highlighted or picked
-- [NEW] `select.reload()` asks the loader again for the vocabulary and the current selection, dropping keys it no longer knows; every loader answers `invalidate()`, and the chunked loader takes `reconfigureUrl(url)`
+- [NEW] `select.reload()` asks the loader again for the vocabulary and the current selection, dropping keys it no longer knows; every loader answers `invalidate()`
 - [NEW] `SelectLoader.from(conf)` builds a loader from plain configuration without an element
 - [NEW] a valueless `revision` takes the page's build identifier from a `revision` registry component, and warns when none is defined
 - [NEW] a `<template slot="items">` shapes each item-list entry over the `entries` overlay
@@ -179,7 +180,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] item-list entries are removable chips sized like a control, and the open dropdown marks the options already picked
 - [ENH] a `preload` select paints its label and control at once instead of holding its upgrade on the prefetch; a first open during the prefetch joins it
 - [ENH] `multiple` is live, and the loader's attributes (`src`, `method`, `mode`, `preload`, `revision`, `k-expr`, `l-expr`, `d-expr`, `m-expr`, `response-mapper`) are declared and documented in the IDE metadata
-- [ENH] `src` and `method` stay live on `ful-select` and `ful-filter-in`: writing either, as an attribute or as a property, closes the dropdown, builds the loader again and reloads as `reload()` does, so a select following another control no longer reaches for `reconfigureUrl`
+- [ENH] `src` and `method` stay live on `ful-select` and `ful-filter-in`: writing either, as an attribute or as a property, closes the dropdown, builds the loader again and reloads as `reload()` does
+- [NEW] `select.reconfigure({ src, method }, { notify })` writes both at once, reloads once and answers a promise settling with the reload; `notify` fires `change` when the reload dropped a selected key
 - [ENH] a key containing a comma assigned through the property warns once per element
 - [ENH] a claim landing while the dropdown is open closes it
 - [BUG] a click on another control inside a `ful-select` (a tooltip, an affix button) no longer opens the dropdown
@@ -202,6 +204,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] the rows stay on screen while a load runs, dimmed through `aria-busy`; the spinner shows only when there is nothing to show yet
 - [ENH] writing `page-size` or `pageSize` reloads from the first page, keeping the sort and the filters
 - [ENH] `src` and `method` stay live on `ful-table`: writing either, as an attribute or as a property, builds the loader again and reloads from the first page, keeping the size, the sort and the filters
+- [NEW] `table.reconfigure({ src, method })` writes both at once and loads once, from the first page
+- [ENH] the header cells are sticky, painted with `--ful-bg`, so they stay in view while the rows scroll; the table's borders are `separate` with no spacing, so the header's bottom border travels with it
 - [ENH] `ful-sorter` is focusable, sorts on `Enter`/`Space` and mirrors its order onto the header cell's `aria-sort`; its arrow stays on the heading's line
 - [ENH] the pagination controls are real buttons, the reload button has an accessible name, and the focus stays on the equivalent control across a page change
 - [DOC] `inHeaders` and `inRows` let a column's `data-tpl-*` apply to the header or the body cell alone

@@ -135,7 +135,8 @@
             width: 100%;
             margin-bottom: 1rem;
             color: var(--ful-color);
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
         }
 
         & caption {
@@ -152,6 +153,10 @@
         }
 
         & thead th {
+            position: sticky;
+            inset-block-start: 0;
+            z-index: 1;
+            background-color: var(--ful-bg);
             border-bottom-width: calc(2 * var(--ful-border-width));
         }
 
