@@ -75,6 +75,26 @@
     </fieldset>
 
     <fieldset>
+        <legend>src stays live: the table follows the selected customer</legend>
+        <ful-select id="customer" value="1">
+            Cliente
+            <select slot="options">
+                <option value="1">Acme</option>
+                <option value="2">Globex</option>
+                <option value="3">Initech</option>
+            </select>
+        </ful-select>
+        <ful-table id="shipments" loader="loaders:shipments" src="/customers/1/shipments" autoload page-size="5">
+            <template slot="schema">
+                <schema>
+                    <column title="Spedizione" sorter="code">{{ code }}</column>
+                    <column title="Destinazione">{{ city }}</column>
+                </schema>
+            </template>
+        </ful-table>
+    </fieldset>
+
+    <fieldset>
         <legend>no rows: the localized default, and what the empty slot says instead</legend>
         <ful-table loader="loaders:no-data" autoload>
             <template slot="schema">
@@ -148,8 +168,35 @@
             }
         }
 
+        class ShipmentsLoader {
+            #rows;
+            constructor(customer) {
+                const cities = ['Milano', 'Torino', 'Roma', 'Napoli', 'Bologna'];
+                this.#rows = Array.from({ length: 4 + customer * 3 }, (x, i) => ({ code: `C${customer}-${String(i + 1).padStart(3, '0')}`, city: cities[(i + customer) % cities.length] }));
+            }
+            async load(pageRequest, sortRequest) {
+                await ful.Timing.sleep(300);
+                const rows = [...this.#rows];
+                if (sortRequest) {
+                    rows.sort((a, b) => (a[sortRequest.sorter] > b[sortRequest.sorter] ? 1 : -1) * (sortRequest.order === 'asc' ? 1 : -1));
+                }
+                return {
+                    size: rows.length,
+                    data: rows.slice(pageRequest.size * pageRequest.page, pageRequest.size * (pageRequest.page + 1))
+                };
+            }
+            static create(table) {
+                return new ShipmentsLoader(Number(table.src.split('/')[2]));
+            }
+        }
+
+        document.querySelector('#customer').addEventListener('change', (e) => {
+            document.querySelector('#shipments').src = `/customers/${e.detail.value}/shipments`;
+        });
+
         ftl.registry
             .plugin(new ful.Plugin())
+            .defineComponent("loaders:shipments", ShipmentsLoader)
             .defineComponent("loaders:mock-data", MockDataLoader)
             .defineComponent("loaders:no-data", { create: () => ({ load: async () => ({ size: 0, data: [] }) }) })
             .configure();
