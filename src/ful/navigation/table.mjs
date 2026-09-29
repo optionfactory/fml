@@ -22,7 +22,7 @@ import { Failure } from '../../httpc/index.mjs';
  * The sort control of a table header, `ful-sorter`: a `role="button"` with
  * `tabindex="0"`, activated by a click or by Enter, NumpadEnter or Space.
  *
- * Each activation dispatches `sort:requested` (bubbling, cancelable) with
+ * Each activation dispatches `sort:requested` (bubbling, not cancelable) with
  * `detail.value` set to `{ sorter, order }`: `sorter` is the `sorter`
  * attribute, read once at the upgrade, and `order` is the one after the
  * current `order` in the cycle `asc`, `desc`, `null`. The button does not
@@ -43,7 +43,7 @@ class SortButton extends ParsedElement {
             this.dispatchEvent(
                 new CustomEvent('sort:requested', {
                     bubbles: true,
-                    cancelable: true,
+                    cancelable: false,
                     detail: {
                         value: { sorter, order: nextOrder },
                     },
@@ -95,7 +95,7 @@ class SortButton extends ParsedElement {
  * enabled. Previous and next are disabled where there is no page to go to.
  *
  * A click on an enabled button other than the current page dispatches
- * `page:requested` (bubbling, cancelable) with `detail.value` the zero based
+ * `page:requested` (bubbling, not cancelable) with `detail.value` the zero based
  * index of the page asked for; the reload button asks for the current page.
  * The pager does not move itself: whoever handles the event calls `update`,
  * which `ful-table` does once the page has loaded.
@@ -147,7 +147,7 @@ class Pagination extends ParsedElement {
             this.dispatchEvent(
                 new CustomEvent('page:requested', {
                     bubbles: true,
-                    cancelable: true,
+                    cancelable: false,
                     detail: {
                         value: Number(el.dataset.page ?? this.#current),
                     },
