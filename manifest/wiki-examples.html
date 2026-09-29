@@ -19,7 +19,7 @@ window.fetch = async (url, init) => {
 responses.set('/api/users', { });
 responses.set('/steps/', '<p data-ref="delivered">delivered</p>');
 
-// --- 12: the custom select loader from the page
+// --- 12: a custom select loader, as page 23 describes
 const ENTRIES = [
     { key: 'it', label: 'Italy', metadata: { flag: '🇮🇹' } },
     { key: 'fr', label: 'France', metadata: { flag: '🇫🇷' } },
@@ -32,7 +32,7 @@ ftl.registry.defineComponent('loaders:countries', {
     }),
 });
 
-// --- 10: the custom form loader from the page
+// --- 10: a custom form loader, as page 23 describes
 const myApi = async (request) => ({ data: { echoed: request } });
 ftl.registry.defineComponent('loaders:form-mine', {
     create: (form) => ({
@@ -42,7 +42,7 @@ ftl.registry.defineComponent('loaders:form-mine', {
     }),
 });
 
-// --- 15: the custom table loader from the page
+// --- 15: a custom table loader, as page 23 describes
 ftl.registry.defineComponent('loaders:users', {
     create: () => ({
         async load(page, sort, filters) {
