@@ -87,22 +87,12 @@ class CommandsHandler {
         //expected still fails loudly below, and any other iterable (a Set, a
         //generator, an entries() iterator) iterates as itself
         const proto = evaluated === null || typeof evaluated !== 'object' ? undefined : Object.getPrototypeOf(evaluated);
-        const keyed =
-            evaluated instanceof Map
-                ? [...evaluated]
-                : !evaluated?.[Symbol.iterator] && (proto === Object.prototype || proto === null)
-                  ? Object.entries(evaluated)
-                  : null;
+        const plain = !evaluated?.[Symbol.iterator] && (proto === Object.prototype || proto === null);
+        const dict = plain ? Object.entries(evaluated) : null;
+        const keyed = evaluated instanceof Map ? [...evaluated] : dict;
         const entries = keyed === null ? evaluated : keyed.map(([key, value]) => ({ key, value }));
         if (!entries?.[Symbol.iterator]) {
             throw new Error(`Expected an iterable got '${evaluated}'`);
-        }
-        if (!statName) {
-            for (const v of entries) {
-                ops.prepend(node, template.withOverlay(varName ? { [varName]: v } : v).render());
-            }
-            ops.remove(node);
-            return;
         }
         //the stat rides grouped under its declared name, overlaid below the
         //item, so data can never collide with its fields and an item property
@@ -110,15 +100,12 @@ class CommandsHandler {
         //read where the collection already knows it (arrays and keyed entries
         //by length, sets and the like by size): an arbitrary iterator is never
         //consumed to learn it, so its size and last read null, the unknown
-        const size = Array.isArray(entries)
-            ? entries.length
-            : typeof entries.length === 'number'
-              ? entries.length
-              : typeof entries.size === 'number'
-                ? entries.size
-                : null;
+        const measured = statName ? entries : null;
+        const counted = typeof measured?.length === 'number' ? measured.length : measured?.size;
+        const size = typeof counted === 'number' ? counted : null;
         let index = 0;
         for (const v of entries) {
+            const item = varName ? { [varName]: v } : v;
             const stat = {
                 index,
                 count: index + 1,
@@ -128,10 +115,8 @@ class CommandsHandler {
                 even: index % 2 === 0,
                 odd: index % 2 === 1,
             };
-            ops.prepend(
-                node,
-                template.withOverlay({ [statName]: stat }, varName ? { [varName]: v } : v).render(),
-            );
+            const layers = statName ? [{ [statName]: stat }, item] : [item];
+            ops.prepend(node, template.withOverlay(...layers).render());
             ++index;
         }
         ops.remove(node);
@@ -151,10 +136,7 @@ class CommandsHandler {
     static tplRemove(node, value, ops, evaluator) {
         switch (value.toLowerCase()) {
             case 'tag': {
-                const fragment = new DocumentFragment();
-                while (node.firstChild) {
-                    fragment.appendChild(node.firstChild);
-                }
+                const fragment = Fragments.fromChildNodes(node);
                 if ('tplVerbatim' in node.dataset) {
                     //we are removing the parent element so we have to handle the lower priority commands
                     ops.popData(node, 'tplVerbatim');
@@ -268,8 +250,7 @@ class Template {
         if (!(templateEl instanceof HTMLTemplateElement)) {
             throw new Error('template selector does not match any template tag');
         }
-        const fragment = document.adoptNode(templateEl.content);
-        return new Template(fragment, new ExpressionEvaluator(modules, data));
+        return Template.fromTemplate(templateEl, modules, ...data);
     }
 
     /**
@@ -367,14 +348,7 @@ class Template {
         try {
             const ops = new NodeOperations();
             const imported = document.importNode(this.#fragment, true);
-            const fragment =
-                imported.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-                    ? imported
-                    : (() => {
-                          const d = new DocumentFragment();
-                          d.appendChild(imported);
-                          return d;
-                      })();
+            const fragment = imported.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? imported : Fragments.from(imported);
             const iterator = document.createNodeIterator(
                 fragment,
                 NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
@@ -424,7 +398,7 @@ class Template {
                             el.setAttribute(attributeName, evaluated);
                         }
                     } catch (ex) {
-                        throw RenderError.wrap(`Error evaluating data-tpl-${toAttr(dataSetKey)}="${expression}"`, el, ex);
+                        throw RenderError.wrap(`Error evaluating data-tpl-${attributeName}="${expression}"`, el, ex);
                     }
                 }
             }

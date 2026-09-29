@@ -102,6 +102,24 @@ describe('Template', () => {
         assert.strictEqual(Fragments.toHtml(rendered), '<i>1/2:it</i><i>2/2:en!</i>');
     });
 
+    it('reads no size from the collection when no stat asks for one', () => {
+        let reads = 0;
+        const bag = {
+            get size() {
+                ++reads;
+                return 2;
+            },
+            *[Symbol.iterator]() {
+                yield 'p';
+                yield 'q';
+            },
+        };
+        const rendered = Template.fromHtml('<i data-tpl-each="bag">{{self}}</i>', modules, { bag }).render();
+
+        assert.strictEqual(Fragments.toHtml(rendered), '<i>p</i><i>q</i>');
+        assert.strictEqual(reads, 0);
+    });
+
     it('never consumes an iterator to learn the size: an unsized stat reads null', () => {
         const data = {
             gen: (function* () {

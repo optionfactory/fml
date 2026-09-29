@@ -72,8 +72,7 @@ class EvaluatingVisitor {
         return this.visit(node.lhs) || this.visit(node.rhs);
     }
     [nodes.nullc](node) {
-        const lhs = this.visit(node.lhs);
-        return lhs !== null && lhs !== undefined ? lhs : this.visit(node.rhs);
+        return this.visit(node.lhs) ?? this.visit(node.rhs);
     }
     [nodes.not](node) {
         return !this.visit(node.expr);
@@ -140,8 +139,7 @@ class EvaluatingVisitor {
         return this.visit(node.cond) ? this.visit(node.ifTrue) : this.visit(node.ifFalse);
     }
     [nodes.elv](node) {
-        const cond = this.visit(node.cond);
-        return cond ? cond : this.visit(node.ifFalse);
+        return this.visit(node.cond) || this.visit(node.ifFalse);
     }
     [nodes.access](node) {
         let prev;
