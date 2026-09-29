@@ -277,7 +277,7 @@ class Dialog extends ParsedElement {
         }
     }
     #request() {
-        this.#requests.request(this, this.#body, null, null)?.catch(() => undefined);
+        this.#requests.request(this, this.#body, null, null).catch(() => undefined);
     }
     /**
      * Re-fires section:requested for the body, open or closed: the explicit
@@ -285,7 +285,7 @@ class Dialog extends ParsedElement {
      * problems, nothing rejects: update() stays the rejecting call.
      */
     refresh() {
-        return this.#requests.request(this, this.#body, null, null)?.then(undefined, () => undefined);
+        return this.#requests.request(this, this.#body, null, null).catch(() => undefined);
     }
     close(result) {
         this.#dialog.close(result ?? '');

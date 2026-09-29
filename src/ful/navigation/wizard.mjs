@@ -54,7 +54,7 @@ class Wizard extends ParsedElement {
             //a section already carrying the claim keeps it: server-rendered state wins
             const claimed = this.#sections.findIndex((s) => s.getAttribute('aria-current') === 'step');
             this.#apply(claimed === -1 ? 0 : Math.min(claimed, count - 1));
-            this.#enter(this.#index)?.catch(() => undefined);
+            this.#enter(this.#index).catch(() => undefined);
         }
     }
     get index() {
@@ -102,7 +102,7 @@ class Wizard extends ParsedElement {
             console.warn(`ful-wizard: no section answers to "${ref}"`);
             return undefined;
         }
-        return this.#enter(index)?.then(undefined, () => undefined);
+        return this.#enter(index).catch(() => undefined);
     }
     #enter(index) {
         return this.#requests.request(

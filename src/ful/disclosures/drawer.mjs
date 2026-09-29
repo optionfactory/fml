@@ -152,14 +152,14 @@ class Drawer extends ParsedElement {
      * problems, nothing rejects: update() stays the rejecting call.
      */
     refresh() {
-        return this.#requests.request(this, this.#content, null, null)?.then(undefined, () => undefined);
+        return this.#requests.request(this, this.#content, null, null).catch(() => undefined);
     }
     open() {
         if (!this.#show()) {
             return;
         }
         this.#restChrome();
-        this.#requests.request(this, this.#content, null, null)?.catch(() => undefined);
+        this.#requests.request(this, this.#content, null, null).catch(() => undefined);
     }
     close() {
         if (this.#closing || !this.#dialog.open) {

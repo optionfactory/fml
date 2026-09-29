@@ -196,7 +196,7 @@ class TableSchemaParser {
             columns
                 .filter((v) => v.hasAttribute('order') && v.hasAttribute('sorter'))
                 .map((v) => ({ sorter: v.getAttribute('sorter'), order: v.getAttribute('order') }))[0] ?? null;
-        for (var column of columns) {
+        for (const column of columns) {
             const maybeTitleTag = Nodes.queryChildren(column, 'title');
             const sorter = column.getAttribute('sorter');
             const order = column.getAttribute('order');
@@ -242,7 +242,7 @@ class TableSchemaParser {
                 .withOverlay({ inHeaders: true, inRows: false })
                 .withFragment(Fragments.from(headersTr)),
             rowsTemplate: template.withOverlay({ inHeaders: false, inRows: true }).withFragment(Fragments.from(rowsTr)),
-            sort: sort,
+            sort,
             length: columns.length,
         };
     }
@@ -504,24 +504,10 @@ class Table extends ParsedElement {
         //load renders its own error state, and the unhandled rejection is what
         //reports the failure (the autoload below reports the same way)
         maybeForm?.addEventListener('submit:success', async (evt) => {
-            await this.load(
-                {
-                    page: 0,
-                    size: this.#latestRequest.pageRequest.size,
-                },
-                this.#latestRequest.sortRequest,
-                evt.detail.request,
-            );
+            await this.#loadPage(0, evt.detail.request);
         });
         this.addEventListener('page:requested', async (/** @type any */ e) => {
-            await this.load(
-                {
-                    page: e.detail.value,
-                    size: this.#latestRequest.pageRequest.size,
-                },
-                this.#latestRequest.sortRequest,
-                this.#latestRequest.filterRequest,
-            );
+            await this.#loadPage(e.detail.value, this.#latestRequest.filterRequest);
         });
         this.addEventListener('sort:requested', async (/** @type any */ e) => {
             const sortRequest = e.detail.value.order ? e.detail.value : null;
@@ -627,11 +613,11 @@ class Table extends ParsedElement {
         return await fn(this.#loader);
     }
     async resetWithFilter(filterRequest) {
-        return await this.load(
-            {
-                page: 0,
-                size: this.#latestRequest.pageRequest.size,
-            },
+        return await this.#loadPage(0, filterRequest);
+    }
+    #loadPage(page, filterRequest) {
+        return this.load(
+            { page, size: this.#latestRequest.pageRequest.size },
             this.#latestRequest.sortRequest,
             filterRequest,
         );

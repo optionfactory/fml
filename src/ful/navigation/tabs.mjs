@@ -94,7 +94,7 @@ class Tabs extends ParsedElement {
             console.warn(`ful-tabs: no panel answers to "${ref}"`);
             return undefined;
         }
-        return this.#requests.request(this, panel, null, index)?.then(undefined, () => undefined);
+        return this.#requests.request(this, panel, null, index).catch(() => undefined);
     }
     set active(v) {
         const index = Math.min(Math.max(0, Number(v) || 0), Math.max(0, this.#tabs.length - 1));
@@ -112,7 +112,7 @@ class Tabs extends ParsedElement {
         if (this.#panels.length > 0 && (index !== previous || !this.rendered)) {
             //the activation is the reader's own gesture: the chrome reports a
             //failed delivery, there is no caller to reject towards
-            this.#requests.request(this, this.#panels[index], null, index)?.catch(() => undefined);
+            this.#requests.request(this, this.#panels[index], null, index).catch(() => undefined);
         }
     }
 }

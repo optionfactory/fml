@@ -72,9 +72,9 @@ class Localization {
             warnOnce(`missing message "${key}"`);
             return key;
         }
+        const named = args.length === 1 && isPlainObject(args[0]) ? args[0] : null;
         if (isPlainObject(message)) {
-            const named = args.length === 1 && isPlainObject(args[0]) ? args[0] : {};
-            if (typeof named.count !== 'number') {
+            if (typeof named?.count !== 'number') {
                 warnOnce(`plural message "${key}" needs a numeric {count}`);
                 message = message.other;
             } else {
@@ -87,8 +87,7 @@ class Localization {
             warnOnce(`plural message "${key}" has no "other" form`);
             return key;
         }
-        if (args.length === 1 && isPlainObject(args[0])) {
-            const named = args[0];
+        if (named) {
             return message.replace(PLACEHOLDER, (literal, name) => {
                 if (!Object.hasOwn(named, name)) {
                     warnOnce(`message "${key}" wants {${name}}`);
