@@ -200,6 +200,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] `ful-table` takes a `response-mapper` component, as `ful-select` and `ful-form` do
 - [ENH] the rows stay on screen while a load runs, dimmed through `aria-busy`; the spinner shows only when there is nothing to show yet
 - [ENH] writing `page-size` or `pageSize` reloads from the first page, keeping the sort and the filters
+- [ENH] `src` and `method` stay live on `ful-table`: writing either, as an attribute or as a property, builds the loader again and reloads from the first page, keeping the size, the sort and the filters
 - [ENH] `ful-sorter` is focusable, sorts on `Enter`/`Space` and mirrors its order onto the header cell's `aria-sort`; its arrow stays on the heading's line
 - [ENH] the pagination controls are real buttons, the reload button has an accessible name, and the focus stays on the equivalent control across a page change
 - [DOC] `inHeaders` and `inRows` let a column's `data-tpl-*` apply to the header or the body cell alone

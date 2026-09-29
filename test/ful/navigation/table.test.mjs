@@ -1159,6 +1159,69 @@ describe('Remote table loader', () => {
             filters: JSON.stringify({ byName: 'bob' }),
         });
     });
+
+    it('does not request anything while the base applies the declared src', async () => {
+        await mountRemote(`src="/api/rows"`);
+        await settle();
+
+        assert.deepStrictEqual(calls, []);
+    });
+
+    it('asks the new url from the first page when src changes, keeping the size and the sort', async () => {
+        const [tableEl] = await mountRemote(`src="/api/rows" page-size="25"`);
+        await tableEl.load({ page: 3, size: 25 }, { sorter: 'a', order: 'asc' }, {});
+
+        tableEl.setAttribute('src', '/api/other');
+        await settle();
+
+        assert.strictEqual(calls.at(-1).url, '/api/other');
+        assert.deepStrictEqual(calls.at(-1).params, { page: 0, size: 25, sort: 'a,asc', filters: null });
+    });
+
+    it('takes src from the property, reflecting it onto the attribute', async () => {
+        const [tableEl] = await mountRemote(`src="/api/rows"`);
+        await tableEl.reload();
+
+        tableEl.src = '/api/other';
+        await settle();
+
+        assert.strictEqual(tableEl.getAttribute('src'), '/api/other');
+        assert.strictEqual(tableEl.src, '/api/other');
+        assert.strictEqual(calls.at(-1).url, '/api/other');
+    });
+
+    it('asks with the new method when method changes', async () => {
+        const [tableEl] = await mountRemote(`src="/api/rows"`);
+        await tableEl.reload();
+
+        tableEl.method = 'POST';
+        await settle();
+
+        assert.strictEqual(calls.at(-1).method, 'POST');
+        assert.strictEqual(tableEl.getAttribute('method'), 'POST');
+        assert.strictEqual(tableEl.method, 'POST');
+    });
+
+    it('only rebuilds the loader of a table that has not loaded yet', async () => {
+        const [tableEl] = await mountRemote(`src="/api/rows"`);
+
+        tableEl.src = '/api/other';
+        await settle();
+        assert.deepStrictEqual(calls, [], 'no load before the first one is asked for');
+
+        await tableEl.reload();
+        assert.strictEqual(calls[0].url, '/api/other');
+    });
+
+    it('ignores a write that does not change the url', async () => {
+        const [tableEl] = await mountRemote(`src="/api/rows"`);
+        await tableEl.reload();
+
+        tableEl.src = '/api/rows';
+        await settle();
+
+        assert.strictEqual(calls.length, 1);
+    });
 });
 
 describe('Table page-size', () => {

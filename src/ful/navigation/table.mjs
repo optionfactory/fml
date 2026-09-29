@@ -491,8 +491,8 @@ class TableLoader {
 class Table extends ParsedElement {
     /** Read once at the upgrade. */
     static attributes = ['loader', 'autoload:presence'];
-    /** `page-size` stays live after the upgrade: see `pageSize`. */
-    static observed = ['page-size:number'];
+    /** These stay live after the upgrade: see `pageSize`, `src` and `method`. */
+    static observed = ['page-size:number', 'src', 'method'];
     static slots = true;
     static config = {
         searchIcon: 'search',
@@ -573,6 +573,8 @@ class Table extends ParsedElement {
     /** whether a load has been asked for, by autoload or by a caller */
     #loadRequested = false;
     #loads = new Claims();
+    /** @type {{ src: string|null, method: string|null }} */
+    #builtFrom = { src: null, method: null };
     /**
      * How many rows a page asks the loader for: the size the next load will
      * carry. Ten before the render.
@@ -606,6 +608,64 @@ class Table extends ParsedElement {
         this.reload();
     }
     /**
+     * The url the loader asks for rows, reflected as the `src` attribute.
+     * @returns {string|null}
+     */
+    get src() {
+        return this.getAttribute('src');
+    }
+    /**
+     * Points the table at another url: the loader is built again through its
+     * component's `create`, as at the render, and the table reloads from the
+     * first page, keeping the size, the sort and the filters. A table that has
+     * not loaded yet only rebuilds its loader. A write that does not change the
+     * url does nothing.
+     *
+     * The reload is not awaited: a failure shows the error panel and its
+     * rejection is unhandled.
+     * @param {string|null|undefined} value null or undefined removes the url,
+     * which the default loader answers with an empty in-memory loader
+     */
+    set src(value) {
+        this.reflectTo('src', value ?? null);
+        this.#rebuildIfChanged();
+    }
+    /**
+     * The http method the default loader sends with, reflected as the `method`
+     * attribute; `GET` when absent.
+     * @returns {string|null}
+     */
+    get method() {
+        return this.getAttribute('method');
+    }
+    /**
+     * Changes the http method the way `src` changes the url: the loader is
+     * built again and the table reloads from the first page.
+     * @param {string|null|undefined} value
+     */
+    set method(value) {
+        this.reflectTo('method', value ?? null);
+        this.#rebuildIfChanged();
+    }
+    #buildLoader() {
+        this.#builtFrom = { src: this.getAttribute('src'), method: this.getAttribute('method') };
+        this.#loader = this.component(this.declared('loader') ?? 'loaders:table').create(this);
+    }
+    #rebuildIfChanged() {
+        if (
+            this.getAttribute('src') === this.#builtFrom.src &&
+            this.getAttribute('method') === this.#builtFrom.method
+        ) {
+            return;
+        }
+        this.#buildLoader();
+        this.#latestRequest = { ...this.#latestRequest, pageRequest: { ...this.#latestRequest.pageRequest, page: 0 } };
+        if (!this.#loadRequested) {
+            return;
+        }
+        this.reload();
+    }
+    /**
      * @param {{ slots: Record<string, DocumentFragment> }} c
      * @returns {Promise<void>}
      * @throws {Error} when the `schema` slot is missing or holds no `<schema>`
@@ -617,7 +677,7 @@ class Table extends ParsedElement {
         const tableWrapper = /** @type HTMLTableElement */ (Nodes.queryChildren(fragment, 'ful-table-wrapper'));
         const table = /** @type HTMLTableElement */ (tableWrapper.querySelector('table'));
         Attributes.forward('table-', this, table);
-        this.#loader = this.component(this.declared('loader') ?? 'loaders:table').create(this);
+        this.#buildLoader();
 
         this.#schema = schema;
         this.#body = table.querySelector(':scope > tbody');

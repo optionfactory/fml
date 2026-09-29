@@ -179,6 +179,8 @@ const ELEMENTS = [
         html: `<ful-table><template slot="schema"><schema><column title="A" sorter="a">{{ a }}</column></schema></template></ful-table>`,
         observed: {
             'page-size': ['25', 25],
+            src: ['/api/rows', '/api/rows'],
+            method: ['POST', 'POST'],
         },
     },
     {

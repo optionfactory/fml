@@ -358,7 +358,9 @@
             "attributes": {
                 "autoload": "Loads the first page while upgrading, instead of waiting for a reload(). The load is not awaited, so a slow or failing loader cannot hold up the page.",
                 "loader": "The registered component name the table loads its rows through; loaders:table when absent.",
-                "page-size": "How many rows a page asks the loader for, 10 by default. Stays live: writing it reloads from the first page, a table that has not been asked to load yet only recording it."
+                "page-size": "How many rows a page asks the loader for, 10 by default. Stays live: writing it reloads from the first page, a table that has not been asked to load yet only recording it.",
+                "src": "The url the default loader asks for rows; without it the table loads from an in-memory loader fed through withLoader. Stays live: writing it builds the loader again and reloads from the first page, keeping the sort and the filters.",
+                "method": "The http method the default loader sends, GET by default. Stays live, as src does."
             },
             "slots": {
                 "filters": "Fields wrapped in a ful-form, submitted to filter the table.",
