@@ -10,13 +10,6 @@
 
         display: block;
 
-        &[required] > fieldset > legend::before {
-            content: "* ";
-            display: inline;
-            font-weight: 700;
-            color: var(--ful-color);
-        }
-
         & > fieldset {
             display: block;
             min-width: 0;

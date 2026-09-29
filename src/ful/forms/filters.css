@@ -37,25 +37,8 @@
         display: none;
     }
 
-    ful-control-group > ful-control > input {
-        flex: 1 1 auto;
-        width: 1%;
-        min-width: 0;
-        min-height: var(--ful-controls-height);
-        padding: 0.375rem 0.75rem;
-        font: inherit;
-        line-height: 1.5;
-        color: var(--ful-color);
-        background-color: transparent;
-        border: 0;
-        border-radius: 0;
-    }
-
-    ful-control-group > ful-control > input:focus {
-        outline: 0;
-    }
-
     ful-control-group > button[data-ref="value"] {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: flex-start;
@@ -69,13 +52,22 @@
         white-space: nowrap;
         text-align: left;
         background-color: transparent;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-        background-position: right 0.75rem center;
-        background-repeat: no-repeat;
-        background-size: 16px 12px;
         border: 0;
         border-radius: 0;
         cursor: pointer;
+
+        &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: 0.75rem;
+            width: 16px;
+            height: 12px;
+            translate: 0 -50%;
+            background-color: currentcolor;
+            mask: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='black' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") center / 16px 12px no-repeat;
+            pointer-events: none;
+        }
     }
 
     ful-control-group > button[data-ref="value"]:focus {
@@ -85,26 +77,16 @@
     ful-control-group > button[data-ref="value"]:disabled {
         cursor: default;
         opacity: 0.5;
-        background-size: 0;
+
+        &::after {
+            display: none;
+        }
     }
 
     ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) > ul[popover],
     ful-control-group > button[data-ref="value"] + ul[popover] {
-        top: anchor(bottom);
-        left: anchor(left);
-        margin: 0.3rem 0 0;
         min-width: 6rem;
-        padding: 0.5rem 0;
         list-style: none;
-        color: var(--ful-color);
-        background-color: var(--ful-bg);
-        background-clip: padding-box;
-        border: var(--ful-border-width) solid var(--ful-border-color);
-        border-radius: var(--ful-border-radius);
-
-        &:popover-open {
-            display: block;
-        }
 
         & > li > a {
             display: flex;

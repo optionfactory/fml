@@ -73,7 +73,7 @@
         --ful-spinner-icon-height: 1rem;
         --ful-spinner-icon-border-width: 0.2em;
         --ful-spinner-icon-animation-speed: 0.75s;
-        --ful-spinner-icon-animation-name: spinner-border;
+        --ful-spinner-icon-animation-name: ful-spinner-border;
         --ful-spinner-icon-color: currentcolor;
     }
 }

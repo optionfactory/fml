@@ -168,7 +168,7 @@ describe('Style hooks', () => {
         const container = attach('<ful-spinner>loading</ful-spinner>');
         const spinner = container.querySelector('ful-spinner');
 
-        assert.strictEqual(getComputedStyle(spinner, '::after').animationName, 'spinner-border');
+        assert.strictEqual(getComputedStyle(spinner, '::after').animationName, 'ful-spinner-border');
         assert.isTrue(
             document.getAnimations().some((a) => a.effect?.target === spinner),
             'an unresolved keyframes name declares an animation that never runs',
@@ -231,7 +231,12 @@ describe('Style hooks', () => {
             </div>`);
         const control = container.querySelector('ful-control');
 
-        assert.notStrictEqual(getComputedStyle(control).backgroundImage, 'none', 'the chevron follows the structure');
+        assert.notStrictEqual(getComputedStyle(control, '::after').maskImage, 'none', 'the chevron follows the structure');
+        assert.strictEqual(
+            getComputedStyle(control, '::after').backgroundColor,
+            getComputedStyle(control).color,
+            'drawn in the text colour',
+        );
         assert.strictEqual(getComputedStyle(control).cursor, 'pointer');
     });
 

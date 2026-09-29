@@ -1,9 +1,10 @@
 @layer ful.components {
-    ful-menu[popover] {
+    ful-menu[popover],
+    ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) > ul[popover],
+    ful-control-group > button[data-ref="value"] + ul[popover] {
         top: anchor(bottom);
         left: anchor(left);
         margin: 0.3rem 0 0;
-        min-width: 8rem;
         padding: 0.5rem 0;
         color: var(--ful-color);
         background-color: var(--ful-bg);
@@ -14,6 +15,10 @@
         &:popover-open {
             display: block;
         }
+    }
+
+    ful-menu[popover] {
+        min-width: 8rem;
 
         & > button,
         & > a {

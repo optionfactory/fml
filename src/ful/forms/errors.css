@@ -40,11 +40,11 @@
         background-color: var(--ful-warning-bg);
         border-color: var(--ful-warning-border-color);
         border-radius: 8px;
-        animation: show-and-hide 5s ease forwards;
+        animation: ful-field-warning 5s ease forwards;
         animation-composition: initial;
     }
 
-    @keyframes show-and-hide {
+    @keyframes ful-field-warning {
         0% {
             opacity: 0;
             display: block;

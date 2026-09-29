@@ -20,12 +20,7 @@
             content: "";
             flex: 0 0 auto;
             display: inline-block;
-            width: var(--ful-spinner-icon-width);
-            height: var(--ful-spinner-icon-height);
-            border-radius: 50%;
-            border: var(--ful-spinner-icon-border-width) solid var(--ful-spinner-icon-color);
             border-right-color: transparent;
-            animation: var(--ful-spinner-icon-animation-speed) linear infinite var(--ful-spinner-icon-animation-name);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -83,7 +78,7 @@
         overflow: hidden;
     }
 
-    @keyframes spinner-border {
+    @keyframes ful-spinner-border {
         to {
             transform: rotate(360deg);
         }

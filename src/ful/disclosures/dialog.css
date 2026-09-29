@@ -31,35 +31,6 @@
                 flex: 0 0 auto;
             }
 
-            & > button[data-ref="close"] {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 1.5rem;
-                height: 1.5rem;
-                padding: 0;
-                border: 0;
-                border-radius: var(--ful-border-radius);
-                background: none;
-                color: var(--ful-muted-color, var(--ful-color));
-                cursor: pointer;
-
-                & ful-icon {
-                    width: 1em;
-                    height: 1em;
-                }
-
-                &:hover {
-                    color: var(--ful-active-color);
-                    background-color: var(--ful-active-bg);
-                }
-
-                &:focus-visible {
-                    outline: 0;
-                    box-shadow: var(--ful-focus-box-shadow);
-                }
-            }
-
             & > button[data-ref="close"]:only-child {
                 margin-inline-start: auto;
             }
@@ -78,12 +49,6 @@
 
         & > [data-ref="error"] {
             margin: 0.5rem 1.25rem;
-            padding: 1rem;
-            white-space: pre-line;
-            color: var(--ful-error-color);
-            background-color: var(--ful-error-bg);
-            border: var(--ful-border-width) solid var(--ful-error-border-color);
-            border-radius: var(--ful-border-radius);
         }
 
         & > footer.ful-dialog-footer:empty {

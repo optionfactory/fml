@@ -33,16 +33,147 @@
         display: inline-flex;
         align-items: baseline;
         gap: 0.25em;
+        cursor: pointer;
 
         &:not(:state(rendered)) {
             visibility: hidden;
         }
 
-        cursor: pointer;
-
         &:focus-visible {
             outline: 0;
             box-shadow: var(--ful-focus-box-shadow);
+        }
+
+        &::before {
+            content: "";
+            display: inline-block;
+            flex: 0 0 auto;
+            width: 1em;
+            height: 1em;
+            mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='black' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1'/></svg>");
+        }
+
+        &:not([order])::before {
+            opacity: 0.35;
+        }
+
+        &[order="desc"]::before {
+            mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='black' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5'/></svg>");
+        }
+    }
+
+    *:has(> ful-pagination-bar) {
+        display: block;
+        margin-top: auto;
+    }
+
+    ful-pagination-bar {
+        display: block;
+        user-select: none;
+
+        & ul {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin: 0.5rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        & li[data-ref="index"] {
+            margin-left: 0;
+            margin-right: auto;
+            color: var(--ful-color);
+        }
+
+        & li[data-ref="reload"] button {
+            border: 0;
+            font-size: 1.25rem;
+        }
+
+        & button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2.25rem;
+            height: 2.25rem;
+            padding: 0 0.5rem;
+            font-size: inherit;
+            font-family: inherit;
+            line-height: 1.5;
+            color: var(--ful-color);
+            text-decoration: none;
+            background-color: transparent;
+            border: var(--ful-border-width) solid var(--ful-border-color);
+            border-radius: var(--ful-border-radius);
+            cursor: pointer;
+        }
+
+        & button:hover {
+            background-color: var(--ful-selected-bg);
+        }
+
+        & button:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        & button:focus-visible {
+            outline: 0;
+            box-shadow: var(--ful-focus-box-shadow);
+        }
+
+        & button[aria-current="page"] {
+            color: var(--ful-active-color);
+            background-color: var(--ful-active-bg);
+            border-color: var(--ful-active-bg);
+        }
+    }
+
+    ful-table-wrapper {
+        & table {
+            width: 100%;
+            margin-bottom: 1rem;
+            color: var(--ful-color);
+            border-collapse: collapse;
+        }
+
+        & caption {
+            padding: 0.5rem 0;
+            color: var(--ful-color);
+            text-align: left;
+            caption-side: bottom;
+        }
+
+        & :is(th, td) {
+            padding: 0.5rem;
+            vertical-align: top;
+            border-bottom: var(--ful-border-width) solid var(--ful-border-color);
+        }
+
+        & thead th {
+            border-bottom-width: calc(2 * var(--ful-border-width));
+        }
+
+        & td[colspan] {
+            padding: 1.5rem;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        & tbody[data-ref="feedback"] {
+            & > tr > td > div {
+                padding: 1rem;
+                color: var(--ful-error-color);
+                background-color: var(--ful-error-bg);
+                border: var(--ful-border-width) solid var(--ful-error-border-color);
+                border-radius: var(--ful-border-radius);
+            }
+
+            & p {
+                margin: 0 0 0.5rem;
+                font-weight: 600;
+            }
         }
     }
 }

@@ -14,7 +14,7 @@
         border: 0;
         border-radius: 50%;
         background: none;
-        color: var(--ful-muted-color, var(--ful-color));
+        color: var(--ful-muted-color);
         cursor: pointer;
 
         & ful-icon {

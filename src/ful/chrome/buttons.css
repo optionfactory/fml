@@ -62,4 +62,35 @@
             font-size: 0.875rem;
         }
     }
+
+    :is(dialog.ful-dialog > header, dialog.ful-dialog .ful-dialog-header) > button[data-ref="close"],
+    dialog.ful-drawer > header > button,
+    *:has(> ful-toast) > ful-toast > button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        padding: 0;
+        border: 0;
+        border-radius: var(--ful-border-radius);
+        background: none;
+        color: var(--ful-muted-color);
+        cursor: pointer;
+
+        & ful-icon {
+            width: 1em;
+            height: 1em;
+        }
+
+        &:hover {
+            color: var(--ful-active-color);
+            background-color: var(--ful-active-bg);
+        }
+
+        &:focus-visible {
+            outline: 0;
+            box-shadow: var(--ful-focus-box-shadow);
+        }
+    }
 }

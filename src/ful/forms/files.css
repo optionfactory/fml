@@ -90,10 +90,6 @@
             display: none;
         }
 
-        &:not([item-list]) > ful-item-list {
-            display: none;
-        }
-
         &[readonly] {
             & > ful-item-list {
                 pointer-events: none;
@@ -106,20 +102,6 @@
 
         &:disabled > ful-item-list {
             pointer-events: none;
-        }
-
-        &[item-list][readonly] {
-            & > ful-control-group {
-                display: none;
-            }
-
-            & > ful-item-list > ful-item:first-child {
-                margin-top: 0;
-            }
-
-            & > ful-item-list > ful-item:last-child {
-                margin-bottom: 0;
-            }
         }
     }
 }
