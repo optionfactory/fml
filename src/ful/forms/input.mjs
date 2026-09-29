@@ -123,7 +123,7 @@ class Input extends Field {
         //control, so the rendered markup stays valid html
         const type = mode ? 'text' : declared;
         const fragment = this.template().withOverlay({ type, slots }).render();
-        this._input = fragment.querySelector('input,textarea');
+        this._input = fragment.querySelector(':is(ful-control-group, ful-control) > :is(input, textarea)');
         if (mode) {
             //before the passthrough, which stays the last word
             Attributes.set(this._input, 'inputmode', mode);

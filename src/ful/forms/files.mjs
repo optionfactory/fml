@@ -100,7 +100,7 @@ class InputFile extends Input {
             if (!this._interactive()) {
                 return;
             }
-            this.querySelector('input')?.click();
+            this._input.click();
         });
 
         this.#dropzone.addEventListener('dragover', (e) => {

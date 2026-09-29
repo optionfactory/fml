@@ -668,6 +668,18 @@ describe('A button in an affix', () => {
     });
 });
 
+describe('An input the page slots beside the control', () => {
+    for (const tag of ['ful-input', 'ful-input-local-date', 'ful-filter-text', 'ful-select']) {
+        it(`is not taken for the control of a ${tag}`, async () => {
+            const [el] = await mount(`<${tag} name="a"><span slot="before"><input id="own"></span>label</${tag}>`);
+            const label = el.querySelector(':scope > label');
+
+            assert.notStrictEqual(label.htmlFor, 'own');
+            assert.isNull(document.getElementById(label.htmlFor).closest('ful-affix'));
+        });
+    }
+});
+
 describe('Naming the control from the label', () => {
     //every assertion here compares primitives: chai formats a failed compare over
     //a dom node or a NodeList and the run hangs instead of reporting the failure

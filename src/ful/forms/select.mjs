@@ -569,7 +569,7 @@ class Select extends Field {
             console.warn('failed to prefetch select options', this, 'reason:', e);
         });
         const fragment = this.template().withOverlay({ slots, name }).render();
-        this.#input = fragment.querySelector('input');
+        this.#input = fragment.querySelector('ful-control > input');
         this.#items = fragment.querySelector('ful-item-list');
         this.#itemstemplate =
             slots.items && !Fragments.isBlank(slots.items) ? Templates.fromFragment(slots.items) : null;

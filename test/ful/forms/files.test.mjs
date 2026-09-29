@@ -495,6 +495,21 @@ describe('InputFile list and dropzone interactions', () => {
         assert.isTrue(opened, 'the click reached the native picker');
     });
 
+    it("opens the field's own picker when the page slots an input of its own before it", async () => {
+        const [el] = await mount(`<ful-input-file><span slot="before"><input id="own"></span>files</ful-input-file>`);
+        const clicked = [];
+        for (const input of el.querySelectorAll('input')) {
+            input.addEventListener('click', (e) => {
+                e.preventDefault();
+                clicked.push(input.id === 'own' ? 'own' : 'field');
+            });
+        }
+
+        el.querySelector('[data-ref=dropzone]').dispatchEvent(new Event('click', { bubbles: true }));
+
+        assert.deepStrictEqual(clicked, ['field']);
+    });
+
     it('carries the dragover state while a drag hovers the dropzone', async () => {
         const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
         const dropzone = el.querySelector('[data-ref=dropzone]');
