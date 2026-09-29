@@ -413,12 +413,13 @@ describe('Input keep and reject', () => {
         assert.strictEqual(input.value, '1245', 'the lone 3 never forms a pair');
     });
 
-    it('applies keep and warns once when both are declared', async () => {
+    it('applies keep and warns once, at the upgrade, when both are declared', async () => {
         const originalWarn = console.warn;
         const warns = [];
         console.warn = (...args) => warns.push(args);
         try {
             const [el] = await mount(`<ful-input keep="[0-9]" reject="[0-9]">l</ful-input>`);
+            assert.lengthOf(warns, 1, 'warned before any keystroke');
 
             const input = type(el, 'a1b2');
             assert.strictEqual(input.value, '12', 'keep won, so the digits survived');

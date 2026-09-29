@@ -2,7 +2,7 @@ import { Attributes, BoundedCache } from '../../ftl/index.mjs';
 import { Field } from './field.mjs';
 
 //a null entry is a pattern that did not compile: cached like any other so the
-//warning is printed once rather than on every keystroke
+//warning is printed once rather than for every field declaring it
 const patternCache = new BoundedCache(100);
 const compiled = (attr, pattern) =>
     patternCache.getOrCompute(`${attr}:${pattern}`, () => {
@@ -61,13 +61,10 @@ const numericFilter = (type, unsigned) => {
     return unsigned ? digits : (v) => signed(v, digits);
 };
 
-const warnedBoth = new WeakSet();
 const filterOf = (el) => {
     const keep = el.declared('keep');
     const reject = el.declared('reject');
-    if (keep !== null && reject !== null && !warnedBoth.has(el)) {
-        //the filter is read per keystroke, so the complaint is held per element
-        warnedBoth.add(el);
+    if (keep !== null && reject !== null) {
         console.warn('a ful-input declares both keep and reject: keep is applied, reject is ignored', el);
     }
     if (keep !== null) {
@@ -138,8 +135,8 @@ class Input extends Field {
             this.declared('autocomplete') ?? inheritedAutocomplete(this),
         );
         Attributes.forward('input-', this, this._input);
+        const strip = filterOf(this);
         this._input.addEventListener('input', (evt) => {
-            const strip = filterOf(this);
             if (!strip) {
                 return;
             }
