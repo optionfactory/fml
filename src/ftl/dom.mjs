@@ -1,9 +1,10 @@
-/** Creates and inspects the DocumentFragments a Template renders into. */
+/** Creates, serializes and inspects DocumentFragments. */
 class Fragments {
     /**
-     * Creates a DocumentFragment from an string.
-     * @param  {...string} html
-     * @returns {DocumentFragment} the fragment
+     * Parses html into a DocumentFragment adopted by the document, each piece
+     * trimmed and the pieces joined.
+     * @param {...string} html
+     * @returns {DocumentFragment}
      */
     static fromHtml(...html) {
         const el = document.createElement('template');
@@ -11,11 +12,11 @@ class Fragments {
         return document.adoptNode(el.content);
     }
     /**
-     * Creates a string representation (HTML) of a DocumentFragment, consuming it:
-     * the nodes are moved out, not copied, and the fragment is left empty. Pass
+     * Serializes a fragment, or a single node, to html, consuming it: the nodes
+     * are moved out, not copied, and a fragment is left empty. Pass
      * `fragment.cloneNode(true)` to keep the original usable.
-     * @param {DocumentFragment} fragment
-     * @returns {string} the html
+     * @param {DocumentFragment|Node} fragment
+     * @returns {string}
      */
     static toHtml(fragment) {
         var el = document.createElement('template');
@@ -23,17 +24,17 @@ class Fragments {
         return el.innerHTML;
     }
     /**
-     * Checks if a fragment contains only blank text nodes
+     * Whether a fragment holds no element and no text but whitespace.
      * @param {DocumentFragment} fragment
-     * @returns {boolean} true if the fragment is blank
+     * @returns {boolean}
      */
     static isBlank(fragment) {
         return fragment.childElementCount === 0 && fragment.textContent.trim() === '';
     }
     /**
-     * Creates a DocumentFragment from nodes.
-     * @param  {...Node} nodes
-     * @returns {DocumentFragment} the fragment
+     * Moves the nodes, in order, into a new DocumentFragment.
+     * @param {...Node} nodes
+     * @returns {DocumentFragment}
      */
     static from(...nodes) {
         const fragment = new DocumentFragment();
@@ -43,9 +44,10 @@ class Fragments {
         return fragment;
     }
     /**
-     * Creates a DocumentFragment from childNodes of an element.
+     * Moves the children of a node into a new DocumentFragment, leaving the
+     * node empty.
      * @param {Node} el
-     * @returns {DocumentFragment} the fragment
+     * @returns {DocumentFragment}
      */
     static fromChildNodes(el) {
         const fragment = new DocumentFragment();
@@ -56,23 +58,23 @@ class Fragments {
     }
 }
 
-/** Attribute reads and writes where a nullish value removes the attribute instead of setting it to the string 'null'. */
+/** Attribute helpers: unique ids, defaults, prefixed forwarding, and writes where a nullish value removes the attribute. */
 class Attributes {
     static id = 0;
     /**
-     * Creates a unique id with the given prefix.
+     * A page-unique id under the prefix, as `prefix-n`.
      * @param {string} prefix
-     * @returns
+     * @returns {string}
      */
     static uid(prefix) {
         return `${prefix}-${++Attributes.id}`;
     }
     /**
-     * Sets an attribute if not present.
+     * Sets an attribute when the element does not carry it.
      * @param {Element} el
      * @param {string} k
      * @param {string} v
-     * @returns
+     * @returns {string|null} the attribute's value afterwards
      */
     static defaultValue(el, k, v) {
         if (!el.hasAttribute(k)) {
@@ -81,7 +83,9 @@ class Attributes {
         return el.getAttribute(k);
     }
     /**
-     * Forwards prefixed attributes from an element to another (removing the prefix).
+     * Copies every attribute whose name starts with the prefix onto another
+     * element, under the name without the prefix. `<prefix>class` adds its
+     * classes to the target's instead of replacing them.
      * @param {string} prefix
      * @param {Element} from
      * @param {Element} to
@@ -104,7 +108,7 @@ class Attributes {
             });
     }
     /**
-     * Sets the value of an attribute. nullish values remove the attribute.
+     * Sets an attribute, or removes it when the value is nullish.
      * @param {Element} el
      * @param {string} attr
      * @param {string | null | undefined} value
@@ -126,13 +130,14 @@ class Attributes {
  */
 class LightSlots {
     /**
-     * Extracts light slots from an element. For non default slots in a template tag, the content is extracted.
+     * Takes an element's children apart into slots, leaving the element empty.
+     * A named child is removed and contributes what `slotFromNode` answers;
+     * children sharing a name are gathered in order. A child with an empty
+     * `slot` belongs to the default slot, in document order among the rest.
      * @param {Element} el
-     * @returns the slots
+     * @returns {Record<string, DocumentFragment>} the slots by name, `default` always present
      */
     static from(el) {
-        //the platform reads slot="" as the default slot: such children stay in
-        //the document order of the default content, their claim stripped like any named one
         for (const child of el.children) {
             if (child.matches('[slot=""]')) {
                 child.removeAttribute('slot');
@@ -158,6 +163,12 @@ class LightSlots {
         }
         return slots;
     }
+    /**
+     * What a slotted node contributes: a template's content, the parsed markup
+     * of a `<script type="text/html">`, or the node itself.
+     * @param {Element} el
+     * @returns {Element|DocumentFragment}
+     */
     static slotFromNode(el) {
         if (el instanceof HTMLTemplateElement) {
             return document.adoptNode(el.content);
@@ -169,12 +180,13 @@ class LightSlots {
     }
 }
 
-/** Waits for the parser and for the document, for elements that upgrade before their own markup is complete. */
+/** Waits on the parser and the document, and queries an element's own children. */
 class Nodes {
     /**
-     * Checks if an element is already parsed.
+     * Whether the parser has moved past the element: the element, or one of
+     * its ancestors, has a next sibling.
      * @param {Element} el
-     * @returns
+     * @returns {boolean}
      */
     static isParsed(el) {
         for (let c = /** @type {Node | null} */ (el); c; c = c.parentNode) {
@@ -186,13 +198,12 @@ class Nodes {
     }
 
     /**
-     * Waits for the document's DOMContentLoaded, resolving immediately when
-     * that moment already passed. 'interactive' alone cannot tell a document
-     * still waiting for deferred scripts (the event comes, however late) from
-     * a module imported past it (the event is gone): the two events order
-     * themselves, DOMContentLoaded always precedes load, so racing the two
-     * resolves with DCL whenever it is still coming and with load otherwise,
-     * never early.
+     * Waits for the document's DOMContentLoaded. Resolves at once when that
+     * moment already passed, and for a document with no view, which receives
+     * no events. Never resolves early for a document still running its
+     * deferred scripts.
+     * @param {Document} doc
+     * @returns {Promise<void>}
      */
     static waitDomContentLoaded(doc) {
         if (doc.readyState === 'loading') {
@@ -205,7 +216,6 @@ class Nodes {
         }
         const win = doc.defaultView;
         if (win === null) {
-            //a viewless document can receive no event at all
             return Promise.resolve();
         }
         return new Promise((resolve) => {
@@ -225,18 +235,8 @@ class Nodes {
      * which is the parser having moved past this subtree. The document's
      * DOMContentLoaded is the deadline. Resolves immediately for an element
      * that is already parsed.
-     *
-     * Every ancestor is watched, not only the parent, because that is what the
-     * predicate reads: an element last among its siblings becomes parsed when
-     * an ancestor gains one, and a childList observer on the parent never sees
-     * that. Formatted markup usually hides the difference, the whitespace
-     * before a closing tag being a text node the parent does gain, so the gap
-     * shows on whitespace-free markup, where the wait fell back to the
-     * deadline. One observer takes many targets, so the cost is one observe()
-     * per level, and it is disconnected at the first checkpoint past the
-     * element either way.
-     * @param {any} el
-     * @returns {Promise<any>}
+     * @param {Element} el
+     * @returns {Promise<Element>} the element
      */
     static waitParsed(el) {
         if (Nodes.isParsed(el)) {
@@ -261,10 +261,10 @@ class Nodes {
     }
 
     /**
-     * Returns the first child of the element element (if exists) matching the selector.
-     * @param {Element} el
+     * The first child element matching the selector, descendants excluded.
+     * @param {Element|DocumentFragment} el
      * @param {string} selector
-     * @returns
+     * @returns {Element|null}
      */
     static queryChildren(el, selector) {
         for (const c of el.children) {
@@ -275,10 +275,10 @@ class Nodes {
         return null;
     }
     /**
-     * Returns all children of the element matching the selector.
-     * @param {Element} el
+     * Every child element matching the selector, descendants excluded.
+     * @param {Element|DocumentFragment} el
      * @param {string} selector
-     * @returns
+     * @returns {Element[]}
      */
     static queryChildrenAll(el, selector) {
         const r = [];

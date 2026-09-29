@@ -8,19 +8,22 @@ class MediaType {
         this.#type = type;
         this.#subtype = subtype;
     }
+    /** @returns {string} `type/subtype`, lowercase */
     get normalized() {
         return `${this.#type}/${this.#subtype}`;
     }
+    /** @returns {string} */
     get type() {
         return this.#type;
     }
+    /** @returns {string} */
     get subtype() {
         return this.#subtype;
     }
     /**
      * Parses a Content-Type header value into its type/subtype pair, dropping any parameter.
      * @param {string|null|undefined} v
-     * @returns
+     * @returns {MediaType} `unknown/unknown` for a missing or malformed value
      */
     static parse(v) {
         if (!v) {
@@ -70,28 +73,35 @@ class HttpClientError extends Failure {
         return new HttpClientError(this.message, this.status, Failure.dropProblemsContext(this.problems, prefix), this);
     }
     /**
-     * One problem of the client's own making: the four the client mints are the
-     * same shape, and the server's arrive already shaped from the wire.
+     * A problem with no context and no details.
      * @param {string} type
      * @param {string} reason
+     * @returns {{ type: string; context: null; reason: string; details: null; }}
      */
     static problem(type, reason) {
         return { type, context: null, reason, details: null };
     }
     /**
-     * Creates a client failure carrying no status, wrapping the cause and its message.
+     * A failure with status 0 and one problem of the given type, whose reason is
+     * the cause's message.
      * @param {string} type
      * @param {any} cause
-     * @returns
+     * @returns {HttpClientError}
      */
     static of(type, cause) {
         const reason = String(cause?.message ?? cause ?? 'unknown failure');
         return new HttpClientError(reason, 0, [HttpClientError.problem(type, reason)], cause);
     }
     /**
-     * Creates an HttpClientError from a Response.
-     * @param {Response} response
-     * @returns an HttpClientError
+     * The failure an error response stands for, keeping its status. An
+     * `application/failures+json` body is the problems list; an
+     * `application/problem+json` body contributes its `problems`, or one
+     * GENERIC_PROBLEM made of its title and detail. Any other body is one
+     * GENERIC_PROBLEM carrying the body text. A json body that does not decode,
+     * or decodes to the wrong shape, and a body that cannot be read at all,
+     * each become one GENERIC_PROBLEM saying so.
+     * @param {Response} response consumed
+     * @returns {Promise<HttpClientError>}
      */
     static async fromResponse(response) {
         switch (MediaType.parse(response.headers.get('Content-Type')).normalized) {
@@ -126,14 +136,10 @@ class HttpClientError extends Failure {
             }
         }
     }
-    /** marks a body whose json() rejected, telling it apart from a body decoding to json null */
     static #unreadable = Symbol('unreadable body');
     /**
-     * A json body that failed to decode, or that decoded to something other than
-     * the declared contract, has consumed its stream: there is no text left to
-     * embed, the status, the declared media type and the shape are the report.
      * @param {Response} response
-     * @param {string} [as] - what the body does not decode as
+     * @param {string} [as] what the body does not decode as
      */
     static #undecodable(response, as = 'as json') {
         const mediaType = MediaType.parse(response.headers.get('Content-Type')).normalized;
@@ -141,9 +147,6 @@ class HttpClientError extends Failure {
         return new HttpClientError(message, response.status, [HttpClientError.problem('GENERIC_PROBLEM', message)]);
     }
     static async #generic(response) {
-        //a body that cannot be read (the connection cut mid-body) must not
-        //masquerade as a connection problem: the response was served, its
-        //status is the report
         const text = await response.text().catch(() => null);
         const message =
             text === null
@@ -157,18 +160,13 @@ const metaContent = (name) =>
     globalThis.document?.querySelector(`meta[name="${name}"]`)?.getAttribute('content') ?? undefined;
 
 /**
- * @implements {HttpInterceptor}
- */
-/**
  * Sends the csrf header named by the page's `_csrf_header` meta, with the token
  * from `_csrf`. Both are read per request, so metas replaced after the client
  * was built are honoured, and the header is sent to the page's own origin only.
+ * @implements {HttpInterceptor}
  */
 class CsrfTokenInterceptor {
     async intercept(url, request, chain) {
-        //the token is the page's own: it travels to the page's origin only, and it
-        //is read at request time, so metas landed after the client was built (a
-        //login flow) are honored without a rebuild
         if (url.origin !== (globalThis.window?.location?.origin ?? url.origin)) {
             return await chain.proceed(url, request);
         }
@@ -181,12 +179,11 @@ class CsrfTokenInterceptor {
     }
 }
 /**
- * @implements {HttpInterceptor}
- */
-/**
  * Navigates to a login url when a response comes back 401. The promise it
  * returns never settles, so callers keep waiting while the page unloads
- * instead of showing a failure nobody will be present to read.
+ * instead of showing a failure; where the navigation is blocked, as by a
+ * beforeunload prompt, they stay pending until the page leaves.
+ * @implements {HttpInterceptor}
  */
 class RedirectOnUnauthorizedInterceptor {
     #redirectUri;
@@ -200,10 +197,6 @@ class RedirectOnUnauthorizedInterceptor {
         const response = await chain.proceed(url, request);
         if (response.status === 401) {
             window.location.href = this.#redirectUri;
-            //the page is navigating away: a promise that never settles keeps the
-            //callers' spinners up instead of flashing a failure nobody will read.
-            //Where the navigation is blocked (a beforeunload gate), they stay
-            //pending until the page actually leaves
             return new Promise(() => {});
         }
         return response;
@@ -219,38 +212,48 @@ class HttpClientBuilder {
     constructor() {
         this.#interceptors = [];
     }
+    /**
+     * Adds the CsrfTokenInterceptor.
+     * @returns {HttpClientBuilder} this builder
+     */
     withCsrfToken() {
         this.#interceptors.push(new CsrfTokenInterceptor());
         return this;
     }
+    /**
+     * Adds the RedirectOnUnauthorizedInterceptor.
+     * @param {string} redirectUri where a 401 navigates to
+     * @returns {HttpClientBuilder} this builder
+     */
     withRedirectOnUnauthorized(redirectUri) {
         this.#interceptors.push(new RedirectOnUnauthorizedInterceptor(redirectUri));
         return this;
     }
     /**
+     * Adds interceptors, run in the order given after the ones added before.
      * @param {...HttpInterceptor} interceptors
+     * @returns {HttpClientBuilder} this builder
      */
     withInterceptors(...interceptors) {
         this.#interceptors.push(...interceptors);
         return this;
     }
+    /** @returns {HttpClient} a client running the interceptors added so far */
     build() {
         return new HttpClient(this.#interceptors);
     }
 }
 
 /**
+ * The last interceptor in every chain, performing the request with fetch. A
+ * fetch rejection becomes an HttpClientError with a CONNECTION_PROBLEM.
  * @implements {HttpInterceptor}
  */
-/** The last interceptor in every chain: the one that performs the request. */
 class HttpCall {
     async intercept(url, request, chain) {
         try {
             return await fetch(url, request);
         } catch (ex) {
-            //the one place a connection problem is a connection problem: the
-            //transport itself refused to deliver. Everything above this is code,
-            //and code that throws has a different story to tell
             throw HttpClientError.of('CONNECTION_PROBLEM', ex);
         }
     }
@@ -261,19 +264,18 @@ class HttpInterceptorChain {
     #interceptors;
     #current;
     /**
-     *
      * @param {HttpInterceptor[]} interceptors
-     * @param {number} current
+     * @param {number} current the index of the interceptor `proceed` runs
      */
     constructor(interceptors, current) {
         this.#interceptors = interceptors;
         this.#current = current;
     }
     /**
-     *
+     * Runs the next interceptor.
      * @param {URL} url
      * @param {RequestInit} request
-     * @returns {Promise<Response>} the response
+     * @returns {Promise<Response>}
      */
     async proceed(url, request) {
         const interceptor = this.#interceptors[this.#current];
@@ -307,12 +309,14 @@ class HttpClient {
         this.#interceptors = interceptors || [];
     }
     /**
-     * Performs an HTTP exchange.
-     * @async
-     * @param {string} uri - the (possibly relative) request url
-     * @param {RequestInit|undefined} options - fetch options
-     * @param {HttpInterceptor[]|undefined} interceptors - the HttpInterceptors to be registered for this exchange.
-     * @returns {Promise<Response>} the response
+     * Performs an HTTP exchange through the client's interceptors, then the
+     * given ones.
+     * @param {string} uri the request url, relative to the page's
+     * @param {RequestInit|undefined} options fetch options
+     * @param {HttpInterceptor[]|undefined} interceptors run for this exchange only
+     * @returns {Promise<Response>} the response, whatever its status; rejecting
+     * with an HttpClientError CONNECTION_PROBLEM when the transport fails, or
+     * with what an interceptor throws
      */
     async exchange(uri, options, interceptors) {
         const is = [...this.#interceptors, ...(interceptors || []), new HttpCall()];
@@ -322,58 +326,58 @@ class HttpClient {
         return await chain.proceed(url, request);
     }
     /**
-     * Creates a request builder.
-     * @param {string} method - the HTTP method to be used
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the request builder
+     * Starts a request with any method.
+     * @param {string} method
+     * @param {string} uri the request url, relative to the page's; a query and a fragment in it are kept
+     * @returns {HttpRequestBuilder}
      */
     request(method, uri) {
         return HttpRequestBuilder.create(this, method, uri);
     }
     /**
-     * Creates a request builder.
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the request builder
+     * Starts a GET request.
+     * @param {string} uri the request url, relative to the page's; a query and a fragment in it are kept
+     * @returns {HttpRequestBuilder}
      */
     get(uri) {
         return HttpRequestBuilder.create(this, 'GET', uri);
     }
     /**
-     * Creates a request builder.
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the request builder
+     * Starts a HEAD request.
+     * @param {string} uri the request url, relative to the page's; a query and a fragment in it are kept
+     * @returns {HttpRequestBuilder}
      */
     head(uri) {
         return HttpRequestBuilder.create(this, 'HEAD', uri);
     }
     /**
-     * Creates a request builder.
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the request builder
+     * Starts a POST request.
+     * @param {string} uri the request url, relative to the page's; a query and a fragment in it are kept
+     * @returns {HttpRequestBuilder}
      */
     post(uri) {
         return HttpRequestBuilder.create(this, 'POST', uri);
     }
     /**
-     * Creates a request builder.
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the request builder
+     * Starts a PUT request.
+     * @param {string} uri the request url, relative to the page's; a query and a fragment in it are kept
+     * @returns {HttpRequestBuilder}
      */
     put(uri) {
         return HttpRequestBuilder.create(this, 'PUT', uri);
     }
     /**
-     * Creates a request builder.
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the request builder
+     * Starts a PATCH request.
+     * @param {string} uri the request url, relative to the page's; a query and a fragment in it are kept
+     * @returns {HttpRequestBuilder}
      */
     patch(uri) {
         return HttpRequestBuilder.create(this, 'PATCH', uri);
     }
     /**
-     * Creates a request builder.
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the request builder
+     * Starts a DELETE request.
+     * @param {string} uri the request url, relative to the page's; a query and a fragment in it are kept
+     * @returns {HttpRequestBuilder}
      */
     delete(uri) {
         return HttpRequestBuilder.create(this, 'DELETE', uri);
@@ -384,7 +388,7 @@ class HttpClient {
  * Reads the response body as the given type, wrapping a failed read as an UNMARSHALING_PROBLEM.
  * @param {Response} response
  * @param {'text'|'json'|'blob'|'arrayBuffer'} type
- * @returns
+ * @returns {Promise<any>}
  */
 const unmarshal = async (response, type) => {
     try {
@@ -395,9 +399,7 @@ const unmarshal = async (response, type) => {
 };
 
 /**
- * Yields the entries of a headers or params initializer preserving nullish values:
- * normalizing through `Headers`/`URLSearchParams` first would stringify them to
- * "null"/"undefined" instead of removing the key.
+ * The entries of a headers or params initializer with nullish values kept as they are.
  * @param {any} source
  * @returns {Iterable<[string, any]>}
  */
@@ -431,15 +433,14 @@ class HttpRequestBuilder {
     #interceptors;
     #fragment;
     /**
-     * Creates an HttpRequestBuilder.
+     * A builder for the url: its query becomes the initial params, split at the
+     * first `?`, and its fragment, from the first `#`, is kept for the final url.
      * @param {HttpClient} client
-     * @param {string} method - the HTTP method to be used
-     * @param {string} uri - the (possibly relative) request url
-     * @returns {HttpRequestBuilder} the builder
+     * @param {string} method
+     * @param {string} uri
+     * @returns {HttpRequestBuilder}
      */
     static create(client, method, uri) {
-        //'/a#frag?p=1' parses as hash '#frag?p=1' with an empty query, and a '?'
-        //may appear in a query itself: only the first of each splits
         const hashIndex = uri.indexOf('#');
         const fragment = hashIndex === -1 ? '' : uri.slice(hashIndex);
         const withoutFragment = hashIndex === -1 ? uri : uri.slice(0, hashIndex);
@@ -457,10 +458,9 @@ class HttpRequestBuilder {
         );
     }
     /**
-     * Creates an HttpRequestBuilder.
      * @param {HttpClient} client
-     * @param {string} method - the HTTP method to be used
-     * @param {string} uri - the (possibly relative) request url
+     * @param {string} method
+     * @param {string} uri the url without query and fragment
      * @param {URLSearchParams} params
      * @param {Headers} headers
      * @param {any} body
@@ -480,7 +480,7 @@ class HttpRequestBuilder {
         this.#fragment = fragment;
     }
     /**
-     * Add all passed headers to the request, overriding existing ones if that key already exists. Null and undefined values cause the key to be removed.
+     * Sets each header, replacing a header of the same name; a null or undefined value removes it.
      * @param {HeadersInit|Record<string,string|null|undefined>} hs
      * @returns {HttpRequestBuilder} this builder
      */
@@ -491,9 +491,9 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Adds an header to the request, overriding it if it already exists. Null and undefined values cause the key to be removed
+     * Sets a header, replacing one of the same name; a null or undefined value removes it.
      * @param {string} k
-     * @param {string} v
+     * @param {string|null|undefined} v
      * @returns {HttpRequestBuilder} this builder
      */
     header(k, v) {
@@ -505,7 +505,7 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Add all query parameters to the request, overriding existing ones if that key already exists. Null and undefined values cause the key to be removed
+     * Sets each query parameter in place, replacing a parameter of the same name; a null or undefined value removes it.
      * @param {URLSearchParams|Record<string,string|null|undefined>|string[][]|string} ps
      * @returns {HttpRequestBuilder} this builder
      */
@@ -520,14 +520,12 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Adds a query parameter to the request, overriding it if it already exists. An empty list, or one carrying only null and undefined values, causes the key to be removed; nullish entries among real values are skipped.
+     * Sets a query parameter to the values given, as repeated entries moved to the end of the query; nullish values are skipped, and none left removes the parameter.
      * @param {string} k
      * @param {...string} vs
      * @returns {HttpRequestBuilder} this builder
      */
     param(k, ...vs) {
-        //overriding, as header, headers and params all do: pass every value in one
-        //call to get a multi valued parameter
         this.#params.delete(k);
         for (const v of vs.filter((v) => v != null)) {
             this.#params.append(k, v);
@@ -564,6 +562,7 @@ class HttpRequestBuilder {
      * Sets the request body as a FormData configured using the callback.
      * `Content-Type: multipart/form-data` header is automatically added by fetch if not explicitly set.
      * @param {(c: HttpMultipartRequestCustomizer) => void} callback
+     * @returns {HttpRequestBuilder} this builder
      */
     multipart(callback) {
         const formData = new FormData();
@@ -573,7 +572,7 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Sets a fetch options for the request.
+     * Merges fetch options into the request's.
      * @param {Omit<RequestInit,"headers"|"method"|"body">} kvs
      * @returns {HttpRequestBuilder} this builder
      */
@@ -594,8 +593,8 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Adds interceptors to the request.
-     * @param {HttpInterceptor[]} is - the interceptors to be registered
+     * Adds interceptors run for this request only, after the client's.
+     * @param {HttpInterceptor[]} is
      * @returns {HttpRequestBuilder} this builder
      */
     interceptors(is) {
@@ -605,8 +604,8 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Adds an interceptor to the request.
-     * @param {HttpInterceptor} i - the interceptor to be registered
+     * Adds one interceptor run for this request only, after the client's.
+     * @param {HttpInterceptor} i
      * @returns {HttpRequestBuilder} this builder
      */
     interceptor(i) {
@@ -614,8 +613,8 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Performs an HTTP exchange using the configured client, request and interceptors.
-     * @returns {Promise<Response>} the response
+     * Sends the request and answers the Response, whatever its status.
+     * @returns {Promise<Response>} rejecting as `HttpClient.exchange` does
      */
     async exchange() {
         const query = this.#params.size ? `?${this.#params}` : '';
@@ -628,8 +627,12 @@ class HttpRequestBuilder {
         return await this.#client.exchange(`${this.#uri}${query}${this.#fragment}`, opts, this.#interceptors);
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
-     * @returns {Promise<Response>} the response
+     * Sends the request and answers the Response when its status is 200-299.
+     * Always rejects with an HttpClientError: `HttpClientError.fromResponse`
+     * for an error status, CONNECTION_PROBLEM for a transport failure, and
+     * UNEXPECTED_PROBLEM, carrying the error as its cause, for anything an
+     * interceptor throws that is not already a Failure.
+     * @returns {Promise<Response>}
      */
     async fetch() {
         try {
@@ -642,45 +645,40 @@ class HttpRequestBuilder {
             if (ex instanceof Failure) {
                 throw ex;
             }
-            //fetch() answers a Failure whatever happened, so a caller reading
-            //`problems` never has to test the shape first. What reaches here is
-            //not the transport, which labels its own failure below the chain: it
-            //is a throw from the chain's own code, carried as the cause
             throw HttpClientError.of('UNEXPECTED_PROBLEM', ex);
         }
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
-     * @returns {Promise<string>} the response body, as text
+     * `fetch()`, then the body as text; a body that cannot be read rejects with UNMARSHALING_PROBLEM.
+     * @returns {Promise<string>}
      */
     async fetchText() {
         const response = await this.fetch();
         return await unmarshal(response, 'text');
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
-     * A 204 yields null without reading the body; any other empty body is an unmarshaling failure.
-     * @returns {Promise<any>} the response body, deserialized as JSON
+     * `fetch()`, then the body parsed as json. A 204 yields null without reading
+     * the body; any other body that does not parse rejects with UNMARSHALING_PROBLEM.
+     * @returns {Promise<any>}
      */
     async fetchJson() {
         const response = await this.fetch();
         if (response.status === 204) {
-            //a 204 declares no content: there is no body to decode
             return null;
         }
         return await unmarshal(response, 'json');
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
-     * @returns {Promise<Blob>} the response body, as a Blob
+     * `fetch()`, then the body as a Blob; a body that cannot be read rejects with UNMARSHALING_PROBLEM.
+     * @returns {Promise<Blob>}
      */
     async fetchBlob() {
         const response = await this.fetch();
         return await unmarshal(response, 'blob');
     }
     /**
-     * Performs an HTTP exchange using the configured client request, and interceptors throwing a failure when response status is not in the 200-299 range.
-     * @returns {Promise<ArrayBuffer>} the response body, as an ArrayBuffer
+     * `fetch()`, then the body as an ArrayBuffer; a body that cannot be read rejects with UNMARSHALING_PROBLEM.
+     * @returns {Promise<ArrayBuffer>}
      */
     async fetchArrayBuffer() {
         const response = await this.fetch();
@@ -691,10 +689,7 @@ class HttpRequestBuilder {
 /** Builds a multipart body: text fields, json parts, and single or repeated blobs. */
 class HttpMultipartRequestCustomizer {
     #formData;
-    /**
-     *
-     * @param {FormData} formData
-     */
+    /** @param {FormData} formData the body being built */
     constructor(formData) {
         this.#formData = formData;
     }
@@ -702,33 +697,30 @@ class HttpMultipartRequestCustomizer {
      * Appends a value to the FormData.
      * @param {string} name
      * @param {*} value
-     * @returns this builder
+     * @returns {HttpMultipartRequestCustomizer} this builder
      */
     field(name, value) {
         this.#formData.append(name, value);
         return this;
     }
     /**
-     * Appends a Blob to the FormData.
-     * If `filename` is omitted, FormData defaults are applied:
-     * The default filename for Blob objects is "blob";
-     * The default filename for File objects is the file's filename.
+     * Appends a Blob to the FormData. Without a filename a File keeps its own
+     * and any other Blob is named "blob".
      * @param {string} name
      * @param {Blob} value
-     * @param {string|undefined} filename
-     * @returns this builder
+     * @param {string} [filename]
+     * @returns {HttpMultipartRequestCustomizer} this builder
      */
     blob(name, value, filename) {
         this.#formData.append(name, value, filename);
         return this;
     }
     /**
-     * Appends multiple Blobs to the FormData with the same name.
-     * The default filename for Blob objects is "blob";
-     * The default filename for File objects is the file's filename.
+     * Appends each Blob under the same name, a File keeping its own filename and
+     * any other Blob named "blob".
      * @param {string} name
      * @param {Blob[]} values
-     * @returns this builder
+     * @returns {HttpMultipartRequestCustomizer} this builder
      */
     blobs(name, values) {
         for (const v of values) {
@@ -737,11 +729,11 @@ class HttpMultipartRequestCustomizer {
         return this;
     }
     /**
-     * Appends a JSON serialized blob to the FormData.
+     * Appends the value serialized as an `application/json` blob.
      * @param {string} name
      * @param {any} value
-     * @param {string|undefined} filename
-     * @returns this builder
+     * @param {string} [filename]
+     * @returns {HttpMultipartRequestCustomizer} this builder
      */
     json(name, value, filename) {
         const blob = new Blob([JSON.stringify(value)], { type: 'application/json' });
@@ -750,12 +742,6 @@ class HttpMultipartRequestCustomizer {
     }
 }
 
-//every type a caller can end up holding is nameable: the builder `builder()`
-//answers, the request builder every verb answers, the chain an interceptor is
-//handed and the customizer a multipart callback is handed. They were reachable
-//and unnameable, so a consumer could write the call but not annotate the
-//function it lives in. The interceptors stay unexported: they are page policy the
-//builder installs, not a type anything hands back
 export {
     MediaType,
     HttpClient,

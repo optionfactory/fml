@@ -594,7 +594,7 @@ class Select extends Field {
             Attributes.set(this.#input, 'aria-activedescendant', e.detail.id);
         });
         //each pair carries its own anchor: two selects on a page must not share one
-        const group = fragment.querySelector('ful-control-group');
+        const group = /** @type {HTMLElement} */ (fragment.querySelector('ful-control-group'));
         Anchors.wire(group, this.#ddmenu, { prefix: 'ful-select', stretch: true });
         [this.#dload, this.#abortdload] = Timing.throttle(400, () => this.#open());
         this.#wireChrome();

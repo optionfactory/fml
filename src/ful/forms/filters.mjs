@@ -420,8 +420,8 @@ class BooleanFilter extends Field {
     _build({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this._container = fragment.querySelector('ful-control-group');
-        const valueButton = fragment.querySelector('[data-ref=value]');
-        this._operator = new ChoiceButton(fragment.querySelector('[data-ref=operator]'), {
+        const valueButton = /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=value]'));
+        this._operator = new ChoiceButton(/** @type {HTMLElement} */ (fragment.querySelector('[data-ref=operator]')), {
             vocabulary: BooleanFilter.OPERATORS,
             glyphs: GLYPHS,
             labelFor: operatorLabel,

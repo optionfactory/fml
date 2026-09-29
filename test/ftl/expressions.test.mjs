@@ -232,6 +232,24 @@ describe('Templated mode evaluation', () => {
         assert.strictEqual(res[3].value, 'B');
     });
 
+    it('writes a literal brace where a backslash escapes it in templated text', () => {
+        const res = Expressions.interpret({}, [{ a: 'A' }], '\\{{ a }}', Expressions.MODE_TEMPLATED);
+        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: '{{ a }}' }]);
+    });
+
+    it('drops the backslash and keeps whatever character follows it in templated text', () => {
+        const res = Expressions.interpret({}, [], 'a\\b\\\\c', Expressions.MODE_TEMPLATED);
+        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: 'ab\\c' }]);
+    });
+
+    it('refuses templated text ending in a lone backslash', () => {
+        assert.throws(() => Expressions.interpret({}, [], 'a\\', Expressions.MODE_TEMPLATED));
+    });
+
+    it('keeps a backslash inside a quoted literal, which has no escapes', () => {
+        assert.strictEqual(Expressions.interpret({}, [], "'a\\b'", Expressions.MODE_EXPRESSION), 'a\\b');
+    });
+
     it('throws on unknown templated node type (simulated AST corruption)', () => {
         const badAst = [{ type: Symbol('unknown-fake-type') }];
         try {

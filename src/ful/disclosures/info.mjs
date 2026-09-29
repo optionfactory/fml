@@ -34,8 +34,8 @@ class Tooltip extends ParsedElement {
     `;
     render({ slots }) {
         const fragment = this.template().withOverlay({ slots, icon: this.declared('icon') }).render();
-        const trigger = fragment.querySelector('[data-ref=trigger]');
-        const content = fragment.querySelector('[data-ref=content]');
+        const trigger = /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=trigger]'));
+        const content = /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=content]'));
         //placed here rather than by the anchor css: the note draws a callout that
         //has to point at the trigger wherever the viewport left room for the note,
         //which is a measurement the stylesheet cannot make for a pseudo-element

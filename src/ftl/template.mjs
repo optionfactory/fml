@@ -47,9 +47,11 @@ class NodeOperations {
 
 /** The `data-tpl-*` commands, each taking the node it is written on and the scope it evaluates in. */
 class CommandsHandler {
-    //the order is the semantics: each command sees the node as the ones before
-    //it left it, so tplIf gates before tplWith/tplEach push their overlay and
-    //tplWhen gates after (inside the sub-render, where the overlay is in scope)
+    /**
+     * The order the commands run in on one element, each seeing the node as the
+     * ones before left it: tplIf gates before tplWith and tplEach push their
+     * overlay, tplWhen gates after, inside the scope that overlay opened.
+     */
     static ORDERED_COMMANDS = [
         'tplIf',
         'tplWith',
@@ -60,8 +62,7 @@ class CommandsHandler {
         'tplRemove',
         'tplVerbatim',
     ];
-    //same body as tplWhen: the two differ only in ORDERED_COMMANDS position,
-    //if evaluates in the outer scope, before with/each
+    /** Removes the node when the expression is falsy, evaluated before tplWith and tplEach open their overlay. */
     static tplIf(node, expression, ops, evaluator) {
         const accept = evaluator.evaluateExpression(expression);
         if (!accept) {
@@ -76,16 +77,22 @@ class CommandsHandler {
             .render();
         ops.replace(node, newNode);
     }
+    /**
+     * Renders the node once per entry, in place of the node. A Map iterates as
+     * `{ key, value }` entries in its own order, a plain object as `{ key, value }`
+     * entries in `Object.entries` order, and any other iterable as itself; a
+     * value that is none of these throws. Each render sees its entry under
+     * `data-tpl-var`, or as the whole overlay without one. `data-tpl-stat` names
+     * an overlay beneath the entry carrying `index`, `count`, `size`, `first`,
+     * `last`, `even` and `odd`, so an entry property of the same name wins; the
+     * size, and so `last`, is null for a collection that knows neither its
+     * `length` nor its `size`, which is never consumed to learn it.
+     */
     static tplEach(node, expression, ops, evaluator) {
         const varName = ops.popData(node, 'tplVar');
         const statName = ops.popData(node, 'tplStat');
         const template = new Template(node, evaluator);
         const evaluated = evaluator.evaluateExpression(expression);
-        //keyed collections iterate as {key, value} entries: a Map in its own
-        //order, a non-iterable plain dict in Object.entries order. Plain alone:
-        //a class instance or a response wrapper standing where an array was
-        //expected still fails loudly below, and any other iterable (a Set, a
-        //generator, an entries() iterator) iterates as itself
         const proto = evaluated === null || typeof evaluated !== 'object' ? undefined : Object.getPrototypeOf(evaluated);
         const plain = !evaluated?.[Symbol.iterator] && (proto === Object.prototype || proto === null);
         const dict = plain ? Object.entries(evaluated) : null;
@@ -94,12 +101,6 @@ class CommandsHandler {
         if (!entries?.[Symbol.iterator]) {
             throw new Error(`Expected an iterable got '${evaluated}'`);
         }
-        //the stat rides grouped under its declared name, overlaid below the
-        //item, so data can never collide with its fields and an item property
-        //sharing the stat's very name wins, as data always does. The size is
-        //read where the collection already knows it (arrays and keyed entries
-        //by length, sets and the like by size): an arbitrary iterator is never
-        //consumed to learn it, so its size and last read null, the unknown
         const measured = statName ? entries : null;
         const counted = typeof measured?.length === 'number' ? measured.length : measured?.size;
         const size = typeof counted === 'number' ? counted : null;
@@ -121,8 +122,7 @@ class CommandsHandler {
         }
         ops.remove(node);
     }
-    //same body as tplIf: the two differ only in ORDERED_COMMANDS position,
-    //when evaluates after with/each, in the scope their overlay opened
+    /** Removes the node when the expression is falsy, evaluated in the overlay tplWith or tplEach opened. */
     static tplWhen(node, expression, ops, evaluator) {
         const accept = evaluator.evaluateExpression(expression);
         if (!accept) {
@@ -138,7 +138,6 @@ class CommandsHandler {
             case 'tag': {
                 const fragment = Fragments.fromChildNodes(node);
                 if ('tplVerbatim' in node.dataset) {
-                    //we are removing the parent element so we have to handle the lower priority commands
                     ops.popData(node, 'tplVerbatim');
                     ops.replace(node, fragment);
                 } else {
@@ -201,12 +200,10 @@ class CommandsHandler {
     }
 }
 
-// Module-isolated string cache for dataset-to-attribute conversions
 const attributeCache = new BoundedCache(1000);
 
 /**
- * Converts a tpl camelCase dataset key into a kebab-case attribute name.
- * Uses a cache lookup to avoid repetitive regex/string splitting.
+ * The attribute a `tpl` dataset key targets: `tplAriaLabel` is `aria-label`.
  * @param {string} dataSetKey
  * @returns {string}
  */
@@ -228,22 +225,24 @@ function toAttr(dataSetKey) {
  */
 class Template {
     /**
-     * Creates a template from a string.
+     * Creates a template from html.
      * @param {string} html
      * @param {{ [k: string] : any }?} [modules]
-     * @param {...*} data
-     * @returns the template
+     * @param {...*} data the data stack, innermost last
+     * @returns {Template}
      */
     static fromHtml(html, modules, ...data) {
         return new Template(Fragments.fromHtml(html), new ExpressionEvaluator(modules, data));
     }
 
     /**
-     * Creates a template from the content of the first template element matching the selector.
+     * Creates a template from the content of the first element matching the
+     * selector, which is adopted: the template element is left empty.
      * @param {string} selector for an HTMLTemplateElement
      * @param {{ [k: string] : any }?} [modules]
-     * @param {...*} data
-     * @returns the template
+     * @param {...*} data the data stack, innermost last
+     * @returns {Template}
+     * @throws when the selector matches no template element
      */
     static fromSelector(selector, modules, ...data) {
         const templateEl = document.querySelector(selector);
@@ -254,11 +253,12 @@ class Template {
     }
 
     /**
-     * Creates a template from the content of an HTMLTemplateElement.
+     * Creates a template from the content of a template element, which is
+     * adopted: the template element is left empty.
      * @param {HTMLTemplateElement} templateEl
      * @param {{ [k: string] : any }?} [modules]
-     * @param {...*} data
-     * @returns the template
+     * @param {...*} data the data stack, innermost last
+     * @returns {Template}
      */
     static fromTemplate(templateEl, modules, ...data) {
         const fragment = document.adoptNode(templateEl.content);
@@ -266,11 +266,12 @@ class Template {
     }
 
     /**
-     * Creates a template from a DocumentFragment.
+     * Creates a template over a fragment, which is imported afresh on every
+     * render and never modified.
      * @param {DocumentFragment} fragment
      * @param { { [k: string] : any }? } [modules]
-     * @param {...*} data
-     * @returns the template
+     * @param {...*} data the data stack, innermost last
+     * @returns {Template}
      */
     static fromFragment(fragment, modules, ...data) {
         return new Template(fragment, new ExpressionEvaluator(modules, data));
@@ -290,28 +291,32 @@ class Template {
      * Creates a new Template rendering in another scope: the one way to rebind
      * a compiled template to a registry's modules and data.
      * @param {ExpressionEvaluator} evaluator
+     * @returns {Template}
      */
     withEvaluator(evaluator) {
         return new Template(this.#fragment, evaluator);
     }
     /**
-     * Creates a new Template replacing the fragment.
+     * Creates a new Template over another fragment, in the same scope.
      * @param {DocumentFragment} fragment
+     * @returns {Template}
      */
     withFragment(fragment) {
         return new Template(fragment, this.#evaluator);
     }
     /**
-     * Creates a new Template with a new module added.
+     * Creates a new Template with a module added, as `ExpressionEvaluator.withModule` does.
      * @param {string?} name
      * @param {{[k: string]: any}} value
+     * @returns {Template}
      */
     withModule(name, value) {
         return new Template(this.#fragment, this.#evaluator.withModule(name, value));
     }
     /**
-     * Creates a new Template with new a data overlay added to the stack.
+     * Creates a new Template with the data pushed as the innermost overlays.
      * @param {...*} data
+     * @returns {Template}
      */
     withOverlay(...data) {
         return new Template(this.#fragment, this.#evaluator.withOverlay(...data));
@@ -320,7 +325,7 @@ class Template {
      * Evaluates an expression in this template's scope, widened by the overlays.
      * @param {string} expression
      * @param {...*} data
-     * @returns the evaluated expression result
+     * @returns {any}
      */
     evaluateExpression(expression, ...data) {
         return this.#evaluator.withOverlay(...data).evaluateExpression(expression);
@@ -329,20 +334,23 @@ class Template {
      * Evaluates a templated text, the `{{ }}` form, in this template's scope.
      * @param {string} text
      * @param {...*} data
-     * @returns the parts the text evaluates to
+     * @returns {{ type: symbol, value: any }[]} the parts, as `Expressions.MODE_TEMPLATED` describes
      */
     evaluateTemplated(text, ...data) {
         return this.#evaluator.withOverlay(...data).evaluateTemplated(text);
     }
     /**
-     * Returns an expression evaluator with bound modules and dataStack.
+     * The scope this template renders in.
+     * @returns {ExpressionEvaluator}
      */
     evaluator() {
         return this.#evaluator;
     }
     /**
-     * Renders the template.
-     * @returns a DocumentFragment
+     * Renders the template into a new fragment, applying the `data-tpl-*`
+     * commands and bindings and the `{{ }}` interpolations.
+     * @returns {DocumentFragment}
+     * @throws {RenderError} naming the node and the directive that failed
      */
     render() {
         try {
@@ -374,8 +382,6 @@ class Template {
                     try {
                         CommandsHandler[command](el, value, ops, this.#evaluator);
                     } catch (ex) {
-                        //the directive is popped before it runs, so the open tag no
-                        //longer carries it: the frame names it and its expression
                         throw RenderError.wrap(`Error evaluating data-tpl-${toAttr(command)}="${value}"`, el, ex);
                     }
                     if (ops.removed(el)) {
@@ -405,10 +411,6 @@ class Template {
             ops.cleanup();
             return fragment;
         } catch (ex) {
-            //a command, a text node or a nested render already named the node it
-            //failed on: wrapping again would add a frame for the fragment that
-            //contains it, one per level, serializing the whole template into the
-            //message that survives. Only a failure outside those is framed here
             if (ex instanceof RenderError) {
                 throw ex;
             }
@@ -416,22 +418,26 @@ class Template {
         }
     }
     /**
-     * Renders this template on the Element (replacing children).
+     * Renders this template into the element, replacing its children.
      * @param {Element} el
+     * @throws {RenderError}
      */
     renderTo(el) {
         el.replaceChildren(this.render());
     }
     /**
-     * Renders this template appending the resulting fragment to the Element.
+     * Renders this template and appends the result to the element.
      * @param {Element} el
+     * @throws {RenderError}
      */
     appendTo(el) {
         el.appendChild(this.render());
     }
     /**
-     * Renders this template on the first Element matching the selector (replacing children), if exists.
+     * Renders this template into the first element matching the selector,
+     * replacing its children; does nothing when none matches.
      * @param {string} selector
+     * @throws {RenderError}
      */
     renderToSelector(selector) {
         const el = document.querySelector(selector);
@@ -440,8 +446,10 @@ class Template {
         }
     }
     /**
-     * Renders this template appending the resulting fragment to the Element matching the selector, if exists.
+     * Renders this template and appends the result to the first element
+     * matching the selector; does nothing when none matches.
      * @param {string} selector
+     * @throws {RenderError}
      */
     appendToSelector(selector) {
         const el = document.querySelector(selector);
@@ -465,30 +473,26 @@ class Template {
 }
 
 /**
- * A render failure, one frame per nesting level. Each frame names the node it
- * failed on and what was being evaluated there, so the chain reads as the path
- * from the template's root down to the offending expression. The frame carries
- * the node's identification only, an open tag rather than its whole subtree:
- * the markup is serialized on demand through `html`, and the live node stays on
- * `node`, so a failure costs no clone and a nested failure does not embed the
- * page in its own message.
+ * A render failure, one frame per nesting level, chained through `cause` from
+ * the outermost frame down to the error that failed the expression. A frame's
+ * message names what was being evaluated and the node's open tag, with the
+ * attributes it still carries: the directive being evaluated is already off
+ * the tag. The subtree is not in the message; `html` serializes it on demand.
  */
 class RenderError extends Error {
-    /**
-     * How many frames a chain keeps. The innermost are the specific ones, so a
-     * deeper nesting drops the outer context rather than the failure site: three
-     * frames name the offending node and the two levels that hold it, which is
-     * the path a reader follows without the page arriving with it.
-     */
+    /** How many frames a chain keeps: a deeper nesting drops the outermost ones and marks the chain `truncated`. */
     static FRAMES = 3;
     #node;
     #depth;
-    /** true when the budget dropped the outer frames of this chain */
+    /** Whether the chain dropped outer frames to stay within FRAMES. */
     truncated = false;
     /**
-     * Frames a failure, unless the chain already spent its budget: then the
-     * cause travels on, marked so a report can say the outer context was
-     * dropped.
+     * Frames a failure, unless the chain already holds FRAMES frames: then the
+     * cause is returned as it is, marked `truncated`.
+     * @param {string} message
+     * @param {Node} nodeOrFragment the node that failed
+     * @param {any} cause
+     * @returns {RenderError}
      */
     static wrap(message, nodeOrFragment, cause) {
         if (cause instanceof RenderError && cause.depth >= RenderError.FRAMES) {
@@ -497,27 +501,44 @@ class RenderError extends Error {
         }
         return new RenderError(message, nodeOrFragment, cause);
     }
+    /**
+     * @param {string} message
+     * @param {Node} nodeOrFragment the node that failed
+     * @param {any} cause
+     */
     constructor(message, nodeOrFragment, cause) {
         super(`${message} in \`${RenderError.describe(nodeOrFragment)}\``, { cause });
         this.name = 'RenderError';
         this.#node = nodeOrFragment;
         this.#depth = (cause instanceof RenderError ? cause.depth : 0) + 1;
     }
-    /** How many frames this chain carries, this one included. */
+    /**
+     * How many frames this chain carries, this one included.
+     * @returns {number}
+     */
     get depth() {
         return this.#depth;
     }
-    /** The node the render failed on, live: it keeps its place in the fragment being built. */
+    /**
+     * The node the render failed on, live in the fragment being built.
+     * @returns {Node}
+     */
     get node() {
         return this.#node;
     }
-    /** The node's markup, serialized when asked for rather than on every failure. */
+    /**
+     * The failed node's markup, whitespace trimmed, serialized on each read.
+     * @returns {string}
+     */
     get html() {
         return RenderError.stringify(this.#node);
     }
     /**
      * What identifies a node in a frame: an element by its open tag, a text node
-     * by its source, a fragment by the open tags of the elements it holds.
+     * by its source, a fragment by the open tags of the elements it holds, cut
+     * at 120 characters.
+     * @param {Node} nodeOrFragment
+     * @returns {string}
      */
     static describe(nodeOrFragment) {
         if (nodeOrFragment.nodeType === Node.TEXT_NODE) {
@@ -536,6 +557,11 @@ class RenderError extends Error {
     static #ellipsize(text) {
         return text.length > 120 ? `${text.slice(0, 120)}…` : text;
     }
+    /**
+     * A node's markup with its whitespace-only text dropped and the rest trimmed.
+     * @param {Node} nodeOrFragment left untouched: a clone is serialized
+     * @returns {string}
+     */
     static stringify(nodeOrFragment) {
         return Fragments.toHtml(RenderError.#cleanup(nodeOrFragment.cloneNode(true)));
     }

@@ -5,10 +5,10 @@ import { BoundedCache } from './cache.mjs';
 /**
  * The one lookup against a data stack: the innermost overlay carrying the name
  * wins, `self` is the innermost overlay itself, and a function overlay counts
- * like an object one. Every lookup that resolves a name goes through this, so the
- * imperative facades cannot drift from what a template sees.
+ * like an object one.
  * @param {any[]} dataStack
  * @param {string|symbol} prop
+ * @returns {any} undefined when no overlay carries the name
  */
 const resolveInStack = (dataStack, prop) => {
     if (prop === 'self') {
@@ -205,16 +205,23 @@ class EvaluatingVisitor {
  * spliced into the expression text.
  */
 class Expressions {
+    /** Parses the whole text as one expression: `user.name`. */
     static MODE_EXPRESSION = Symbol('MODE_EXPRESSION');
+    /**
+     * Parses text with interpolations, `Hello {{ user.name }}`, evaluating to
+     * its parts: `{ type, value }` for each literal run and each `{{ }}` (text),
+     * `{{{ }}}` (html) or `{{{{ }}}}` (node) interpolation, in order.
+     */
     static MODE_TEMPLATED = Symbol('MODE_TEMPLATED');
 
     static #astCache = new BoundedCache(1000);
 
     /**
-     * Parses an expression.
+     * Parses an expression, caching the ast by mode and text.
      * @param {string} expression
-     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
-     * @returns the ast
+     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode] MODE_EXPRESSION when omitted
+     * @returns {any} the ast
+     * @throws a peggy syntax error when the text does not parse
      */
     static parse(expression, mode) {
         const key = mode?.toString() + expression;
@@ -225,12 +232,12 @@ class Expressions {
         );
     }
     /**
-     * Evaluates an expression.
+     * Evaluates a parsed ast against the modules and the data stack.
      * @param {{[k: string]: any } | null | undefined } modules
-     * @param {any[]} dataStack
-     * @param {any} ast
-     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
-     * @returns the result
+     * @param {any[]} dataStack innermost overlay last
+     * @param {any} ast what `parse` answered
+     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode] the mode it was parsed in
+     * @returns {any} the value, or the list of parts in MODE_TEMPLATED
      */
     static evaluate(modules, dataStack, ast, mode) {
         return new EvaluatingVisitor(modules, dataStack).visitRoot(ast, mode === Expressions.MODE_TEMPLATED);
@@ -238,10 +245,10 @@ class Expressions {
     /**
      * Parses and evaluates an expression.
      * @param {{ [x: string]: any; } | null | undefined} modules
-     * @param {any[]} dataStack
+     * @param {any[]} dataStack innermost overlay last
      * @param {string} expression
-     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode]
-     * @returns the result
+     * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode] MODE_EXPRESSION when omitted
+     * @returns {any} the value, or the list of parts in MODE_TEMPLATED
      */
     static interpret(modules, dataStack, expression, mode) {
         return Expressions.evaluate(modules, dataStack, Expressions.parse(expression, mode), mode);
@@ -257,14 +264,31 @@ class Expressions {
 class ExpressionEvaluator {
     #modules;
     #dataStack;
+    /**
+     * @param {{ [k: string]: any } | null | undefined} modules
+     * @param {any[]} dataStack innermost overlay last
+     */
     constructor(modules, dataStack) {
         this.#modules = modules;
         this.#dataStack = dataStack;
     }
+    /**
+     * A new evaluator with one more module: `#name:fn()` resolves into it, and an
+     * empty name merges a whole map whose functions resolve bare, as `#fn()`.
+     * @param {string} name
+     * @param {object} value
+     * @returns {ExpressionEvaluator}
+     */
     withModule(name, value) {
         const module = name ? { [name]: value } : value;
         return new ExpressionEvaluator({ ...this.#modules, ...module }, this.#dataStack);
     }
+    /**
+     * A new evaluator with the data pushed as the innermost overlays, the last
+     * one winning a shared name.
+     * @param {...any} data
+     * @returns {ExpressionEvaluator}
+     */
     withOverlay(...data) {
         return new ExpressionEvaluator(
             this.#modules,
@@ -275,15 +299,24 @@ class ExpressionEvaluator {
      * Resolves a name against the data stack, with no parse round trip: the
      * lookup a template's bare identifier makes, for an imperative caller.
      * @param {string} name
+     * @returns {any} undefined when no overlay carries the name
      */
     resolve(name) {
         return resolveInStack(this.#dataStack, name);
     }
-    /** Evaluates an expression against this scope. */
+    /**
+     * Evaluates an expression against this scope.
+     * @param {string} expression
+     * @returns {any}
+     */
     evaluateExpression(expression) {
         return Expressions.interpret(this.#modules, this.#dataStack, expression, Expressions.MODE_EXPRESSION);
     }
-    /** Evaluates a templated text, the `{{ }}` form, against this scope. */
+    /**
+     * Evaluates a templated text, the `{{ }}` form, against this scope.
+     * @param {string} text
+     * @returns {{ type: symbol, value: any }[]} its parts, as MODE_TEMPLATED describes
+     */
     evaluateTemplated(text) {
         return Expressions.interpret(this.#modules, this.#dataStack, text, Expressions.MODE_TEMPLATED);
     }

@@ -5,7 +5,9 @@
  * of corrupting silently.
  */
 class Base64 {
+    /** The RFC 4648 alphabet, with `+` and `/`. */
     static STANDARD = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    /** The RFC 4648 url and filename safe alphabet, with `-` and `_`. */
     static URL_SAFE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
     /**
      * @param {ArrayBuffer} arrayBuffer
@@ -32,14 +34,14 @@ class Base64 {
         return res;
     }
     /**
-     * @param {string} str
+     * @param {string} str padded or unpadded
      * @param {string} [dialect] one of Base64.STANDARD or Base64.URL_SAFE, URL_SAFE by default
      * @returns {ArrayBuffer}
+     * @throws on padding anywhere but the tail or longer than two, on an
+     * impossible length, and on a character outside the dialect
      */
     static decode(str, dialect) {
         const d = dialect || Base64.URL_SAFE;
-        //padding belongs at the tail only, two at most, and nothing outside the
-        //dialect decodes: reject instead of corrupting silently
         let end = str.length;
         while (end > 0 && str.charAt(end - 1) === '=') {
             --end;
@@ -61,9 +63,6 @@ class Base64 {
 
         let vi = 0;
         let si = 0;
-        //every group yields three bytes, but a padded input stops short of the last
-        //one or two: writing them anyway would rely on typed arrays dropping writes
-        //past their length
         while (vi < nbytes) {
             const v1 = d.indexOf(unpadded.charAt(si++));
             const v2 = d.indexOf(unpadded.charAt(si++));
@@ -89,8 +88,9 @@ class Base64 {
  */
 class Hex {
     /**
-     * @param {string} hex
+     * @param {string} hex either case
      * @returns {Uint8Array}
+     * @throws on an odd length or a character that is not a hex digit
      */
     static decode(hex) {
         if (hex.length % 2 !== 0) {
@@ -108,8 +108,8 @@ class Hex {
     }
     /**
      * @param {Iterable<number>} bytes
-     * @param {boolean} [upper]
-     * @returns {string}
+     * @param {boolean} [upper] uppercase digits instead of lowercase
+     * @returns {string} two digits per byte
      */
     static encode(bytes, upper) {
         return Array.from(bytes)

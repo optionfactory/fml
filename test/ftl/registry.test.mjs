@@ -83,6 +83,21 @@ describe('Registry', () => {
         });
     });
 
+    describe('Observed attribute order', () => {
+        it('moves a re-declared name to the position of its last declaration', () => {
+            class OrderBase extends HTMLElement {
+                static observed = ['value', 'shape'];
+            }
+            class OrderLeaf extends OrderBase {
+                static observed = ['value'];
+            }
+            registry.defineElement('order-leaf', OrderLeaf);
+            registry.configure();
+
+            expect(OrderLeaf.BITS.OBSERVED).to.deep.equal(['shape', 'value']);
+        });
+    });
+
     describe('Core configuration and api', () => {
         it('allows defining modules, data, components, mappers, and plugins', () => {
             registry.defineModules({ mod1: { fn: () => 'called' } });

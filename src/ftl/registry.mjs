@@ -2,11 +2,6 @@ import { Nodes } from './dom.mjs';
 import { ExpressionEvaluator } from './expressions.mjs';
 import { Template } from './template.mjs';
 
-/**
- * Tracks the elements waiting to render. `ready` resolves once the queue has
- * drained and never rejects; the promise kept per element resolves when that
- * element has rendered and rejects with whatever its upgrade threw.
- */
 class UpgradeQueue {
     #q = new Map();
     #readyResolve;
@@ -18,12 +13,6 @@ class UpgradeQueue {
             this.#start();
         });
     }
-    /**
-     * Waits for the page's readiness: the promise resolves right after the
-     * ftl:ready event is dispatched, and immediately when that moment already
-     * passed.
-     * @returns {Promise<void>}
-     */
     ready() {
         return this.#ready;
     }
@@ -39,13 +28,8 @@ class UpgradeQueue {
     }
     enqueue(el) {
         if (this.#q.has(el)) {
-            //already upgrading, can happen when disconnecting an element
-            //while it's already queued for upgrade (e.g.: ful-form)
             return;
         }
-        //one entry, two signals: readiness waits on a signal that only ever
-        //resolves, so nothing here attaches a rejection handler to the upgrade
-        //itself and a component that fails is still reported the way it always was
         const { promise: finished, resolve: markFinished } = /** @type {PromiseWithResolvers<void>} */ (
             Promise.withResolvers()
         );
@@ -57,11 +41,6 @@ class UpgradeQueue {
             });
         this.#q.set(el, { upgrade, finished });
     }
-    /**
-     * The one fixed-point loop: drains the accepted entries, including the ones
-     * enqueued while waiting, since a component is only queued once its parent
-     * connects it and a single pass would miss everything nested.
-     */
     async #drain(accept, pick) {
         for (;;) {
             const pending = Array.from(this.#q)
@@ -74,22 +53,25 @@ class UpgradeQueue {
         }
     }
     /**
-     * Waits for the whole queue to drain. Never rejects: a component that fails
-     * does not hold the others back, and readiness means the queue drained rather
-     * than that everything worked.
+     * Waits for the whole queue to drain, the upgrades enqueued meanwhile included.
+     * Never rejects: a failed upgrade counts as drained.
+     * @returns {Promise<void>}
      */
     settled() {
         return this.#drain(() => true, (entry) => entry.finished);
     }
-    /** Waits for the accepted upgrades, rejecting with the first that failed. */
+    /**
+     * Waits for the accepted upgrades, the ones enqueued meanwhile included,
+     * rejecting with the first that failed.
+     * @param {(el: Element) => boolean} accept
+     * @returns {Promise<void>}
+     */
     upgraded(accept) {
         return this.#drain(accept, (entry) => entry.upgrade);
     }
-    /** The pending upgrade of one element, undefined when it is not queued. */
     whenUpgraded(el) {
         return this.#q.get(el)?.upgrade;
     }
-    /** The elements whose upgrade is still pending, in queue order. */
     pending() {
         return Array.from(this.#q.keys());
     }
@@ -170,9 +152,12 @@ class Registry {
      * Registers a custom element under its tag: the class is augmented with its
      * BITS (observed attributes, mappers, templates) and handed to the platform.
      * Before configure() the definition is deferred, so import order never
-     * matters.
+     * matters. The element resolves its templates and components through this
+     * registry, whichever one a module imports, and its `static config` is read
+     * here, so a page replacing it does so before the definition.
      * @param {string} tag
      * @param {*} klass a ParsedElement subclass
+     * @returns {Registry} this registry
      */
     defineElement(tag, klass) {
         if (!this.#configured) {
@@ -190,13 +175,8 @@ class Registry {
      * ancestors', so a base class declares what every subclass keeps observing
      * (a protocol attribute such as Field's disabled claim) and a leaf refines a
      * mapping, or moves a name's position, without repeating the whole list.
-     *
-     * The walk stops where the platform's own class hierarchy begins: no earlier
-     * stop can work, since a registered ancestor carries an own BITS of its own,
-     * and nothing above the elements declares anything.
-     *
-     * Everything deriving a component's attribute vocabulary reads it here, so
-     * the runtime and whatever documents it cannot walk the chain differently.
+     * The observed attributes are applied in the composed order, a re-declared
+     * name taking the position of its last declaration.
      * @param {*} klass a ParsedElement subclass
      * @returns {{ observed: string[], attributes: string[] }}
      */
@@ -214,12 +194,6 @@ class Registry {
      * would reach `clearInvalidOnChange` the way `data-clear-invalid-on-change`
      * reaches `dataset.clearInvalidOnChange`.
      *
-     * It exists because the observed tier is the one that becomes properties:
-     * without it an attribute could only be observed if its name happened to be
-     * a usable identifier, which is why every multiword observed attribute here
-     * used to be squashed into one word while the configuration tier, which
-     * never becomes a property, spelled the same idea with a dash.
-     *
      * Only this direction is mapped. A property never derives its attribute: a
      * setter reflects through `reflectTo`, naming the attribute it writes.
      * @param {string} attribute
@@ -231,10 +205,6 @@ class Registry {
     #augmentAndDefineElement(tag, klass) {
         const { observed, attributes } = Registry.declarationsOf(klass);
         const { template, templates, slots, mappers, config } = klass;
-        //a name a subclass re-declares takes the subclass's position, which is
-        //how a field whose value setter reads its own shape attributes declares
-        //that its value lands after them: the order the declarations compose in
-        //is the order the base applies them
         const declaredNames = observed.map((a) => a.split(':')[0]);
         const observedNames = [...new Set(declaredNames.reverse())].reverse();
         const attrToMapper = [...attributes, ...observed].reduce((acc, a) => {
@@ -253,20 +223,13 @@ class Registry {
         const nameToTemplate = Object.fromEntries(namesAndTemplates);
 
         klass.BITS = {
-            //the defining registry travels with the definition: an element resolves
-            //its templates and its components through the registry that defined it,
-            //not through whichever one a module happened to import
             registry: this,
             enqueue: (el) => this.#upgradeQueue.enqueue(el),
             SLOTS: slots,
-            //the class's own constants, overlaid on its templates as `config`:
-            //read here with the rest of the declaration, so a page replacing them
-            //does it before configure() like every other definition-time choice
             CONFIG: config,
             OBSERVED: observedNames,
             DECLARED: [...new Set([...observedNames, ...attributes.map((a) => a.split(':')[0])])],
             ATTR_TO_MAPPER: attrToMapper,
-            //resolved once here rather than at every attribute write
             ATTR_TO_PROPERTY: Object.fromEntries(observedNames.map((a) => [a, Registry.propertyOf(a)])),
             TEMPLATES: nameToTemplate,
         };
@@ -278,6 +241,7 @@ class Registry {
      * as `#fn`.
      * @param {string} name
      * @param {object} value
+     * @returns {Registry} this registry
      */
     defineModule(name, value) {
         const module = name ? { [name]: value } : value;
@@ -288,6 +252,7 @@ class Registry {
     /**
      * Replaces the whole module map.
      * @param {object} ms
+     * @returns {Registry} this registry
      */
     defineModules(ms) {
         this.#modules = ms;
@@ -299,6 +264,7 @@ class Registry {
      * through component().
      * @param {string} name
      * @param {*} value
+     * @returns {Registry} this registry
      */
     defineComponent(name, value) {
         this.#components[name] = value;
@@ -307,6 +273,7 @@ class Registry {
     /**
      * Replaces the data stack the templates evaluate over.
      * @param {...any} data
+     * @returns {Registry} this registry
      */
     defineData(...data) {
         this.#data = data;
@@ -316,6 +283,7 @@ class Registry {
     /**
      * Appends to the data stack, the later entry winning a shared name.
      * @param {...any} data
+     * @returns {Registry} this registry
      */
     defineOverlay(...data) {
         this.#data = [...this.#data, ...data];
@@ -327,6 +295,7 @@ class Registry {
      * `name:type` declaration.
      * @param {string} k
      * @param {{ unmarshal(str: string|null, name: string, el: Element): any, marshal(value: any, name: string, el: Element): string|null }} v
+     * @returns {Registry} this registry
      */
     defineMapper(k, v) {
         this.#mappers[k] = v;
@@ -335,6 +304,7 @@ class Registry {
     /**
      * Hands the registry over to the plugin's configure.
      * @param {{ configure(registry: Registry): void }} p
+     * @returns {Registry} this registry
      */
     plugin(p) {
         p.configure(this);
@@ -343,6 +313,7 @@ class Registry {
     /**
      * Defines every element deferred so far; from then on, defineElement takes
      * effect immediately.
+     * @returns {Registry} this registry
      */
     configure() {
         for (const [tag, klass] of Object.entries(this.#tagToClass)) {
@@ -354,23 +325,36 @@ class Registry {
     }
     /**
      * Waits for the queued upgrades the filter accepts, rejecting with the first
-     * that failed: the rejecting barrier Rendering is a facade over.
+     * that failed, the upgrades enqueued meanwhile included: the rejecting
+     * barrier Rendering is a facade over.
      * @param {(el: Element) => boolean} accept
+     * @returns {Promise<void>}
      */
     settle(accept) {
         return this.#upgradeQueue.upgraded(accept);
     }
-    /** The pending upgrade of one element, undefined when it is not queued. */
+    /**
+     * The pending upgrade of one element: resolving when it has rendered,
+     * rejecting with what its upgrade threw.
+     * @param {Element} el
+     * @returns {Promise<void>|undefined} undefined when the element is not queued
+     */
     whenUpgraded(el) {
         return this.#upgradeQueue.whenUpgraded(el);
     }
-    /** The elements whose upgrade is still pending, in queue order. */
+    /**
+     * The elements whose upgrade is still pending, in queue order.
+     * @returns {Element[]}
+     */
     pending() {
         return this.#upgradeQueue.pending();
     }
     /**
-     * Waits for the page's readiness: the same moment the ftl:ready event is
-     * dispatched at, resolving immediately when that moment already passed.
+     * Waits for this registry's readiness: resolves right after its ftl:ready
+     * event is dispatched on the document, and immediately when that already
+     * happened. Never rejects: a failed upgrade counts as settled, and its
+     * rejection is left unhandled so it still reaches the console and the
+     * page's error reporting.
      * @returns {Promise<void>}
      */
     ready() {
@@ -383,11 +367,16 @@ class Registry {
      * The scope every template on this registry renders in: the modules and the
      * data stack, as one value. Replaced whenever either is defined, so a holder
      * of an older one keeps rendering against what it was handed.
+     * @returns {ExpressionEvaluator}
      */
     evaluator() {
         return this.#evaluator;
     }
-    /** The component registered under the name, undefined when none is. */
+    /**
+     * The component registered under the name.
+     * @param {string} name
+     * @returns {any} undefined when none is
+     */
     component(name) {
         return this.#components[name];
     }

@@ -1,4 +1,7 @@
 /**
+ * One problem of a failure: its `type` (a code such as `FIELD_ERROR` or
+ * `GENERIC_PROBLEM`), the `context` naming the field it belongs to or null, the
+ * human `reason`, and optional `details`.
  * @typedef {{ type: string; context: string?; reason: string; details: any?; }} Problem
  */
 /**
@@ -8,10 +11,9 @@
  */
 class Failure extends Error {
     /**
-     *
      * @param {string} message
      * @param {Problem[]} problems
-     * @param {*} cause
+     * @param {*} [cause]
      */
     constructor(message, problems, cause) {
         super(message, { cause });
@@ -28,6 +30,7 @@ class Failure extends Error {
         return new Failure(this.message, Failure.dropProblemsContext(this.problems, prefix), this);
     }
     /**
+     * Copies of the problems, each context losing the prefix where it starts with it.
      * @param {Problem[]} problems
      * @param {string} prefix
      * @returns {Problem[]}
@@ -39,9 +42,9 @@ class Failure extends Error {
         });
     }
     /**
-     * The one reading of a failure: its problems' reasons, one per line, or
-     * the fallback when the value carries none. An empty problems array
-     * carries nothing: the failure's own message reads instead.
+     * A failure as text: its problems' reasons, one per line. A value carrying
+     * no problems, an empty list included, reads as the fallback, or as its
+     * own message when no fallback is given.
      *
      * @param {any} cause
      * @param {string|null} [fallback]

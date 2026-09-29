@@ -1,9 +1,5 @@
 {{
     import { nodes } from "./ast.mjs";
-    //keyword classification lives here, not in the grammar's ordered choice: the
-    //identifier rule consumes the whole word and the action decides, so no keyword
-    //can grab a longer identifier's prefix. A Map, not a plain object: `in` on the
-    //latter would classify inherited names such as `constructor` as keywords
     const keywords = new Map([
         ['true', true],
         ['false', false],
@@ -27,14 +23,10 @@ BeginText = '{{'
 EndText = '}}'
 
 TemplatedText
-    //the text grammar's one escape rule: a backslash drops itself and hands the
-    //next character through verbatim, whatever it is, so `\{` writes a literal
-    //brace and a trailing lone backslash is a parse error. The quoting literals
-    //('...', "...") carry no escapes at all; only template strings do
     = parts:(
-        $( [^\\{]+ )       // normal text
-        / '\\' c:. { return c; } //escaped
-        / $('{' !'{')       // single brace that isn't a delimiter
+        $( [^\\{]+ )
+        / '\\' c:. { return c; }
+        / $('{' !'{')
     )+ { return parts.join(''); }
 
 ExpressionRoot

@@ -1,5 +1,6 @@
 import { Attributes, LightSlots } from './dom.mjs';
 import { registry } from './registry.mjs';
+import { Template } from './template.mjs';
 
 /**
  * An attribute Mapper.
@@ -9,9 +10,15 @@ import { registry } from './registry.mjs';
  * @property {(val: any, name: string, el: Element) => string|null} marshal
  */
 
+/**
+ * The base of every fml element. A subclass declares its attributes, slots and
+ * templates in statics and builds its dom in `render`; the base reads the light
+ * slots, reads the declared attributes through their mappers, renders once, and
+ * then forwards observed attribute writes to the matching properties. An element
+ * resolves templates and components through the registry that defined it.
+ */
 class ParsedElement extends HTMLElement {
     static BITS = {
-        //an element the registry never defined still answers the page's own
         registry,
         enqueue: (el) => {},
         SLOTS: false,
@@ -35,14 +42,12 @@ class ParsedElement extends HTMLElement {
         this.internals = this.attachInternals();
     }
     /**
-     * The platform's window into the element's own state. The base attaches it
-     * for every element, so a subclass never calls attachInternals itself: the
-     * platform allows it once, and a second call throws. Form association is a
-     * property of the definition rather than of who attached, so a subclass
-     * declaring `static formAssociated` still gets the form apis here.
-     *
-     * A subclass must not redeclare it: a class field with no initializer
-     * assigns undefined after super() returns, which would wipe it.
+     * The element's ElementInternals, attached by the base for every element: a
+     * subclass never calls attachInternals itself, since a second call throws.
+     * A subclass declaring `static formAssociated` gets the form apis here.
+     * A subclass must not redeclare the field: a class field without an
+     * initializer assigns undefined after super() returns, wiping it.
+     * @type {ElementInternals}
      */
     internals;
     #parsed = false;
@@ -59,26 +64,36 @@ class ParsedElement extends HTMLElement {
     #mapper(attr) {
         const mapper = this.#bits().ATTR_TO_MAPPER[attr];
         if (!mapper) {
-            //an attribute the class never declared has no type to read it as:
-            //say so rather than dying on the missing mapper. Content this
-            //element does not own, such as a custom loader's own configuration,
-            //is read with getAttribute, the platform's own answer
             throw new Error(
                 `${this.constructor.name} declares no attribute '${attr}': declare it in static observed or static attributes, or read it with getAttribute`,
             );
         }
         return mapper;
     }
+    /**
+     * Reads an attribute value through the mapper it was declared with.
+     * @param {string} attr
+     * @param {string|null} str
+     * @returns {any}
+     * @throws when the class declares no such attribute; read undeclared ones with getAttribute
+     */
     unmarshal(attr, str) {
         return this.#mapper(attr).unmarshal(str, attr, this);
     }
+    /**
+     * Writes a value as the attribute string its declared mapper produces.
+     * @param {string} attr
+     * @param {any} value
+     * @returns {string|null} null for a value that removes the attribute
+     * @throws when the class declares no such attribute
+     */
     marshal(attr, value) {
         return this.#mapper(attr).marshal(value, attr, this);
     }
     /**
-     * @param {string} [name] - The name of the template target, defaults to 'default'
+     * The registry that defined this element, the page's own for an undefined one.
+     * @returns {typeof registry}
      */
-    /** The registry that defined this element, the page's own for an undefined one. */
     get _registry() {
         return this.#bits().registry;
     }
@@ -86,10 +101,18 @@ class ParsedElement extends HTMLElement {
      * The component registered under the name on this element's registry, the
      * one every ful loader and mapper resolves through.
      * @param {string} name
+     * @returns {any} undefined when none is registered
      */
     component(name) {
         return this.#bits().registry.component(name);
     }
+    /**
+     * One of the class's templates, bound to its registry's scope with the
+     * class's `static config` overlaid as `config`.
+     * @param {string} [name] 'default', the `static template`, when omitted
+     * @returns {Template}
+     * @throws when the class declares no template of that name
+     */
     template(name) {
         const target = this.#bits().TEMPLATES[name ?? 'default'];
         if (!target) {
@@ -109,15 +132,9 @@ class ParsedElement extends HTMLElement {
         if (oldValue === newValue) {
             return;
         }
-        //the mute is the attribute being reflected, not the element: a component
-        //that legitimately changes another observed attribute while one reflects
-        //is a change like any other, and used to be swallowed
         if (this.#reflecting.has(attr)) {
             return;
         }
-        //the properties go live only once the render is done: before that, an
-        //attribute write lands in the observed snapshot and the base applies it
-        //with the rest of the declared state
         if (!this.#parsed) {
             if (this.#pending !== null && attr in this.#pending) {
                 this.#pending[attr] = this.unmarshal(attr, newValue);
@@ -127,13 +144,18 @@ class ParsedElement extends HTMLElement {
         this[this.#bits().ATTR_TO_PROPERTY[attr]] = this.unmarshal(attr, newValue);
     }
     /**
-     * Upgrades once: reads the declared attributes, keeps the observed half open
-     * to writes made while the render is pending, applies them to the properties
-     * when the render returns, and only then lets an attribute write forward.
+     * Upgrades once, however often the element is connected: reads the declared
+     * attributes, keeps the observed ones open to writes made while the render is
+     * pending, renders, then applies the observed values to their properties in
+     * the order the registry composed them, a base class's before a subclass's.
+     * Only then do attribute writes forward to properties, and the element gains
+     * the `rendered` custom state. A render that throws leaves the forwarding
+     * shut and the state unset.
      *
      * An observed attribute drives the property the registry's `propertyOf`
      * names, so a hyphenated attribute is authored with its dashes and read as
      * a camelCase property.
+     * @returns {Promise<void>} rejecting with what the render threw
      */
     async upgrade() {
         if (this.#started) {
@@ -141,9 +163,6 @@ class ParsedElement extends HTMLElement {
         }
         this.#started = true;
         const slots = this.#bits().SLOTS ? LightSlots.from(this) : undefined;
-        //both tiers are read here: the observed ones forward to a property once
-        //the render is done, the rest are the element's configuration, read the
-        //one time and never again
         const declared = Object.fromEntries(
             this.#bits().DECLARED.map((attribute) => [
                 attribute,
@@ -155,21 +174,11 @@ class ParsedElement extends HTMLElement {
         this.#pending = declared;
         try {
             await this.render({ slots });
-            //the declared state reaches the properties once the dom the setters
-            //drive exists, in the order the registry composed the declarations:
-            //a base class's attributes before the subclass's own
             const properties = this.#bits().ATTR_TO_PROPERTY;
             for (const name of this.#bits().OBSERVED) {
                 this[properties[name]] = declared[name];
             }
-            //the properties go live once the render is done: from here on, an
-            //attribute write forwards to the property. A render that threw
-            //leaves it shut, so a later attribute write cannot reach setters
-            //that assume pieces the failed render never adopted
             this.#parsed = true;
-            //the same moment, said to css. :defined is true from the constructor,
-            //which is before the dom exists, so a guard written against it reveals
-            //an element that has nothing in it yet
             this.internals.states.add('rendered');
         } finally {
             this.#pending = null;
@@ -180,8 +189,9 @@ class ParsedElement extends HTMLElement {
      * drive, and the base applies the declared state onto the properties as
      * soon as it returns. A render needing a declared value while it builds
      * reads it through `declared(name)`. The slots are undefined for an element
-     * declaring no slots.
-     * @param {{ slots: any }} c
+     * declaring no slots. It may be async; the upgrade awaits it.
+     * @param {{ slots: Record<string, DocumentFragment> | undefined }} c
+     * @returns {void | Promise<void>}
      */
     render(c) {}
     /**
@@ -193,12 +203,9 @@ class ParsedElement extends HTMLElement {
      * observed name answers the snapshot while the render is pending, kept
      * open to attribute writes landing in that window, and the live attribute
      * afterwards, the property being live by then.
-     *
-     * The snapshot exists rather than a read of the dom because an element may
-     * write its own observed attributes while it renders, whether a reflection
-     * or a value the platform normalizes on the way in, and what the author
-     * declared is what the base applies, not what the render left behind.
      * @param {string} name
+     * @returns {any}
+     * @throws when the class declares no such attribute
      */
     declared(name) {
         if (name in this.#frozen) {
@@ -209,15 +216,18 @@ class ParsedElement extends HTMLElement {
         }
         return this.unmarshal(name, this.getAttribute(name));
     }
-    /** Whether the element's render completed: the moment its properties went live. */
+    /**
+     * Whether the element's render completed: the moment its properties went
+     * live, which css reads as `:state(rendered)`. Unlike `:defined`, which holds
+     * from the constructor, it is false until the dom exists.
+     * @returns {boolean}
+     */
     get rendered() {
         return this.#parsed;
     }
     /**
      * Projects a property back onto its observed attribute, marshalled through
-     * the mapper the attribute was declared with: the one place a property
-     * reaches its attribute, so a setter never has to know how its own type
-     * serializes.
+     * the mapper the attribute was declared with.
      *
      * A value the attribute already carries is not written at all, so reflecting
      * what an attribute write just delivered ends there rather than looping, and

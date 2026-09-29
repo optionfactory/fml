@@ -29,7 +29,7 @@ class Wizard extends ParsedElement {
     #progress;
     render({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
-        const list = fragment.querySelector('ful-steps ol');
+        const list = /** @type {HTMLElement} */ (fragment.querySelector('ful-steps ol'));
         const declared = [...list.children];
         this.#sections = [...fragment.children].filter((el) => el.localName !== 'ful-steps');
         if (declared.length !== this.#sections.length) {

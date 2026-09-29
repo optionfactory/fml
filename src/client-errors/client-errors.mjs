@@ -1,13 +1,17 @@
-/**
- * Global error and unhandled promise rejection report handler.
- * @param {any} evt - The triggered event instance (ErrorEvent or PromiseRejectionEvent).
- */
 var complained_missing_uri = false;
+/**
+ * Posts a json report of an `error` or `unhandledrejection` event (page url,
+ * location, message with its cause chain, stack) to the uri the script tag's
+ * `data-report-client-errors-uri` names, same-origin and `keepalive`. The csrf
+ * header is sent only when both `_csrf_header` and `_csrf` metas are present. A
+ * missing uri is complained about once. The reporter never reports itself: a
+ * failed or throwing report is dropped.
+ * @param {any} evt an ErrorEvent or a PromiseRejectionEvent
+ */
 function ful_report_error(evt) {
     /**
-     * Extracts the content value of a specified meta tag.
-     * @param {string} name - The name attribute of the meta tag.
-     * @returns {string|undefined} The content of the meta tag, or undefined if not found.
+     * @param {string} name
+     * @returns {string|undefined}
      */
     function meta_content(name) {
         var cleanName = name.replace(/["\\]/g, '\\$&');
@@ -16,10 +20,7 @@ function ful_report_error(evt) {
         return metaEl ? metaEl.content : undefined;
     }
 
-    /**
-     * Resolves the configured reporting URI from the DOM script element attribute.
-     * @returns {string|null} The reporting URI string, or null if missing.
-     */
+    /** @returns {string|null} */
     function configured_report_uri() {
         /** @type {HTMLScriptElement | null} */
         var scriptEl = document.querySelector('script[data-report-client-errors-uri]');
@@ -33,10 +34,7 @@ function ful_report_error(evt) {
         return scriptEl.getAttribute('data-report-client-errors-uri');
     }
 
-    /**
-     * Extracts and splits the error stack trace into an array of lines.
-     * @returns {string[]|undefined} An array of stack trace lines, or undefined if unavailable.
-     */
+    /** @returns {string[]|undefined} */
     function split_stack() {
         if (evt.error?.stack?.split) {
             return evt.error.stack.split('\n');
@@ -48,8 +46,9 @@ function ful_report_error(evt) {
     }
 
     /**
-     * Extracts the error message from the event properties.
-     * @returns {string|undefined} The extracted error message string, or undefined.
+     * The message followed by up to five `Caused by:` lines, stopping at a cause
+     * with no message or one already seen.
+     * @returns {string|undefined}
      */
     function message() {
         const thrown = evt.reason ?? evt.error;
@@ -84,8 +83,6 @@ function ful_report_error(evt) {
 
     var csrfHeader = meta_content('_csrf_header');
     var csrfToken = meta_content('_csrf');
-    //a half configured pair would send a literal "undefined" token, failing the
-    //server's check on every report
     if (csrfHeader && csrfToken) {
         headers[csrfHeader] = csrfToken;
     }
@@ -108,14 +105,8 @@ function ful_report_error(evt) {
                 message: message(),
                 stack: split_stack(),
             }),
-        }).catch(() => {
-            // the endpoint is unreachable: swallowing the rejection keeps it from being
-            // reported as an unhandled rejection, which would call this handler again
-        });
-    } catch {
-        //the reporter must never become the failure it reports: a throw while
-        //building or sending the report is dropped rather than re-entering here
-    }
+        }).catch(() => {});
+    } catch {}
 }
 
 window.addEventListener('error', ful_report_error);

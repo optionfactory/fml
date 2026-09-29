@@ -1,10 +1,6 @@
 /**
- * A Map bounded by entry count, evicting in insertion order: not an LRU (a hit
- * does not refresh an entry), just a cap keeping unbounded key spaces (parsed
- * expressions, compiled masks, formatter instances) from growing forever. The
- * capacity is sized so eviction never happens on a sane page: hitting it means
- * dynamically generated keys, where FIFO's worst case (evicting a hot entry)
- * costs one recomputation.
+ * A Map bounded by entry count, evicting the oldest entry when full. A hit does
+ * not refresh an entry: eviction follows insertion order, not use.
  */
 class BoundedCache {
     #max;
@@ -33,6 +29,7 @@ class BoundedCache {
         this.#entries.set(key, value);
         return value;
     }
+    /** @returns {number} the number of entries held */
     get size() {
         return this.#entries.size;
     }

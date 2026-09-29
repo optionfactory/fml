@@ -21,7 +21,6 @@ const POSITIONAL = /\{(\d+)\}/g;
 /** @param {any} v @returns {v is Record<string, string>} */
 const isPlainObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** every l10n problem is reported once per session: a missing key in a row template must not flood the console */
 const warned = new Set();
 const warnOnce = (problem) => {
     if (!warned.has(problem)) {
@@ -32,11 +31,7 @@ const warnOnce = (problem) => {
 
 const formatters = new BoundedCache(100);
 /**
- * Intl construction is the expensive part of formatting (locale parsing, CLDR
- * lookups), while formatting on a built instance is near free: a list rendering
- * a size per row must not rebuild a NumberFormat per cell, so instances are
- * memoized by constructor, locale and options.
- *
+ * An Intl instance, memoized by constructor, locale and options.
  * @param {{ new (locale: string | undefined, options: any): any }} ctor
  * @param {string | undefined} locale
  * @param {any} [options]
@@ -62,6 +57,9 @@ class Localization {
      *
      * @param {string} key
      * @param {...any} args
+     * Each problem (a missing key, placeholder or plural form) is warned once
+     * per page.
+     *
      * @this {Receiver}
      * @returns {string} the message, or the key itself when the translations do not carry it
      */
@@ -115,6 +113,7 @@ class Localization {
      * @param {Date | number} value
      * @param {Intl.DateTimeFormatOptions} [options]
      * @this {Receiver}
+     * @returns {string}
      */
     static date(value, options) {
         return formatter(Intl.DateTimeFormat, this.locale, options).format(value);
@@ -126,6 +125,7 @@ class Localization {
      * @param {number} value
      * @param {Intl.NumberFormatOptions} [options]
      * @this {Receiver}
+     * @returns {string}
      */
     static number(value, options) {
         return formatter(Intl.NumberFormat, this.locale, options).format(value);
@@ -138,6 +138,7 @@ class Localization {
      *
      * @param {number} value
      * @this {Receiver}
+     * @returns {string}
      */
     static bytes(value) {
         const format = formatter(Intl.NumberFormat, this.locale, { maximumFractionDigits: 2 }).format;
@@ -155,14 +156,14 @@ class Localization {
 
     /**
      * An imperative facade over the module functions, resolving the translations
-     * and the locale from the registry overlays on every call.
+     * and the locale from the registry overlays on every call, the same lookup a
+     * template makes: a facade taken at module scope, before the plugin
+     * configures, still sees the translations.
      *
      * @param {{ locale?: string }} [overrides] an explicit locale, winning over the registry one
+     * @returns {{ t: (key: string, ...args: any[]) => string, date: (value: Date | number, options?: Intl.DateTimeFormatOptions) => string, number: (value: number, options?: Intl.NumberFormatOptions) => string, bytes: (value: number) => string }}
      */
     static of(overrides = {}) {
-        //resolved per call, not per facade: a module-scope `Localization.of()` is
-        //bound before the plugin configures. The registry's own evaluator does the
-        //lookup, so this cannot drift from what a template sees
         const resolve = (prop) => registry.evaluator().resolve(prop);
         /** @param {any} fn */
         const bind =
