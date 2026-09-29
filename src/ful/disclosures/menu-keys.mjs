@@ -18,13 +18,15 @@ const TYPEAHEAD_WINDOW = 500;
 const wireMenuKeys = (invoker, menu, { items, current = () => null }) => {
     let typed = '';
     let typedAt = 0;
+    menu.addEventListener('beforetoggle', (/** @type any */ evt) => {
+        //give the invoker back the focus the menu had borrowed, without
+        //stealing it from wherever else the close came from
+        if (evt.newState === 'closed' && menu.contains(document.activeElement)) {
+            invoker.focus();
+        }
+    });
     menu.addEventListener('toggle', (/** @type any */ evt) => {
         if (evt.newState !== 'open') {
-            //give the invoker back the focus the menu had borrowed, without
-            //stealing it from wherever else the close came from
-            if (menu.contains(document.activeElement)) {
-                invoker.focus();
-            }
             return;
         }
         const all = items();

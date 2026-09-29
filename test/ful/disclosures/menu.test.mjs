@@ -157,6 +157,7 @@ describe('ful-menu', () => {
         await opened(invoker, menu);
         const closed = new Promise((resolve) => menu.addEventListener('toggle', resolve, { once: true }));
         menu.items[2].click();
+        assert.strictEqual(focused(), 'More', 'handed back as the menu hides, before the hidden item can drop it');
         await closed;
 
         assert.isFalse(menu.matches(':popover-open'));
