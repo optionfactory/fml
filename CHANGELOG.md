@@ -101,6 +101,7 @@ The breaking changes, each detailed in its area below:
 
 #### httpc, client-errors and storage
 
+- [BUG] the type declarations give `Base64.STANDARD` and `Base64.URL_SAFE` as static members of the class, where they were declared as loose variables, and `HttpRequestBuilder.interceptors` takes an array of interceptors rather than a one-element tuple
 - [BUG] client-errors reports the cause chain on thrown errors too, where only rejections carried it: an `ErrorEvent`'s own message comes first and the `Caused by:` lines follow, the walk having been unreachable behind the early return of the message it was appended for
 
 - [NEW] httpc exports every type its own signatures hand back: `HttpClientBuilder` (what `builder()` answers), `HttpRequestBuilder` (what all seven verbs answer), `HttpInterceptorChain` (what an interceptor is handed) and `HttpMultipartRequestCustomizer` (what a `multipart` callback is handed). They were reachable and unnameable, emitted into `httpc.d.mts` as non-exported `declare class`, so a consumer could write the call but not annotate the function it lives in, nor type the `chain` parameter of an interceptor of their own. The two built-in interceptors stay unexported: they are page policy the builder installs, not a type anything hands back
@@ -119,6 +120,7 @@ The breaking changes, each detailed in its area below:
 
 #### Localization
 
+- [BUG] the spanish `files.max-files-exceeded` has a singular: a limit of one reads `1 archivo`, not `1 archivos`
 - [BUG] `Localization.t` reads own properties alone, at both ends: a message key inherited from the prototype (`t('valueOf')`) warned and answered the key like any other miss, where it used to hand back a function as a message, and a named placeholder inherited from the args object's chain (`{toString}`) warned and kept its literal, where it used to interpolate native-code text
 
 - [BRK] the plugin's overlay publishes two names, not three: `l10n`, the messages a template resolves through `#l10n:t()`, and `locale`, the full tag every formatter needs. The `language` key carried the primary subtag, which exists to pick which built-in bundle is layered under a consumer's strings and is read by nothing once that is done: a bare, generic name occupying the scope of every template on the page for no reader. A page that wants it takes it from `locale`
@@ -359,6 +361,7 @@ The breaking changes, each detailed in its area below:
 
 #### Packaging, examples and the release chain
 
+- [REF] the build no longer imports `@rollup/pluginutils`, which it used without declaring it and only resolved through another plugin's dependencies
 - [REF] the lint override that exempts `examples/**` covers `manifest/wiki-*.html` too. Both are authored fml pages rather than library source, and biome's html parser rejects `{{ }}` interpolation outright, so a fixture page carrying a real template could not be linted at all
 
 - [REF] the component suites mount through `test/harness.mjs`, which owns the container and removes it after every test through a root hook. 443 hand `container.remove()` calls are gone, and with them the failure mode none of them covered: a removal placed after the assertion that failed never ran, so a failing test leaked its dom into the next one. Each suite keeps its own drain, the harness handing back the container unawaited, so adopting it changed no test's timing

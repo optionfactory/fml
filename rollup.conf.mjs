@@ -4,18 +4,16 @@ import postcss from 'postcss';
 import cssnano from 'cssnano';
 import { decode, encode } from '@jridgewell/sourcemap-codec';
 import path from 'node:path';
-import { createFilter } from '@rollup/pluginutils';
 import peggy from 'peggy';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 
-const isPeggy = createFilter(['*.peggy', '**/*.peggy'], []);
 const terserOptions = { compress: { passes: 2 } };
 
 class RollupPeggyWithSourceMap {
     name = 'rollup-plugin-peggy-with-source-map';
     transform(grammar, id) {
-        if (!isPeggy(id)) return null;
+        if (!id.endsWith('.peggy')) return null;
         const generated = peggy.generate(grammar, {
             allowedStartRules: ['TemplatedRoot', 'ExpressionRoot'],
             output: 'source-and-map',

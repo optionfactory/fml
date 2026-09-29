@@ -603,7 +603,7 @@ class HttpRequestBuilder {
     }
     /**
      * Adds interceptors to the request.
-     * @param {[HttpInterceptor]} is - the interceptor to be registered
+     * @param {HttpInterceptor[]} is - the interceptors to be registered
      * @returns {HttpRequestBuilder} this builder
      */
     interceptors(is) {

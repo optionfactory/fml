@@ -5,6 +5,8 @@
  * of corrupting silently.
  */
 class Base64 {
+    static STANDARD = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    static URL_SAFE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
     /**
      * @param {ArrayBuffer} arrayBuffer
      * @param {string} [dialect] one of Base64.STANDARD or Base64.URL_SAFE, URL_SAFE by default
@@ -81,9 +83,6 @@ class Base64 {
         return view.buffer;
     }
 }
-
-Base64.STANDARD = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-Base64.URL_SAFE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
 /**
  * Hex encoding and decoding over byte sequences, lowercase by default.

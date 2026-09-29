@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { ParsedElement, Registry, registry, Rendering } from '../../src/ftl/index.mjs';
+import { Localization, ParsedElement, Registry, registry, Rendering } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/index.mjs';
 import en from '../../src/ful/l10n/en.mjs';
 import itTranslations from '../../src/ful/l10n/it.mjs';
@@ -93,6 +93,13 @@ describe('Built-in translations', () => {
         assert.include(problems, 'it: missing "pagination.navigation"', 'a missing key is reported');
         assert.include(problems, 'it: unexpected "pagination.extra"', 'an unexpected key is reported');
         assert.include(problems, 'it: "pagination.showing" misses {current}', 'a missing placeholder is reported');
+    });
+
+    it('says the file limit of one in the singular in spanish', () => {
+        const t = (count) => Localization.t.call({ l10n: es, locale: 'es' }, 'files.max-files-exceeded', { count });
+
+        assert.strictEqual(t(1), 'Se ha superado el número máximo de 1 archivo');
+        assert.strictEqual(t(3), 'Se ha superado el número máximo de 3 archivos');
     });
 
     it('uses every key its templates reference', async () => {

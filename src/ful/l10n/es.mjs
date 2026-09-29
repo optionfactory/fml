@@ -14,7 +14,10 @@ export default {
     'files.unacceptable-file-type': 'Solo se admiten archivos de tipo {types}',
     'files.max-file-size-exceeded': 'El tamaño máximo de archivo admitido es {size}',
     'files.max-total-size-exceeded': 'El tamaño total máximo admitido es {size}',
-    'files.max-files-exceeded': { other: 'Se ha superado el número máximo de {count} archivos' },
+    'files.max-files-exceeded': {
+        one: 'Se ha superado el número máximo de {count} archivo',
+        other: 'Se ha superado el número máximo de {count} archivos',
+    },
     'filters.op.EQ': 'Igual',
     'filters.op.NEQ': 'Distinto',
     'filters.op.LT': 'Menor',
