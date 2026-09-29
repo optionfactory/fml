@@ -1,11 +1,3 @@
-/**
- * The cascade contract. Everything ful ships lives in a layer, so any rule a
- * consuming page writes outside one wins over all of it whatever its
- * specificity, and a page that layers its own styles decides by declaring its
- * layer after these. `ful.hidden` comes last so hiding beats the chrome that
- * would otherwise lay an element out, which is the job an `!important` used to
- * do here.
- */
 @layer ful.theme, ful.components, ful.hidden;
 
 @layer ful.theme {

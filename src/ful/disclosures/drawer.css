@@ -4,9 +4,6 @@
 
         position: fixed;
         inset-block: 0;
-        /* the ua sheet pins both inline insets to 0; leaving start at 0 while
-           end is 0 over-constrains a definite width, and the start edge wins,
-           which is the opposite side from the one asked for */
         inset-inline-start: auto;
         inset-inline-end: 0;
         width: var(--ful-drawer-width);
@@ -81,13 +78,6 @@
             padding: 0.5rem 1.25rem 1rem;
             overflow-y: auto;
 
-            /*
-            the content takes whatever height the header leaves rather than only
-            its own, and lays its children out in a column, so what a caller
-            delivers can put its buttons at the foot of the drawer instead of
-            immediately under the last field. A footer it ends with is pushed
-            there without the caller having to say so
-            */
             &[data-ref="content"] {
                 display: flex;
                 flex-direction: column;
@@ -99,13 +89,6 @@
                 }
             }
 
-            /*
-            the wait fills the space it is waiting in, so the spinner sits in the
-            middle of the drawer rather than under the header. The error does not:
-            it is a bordered panel around a line or two of text, and growing it to
-            the height of the drawer painted most of the panel as empty colour
-            with the message floating in the centre
-            */
             &[data-ref="loading"] {
                 display: grid;
                 place-items: center;

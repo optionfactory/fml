@@ -1,9 +1,4 @@
 @layer ful.components {
-    /**
-     * The text a spinner announces: present for assistive technology, taken out of
-     * the layout so the ring stays the only thing on screen. A spinner with no such
-     * text is a live region with nothing to read.
-     */
     ful-spinner > .ful-sr-only {
         position: absolute;
         width: 1px;

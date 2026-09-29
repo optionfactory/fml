@@ -25,22 +25,11 @@
             }
         }
 
-        /*
-        readonly only: the value is fixed and the rows already carry it, so the
-        control is noise. A disabled field keeps its control, dimmed, because
-        disabled says the control is there and unavailable rather than absent,
-        and a form that re-enables it must not make the page jump
-        */
         &[item-list][readonly] {
             & > ful-control-group {
                 display: none;
             }
 
-            /*
-            the list stands where the control stood, so it starts and ends where
-            the control group would have: the margins that space a list under a
-            control have nothing to sit under here
-            */
             & > ful-item-list > ful-item:first-child {
                 margin-top: 0;
             }
@@ -59,8 +48,6 @@
         &[readonly] > ful-control-group > ful-control {
             background-size: 0;
             cursor: default;
-            /* the chevron is gone, so the room that was held for it goes too:
-               without this the value sat against an inch of nothing */
             padding-right: 5px;
         }
 

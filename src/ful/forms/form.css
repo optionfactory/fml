@@ -19,8 +19,6 @@
 
     *:has(> ful-control-group) > label,
     *:has(> fieldset > ful-radio-list) > fieldset > legend {
-        /*inline-block: an info slot carrying a tooltip rides the label's line,
-        and nothing moves when there is none, the control group being block*/
         display: inline-block;
         margin: 0 0.25rem 0.5rem 0;
         color: var(--ful-color);
@@ -96,18 +94,6 @@
         border-radius: 0;
     }
 
-    /*
-     * An affix holding a button is the button: the cell gives up the padding it
-     * carries for text and an icon, and the button fills it in both axes. Left to
-     * the affix's own layout a button is padded like text, which makes the field
-     * taller than its neighbours, and centred inside a cell at least a control
-     * wide, which leaves the affix's own ground showing down the side of it. Both
-     * grow with the theme's control height and corner radius.
-     *
-     * The filters' operator and sensitivity buttons had this to themselves,
-     * keyed on their data-ref. Every button in an affix needs it, an application's
-     * own included: the affix is documented as a place to put one.
-     */
     ful-affix:has(> button) {
         padding: 0;
         overflow: hidden;
@@ -130,13 +116,6 @@
         cursor: pointer;
     }
 
-    /**
-     * The cell owns the geometry of whatever button sits in it. A button carrying
-     * .ful-button keeps the accent colours, which is the point of reaching for the
-     * class, but the class outranks the element selector above and would keep its
-     * own border and corner radius too, rounding a corner inside a cell that has
-     * already drawn one and drawing a border where the group has one.
-     */
     ful-affix > button.ful-button {
         border: 0;
         border-radius: 0;
@@ -157,13 +136,6 @@
     :invalid > ful-control-group {
         border-color: var(--ful-invalid-border-color);
 
-        /**
-         * The border colour is restated and the popover guard repeated from the
-         * focus rule above: that rule's :not(:has(...)) carries the specificity of
-         * its argument, so without both the focus ring would repaint an invalid
-         * field in the focus colour and the field would read as healthy while the
-         * caret is in it.
-         */
         &:has(:focus-visible):not(:has([popover] :focus-visible)) {
             border-color: var(--ful-invalid-border-color);
             box-shadow: var(--ful-invalid-box-shadow);
@@ -174,11 +146,6 @@
         background-color: var(--ful-disabled-bg);
     }
 
-    /**
-     * A submit held off while the form is busy keeps its focus, so it is marked
-     * aria-disabled rather than disabled. Unstyled buttons would otherwise lose the
-     * platform's own disabled look: .ful-button already dims both spellings.
-     */
     ful-form [aria-disabled="true"] {
         opacity: 0.65;
         cursor: default;
@@ -465,7 +432,6 @@
         &::before {
             content: "";
             display: inline-block;
-            /*the arrow keeps its size beside a heading that has to shrink*/
             flex: 0 0 auto;
             width: 1em;
             height: 1em;

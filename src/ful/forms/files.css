@@ -31,15 +31,6 @@
             outline: 0;
         }
 
-        /*
-        the picker button follows the two claims apart, as the control group does.
-        Readonly drops it: the value is fixed, so the button is an affordance for
-        a gesture that will never be offered, and the input takes back the padding
-        it used to sit flush against. Disabled keeps it and dims it, the way the
-        platform dims its own, disabled saying the control is unavailable rather
-        than absent. The input stays under both, showing the name of the file
-        chosen, which is the one thing here there is to read
-        */
         &[readonly] > ful-control-group > input[type="file"]::file-selector-button {
             display: none;
         }
@@ -48,9 +39,6 @@
             padding-left: 0.75rem;
         }
 
-        /*opacity rather than a colour: --ful-disabled-bg is what the control group
-        beside it already carries, so a button painted in it would disappear into
-        the field. It is how a disabled button is dimmed elsewhere in the library*/
         &:disabled > ful-control-group > input[type="file"]::file-selector-button {
             opacity: 0.5;
             cursor: default;
@@ -72,11 +60,6 @@
             border-radius: var(--ful-controls-border-radius);
         }
 
-        /*
-        both variants open the picker when clicked, so both say so. Only the
-        default one is themed; a slotted dropzone is the author's own chrome and
-        gets the cursor alone
-        */
         & > .default-dropzone,
         & > .dropzone {
             cursor: pointer;
@@ -98,13 +81,6 @@
             display: none;
         }
 
-        /*
-        a dropzone is an affordance and nothing besides: unlike a readonly text
-        input, which still shows the value it will not let you change, it holds
-        nothing to read. A field that will take neither a click nor a drop shows
-        none at all, rather than a dashed hundred pixels inviting a gesture it
-        refuses. The files already chosen stay where they were, in the item list
-        */
         &:not([dropzone]) > .default-dropzone,
         &:not([dropzone]) > .dropzone,
         &[readonly] > .default-dropzone,
@@ -132,23 +108,11 @@
             pointer-events: none;
         }
 
-        /*
-        a readonly field with an item list is the list, as it is on ful-select: the
-        value is fixed and the rows already carry the names, so the control group
-        holds nothing they do not. A disabled field keeps it, dimmed, disabled
-        saying the control is there and unavailable rather than absent. Without an
-        item list the input stays either way, being the only place a name appears
-        */
         &[item-list][readonly] {
             & > ful-control-group {
                 display: none;
             }
 
-            /*
-            the list stands where the control stood, so it starts and ends where
-            the control group would have: the margins that space a list under a
-            control have nothing to sit under here
-            */
             & > ful-item-list > ful-item:first-child {
                 margin-top: 0;
             }

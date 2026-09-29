@@ -581,6 +581,23 @@ describe('Dialog close-on-submit', () => {
         dialog.close();
     });
 
+    it('leaves a footer button carrying a .ful-button variant to that variant', async () => {
+        const [dialog] = await mount(`
+            <ful-dialog header="Edit">
+                <footer class="ful-dialog-footer">
+                    <button class="ful-button ghost" data-ref="ghost">Cancel</button>
+                    <button data-ref="plain">Save</button>
+                </footer>
+            </ful-dialog>`);
+        dialog.ask();
+
+        const ghost = getComputedStyle(dialog.querySelector('[data-ref=ghost]')).backgroundColor;
+        const plain = getComputedStyle(dialog.querySelector('[data-ref=plain]')).backgroundColor;
+        assert.strictEqual(ghost, 'rgba(0, 0, 0, 0)', 'the ghost variant keeps its transparent fill');
+        assert.notStrictEqual(plain, 'rgba(0, 0, 0, 0)', 'a plain button is dressed by the footer');
+        dialog.close();
+    });
+
     it('renders no acknowledge button: the form it closes on is where its answer comes from', async () => {
         const [dialog] = await mount(form());
 

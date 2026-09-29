@@ -5,20 +5,7 @@
         align-items: center;
         justify-content: center;
         vertical-align: middle;
-        /*
-         * a button does not inherit the page's font, and the correction below is
-         * written in units the font defines, so it has to read the same font the
-         * label does
-         */
         font: inherit;
-        /*
-         * middle puts the box's centre on the midpoint of the x-height, while a
-         * line of text reads as centred on its cap height, which sits higher, so
-         * the icon rode about a tenth of an em low beside its label. The
-         * correction is half the difference between the two, taken from the font
-         * in use rather than guessed: the offset is paint only, so the label's
-         * line box does not move
-         */
         position: relative;
         top: calc((1ex - 1cap) / 2);
         width: 1.5rem;
@@ -48,10 +35,8 @@
 
     ful-note,
     .ful-note {
-        /* the space between the note and its invoker, which the callout points across */
         --ful-note-gap: 0.5rem;
         --ful-note-callout-size: 0.5rem;
-        /*how near a corner the callout may sit before it would leave the border's curve*/
         --ful-note-callout-edge: calc(var(--ful-border-radius) + var(--ful-note-callout-size));
 
         display: none;
@@ -63,11 +48,6 @@
         border: var(--ful-border-width) solid var(--ful-border-color);
         border-radius: var(--ful-border-radius);
         font-size: 0.875rem;
-        /*
-         * the note says its own piece: it is placed in the top layer beside
-         * whatever carried the marker, a bold field label or an emphasised cell
-         * among them, and inheriting that set the whole explanation in it
-         */
         font-weight: 400;
         font-style: normal;
         text-align: start;
@@ -83,24 +63,9 @@
 
         &:popover-open {
             display: block;
-            /*
-             * the platform gives every popover overflow: auto, which clips the
-             * callout back inside the box: a note is a line or two of text with
-             * no height to scroll, so it is the overflow that goes
-             */
             overflow: visible;
         }
 
-        /*
-         * The callout: a square straddling the edge that faces the invoker,
-         * rotated a quarter turn so a corner points at it, carrying a border on
-         * the two sides that end up outside the note and none on the two inside,
-         * where its background covers the note's own border and the two become
-         * one shape. Only a popover gets one, both because it is the only note
-         * with an invoker to point at and because it is the only one the platform
-         * positions: a plain .ful-note is static, and giving it a position here
-         * would take the popover's own placement away from it.
-         */
         &:popover-open::after {
             content: "";
             position: absolute;
@@ -111,18 +76,6 @@
             rotate: 45deg;
         }
 
-        /*
-         * below the invoker: the callout sits on the top edge and points up.
-         *
-         * It points at the invoker rather than at the middle of the note, which
-         * are the same spot until the viewport pushes the note sideways and the
-         * two come apart by more than the note is wide. The wiring measures where
-         * the invoker's centre falls and writes it into the two custom properties
-         * below, in both placements: a pseudo-element cannot read the anchor
-         * itself, its containing block being the note rather than the page, and
-         * an anchor outside that is not one it may name. The clamp keeps the
-         * callout off the rounded corners
-         */
         &:popover-open::after {
             top: calc(var(--ful-note-callout-size) / -2 - var(--ful-border-width) / 2);
             left: clamp(
@@ -198,15 +151,6 @@
             background-color: var(--ful-backdrop-color);
         }
 
-        /*
-         * The chrome answers to a tag as a direct child and to a class at any
-         * depth. The tag form keeps the simple case simple, a page writing
-         * header, body and footer straight into the dialog. The class form is
-         * what a page needs when something stands in between, a form wrapping
-         * the whole dialog so that a submit button in the footer belongs to it
-         * being the ordinary case, and a descendant selector on a bare header or
-         * footer would reach into the content instead.
-         */
         & > header,
         & .ful-dialog-header {
             display: flex;
@@ -221,12 +165,10 @@
                 margin-inline-end: auto;
             }
 
-            /* what the header slot carries sits beside the heading, before it */
             & > :not(h2, button[data-ref="close"]) {
                 flex: 0 0 auto;
             }
 
-            /* the close button, the same one the drawer's header carries */
             & > button[data-ref="close"] {
                 display: inline-flex;
                 align-items: center;
@@ -256,7 +198,6 @@
                 }
             }
 
-            /* the button sits at the end even where no heading was given */
             & > button[data-ref="close"]:only-child {
                 margin-inline-start: auto;
             }
@@ -267,12 +208,6 @@
             padding: 0.5rem 1.25rem;
         }
 
-        /*
-         * what update() shows while it waits and where it paints a rejection,
-         * the same pair the drawer carries. The ring is centred on the room the
-         * dialog has; the error is a bordered panel around a line or two of
-         * text, so it takes only the height it needs
-         */
         & > [data-ref="loading"] {
             display: grid;
             place-items: center;
@@ -289,17 +224,10 @@
             border-radius: var(--ful-border-radius);
         }
 
-        /* a footer the dialog renders empty, its buttons being the form's own */
         & > footer.ful-dialog-footer:empty {
             display: none;
         }
 
-        /*
-         * a footer standing inside the body rather than beside it, which is where
-         * a form's own buttons sit: the body already holds the side padding, so
-         * the footer adding its own would inset its buttons past the header and
-         * the text they follow
-         */
         & .ful-dialog-body :is(.ful-dialog-header, .ful-dialog-footer) {
             padding-inline: 0;
         }
@@ -311,12 +239,6 @@
             gap: 0.5rem;
             padding: 0.5rem 1.25rem 1rem;
 
-            /*
-             * a plain button is dressed here, which is what the acknowledge
-             * button the dialog renders for itself is. One already carrying
-             * .ful-button is dressed by that, so a page choosing a variant is
-             * not overruled by a more specific selector saying the same thing
-             */
             & > button:not(.ful-button) {
                 padding: 0.375rem 0.75rem;
                 height: var(--ful-controls-height);
