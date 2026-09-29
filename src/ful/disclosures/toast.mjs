@@ -20,6 +20,12 @@ let listenerWired = false;
  * `aria-label`. Each `show()` appends a `ful-toast` that retires on its own
  * timer, so concurrent toasts stack.
  *
+ * The region is a manual popover, whatever `popover` the page declared, and
+ * each `show()` shows it again, so it is on top of the top layer when a toast
+ * arrives: above a modal dialog or drawer opened before it. While a modal is
+ * open the page outside it is inert, the region included: its toasts show and
+ * retire on their timers, and their buttons answer once the modal closes.
+ *
  * `timeout` is the region's default timer in milliseconds, 5000 when absent
  * or zero.
  *
@@ -48,6 +54,7 @@ class Toasts extends ParsedElement {
         this.setAttribute('role', 'region');
         this.setAttribute('tabindex', '-1');
         this.setAttribute('aria-label', Localization.of().t('toast.region'));
+        this.setAttribute('popover', 'manual');
         if (!listenerWired) {
             listenerWired = true;
             document.addEventListener('show-toast', (/** @type any */ e) => {
@@ -75,6 +82,9 @@ class Toasts extends ParsedElement {
      * region, which has `tabindex="-1"` for this. The toast is removed once its
      * `ful-toast-out` animation ends, or at once where the user prefers reduced
      * motion or no animation runs.
+     *
+     * A connected region is shown again as a popover, which puts it above
+     * whatever opened in the top layer since; the focus stays where it was.
      * @param {any} message
      * @param {ToastOptions} [options]
      * @returns {HTMLElement} the toast, already in the region
@@ -153,8 +163,18 @@ class Toasts extends ParsedElement {
         item.addEventListener('focusout', release);
         dismiss.addEventListener('click', retire);
         this.append(item);
+        this.#raise();
         timer = setTimeout(retire, remaining);
         return item;
+    }
+    #raise() {
+        if (!this.isConnected) {
+            return;
+        }
+        if (this.matches(':popover-open')) {
+            this.hidePopover();
+        }
+        this.showPopover();
     }
 }
 

@@ -48,7 +48,7 @@ describe('Toasts', () => {
 
         assert.strictEqual(toasts.getAttribute('role'), 'region');
         assert.strictEqual(toasts.getAttribute('aria-label'), 'Notifications');
-        assert.strictEqual(getComputedStyle(toasts).position, 'static', 'an empty region draws nothing');
+        assert.strictEqual(getComputedStyle(toasts).display, 'none', 'an empty region draws nothing');
         toasts.show('saved');
         assert.strictEqual(getComputedStyle(toasts).position, 'fixed', 'the region chrome is the structure it renders');
     });
@@ -149,7 +149,9 @@ describe('Toasts', () => {
 
         const byCall = toasts.show('Block deleted', { action: { label: 'Undo', onClick: () => answered.push(1) } });
         document.dispatchEvent(
-            new CustomEvent('show-toast', { detail: { message: 'Also deleted', action: { label: 'Undo', onClick: () => clicks.push(1) } } }),
+            new CustomEvent('show-toast', {
+                detail: { message: 'Also deleted', action: { label: 'Undo', onClick: () => clicks.push(1) } },
+            }),
         );
         const byEvent = [...toasts.querySelectorAll('ful-toast')].find((el) => el !== byCall);
 
@@ -225,6 +227,55 @@ describe('Toasts', () => {
         assert.strictEqual(item.localName, 'ful-toast');
         assert.strictEqual(getComputedStyle(item).display, 'flex', 'the item chrome follows the tag');
         assert.strictEqual(getComputedStyle(toasts).position, 'fixed', 'the region chrome follows the hosted toasts');
+    });
+
+    it('rises above what opened in the top layer since its last toast', async () => {
+        const [toasts, container] = await mount('<ful-toasts></ful-toasts>');
+        toasts.show('first');
+        const cover = document.createElement('div');
+        cover.setAttribute('popover', 'manual');
+        cover.style.cssText = 'inset: 0; width: 100vw; height: 100vh; margin: 0';
+        container.append(cover);
+        cover.showPopover();
+
+        const item = toasts.show('second', { timeout: 60000 });
+        const box = item.getBoundingClientRect();
+
+        assert.isTrue(item.contains(document.elementFromPoint(box.left + box.width / 2, box.bottom - 4)));
+        cover.hidePopover();
+    });
+
+    it('keeps the focus inside the region where it was when another toast arrives', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+        const dismiss = toasts.show('first').querySelector('button');
+        dismiss.focus();
+
+        toasts.show('second');
+
+        assert.strictEqual(document.activeElement, dismiss);
+    });
+
+    it('stays open when an auto popover opens, whatever popover the page declared', async () => {
+        const [toasts, container] = await mount('<ful-toasts popover="auto"></ful-toasts>');
+        toasts.show('saved');
+        const menu = document.createElement('div');
+        menu.setAttribute('popover', '');
+        container.append(menu);
+
+        menu.showPopover();
+
+        assert.isTrue(toasts.matches(':popover-open'));
+        menu.hidePopover();
+    });
+
+    it('shows a toast in a region out of the document without raising it', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+        toasts.remove();
+
+        const item = toasts.show('away');
+
+        assert.isTrue(toasts.contains(item));
+        assert.isFalse(toasts.matches(':popover-open'));
     });
 });
 
