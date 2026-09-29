@@ -2,18 +2,14 @@ import { Rendering, registry } from '../src/ftl/index.mjs';
 import { settle, tick } from './tick.mjs';
 
 /**
- * Mounting and teardown for the component suites.
+ * Mounting and teardown for the component suites. Whatever `appended`, `attached`
+ * and `mount` put in the page is removed after every test, failed or not, and the
+ * `loaders:select`, `loaders:table` and `loaders:form` components are put back as
+ * they were before it.
  *
- * Every test used to build its own container, append it and remove it by hand
- * at the end: 538 removals across twenty files, none of which run when an
- * assertion fails first, so a failing test leaked its dom into the next one.
- * `mount` records what it appended and a root hook clears it after every test,
- * failed or not.
- *
- * The waiting is the caller's to choose because the components differ: an
- * element mounted alone is awaited directly, a fragment of several is awaited
- * through its children, and a component whose render schedules more work takes
- * an extra drain. Nothing here picks a tick count on a suite's behalf.
+ * Compare dom nodes by identity (`assert.isTrue(a === b)`), never with a deep or
+ * strict chai equality: a failing compare over a node makes chai format it, and
+ * the run hangs instead of reporting.
  */
 const mounted = [];
 

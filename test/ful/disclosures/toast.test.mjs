@@ -173,7 +173,6 @@ describe('Toasts', () => {
         assert.strictEqual(first.querySelectorAll('ful-toast').length, 1, 'the first region shows it once');
         assert.strictEqual(second.querySelectorAll('ful-toast').length, 1, 'the second region shows it once');
 
-        //the removal is the subject of the test, not its teardown
         firstContainer.remove();
 
         document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'after the removal' } }));
@@ -185,9 +184,6 @@ describe('Toasts', () => {
         const [toasts, container] = await mount('<ful-toasts></ful-toasts>');
         const parent = container;
 
-        //a region that leaves the document and comes back is the same rendered
-        //element: ParsedElement renders once, so connecting again only has to
-        //put it back on the list the show-toast listener walks
         toasts.remove();
         document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'while away' } }));
         assert.lengthOf(toasts.querySelectorAll('ful-toast'), 0, 'a detached region answers nothing');
@@ -216,8 +212,6 @@ describe('Toasts', () => {
             /** @type any */ (window).matchMedia = real;
         }
 
-        //no out animation to wait for, so the toast goes now; the focus would
-        //otherwise be left on a removed node, which reads as <body>
         assert.isFalse(toasts.contains(item), 'the toast is gone the moment it retires');
         assert.strictEqual(document.activeElement, toasts, 'the region caught the focus on the way out');
     });

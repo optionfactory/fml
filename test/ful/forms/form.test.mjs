@@ -7,8 +7,6 @@ import { appended, attached } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-//a button is held off with aria-disabled rather than disabled, so it keeps the
-//focus it almost always holds when a submit starts
 const heldOff = (el) => el.getAttribute('aria-disabled') === 'true';
 
 describe('Form busy state', () => {
@@ -81,8 +79,6 @@ describe('Form busy state', () => {
 
         form.spinner(true);
 
-        //disabling what holds the focus drops it to the body, losing the user's place
-        //in the middle of the transaction the form is announcing
         assert.strictEqual(document.activeElement, go);
         assert.isFalse(go.disabled, 'held off, not disabled');
         assert.strictEqual(go.getAttribute('aria-disabled'), 'true');
@@ -116,8 +112,6 @@ describe('Form spinner button states', () => {
         `;
         attached(container);
 
-        //the buttons are the form's own children: one turn past the upgrade is
-        //where they are reachable
         await tick();
 
         const fulForm = container.querySelector('ful-form');
@@ -148,8 +142,6 @@ describe('Form spinner button states', () => {
         const fulForm = container.querySelector('ful-form');
         const enabled = fulForm.querySelector('#btn-enabled');
 
-        //a caller's own spin may wrap a submit's: the inner pair must not restore
-        //the buttons while the outer one is still waiting
         fulForm.spinner(true);
         fulForm.spinner(true);
         assert.isTrue(heldOff(enabled));
@@ -160,7 +152,6 @@ describe('Form spinner button states', () => {
         fulForm.spinner(false);
         assert.isFalse(heldOff(enabled), 'the outer release restores them');
 
-        //a release nobody asked for cannot drive the count below zero
         fulForm.spinner(false);
         assert.isFalse(heldOff(enabled));
     });
@@ -222,8 +213,6 @@ describe('Form spinner button states across overlapping submits', () => {
         assert.isTrue(heldOff(btnEnabled));
         assert.isTrue(heldOff(btnDisabled));
 
-        //the first submit reaches the loader, the re-entrant one is dropped
-        //before extraction: a write must not double behind a racing gesture
         for (let i = 0; i !== 20; ++i) {
             await tick();
         }
@@ -239,7 +228,6 @@ describe('Form spinner button states across overlapping submits', () => {
         assert.isUndefined(btnEnabled.dataset.wd);
         assert.isUndefined(btnDisabled.dataset.wd);
 
-        //the settled exchange re-arms the form: a later submit travels again
         fulForm.submit();
         for (let i = 0; i !== 20; ++i) {
             await tick();
@@ -841,8 +829,6 @@ describe('Form submit failures before the request is sent', () => {
     };
 
     it('reports a request mapper that throws as a failed submit, not as a rejection', async () => {
-        //a mapper throwing is how a caller signals a problem with the values, so it has
-        //to travel the same path as a loader failure
         registry.defineComponent('rejecting-mapper', () => {
             throw new Error('values are not acceptable');
         });

@@ -62,8 +62,6 @@ describe('Client errors reporting', () => {
     });
 
     it('reports the cause chain, which neither the message nor the stack carries', async () => {
-        //a framed error says where it surfaced; the context is on `cause`, and a
-        //stack does not include it, so without walking it the report is useless
         const root = new Error('Method missing "boom"');
         const inner = new Error('Error evaluating data-tpl-if="self.boom()" in `<li>`', { cause: root });
         const outer = new Error('Error evaluating data-tpl-each="rows" in `<ul>`', { cause: inner });
@@ -79,9 +77,6 @@ describe('Client errors reporting', () => {
     });
 
     it('stops the walk at a cause that says nothing', async () => {
-        //a link with no message contributes no line and hides everything under
-        //it, so the walk ends there rather than emitting blanks or a bare
-        //`Caused by:` with nothing after it
         const mute = new Error('');
         /** @type any */ (mute).cause = new Error('the one nobody will read');
         const outer = new Error('the frame that surfaced', { cause: mute });
@@ -119,8 +114,6 @@ describe('Client errors reporting', () => {
         reject(new Error('nope'));
         await settle();
 
-        //the report itself fails with 'offline': swallowing that rejection keeps it
-        //from re-entering the handler, only the dispatched one must show up
         expect(calls.length).to.equal(1);
         expect(rejections.map((r) => r.message)).to.deep.equal(['nope']);
     });

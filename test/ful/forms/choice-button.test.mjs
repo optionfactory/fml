@@ -2,12 +2,6 @@ import { assert } from 'chai';
 import { ChoiceButton } from '../../../src/ful/forms/choice-button.mjs';
 import { appended } from '../../harness.mjs';
 
-/**
- * The glyph-button-and-menu the filters are built from, exercised through its own
- * defaults rather than through a filter: every filter passes both a localized
- * label and a glyph, so the plain case, a vocabulary that is its own label and
- * its own glyph, never runs in the library and is the class's own contract.
- */
 describe('ChoiceButton', () => {
     const build = (options) => {
         const container = appended('<button type="button"></button><ul></ul>');
@@ -17,7 +11,6 @@ describe('ChoiceButton', () => {
 
     it('shows a bare choice as itself when it has neither a label nor a glyph', () => {
         const { menu, choice } = build({ vocabulary: ['asc', 'desc'] });
-        //the menu is filled when the allowed set is declared, not at construction
         choice.allowed = ['asc', 'desc'];
 
         const items = [...menu.querySelectorAll('a')];

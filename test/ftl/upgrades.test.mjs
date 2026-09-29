@@ -4,11 +4,6 @@ import { Registry, registry } from '../../src/ftl/registry.mjs';
 import { Rendering } from '../../src/ftl/rendering.mjs';
 import { settle as drain, attached } from '../harness.mjs';
 
-/**
- * Characterizes when an element counts as upgraded, which is what `ftl:ready` and
- * `Rendering.waitFor`/`waitForChildren` report on. Both walk the upgrade queue once,
- * so what they cover depends on what happens to be queued when they are called.
- */
 describe('Upgrade ordering and readiness', () => {
     let container;
     let order;
@@ -47,8 +42,6 @@ describe('Upgrade ordering and readiness', () => {
     });
 
     it('reports ready once components enqueued during another upgrade have rendered', async () => {
-        //a fresh registry is the late-import case: its queue settles at once, and
-        //everything enqueued synchronously here is covered by that settling
         const fresh = new Registry();
         fresh.defineElement('ready-child', slow('child'));
         fresh.defineElement('ready-parent', nesting('parent', 'ready-child'));
@@ -131,9 +124,6 @@ describe('Upgrade ordering and readiness', () => {
             caught = e;
         }
 
-        //the queue attaches no rejection handler of its own: the failure stays free
-        //to reach the console and the error reporter, and ftl:ready still fires for
-        //the rest of the page, as the test below proves
         expect(caught?.message).to.equal('boom');
     });
 });
@@ -152,8 +142,6 @@ describe('Readiness when a component fails', () => {
                 this.textContent = 'rendered';
             }
         }
-        //a fresh registry is the late-import case: its queue settles at once, over
-        //whatever was enqueued synchronously before that moment
         const fresh = new Registry();
         fresh.defineElement('broken-el', Broken).defineElement('healthy-el', Healthy);
         fresh.configure();
@@ -161,9 +149,6 @@ describe('Readiness when a component fails', () => {
         container.innerHTML = `<broken-el></broken-el><healthy-el></healthy-el>`;
         attached(container);
 
-        //the queue must not attach a handler of its own, which is what leaves the failure
-        //free to reach the console and the error reporter. taking it here proves that and
-        //keeps this test from producing an uncaught rejection of its own
         const broken = container.querySelector('broken-el');
         const queued = fresh.whenUpgraded(broken);
         let caught = null;

@@ -37,7 +37,6 @@ describe('Tooltip', () => {
         assert.strictEqual(described.length, 2, 'beside the field error region, which keeps its own entry');
         assert.strictEqual(trigger.tabIndex, -1, 'the marker is no longer a tab stop');
 
-        //the marker still opens the note: only sequential focus was taken away
         trigger.click();
         assert.isTrue(note.matches(':popover-open'));
         note.hidePopover();
@@ -87,8 +86,6 @@ describe('Tooltip', () => {
     });
     it('renders an icon marker wired to a popover carrying the explanation', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
-        //the default placement is above, and the placing clamps into the
-        //viewport rather than flipping, so the trigger needs room over it
         container.style.marginTop = '200px';
         const button = tooltip.querySelector('.ful-tip');
         const popover = tooltip.querySelector('[popover]');
@@ -140,14 +137,11 @@ describe('Tooltip', () => {
     it('centres the trigger on the cap height of the text it sits beside', async () => {
         const [container] = await mount('<div><label id="beside">HEX<ful-tooltip>x</ful-tooltip></label></div>');
         const label = container.querySelector('#beside');
-        //the baseline, read off a zero-sized box aligned to it
         const strut = document.createElement('span');
         strut.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
         label.insertBefore(strut, label.firstChild);
         const baseline = strut.getBoundingClientRect().top;
         strut.remove();
-        //the ink of the text, from the font rather than from the line box: a
-        //line of capitals reads as centred halfway up its cap height
         const style = getComputedStyle(label);
         const ctx = document.createElement('canvas').getContext('2d');
         ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
@@ -156,9 +150,6 @@ describe('Tooltip', () => {
 
         const button = label.querySelector('ful-tooltip .ful-tip').getBoundingClientRect();
 
-        //vertical-align: middle alone puts it on the midpoint of the x-height,
-        //about a tenth of an em low. The tolerance covers the whole pixel the
-        //engines round the measured ascent to
         assert.closeTo((button.top + button.bottom) / 2, textCentre, 1, 'the trigger rides the text it explains');
     });
 
@@ -171,8 +162,6 @@ describe('Tooltip', () => {
         button.click();
         await settle();
 
-        //the platform gives every popover overflow: auto, which cuts the callout
-        //back inside the box and leaves a notch where the point should be
         assert.strictEqual(getComputedStyle(note).overflow, 'visible');
         const point = getComputedStyle(note, '::after');
         assert.notStrictEqual(point.content, 'none', 'the note draws a callout');
@@ -187,20 +176,12 @@ describe('Tooltip', () => {
     });
 });
 
-/**
- * The note is placed by the library on every platform rather than by the anchor
- * css, its callout needing to know where the trigger ended up, so these run
- * against whatever engine is under test with nothing stubbed out.
- */
 describe('Tooltip placement', () => {
     it('leaves the css gap between the note and the trigger, and keeps it on every later placing', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
         container.style.marginTop = '200px';
         const button = tooltip.querySelector('.ful-tip');
         const note = tooltip.querySelector('[popover]');
-        //read before the opening: the placing clears the margin it reads the gap
-        //from. The closed note carries it as a top margin and the open one, above
-        //its trigger, as a bottom margin, both being the same --ful-note-gap
         const gap = parseFloat(getComputedStyle(note).marginTop);
         assert.isAbove(gap, 0, 'the stylesheet declares a gap');
         const distance = () => button.getBoundingClientRect().top - note.getBoundingClientRect().bottom;
@@ -210,8 +191,6 @@ describe('Tooltip placement', () => {
 
         assert.closeTo(distance(), gap, 1, 'the hand placement honours the gap the anchor css leaves');
 
-        //the placing zeroes the margin it reads, so every pass after the first
-        //used to read its own zero and pull the note flush against the trigger
         document.dispatchEvent(new Event('scroll'));
         await settle();
 
@@ -240,7 +219,6 @@ describe('Tooltip placement', () => {
             'the note had to move off its trigger, which is what this is about',
         );
 
-        //the callout's own offset inside the note, which is what has to follow
         const callout = n.left + note.clientLeft + parseFloat(getComputedStyle(note, '::after').left);
         assert.closeTo(callout, triggerCentre, 2, 'the callout still points at the trigger, not at the note');
 

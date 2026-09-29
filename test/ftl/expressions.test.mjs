@@ -72,8 +72,6 @@ const verify = (description, expr, data, expected) => {
 };
 
 describe('Expression', () => {
-    //identifiers sharing a keyword's prefix must parse as identifiers: the
-    //identifier rule consumes the whole word, keywords are classified after
     for (const name of ['truex', 'truthy', 'falseFlag', 'nullable', 'nullish', 'null2', 'undefinedVar']) {
         verify(`resolves '${name}' as an identifier, not a keyword prefix`, name, [{ [name]: 'value' }], 'value');
     }

@@ -423,8 +423,6 @@ describe('Template', () => {
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div><span data-tpl-each="ignored">{{ test }}</span></div>');
     });
-    //verbatim wins over the directives inside the node, and tag removal still
-    //applies to the node carrying it
     it('nodes can be marked as verbatim and tag removed', () => {
         const data = { a: 1 };
         const template = Template.fromHtml(
@@ -501,7 +499,6 @@ describe('Template', () => {
         const template = Template.fromHtml('<div data-tpl-each="nonIterable">test</div>', modules, data);
 
         const ex = assert.throws(() => template.render());
-        //one frame per nesting level, naming the directive and its expression
         assert.strictEqual(ex.message, 'Error evaluating data-tpl-each="nonIterable" in `<div>`');
         assert.match(ex.cause.message, /Expected an iterable/);
         assert.isUndefined(ex.cause.cause, 'no frame wraps the root cause again');
@@ -650,7 +647,6 @@ describe('Template', () => {
         const t1 = base.withEvaluator(new ExpressionEvaluator({ extra: { go: () => 'yes' } }, [{ val: 'ok' }]));
         assert.strictEqual(Fragments.toHtml(t1.render()), '<div>ok yes</div>');
 
-        //a registry rebinds a compiled template through the scope it exposes
         const mockRegistry = {
             evaluator: () => new ExpressionEvaluator({ extra: { go: () => 'reg' } }, [{ val: 'hi' }]),
         };
@@ -741,8 +737,6 @@ describe('Template', () => {
     });
 
     it('serializes a failing text node too, not only an element', () => {
-        //an interpolation names the text node it failed in, so the markup a
-        //developer asks for is that text rather than a subtree
         const template = Template.fromHtml('<p>  {{ nope.deep }}  </p>');
         const ex = assert.throws(() => template.render());
         const failed = /** @type any */ (ex);
@@ -752,8 +746,6 @@ describe('Template', () => {
 
     it('evaluates a templated string in the template scope', () => {
         const template = Template.fromHtml('<div></div>', modules, { who: 'world' });
-        //the templated form answers the parts, literal and interpolated alike, so
-        //a caller can tell a bound value from the text around it
         const shape = (parts) => JSON.stringify(parts.map((p) => p.value));
 
         assert.strictEqual(shape(template.evaluateTemplated('hello {{ who }}')), '["hello ","world"]');
@@ -766,8 +758,6 @@ describe('Template', () => {
     });
 
     it('tidies the template whitespace out of a serialized subtree', () => {
-        //what a developer reads in the console: the markup as authored, not the
-        //indentation the template file happened to carry between its elements
         const host = document.createElement('div');
         host.innerHTML = '\n    <span> keep me </span>\n    <b>\n        <i>deep</i>\n    </b>\n';
 
@@ -795,8 +785,6 @@ describe('Template', () => {
     });
 
     it('keeps converting dataset keys after the attribute cache has evicted the oldest ones', () => {
-        //the cache holds 1000 entries: render well past it so the oldest
-        //conversions are evicted, then ask for one of them again
         const html = Array.from({ length: 1200 }, (_, i) => `<i data-tpl-prop${i}="'v${i}'"></i>`).join('');
         const rendered = Template.fromHtml(html, modules).render();
 

@@ -64,7 +64,6 @@ describe('RadioGroup value', () => {
         const container = await mount(GROUP, { children: true });
         const group = container.querySelector('ful-radio-group');
         const seen = [];
-        //listening outside the group: the inner input change must not escape too
         container.addEventListener('change', (evt) => seen.push(evt));
 
         group.querySelectorAll('input[type=radio]')[1].click();
@@ -158,7 +157,6 @@ describe('RadioGroup state', () => {
         assert.isFalse(fieldset.inert, 'inert would take the whole group out of the accessibility tree');
         assert.strictEqual(group.getAttribute('aria-readonly'), 'true', 'announced on the radiogroup host');
 
-        //the gesture is refused rather than the subtree removed
         first.click();
         assert.isFalse(first.checked, 'a click on a readonly group picks nothing');
 
@@ -177,7 +175,6 @@ describe('RadioGroup state', () => {
         const group = container.querySelector('ful-radio-group');
         const fieldset = group.querySelector('fieldset');
         assert.isTrue(group.required);
-        //a fieldset is a group, which accepts neither aria-required nor aria-readonly
         assert.isFalse(fieldset.hasAttribute('aria-required'));
         assert.strictEqual(group.getAttribute('aria-required'), 'true');
 

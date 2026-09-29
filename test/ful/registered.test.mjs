@@ -3,7 +3,6 @@ import { Registry, registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 import { appended } from '../harness.mjs';
 
-//records what the plugin registers, so a new element has to be sampled below
 const REGISTERED = [];
 const defineElement = registry.defineElement.bind(registry);
 registry.defineElement = (tag, klass) => {
@@ -99,7 +98,6 @@ const ELEMENTS = [
         tag: 'ful-input-file',
         html: `<ful-input-file name="a">label</ful-input-file>`,
         observed: {
-            //files cannot be assigned from an attribute, the setter only clears
             value: ['x', null],
             disabled: ['', true],
             readonly: ['', true],
@@ -302,7 +300,6 @@ describe('Registered elements', () => {
     const mount = async (html) => {
         const container = appended(html);
         const el = container.firstElementChild;
-        //waitFor drains the queue, nested components included, so nothing else to await
         await Rendering.waitFor(el);
         return [el, container];
     };
@@ -347,8 +344,6 @@ describe('Registered elements', () => {
 
                     assert.deepStrictEqual(uncaught, [], `${spec.tag}[${attribute}] reported errors`);
                     if (expected !== ANY) {
-                        //through the property the attribute drives, which is the
-                        //attribute's own name until one of them carries a dash
                         assert.deepStrictEqual(
                             el[Registry.propertyOf(attribute)],
                             expected,

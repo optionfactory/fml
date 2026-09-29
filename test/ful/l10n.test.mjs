@@ -15,8 +15,6 @@ registry
             language: 'en',
             translations: {
                 'files.unacceptable-file-type': 'we only take {types} around here',
-                //an overridden message carrying markup: no built-in string is
-                //html-privileged, so the table must render this as text
                 'table.initial': '<b id="l10n-escape">start searching</b>',
             },
         }),

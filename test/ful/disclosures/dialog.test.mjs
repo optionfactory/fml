@@ -40,8 +40,6 @@ describe('Dialog', () => {
         assert.ok(heading.id, 'the heading is named');
         assert.strictEqual(native.getAttribute('aria-labelledby'), heading.id, 'the dialog is named by its heading');
 
-        //a headerless dialog has no heading to point at: the author names it
-        //through aria-label of their own
         const [plain] = await mount('<ful-dialog>the body</ful-dialog>');
         assert.isNull(plain.querySelector('dialog').getAttribute('aria-labelledby'));
     });
@@ -110,7 +108,6 @@ describe('Dialog', () => {
     });
 
     it('a dialog whose render threw answers a dismissal on removal, raising nothing over it', async () => {
-        //the table is the render failure: it declares no schema
         const container = appended('<ful-dialog header="broken"><ful-table src="/x"></ful-table></ful-dialog>');
         await Rendering.waitFor(container).then(
             () => undefined,
@@ -119,7 +116,6 @@ describe('Dialog', () => {
         await settle();
 
         const dialog = container.firstElementChild;
-        //the removal is the subject: it must not raise a second failure over the first
         container.remove();
         await settle();
 
@@ -131,8 +127,6 @@ describe('Dialog', () => {
         const answers = [];
         dialog.addEventListener('close', (e) => answers.push(e.detail.result));
 
-        //the close event is what the test is waiting for: waiting a macrotask
-        //instead leaves it one scheduling hiccup away from failing
         const closed = new Promise((r) => dialog.addEventListener('close', r, { once: true }));
         dialog.ask();
         dialog.querySelector('[data-ref=acknowledge]').click();
@@ -291,7 +285,6 @@ describe('Dialog dismissal', () => {
 
         dialog.ask();
         assert.isTrue(native.open);
-        //the platform's own dismissal, which the cancel event is the hook for
         native.dispatchEvent(new Event('cancel', { cancelable: true }));
         assert.isTrue(native.open, 'Escape leaves it open, the button being gone');
 

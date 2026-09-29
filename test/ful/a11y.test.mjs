@@ -63,8 +63,6 @@ describe('Accessibility audit', () => {
         ['ful-tooltip', `<ful-tooltip name="t">a short explanation</ful-tooltip>`],
         ['ful-dialog', `<ful-dialog header="the header">body</ful-dialog>`],
         ['ful-drawer', `<ful-drawer header="the title">body</ful-drawer>`],
-        //audited open, where the name is read: a closed dialog is display:none,
-        //which axe skips, so the closed fixtures above say nothing about the name
         [
             'ful-dialog open',
             `<ful-dialog header="the header">body</ful-dialog>`,
@@ -125,7 +123,6 @@ describe('Accessibility audit', () => {
             attached(container);
             await Rendering.waitForChildren(container);
             await settle();
-            //an openable surface is audited the way a reader meets it: open
             prepare?.(container);
 
             const results = await axe.run(container);

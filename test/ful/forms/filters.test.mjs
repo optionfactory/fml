@@ -72,8 +72,6 @@ describe('Filter value tuples', () => {
     });
 
     it('leaves the second operand empty when a shorter tuple is applied', async () => {
-        //the applied tuple carries no second operand: revealing it through BETWEEN
-        //must show an empty input, not a stringified "undefined"
         const [el] = await mount(
             `<ful-filter-text value='["EQ","IGNORE_CASE","ab"]'>t</ful-filter-text>`,
         );
@@ -295,8 +293,6 @@ describe('Filter operator selection', () => {
         assert.deepEqual(el.value, ['ENDS_WITH', 'IGNORE_CASE', 'ab']);
     });
 
-    //every stray click inside the element reaches the same delegated handler,
-    //which has nothing to read an operator from
     const strays = [
         ['ful-filter-text', ['EQ', 'IGNORE_CASE', 'ab'], ['EQ', 'IGNORE_CASE', 'ab']],
         ['ful-filter-local-date', ['GT', '2024-01-01'], ['GT', '2024-01-01']],
@@ -869,8 +865,6 @@ describe('Filter readonly and disabled', () => {
         const menu = operator.nextElementSibling;
         el.setAttribute('readonly', '');
 
-        //the invoker's popover activation is cancelable, so the one refusal the
-        //claim installs covers it: nothing opens, and nothing is inert
         operator.click();
         assert.isFalse(menu.matches(':popover-open'), 'the menu stays shut');
         assert.isFalse(el.querySelector('ful-control-group').inert, 'and the filter stays readable');
@@ -1060,7 +1054,6 @@ describe('Filter change notifications', () => {
 });
 
 describe('Filter operator menu closing', () => {
-
     it('gives the operator button the focus back when the menu is dismissed', async () => {
         const [el] = await mount(`<ful-filter-local-date name="f">d</ful-filter-local-date>`);
         const button = el.querySelector('[data-ref=operator]');
@@ -1113,8 +1106,6 @@ describe('Filter property access before rendering', () => {
             'narrowed against the vocabulary while the menu is still missing',
         );
 
-        //the held set answers until the menu exists; the declared attribute then
-        //lands over it, an absent one meaning the whole vocabulary
         appended('').appendChild(text);
         text.innerHTML = 't';
         await Rendering.waitFor(text);
@@ -1278,8 +1269,6 @@ describe('Filters answering their criterion', () => {
 });
 
 describe('The set membership filter', () => {
-    //an earlier block replaces the select loader for the rest of the file, so
-    //this one states its own vocabulary rather than inheriting that one
     beforeEach(() => {
         const labels = { A: 'Alpha', B: 'Beta' };
         registry.defineComponent('loaders:select', {

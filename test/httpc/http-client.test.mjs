@@ -270,8 +270,6 @@ describe('httpc client', () => {
                 await throwing.get('/test').fetch();
                 expect.fail('the fetch must reject');
             } catch (e) {
-                //fetch() answers a Failure whatever was thrown, so a caller
-                //reading problems never has to test the shape first
                 expect(e).to.be.instanceOf(Failure);
                 expect(e.problems[0].type).to.equal('UNEXPECTED_PROBLEM');
                 expect(e.problems[0].reason).to.equal('unknown failure');
@@ -291,8 +289,6 @@ describe('httpc client', () => {
                 await buggy.get('/test').fetch();
                 expect.fail('the fetch must reject');
             } catch (e) {
-                //the transport was never reached, so calling it a connection
-                //problem sends the reader looking at the network for a TypeError
                 expect(e.problems[0].type).to.equal('UNEXPECTED_PROBLEM');
                 expect(e.cause).to.be.instanceOf(TypeError);
             }
@@ -411,8 +407,6 @@ describe('httpc client', () => {
                 await client.exchange('/test');
                 expect.fail('the exchange must reject');
             } catch (err) {
-                //the transport labels its own failure below the chain, so the
-                //same fact reads the same way whichever call the caller made
                 expect(err).to.be.instanceOf(Failure);
                 expect(err.problems[0].type).to.equal('CONNECTION_PROBLEM');
             }
@@ -686,7 +680,6 @@ describe('RedirectOnUnauthorizedInterceptor', () => {
 
     afterEach(() => {
         globalThis.fetch = originalFetch;
-        //the redirect lands on a fragment: drop it without touching the history
         if (window.location.hash) {
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }

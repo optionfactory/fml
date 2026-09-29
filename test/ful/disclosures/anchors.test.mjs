@@ -8,9 +8,7 @@ const frames = async (count = 3) => {
     }
 };
 
-//the hand placement is the fallback for a platform without css anchor
-//positioning: failing the probe exercises it on every browser rather than
-//on whichever one happens to lack the css today
+//the supports probe fails, so the script placement a platform without css anchor positioning takes runs on every engine
 const withoutPlatformAnchors = (run) => {
     const supports = CSS.supports;
     CSS.supports = () => false;
@@ -28,17 +26,12 @@ describe('The anchored popover fallback', () => {
         popover.setAttribute('popover', 'manual');
         attached(invoker, popover);
         withoutPlatformAnchors(() => Anchors.wire(invoker, popover));
-        //the toggle that registers the pair is a queued task, not the
-        //synchronous beforetoggle that places it: waiting for it is what keeps
-        //the removal below from racing the registration
         const registered = new Promise((resolve) => popover.addEventListener('toggle', resolve, { once: true }));
         popover.showPopover();
         await registered;
         await frames(1);
         assert.notEqual(popover.style.left, '', 'the fallback placed the popover');
 
-        //the platform hides it without a toggle event, so nothing told the
-        //reflow registry that the pair it holds is gone
         popover.remove();
         invoker.remove();
         popover.style.removeProperty('left');
@@ -56,9 +49,6 @@ describe('The anchored popover fallback', () => {
 
 describe('The placing of a popover as it opens', () => {
     it('is not shown until it can be measured', async () => {
-        //a note: centring on the invoker and lifting by its own height are the
-        //two placements that read the popover's size, and a popover measures
-        //zero until the platform has shown it
         const invoker = document.createElement('button');
         invoker.textContent = 'i';
         invoker.style.margin = '300px 0 0 200px';
@@ -165,8 +155,6 @@ describe('Anchors.wire invoke and expanded', () => {
 
 
     it('points popovertarget at the popover and keeps aria-expanded in step', async () => {
-        //an invoker and a plain list of links: no menu semantics, popovertarget
-        //carrying the toggle and the light dismiss
         const invoker = document.createElement('button');
         const menu = document.createElement('ul');
         menu.setAttribute('popover', '');

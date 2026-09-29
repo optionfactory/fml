@@ -58,8 +58,6 @@ describe('Input placeholder and :placeholder-shown', () => {
     });
 
     it('keeps a v-type value that does not decode as it is, like the select keys', async () => {
-        //an explicit text type: the defaulted number widget would sanitize the
-        //garbage away before the getter ever saw it
         const [el] = await mount(`<ful-input name="a" type="text" v-type="number" value="abc">l</ful-input>`);
 
         assert.strictEqual(el.value, 'abc');
@@ -92,8 +90,6 @@ describe('Input placeholder and :placeholder-shown', () => {
         assert.strictEqual(el.value, '42');
     });
 
-    //:placeholder-shown only matches on input types that take a placeholder at all,
-    //so date, time and file inputs carry the blank one without ever matching
     for (const tag of ['ful-input', 'ful-filter-text']) {
         it(`${tag} keeps a blank placeholder, so the label can float`, async () => {
             const [el] = await mount(`<${tag}>l</${tag}>`);
@@ -163,7 +159,6 @@ describe('Input keep and reject', () => {
     it('keeps the caret next to the same character when earlier ones are stripped', async () => {
         const [el] = await mount(`<ful-input reject="[^0-9]">l</ful-input>`);
 
-        //caret sits right after the '2' of 'a1b2|3'
         const input = type(el, 'a1b23', 4);
 
         assert.strictEqual(input.value, '123');
@@ -204,7 +199,6 @@ describe('Input keep and reject', () => {
     it('keeps the caret in place under keep too', async () => {
         const [el] = await mount(`<ful-input keep="[0-9]">l</ful-input>`);
 
-        //caret sits right after the '2' of 'a1b2|3'
         const input = type(el, 'a1b23', 4);
 
         assert.strictEqual(input.value, '123');
@@ -212,8 +206,6 @@ describe('Input keep and reject', () => {
     });
 
     it('keeps multi-character matches, not only single characters', async () => {
-        //keep takes a pattern, not a character class: negating it would not have
-        //given this, which is why the kept text is matched rather than the rest stripped
         const [el] = await mount(`<ful-input keep="[0-9]{2}">l</ful-input>`);
 
         const input = type(el, 'a12b3c45');
@@ -277,8 +269,6 @@ describe('Input keep and reject', () => {
         const [el] = await mount(`<ful-input keep="[0-9]">l</ful-input>`);
         assert.strictEqual(type(el, 'a1').value, '1');
 
-        //configuration, not a live claim: the filter says how the control treats
-        //what is typed into it, which is decided when the element is written
         el.setAttribute('keep', '[a-z]');
         assert.strictEqual(type(el, 'a1').value, '1', 'a later attribute write does not change it');
 
@@ -296,8 +286,6 @@ describe('Input filters on values it cannot place a caret in', () => {
     };
 
     it('filters an email, which has no selection to restore', async () => {
-        //setSelectionRange throws on the types that report a null selectionStart, and an
-        //uncaught error in the listener fails this test on its own
         const [el] = await mount('type="email" reject="[^a-z@.]"');
         const input = el.querySelector('input');
 
@@ -348,10 +336,6 @@ describe('Input focus and reset', () => {
 });
 
 describe('An invalid field that has the caret', () => {
-    //the focus rule and the invalid rule both paint the control group, and the
-    //focus one used to win: an invalid field turned the focus colour as soon as
-    //it was focused and read as healthy while the user was being told it was
-    //wrong. It showed longest on the date inputs, whose calendar holds the focus
     for (const tag of ['ful-input', 'ful-input-local-date', 'ful-input-instant', 'ful-select']) {
         it(`${tag} keeps the invalid border and glow`, async () => {
             const [el] = await mount(`<${tag}>l</${tag}>`);
@@ -405,7 +389,6 @@ describe('Input autocomplete', () => {
         assert.strictEqual(el.querySelector('textarea').getAttribute('autocomplete'), 'off');
     });
     it('lets the input- passthrough have the last word', async () => {
-        //the prefix is the escape hatch under the promoted attribute, not beside it
         const [el] = await mount('<ful-input autocomplete="off" input-autocomplete="street-address">l</ful-input>');
         assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'street-address');
     });
@@ -415,7 +398,6 @@ describe('Input autocomplete', () => {
         assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
     });
     it('does not let a ful-select loosen its own combobox', async () => {
-        //a filled combobox shows text matching no key: the select owns this one
         const [el] = await mount('<ful-select autocomplete="street-address">l</ful-select>');
         assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
     });
@@ -444,7 +426,6 @@ describe('Input autocomplete inherited from the form', () => {
         assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'street-address');
     });
     it('takes it from a plain form as well', async () => {
-        //form="" breaks the platform's own inheritance there for the same reason
         const el = await mountIn('<form autocomplete="off"><ful-input name="a">l</ful-input></form>');
         assert.strictEqual(el.querySelector('input').getAttribute('autocomplete'), 'off');
     });
@@ -463,8 +444,6 @@ describe('Input autocomplete inherited from the form', () => {
 
 describe('Input autocomplete under a form built in script', () => {
     it('takes the token when the tree is assembled before it is attached', async () => {
-        //the field is a child of a ful-form that has not rendered when the tree
-        //lands in the document: the form still upgrades first, being the ancestor
         const form = document.createElement('ful-form');
         form.setAttribute('autocomplete', 'off');
         const input = document.createElement('ful-input');
@@ -481,8 +460,6 @@ describe('Input autocomplete under a form built in script', () => {
 
 describe('A button in an affix', () => {
     it('takes the cell geometry even carrying the accent class', async () => {
-        //.ful-button outranks the shared affix rule, and should for its colours:
-        //the corner radius and the border are the cell's to draw, not the button's
         const [el] = await mount('<ful-input name="a">l<button class="ful-button" slot="after">Go</button></ful-input>');
         const button = el.querySelector('ful-affix > button');
         const style = getComputedStyle(button);
@@ -504,8 +481,6 @@ describe('An input the page slots beside the control', () => {
 });
 
 describe('Naming the control from the label', () => {
-    //every assertion here compares primitives: chai formats a failed compare over
-    //a dom node or a NodeList and the run hangs instead of reporting the failure
     for (const [tag, control] of [
         ['ful-input', 'input'],
         ['ful-input-local-date', 'input'],
@@ -543,10 +518,6 @@ describe('Naming the control from the label', () => {
     });
 
     it('falls back to aria where the control is not labelable', async () => {
-        //nothing in the library reaches this branch: every field that hands the base
-        //a label hands it a labelable control too. It is here for a ful.Field of your
-        //own, the Rating in the extending-fields page among them, whose control is a
-        //ful-control carrying role=radiogroup
         class Rating extends Field {
             static slots = true;
             static template = `
@@ -572,9 +543,6 @@ describe('Naming the control from the label', () => {
         assert.isNull(label.getAttribute('for'), 'for would point at nothing labelable');
         assert.isNotEmpty(label.id, 'the label is given an id to be pointed at');
         assert.strictEqual(control.getAttribute('aria-labelledby'), label.id);
-        //the attribute and the aria element property are the same thing reflected,
-        //so writing the attribute drives the property too where it is supported and
-        //stands on its own where it is not
         assert.strictEqual(control.ariaLabelledByElements.length, 1);
 
         label.click();
@@ -597,8 +565,6 @@ describe('Field validity', () => {
 
 describe('Field descriptions', () => {
     it('takes a description offered before it has anywhere to write it', async () => {
-        //content slotted into a field upgrades on either side of the field
-        //itself, so the protocol cannot depend on the field going first
         const field = document.createElement('ful-input');
         field.setAttribute('name', 'vat');
         field.append('VAT');

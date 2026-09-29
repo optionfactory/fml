@@ -80,7 +80,6 @@ describe('InputLocalTime min and max', () => {
             assert.include([...candidates, ...snappedCandidates(0, 1800)], el.min, `min was ${el.min}`);
             assert.match(el.min, /^\d{2}:(00|30)$/);
 
-            //the point of snapping: a bound off the grid invalidates every value on it
             const input = el.querySelector('input');
             const [hh] = el.min.split(':');
             input.value = `${hh}:30`;
@@ -252,8 +251,6 @@ describe('InputLocalDate min and max', () => {
     });
 
     it('clamps a month offset that lands past the end of its month', async () => {
-        //the clamp only exists on days that overflow their target month, so the
-        //calendar is pinned to one: January 31st, 2026, at noon local time
         const RealDate = Date;
         const pinned = new RealDate(2026, 0, 31, 12, 0, 0);
         globalThis.Date = class extends RealDate {

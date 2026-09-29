@@ -6,8 +6,6 @@ import { captureConsole, mount as mounted, settle as drain, attached } from '../
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const settle = () => drain();
-//the harness owns the container and its teardown; the wait stays this suite's,
-//since its drain is counted in clamped turns and the components lean on it
 const mount = async (html) => {
     const container = await mounted(html);
     await settle();
@@ -93,8 +91,6 @@ describe('Tabs', () => {
         key('Home');
         assert.strictEqual(tabs.active, 0);
 
-        //the key lands where the reader already is: nothing moves, and the event
-        //is left alone rather than consumed
         const home = new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true });
         tablist.dispatchEvent(home);
         assert.strictEqual(tabs.active, 0);

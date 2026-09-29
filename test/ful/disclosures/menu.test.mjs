@@ -23,8 +23,6 @@ const opened = async (invoker, menu) => {
     await toggled;
 };
 
-//the focused element as its label: a failed assertion handed a dom node hangs
-//the runner while chai formats it
 const focused = () => /** @type HTMLElement */ (document.activeElement)?.textContent?.trim() ?? '';
 
 const press = (code, key = '') =>
@@ -212,8 +210,6 @@ describe('ful-menu', () => {
     });
 
     it('focuses its first item as it opens where the popover is placed by hand', async () => {
-        //the fallback hides the popover while it measures it, and a hidden
-        //element cannot take the focus
         const supports = CSS.supports;
         CSS.supports = () => false;
         let built;

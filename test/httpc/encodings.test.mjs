@@ -35,7 +35,6 @@ describe('Encodings', () => {
         });
 
         it('decodes payloads that carry the standard padding, which this encoder never emits', () => {
-            //the three padding shapes, against bytes the whole world can agree on
             expect(Array.from(new Uint8Array(Base64.decode('QQ==', Base64.STANDARD)))).to.deep.equal([65]);
             expect(Array.from(new Uint8Array(Base64.decode('QUI=', Base64.STANDARD)))).to.deep.equal([65, 66]);
             expect(Array.from(new Uint8Array(Base64.decode('QUJD', Base64.STANDARD)))).to.deep.equal([65, 66, 67]);

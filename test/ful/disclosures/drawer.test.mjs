@@ -92,9 +92,6 @@ describe('Drawer', () => {
         drawer.open();
         side.open();
 
-        //the ua sheet pins both inline insets to 0: without an explicit
-        //inset-inline-start: auto the definite width is over-constrained and the
-        //drawer lands against the start edge, the opposite side from the default
         const end = drawer.querySelector('dialog').getBoundingClientRect();
         const start = side.querySelector('dialog').getBoundingClientRect();
         assert.isAbove(
@@ -141,7 +138,6 @@ describe('Drawer', () => {
         const closes = [];
         drawer.addEventListener('close', (e) => closes.push(e.detail));
 
-        //waiting for the event itself, not for a macrotask to have passed
         const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
         drawer.open();
         drawer.close();
@@ -302,10 +298,6 @@ describe('Drawer, the declarative content against update()', () => {
         await closed(drawer);
         await settle();
 
-        //the delivery is held open by the test rather than by a timer: a wait
-        //measured in frames against a delivery measured in milliseconds is a
-        //race, and under a loaded suite the frames are the slower of the two,
-        //so the ring this asserts on had already been taken down
         const delivery = Promise.withResolvers();
         AsyncEvents.asyncOn(drawer, 'section:requested', async (e) => {
             await delivery.promise;

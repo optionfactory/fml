@@ -410,7 +410,6 @@ describe('InputFile items template', () => {
         el.files = transfer(file('a.txt', 4, 'text/plain'), file('b.png', 4, 'image/png')).files;
 
         assert.deepStrictEqual(listed(el), ['a.txt', 'b.png'], 'the custom template still keys its items');
-        //the overlay is the real FileList, so a custom item reads whatever a File carries
         assert.deepStrictEqual(
             Array.from(el.querySelectorAll('ful-item [data-ref=kind]')).map((s) => s.textContent),
             ['text/plain', 'image/png'],
@@ -618,8 +617,6 @@ describe('InputFile disabled and readonly claims', () => {
 
             el.setAttribute(attribute, '');
 
-            //a dropzone holds no value to read, so a field that takes neither a
-            //click nor a drop shows none rather than inviting a refused gesture
             assert.strictEqual(getComputedStyle(dropzone).display, 'none');
             assert.notStrictEqual(
                 getComputedStyle(el.querySelector('ful-item-list')).display,
@@ -650,7 +647,6 @@ describe('InputFile disabled and readonly claims', () => {
             el.setAttribute(attribute, '');
 
             assert.strictEqual(getComputedStyle(remove).display, 'none');
-            //the name and the size are what there is to read, and they stay
             assert.include(el.querySelector('ful-item[data-name="a.txt"]').textContent, 'a.txt');
         });
 
@@ -676,7 +672,6 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('readonly', '');
 
-        //the value is fixed, so the button offers a gesture that will not come
         assert.strictEqual(button().display, 'none');
         assert.notStrictEqual(getComputedStyle(input).paddingLeft, '0px');
         assert.notStrictEqual(getComputedStyle(input).display, 'none', 'the input keeps showing the file name');
@@ -689,7 +684,6 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('disabled', '');
 
-        //unavailable rather than absent, so it is shown and dimmed
         assert.notStrictEqual(button().display, 'none');
         assert.strictEqual(button().opacity, '0.5');
         assert.strictEqual(getComputedStyle(input).paddingLeft, '0px', 'the button still sits flush');
@@ -702,7 +696,6 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('readonly', '');
 
-        //the value is fixed and the rows already carry the names
         assert.strictEqual(getComputedStyle(group).display, 'none');
         assert.notStrictEqual(getComputedStyle(el.querySelector('ful-item-list')).display, 'none');
     });
@@ -721,8 +714,6 @@ describe('InputFile disabled and readonly claims', () => {
         transfer.items.add(new File(['x'], 'report.pdf'));
         claimed.files = transfer.files;
 
-        //a row stands as tall as a control, so a field that is nothing but its
-        //list occupies exactly what the field beside it does
         const control = plain.querySelector('ful-control-group').getBoundingClientRect().height;
         const list = claimed.querySelector('ful-item-list').getBoundingClientRect().height;
         assert.closeTo(list, control, 1, 'the list stands where the control would');
@@ -741,8 +732,6 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('disabled', '');
 
-        //a form that re-enables the field must not make the page jump, and the
-        //platform never hides a disabled control either
         assert.notStrictEqual(getComputedStyle(group).display, 'none');
         assert.notStrictEqual(getComputedStyle(el.querySelector('ful-item-list')).display, 'none');
     });

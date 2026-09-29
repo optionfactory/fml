@@ -49,9 +49,6 @@ describe('Select and dropdown combobox ARIA compliance', () => {
         const el = container.querySelector('ful-select');
         await Rendering.waitFor(el);
 
-        //multiple is observed, so toggling it after the render reaches the property.
-        //The element used to freeze its own copy at render, so the attribute and the
-        //property could disagree for the life of the page
         assert.isFalse(el.multiple);
         el.setAttribute('multiple', '');
         assert.isTrue(el.multiple);
@@ -187,7 +184,6 @@ describe('Select and dropdown load failure handling', () => {
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
         const rejectionsBefore = rejections.length;
-        //the rejection is reported by a platform task: give it turns and a little wall time
         await settle(3, 10);
 
         assert.strictEqual(rejections.length, rejectionsBefore + 1);
@@ -318,9 +314,6 @@ describe('Select and dropdown keyboard interaction', () => {
     });
 
     it('announces its own value in the change detail, with the entry beside it', async () => {
-        //every field's detail carries its value, so a listener can rely on
-        //el.value === evt.detail.value whatever the field is; the select adds
-        //the labeled selection rather than replacing the value with it
         const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
@@ -338,8 +331,6 @@ describe('Select and dropdown keyboard interaction', () => {
     });
 
     it('points the combobox at a listbox the announcement can resolve in', async () => {
-        //aria-activedescendant names an option; without aria-controls and a named
-        //listbox the name resolves to nothing and the active option reaches no one
         const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
         await settle();
@@ -457,8 +448,6 @@ describe('Select and dropdown keyboard interaction', () => {
                 ],
             }),
         });
-        //the custom template carries its own default highlight, as the stock one
-        //marks index 0: the picked key must beat it wherever it sits, index 0 included
         const [selectEl] = mount(`<ful-select value="k1">
             <template slot="dropdown">
                 <li data-tpl-each="self" data-tpl-selected="index == 1" data-tpl-value="index" role="option" data-tpl-aria-selected="index == 1 ? 'true' : 'false'">{{ label }}</li>
@@ -547,8 +536,6 @@ describe('Select value resolution', () => {
         const [single] = await mount(`<ful-select value="it"></ful-select>`);
         const [multi] = await mount(`<ful-select multiple value="it,fr"></ful-select>`);
 
-        //one mapper for both: the single select normalizes its one-key list back to a
-        //scalar on the way out, so only the getter knows which kind it is
         assert.strictEqual(single.value, 'it');
         assert.deepEqual(multi.value, ['it', 'fr']);
     });
@@ -556,9 +543,6 @@ describe('Select value resolution', () => {
     it('warns once for a key carrying a comma, which no key may', async () => {
         const [selectEl] = await mount(`<ful-select value="a,b"></ful-select>`);
 
-        //a key is what the value attribute carries, and that attribute is a comma
-        //separated list: the attribute reads "a,b" as two keys, and a comma bearing
-        //key assigned through the property is one nothing could ever write back
         assert.strictEqual(selectEl.value, 'a', 'the attribute reads a list');
 
         const warnings = [];
@@ -588,8 +572,6 @@ describe('Select value resolution', () => {
             console.warn = warn;
         }
 
-        //a loop assigning bad keys to one select is one mistake, and must not turn
-        //the console into the failure it is reporting
         assert.lengthOf(warnings, 1);
     });
 
@@ -838,9 +820,6 @@ describe('Item list focus', () => {
 
         row.querySelector('button').focus();
 
-        //an outline set off from the row, not a translucent halo: the old one was
-        //--ful-active-color at 40 percent, which is #fff in both themes, so it was
-        //invisible on a light page and a glare on a dark one
         const focused = getComputedStyle(row);
         assert.strictEqual(focused.outlineStyle, 'solid', 'the keyboard focus is shown');
         assert.notInclude(focused.outlineColor, '255, 255, 255', 'and not as white on white');
@@ -1064,7 +1043,6 @@ describe('Select selection removal', () => {
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         const dropdown = selectEl.querySelector('ful-dropdown');
-        //a pick arriving from a dropdown that was open before the claim landed
         selectEl.readonly = true;
         dropdown.dispatchEvent(
             new CustomEvent('change', {
@@ -1618,8 +1596,6 @@ describe('Select stray clicks', () => {
 
     it('removes nothing when a badge nested somewhere else in the control is clicked', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1,k2">pick</ful-select>`);
-        //not a direct child of the control: decorative chrome around the field,
-        //not one of the selection badges the removal is indexed by
         const wrapper = document.createElement('span');
         const stray = document.createElement('ful-badge');
         stray.innerText = 'decorative';
@@ -1803,8 +1779,6 @@ describe('Select stale searches', () => {
     it('discards a search resolving after a newer open, keeping the newest options', async () => {
         const [selectEl] = await mount();
         const input = selectEl.querySelector('input');
-        //alt-down opens without going through the search throttle, so two opens overlap:
-        //the first search is still in flight when the closed dropdown is opened again
         keydown(input, 'ArrowDown', { altKey: true });
         keydown(input, 'ArrowUp', { altKey: true });
         keydown(input, 'ArrowDown', { altKey: true });
@@ -1981,7 +1955,6 @@ describe('Disabled options', () => {
         await settle();
 
         const [locked, free] = selectEl.querySelectorAll('menu li');
-        //an empty aria-disabled reads as the default, so the value is what carries the refusal
         assert.isTrue(locked.matches('[aria-disabled="true"]'), 'the row the stylesheet mutes');
         assert.isFalse(free.matches('[aria-disabled="true"]'));
         assert.notStrictEqual(

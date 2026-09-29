@@ -1,12 +1,6 @@
 import { assert } from 'chai';
 import '../../src/ful/index.mjs';
 
-/**
- * The theme's ink pairs must hold WCAG AA wherever they render text, and the
- * non-text 3:1 where they draw indicators. The probes resolve the custom
- * properties through real declarations, which is where light-dark() picks its
- * side, under both color schemes.
- */
 const luminance = (r, g, b) => {
     const [rr, gg, bb] = [r, g, b].map((c) => {
         const s = c / 255;
@@ -16,7 +10,6 @@ const luminance = (r, g, b) => {
 };
 const parse = (value) => {
     const parts = value.match(/[\d.]+/g).map(Number);
-    //color-mix results serialize as color(srgb r g b): floats in 0-1
     return value.includes('color(srgb') ? parts.map((c) => Math.round(c * 255)) : parts;
 };
 const ratio = (a, b) => {

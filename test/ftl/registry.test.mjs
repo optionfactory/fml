@@ -26,37 +26,31 @@ describe('Registry', () => {
                 ]),
             );
 
-            //string
             expect(mappers.s.unmarshal('hello')).to.equal('hello');
             expect(mappers.s.marshal('hello')).to.equal('hello');
             expect(mappers.s.marshal(null)).to.be.null;
 
-            //number
             expect(mappers.n.unmarshal('123')).to.equal(123);
             expect(mappers.n.unmarshal(null)).to.be.null;
             expect(mappers.n.marshal(123)).to.equal('123');
             expect(mappers.n.marshal(null)).to.be.null;
 
-            //presence
             expect(mappers.p.unmarshal('anything')).to.be.true;
             expect(mappers.p.unmarshal(null)).to.be.false;
             expect(mappers.p.marshal(true)).to.equal('');
             expect(mappers.p.marshal(false)).to.be.null;
 
-            //boolean
             expect(mappers.b.unmarshal('true')).to.be.true;
             expect(mappers.b.unmarshal('false')).to.be.false;
             expect(mappers.b.marshal(true)).to.equal('true');
             expect(mappers.b.marshal(false)).to.equal('false');
             expect(mappers.b.marshal(null)).to.be.null;
 
-            //json
             expect(mappers.j.unmarshal('{"a":1}')).to.deep.equal({ a: 1 });
             expect(mappers.j.unmarshal(null)).to.be.null;
             expect(mappers.j.marshal({ a: 1 })).to.equal('{"a":1}');
             expect(mappers.j.marshal(null)).to.be.null;
 
-            //csv
             expect(mappers.c.unmarshal('a, b, c')).to.deep.equal(['a', 'b', 'c']);
             expect(mappers.c.unmarshal(null)).to.deep.equal([]);
             expect(mappers.c.marshal(['a', 'b'])).to.equal('a,b');
@@ -121,7 +115,6 @@ describe('Registry', () => {
 
             expect(pluginConfigured).to.be.true;
 
-            //the scope is the observable form of the modules and the data stack
             const scope = registry.evaluator();
             expect(scope.evaluateExpression('#mod1:fn()')).to.equal('called');
             expect(scope.resolve('baseData')).to.be.true;
@@ -149,8 +142,6 @@ describe('Registry', () => {
             expect(Registry.propertyOf('page-size')).to.equal('pageSize');
             expect(Registry.propertyOf('clear-invalid-on-change')).to.equal('clearInvalidOnChange');
             expect(Registry.propertyOf('max-total-size')).to.equal('maxTotalSize');
-            //the type suffix is stripped before this is asked, and a single-word
-            //name is its own property
             expect(Registry.propertyOf('placeholder')).to.equal('placeholder');
 
             class PagedEl extends HTMLElement {
@@ -160,13 +151,9 @@ describe('Registry', () => {
             registry.configure();
             registry.defineElement('paged-registry-el', PagedEl);
 
-            //the attribute keeps its own spelling in the declaration, in what the
-            //platform observes and in what the mappers are keyed by: only the
-            //property it drives is renamed
             expect(PagedEl.BITS.OBSERVED).to.deep.equal(['page-size']);
             expect(PagedEl.BITS.ATTR_TO_PROPERTY).to.deep.equal({ 'page-size': 'pageSize' });
             expect(Object.keys(PagedEl.BITS.ATTR_TO_MAPPER).sort()).to.deep.equal(['page-size', 'scroll-on-error']);
-            //the configuration tier drives no property, so it is absent here
             expect(PagedEl.BITS.ATTR_TO_PROPERTY).to.not.have.property('scroll-on-error');
         });
     });
@@ -203,8 +190,6 @@ describe('Registry', () => {
         });
 
         it('awaits readiness, resolving after the ftl:ready event has been dispatched', async () => {
-            //the test document is complete by the time modules run, so a fresh
-            //registry is the late-import case: no DOMContentLoaded will ever come
             let fired = false;
             document.addEventListener(
                 'ftl:ready',
@@ -218,7 +203,6 @@ describe('Registry', () => {
             await late.ready();
 
             expect(fired, 'the event is dispatched before the await resumes').to.be.true;
-            //a caller arriving after the moment still resolves, it cannot hang
             await late.ready();
         });
     });

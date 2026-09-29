@@ -47,7 +47,6 @@ describe('Checkbox toggling', () => {
         const [el, container, input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
         const seen = changes(container);
 
-        //what a real click on the checkbox itself produces
         input.checked = true;
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
@@ -114,7 +113,6 @@ describe('Checkbox states', () => {
         assert.isTrue(el.readonly);
         assert.isFalse(input.hasAttribute('disabled'), 'a disabled input would drop the value on submit');
 
-        //the gesture is refused, so the box keeps the value it was given
         input.click();
         assert.isTrue(el.value, 'a click on a readonly checkbox does not toggle it');
 
@@ -175,8 +173,6 @@ describe('Checkbox validity', () => {
     });
 
     it('names the input with for and id, so the dom carries the association', async () => {
-        //identity rather than deepStrictEqual: chai formats a failed deep compare
-        //over dom nodes and the run hangs instead of reporting
         const [, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         assert.isNotEmpty(input.id, 'the control is given an id to be pointed at');

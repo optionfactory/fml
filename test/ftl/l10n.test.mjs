@@ -64,7 +64,6 @@ describe('Localization.t', () => {
     });
 
     it('falls back to other when the locale has no category for a count', () => {
-        //english has no distinct form for 100 beyond other
         assert.strictEqual(call('hello.plural', { count: 100 }), '100 files');
     });
 
@@ -93,7 +92,6 @@ describe('Localization.t', () => {
 
 describe('Localization formatters', () => {
     it('formats numbers in the receiver locale', () => {
-        //italian keeps four digit numbers ungrouped: grouping starts at five digits
         assert.strictEqual(Localization.number.call({ locale: 'it' }, 15000), '15.000');
         assert.strictEqual(Localization.number.call({ locale: 'en' }, 15000), '15,000');
     });
@@ -103,7 +101,6 @@ describe('Localization formatters', () => {
         assert.strictEqual(bytes(100), '100B');
         assert.strictEqual(bytes(2048), '2KiB');
         assert.strictEqual(bytes(1536), '1.5KiB');
-        //a size exactly on a threshold takes the larger unit
         assert.strictEqual(bytes(1024), '1KiB');
         assert.strictEqual(bytes(1024 * 1024), '1MiB');
         assert.strictEqual(bytes(1024 * 1024 + 1024 * 512), '1.5MiB');
@@ -151,9 +148,6 @@ describe('Localization.of', () => {
     });
 
     it('resolves through the same lookup a template makes, function overlays included', () => {
-        //a function overlay is a legal one: the evaluator resolves names off it,
-        //and the imperative facade used to walk a copy of the lookup that skipped
-        //them, so the same page answered two different translations
         const overlay = () => undefined;
         overlay.l10n = { 'app.fn': 'Da una funzione' };
         registry.defineOverlay(overlay);
@@ -181,9 +175,6 @@ describe('Localization edge contracts', () => {
 
     it('formats the same way after the formatter cache has evicted', function () {
         this.timeout(10000);
-        //each iteration must build its own cache key: a repeated shape would stay
-        //under the cap and never evict anything. Distinct private-use locale
-        //subtags all resolve to english, keeping the expected outputs stable
         const at = (i) => Localization.number.call({ locale: `en-x-${i}` }, 2 / 7, { minimumFractionDigits: 3 });
         for (let i = 0; i !== 150; ++i) {
             at(i);

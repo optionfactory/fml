@@ -3,12 +3,6 @@ import { introspect } from '../../manifest/introspect.mjs';
 import { Registry } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/plugin.mjs';
 
-/**
- * manifest/metadata.json carries the prose that cannot be read off the code: what each
- * element is for, what its attributes mean, what it emits. Everything else is derived
- * from the source, and these tests fail whenever the two disagree in either direction,
- * so the sidecar cannot quietly rot as the elements change.
- */
 describe('Element metadata', function () {
     this.timeout(10000);
     const { registered, attributesOf, slotsOf } = introspect({ Plugin, Registry });
@@ -20,7 +14,6 @@ describe('Element metadata', function () {
     before(async () => {
         metadata = await (await fetch('/manifest/metadata.json')).json();
         elements = registered();
-        //each class owns the source between its declaration and the next one
         sources = new Map();
         const files = [...new Set(elements.map((e) => e.klass))].flatMap((k) => {
             const names = [];
@@ -83,15 +76,11 @@ describe('Element metadata', function () {
                     kind === 'attributes' ? attributesOf(klass).map((d) => d.split(':')[0]) : slotsOf(klass);
                 const inherited = Object.keys(metadata.inherited[kind] ?? {});
                 const own = Object.keys(metadata.elements[tag]?.[kind] ?? {});
-                //the element's own prose must be real: an entry the code no
-                //longer has cannot rot here unnoticed
                 assert.deepStrictEqual(
                     own.filter((name) => !actual.includes(name)),
                     [],
                     `${tag}: the metadata documents ${kind} the code no longer has`,
                 );
-                //and everything real must be documented, the inherited overlay
-                //standing in for the shared vocabulary
                 assert.deepStrictEqual(
                     actual.filter((name) => !(own.includes(name) || inherited.includes(name))),
                     [],
@@ -101,9 +90,6 @@ describe('Element metadata', function () {
         });
     }
 
-    //the async section family is dispatched by the shared SectionRequests helper
-    //under dynamic type strings, invisible to the literal grep: what each host
-    //emits beyond its own literals is declared here
     const EMITS = {
         'ful-tabs': ['section:requested'],
         'ful-wizard': ['section:requested'],

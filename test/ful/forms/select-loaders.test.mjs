@@ -14,12 +14,6 @@ const opened = async () => {
 };
 const keydown = (el, code, opts) => el.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...opts }));
 
-/**
- * The other select tests stub 'loaders:select' wholesale: these exercise the
- * loader stack the plugin actually registers: the in-memory one built from
- * slotted options, the remote one with its revision cache, the chunked one
- * asking per query, and the expression-based response mapper.
- */
 describe('SelectLoader', () => {
     const INLINE_OPTIONS = `
         <select slot="options">
@@ -141,8 +135,6 @@ describe('SelectLoader', () => {
     });
 
     it('paints its own chrome without waiting on the prefetch', async () => {
-        //the field's label, combobox and error region are its own state; only the
-        //vocabulary is remote, so a slow endpoint degrades the options, not the field
         const pending = [];
         registry.defineComponent('http-client', {
             request() {
@@ -330,7 +322,6 @@ describe('SelectLoader', () => {
     });
 
     it('resolves a named response-mapper component', async () => {
-        //a consumer's response-mapper answers entries, as every loader now does
         registry.defineComponent('mappers:demo', (/** @type any */ response) =>
             response.options.map(([key, label]) => ({ key, label })),
         );
@@ -451,8 +442,6 @@ describe('SelectLoader fetch discipline', () => {
         });
         return { calls, pending };
     };
-    //a loader is built from a plain configuration, so nothing here has to stand
-    //in for an element to exercise the fetch discipline
     const remoteLoader = (conf) =>
         SelectLoader.from({
             http: registry.component('http-client'),
@@ -595,11 +584,6 @@ describe('SelectLoader fetch discipline', () => {
     });
 });
 
-/**
- * A select whose vocabulary depends on another control: the linkage itself is the
- * page's, one change listener, and what the library owes it is a way to drop what
- * the loader holds and ask again without knowing which loader it got.
- */
 describe('Select reload, for a vocabulary that depends on another control', () => {
     const mount = async (attributes = '', body = '') => {
         const container = appended(`<ful-select ${attributes}>${body}</ful-select>`);
@@ -645,8 +629,6 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         await settle();
         assert.strictEqual(selectEl.entry.label, 'First label');
 
-        //the endpoint now answers differently for the same key, as it would after the
-        //control this one depends on changed
         bodies['/v'] = [['k1', 'Second label']];
         await selectEl.reload();
         await settle();
@@ -666,7 +648,6 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         await selectEl.reload();
         await settle();
 
-        //a value invalidated by the change must not survive it
         assert.deepStrictEqual(selectEl.value, ['k2']);
         assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 1, 'the chips follow the selection');
     });

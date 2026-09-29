@@ -245,10 +245,6 @@ describe('dom.mjs', () => {
             parent.remove();
         });
         it('waits on every ancestor, not only the parent', async () => {
-            //the element is last among its siblings, so the parser moving past it
-            //shows up as a sibling of an ancestor and never as one of its own. A
-            //childList observer on the parent alone never sees that mutation, and the
-            //wait fell back to the DOMContentLoaded deadline
             const section = document.createElement('section');
             const parent = document.createElement('div');
             const el = document.createElement('div');
@@ -296,7 +292,6 @@ describe('dom.mjs', () => {
         });
     });
 
-    //these assert by returning: a wait that never settles fails on the timeout
     describe('Nodes.waitDomContentLoaded', () => {
         it('resolves immediately on a complete document', async () => {
             await Nodes.waitDomContentLoaded({ readyState: 'complete', addEventListener() {} });
@@ -324,10 +319,6 @@ describe('dom.mjs', () => {
         });
 
         it('resolves at once for a document with no window to hear the event', async () => {
-            //a document parsed out of band has no defaultView, so neither event
-            //can ever reach it and waiting for one would strand the caller. The
-            //shape is stubbed like its neighbours: a real one reports complete
-            //and never reaches this branch
             await Nodes.waitDomContentLoaded({ readyState: 'interactive', defaultView: null });
         });
 

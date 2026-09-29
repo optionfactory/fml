@@ -196,8 +196,6 @@ describe('Wizard, async sections', () => {
                 <section data-step="b">b</section>
             </ful-wizard>`);
 
-        //a name nothing answers to is the caller's mistake, not a crash: the
-        //wizard stays where it is and says which name went nowhere
         assert.isUndefined(wizard.move('nowhere'));
         assert.isUndefined(wizard.refresh('nowhere'));
         assert.isUndefined(wizard.refresh(document.createElement('section')));

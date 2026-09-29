@@ -151,7 +151,6 @@ describe('Table load failures', () => {
             caught = e;
         }
 
-        //rethrowing is what keeps an unawaited autoload failure reportable
         assert.strictEqual(caught?.message, 'boom');
         const feedback = tableEl.querySelector('tbody[data-ref=feedback]');
         assert.isFalse(feedback.hasAttribute('hidden'), 'the error row is shown');
@@ -211,9 +210,6 @@ describe('Table sorter layout', () => {
 
     it('keeps the arrow on the line of the heading it belongs to', async () => {
         loads();
-        //a column no wider than its heading, which is the case that broke: the
-        //line breaker allows a break between the arrow and the word beside it,
-        //so the arrow took a line of its own with the heading under it
         const container = appended(`
             <ful-table autoload>
                 <template slot="schema">
@@ -233,8 +229,6 @@ describe('Table sorter layout', () => {
 
     it('lets a heading too long for its column wrap within itself', async () => {
         loads();
-        //two columns, so the fixed layout can actually hold the sorted one
-        //narrow: a lone column takes the table's whole width whatever it asks for
         const container = appended(`
             <style>
                 .wrapping table { table-layout: fixed; width: 340px; }
@@ -258,7 +252,6 @@ describe('Table sorter layout', () => {
         const range = document.createRange();
         range.selectNodeContents(sorter);
 
-        //nowrap would have kept the arrow in place by refusing to break the heading at all
         assert.isAbove(range.getClientRects().length, 1, 'the heading wraps rather than staying on one line');
         assert.isBelow(headingDropsBy(sorter), 4, 'and its first line is still beside the arrow');
     });
@@ -383,10 +376,6 @@ describe('Table schema', () => {
     });
 });
 
-//the assertions on the pagination label read the english strings: the plugin
-//is configured with language 'en' above, so they do not depend on the locale
-//the browser happens to be launched with
-
 const mount = async (html) => {
     const container = appended(html);
     const tableEl = container.querySelector('ful-table');
@@ -397,7 +386,6 @@ const mount = async (html) => {
 
 const click = (el) => el.dispatchEvent(new Event('click', { bubbles: true }));
 
-//the page links are the li[data-ref=page] buttons
 const pageLinks = (paginator) => Array.from(paginator.querySelectorAll('li[data-ref=page] button'));
 const pageLabels = (paginator) => pageLinks(paginator).map((a) => a.textContent.trim());
 const pageLink = (paginator, label) => pageLinks(paginator).find((a) => a.textContent.trim() === label);
@@ -520,7 +508,6 @@ describe('Table stale loads', () => {
 
     it('discards a response resolving after a newer load, keeping the newest rows and request', async () => {
         const [tableEl] = await mountDeferred();
-        //pending[0] is the autoload; two page loads supersede it, the slower one having started first
         const slow = tableEl.load({ page: 1, size: 10 }, null, {});
         const fast = tableEl.load({ page: 2, size: 10 }, null, {});
         pending[2].resolve({ data: [{ a: 'fast page' }], size: 30 });
@@ -745,8 +732,6 @@ describe('Pagination links', () => {
     it('marks the page already being shown as current, keeping it reachable', async () => {
         const [el] = await mountPagination(`current="1" total="3"`);
 
-        //disabling it would say "not actionable" and never "this is where you are",
-        //and would drop it out of the tab order with nothing announced in its place
         const current = pageLinks(el)
             .filter((a) => a.getAttribute('aria-current') === 'page')
             .map((a) => a.textContent.trim());
@@ -787,8 +772,6 @@ describe('Pagination links', () => {
         const requested = [];
         el.addEventListener('page:requested', (e) => requested.push(e.detail.value));
 
-        //it stays a real control so the reader can find where they are: clicking
-        //it simply has nothing to ask for
         const current = el.querySelector('li[data-ref=page] button[aria-current=page]');
         assert.isNotNull(current);
         click(current);
@@ -801,8 +784,6 @@ describe('Pagination links', () => {
     it('hands the focus to the equivalent control after the bar is replaced', async () => {
         const [el] = await mountPagination(`current="1" total="5"`);
 
-        //the whole bar is re-rendered, so the control the reader activated is gone
-        //by the time the new one paints
         const next = el.querySelector('li[data-ref=next] button');
         next.focus();
         assert.strictEqual(document.activeElement, next);
@@ -979,8 +960,6 @@ describe('In memory table loader', () => {
     });
 
     it('sorts the rows the header offers to sort', async () => {
-        //the schema renders a sorter per sortable column whatever the loader is:
-        //the local one answers it rather than leaving the header inert
         const container = document.createElement('div');
         container.innerHTML = `
             <ful-table page-size="10">
@@ -1029,8 +1008,6 @@ describe('In memory table loader', () => {
         click(sorter.querySelector('button') ?? sorter);
         await settle();
 
-        //a comparison that cannot separate two rows must not reorder them: the
-        //reader sorted by one column and expects the rest to sit still
         assert.deepStrictEqual(
             [...tableEl.querySelectorAll('table > tbody:not([data-ref]) > tr')].map((tr) =>
                 tr.cells[1].textContent.trim(),
@@ -1225,8 +1202,6 @@ describe('Table page-size', () => {
     it('does not reload while the base applies the declared value', async () => {
         await mount('autoload page-size="25"');
 
-        //the attribute is read by the render and applied to the property after
-        //it: the two agree, so the upgrade must load exactly once
         assert.deepStrictEqual(requests, [{ page: 0, size: 25 }]);
     });
 
@@ -1239,7 +1214,6 @@ describe('Table page-size', () => {
         tableEl.setAttribute('page-size', '25');
         await settle();
 
-        //the page index means nothing under a new size, so the move is to the first
         assert.deepStrictEqual(requests.at(-1), { page: 0, size: 25 });
         assert.strictEqual(tableEl.pageSize, 25);
     });
@@ -1307,7 +1281,6 @@ describe('Table page-size', () => {
         release();
         await settle();
 
-        //the answer to the superseded request must not put the old size back
         assert.strictEqual(tableEl.pageSize, 25);
         assert.deepStrictEqual(requests.at(-1), { page: 0, size: 25 });
     });

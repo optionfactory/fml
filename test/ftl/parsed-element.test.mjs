@@ -22,9 +22,6 @@ describe('ParsedElement web component lifecycle', () => {
             static config = { icon: 'declared' };
             static template = '<div></div>';
         }
-        //the constants are a definition-time choice like the rest of the
-        //declaration, read when the registry is configured: a page overriding
-        //them replaces the static before that, not after
         ConfiguredEl.config = { icon: 'overridden' };
 
         registry.defineElement('configured-el', ConfiguredEl);
@@ -90,13 +87,10 @@ describe('ParsedElement web component lifecycle', () => {
         el.attributeChangedCallback('test-attr', 'same', 'same');
         expect(unmarshalFired).to.be.false;
 
-        //a reflection is the property's own write: it reaches the dom without
-        //coming back through the observer
         el.reflectTo('test-attr', 'new');
         expect(el.getAttribute('test-attr')).to.equal('new');
         expect(unmarshalFired).to.be.false;
 
-        //and a value the attribute already carries is not written at all
         el.setAttribute('test-attr', 'settled');
         unmarshalFired = false;
         let written = 0;
@@ -124,8 +118,6 @@ describe('ParsedElement web component lifecycle', () => {
             }
             render(c) {
                 renderArgs = c;
-                //the dom the setters drive is not built yet: a render reads a
-                //declared value through `declared()` rather than being handed a bag
                 duringRender = [this.declared('disabled'), this.declared('label'), applied.length];
             }
         }
@@ -142,7 +134,6 @@ describe('ParsedElement web component lifecycle', () => {
 
         expect(renderArgs).to.not.have.property('observed');
         expect(duringRender).to.eql([true, 'a label', 0]);
-        //declaration order, and nothing applied until the render was done
         expect(applied).to.eql([
             ['disabled', true],
             ['label', 'a label'],
@@ -178,8 +169,6 @@ describe('ParsedElement web component lifecycle', () => {
         await registry.whenUpgraded(el);
 
         expect(() => el.declared('mine')).to.throw(/declares no attribute 'mine'/);
-        //content the element does not own is read the platform's own way, which
-        //is how a custom loader reads its own configuration off a host
         el.setAttribute('mine', '/endpoint');
         expect(el.getAttribute('mine')).to.equal('/endpoint');
     });
@@ -203,8 +192,6 @@ describe('ParsedElement web component lifecycle', () => {
         await registry.whenUpgraded(el);
 
         expect(duringRender).to.eql(['first', 3]);
-        //the configuration tier is not observed, so it has no property forward
-        //and no forward to a property: what the author declared is what it answers
         expect(FrozenEl.observedAttributes).to.not.include('loader');
         el.setAttribute('loader', 'second');
         expect(el.declared('loader')).to.equal('first');
@@ -232,7 +219,6 @@ describe('ParsedElement web component lifecycle', () => {
         el.setAttribute('value', 'stale');
         container.appendChild(el);
         const upgradePromise = registry.whenUpgraded(el);
-        //let the upgrade reach the render's await, then write through the attribute
         for (let i = 0; i !== 5; ++i) {
             await tick();
         }
@@ -258,8 +244,6 @@ describe('ParsedElement web component lifecycle', () => {
         container.appendChild(el);
         await registry.whenUpgraded(el);
 
-        //a setter hands over its own value and never encodes it: the presence
-        //toggle, the number and the csv join belong to the declared mapper
         el.reflectTo('flag', true);
         expect(el.getAttribute('flag')).to.equal('');
         el.reflectTo('flag', false);
@@ -289,8 +273,6 @@ describe('ParsedElement web component lifecycle', () => {
 
         el.attributeChangedCallback('test-attr', null, 'hello-world');
 
-        //the hyphenated attribute drives the camelCase property, the way
-        //data-test-attr would drive dataset.testAttr
         expect(el.testAttr).to.equal('hello-world');
         expect(el['test-attr']).to.be.undefined;
     });
@@ -316,12 +298,10 @@ describe('ParsedElement web component lifecycle', () => {
         container.appendChild(el);
         await registry.whenUpgraded(el);
 
-        //the declared state lands on the setters, the number through its mapper
         expect(applied).to.deep.equal([
             ['pageSize', 10],
             ['plain', 'x'],
         ]);
-        //the attribute keeps its own spelling everywhere it is named
         expect(PagedEl.observedAttributes).to.deep.equal(['page-size', 'plain']);
         expect(el.declared('page-size')).to.equal(10);
 
@@ -331,11 +311,6 @@ describe('ParsedElement web component lifecycle', () => {
     });
 });
 
-/**
- * The css hides an element until it has rendered. :defined cannot express that:
- * it is true from the constructor, which is before the dom exists, so a guard
- * written against it reveals an element with nothing in it.
- */
 describe('ParsedElement rendered state', () => {
     let container;
     beforeEach(() => {
@@ -381,7 +356,6 @@ describe('ParsedElement rendered state', () => {
         const el = container.firstElementChild;
         await el.upgrade().catch(() => {});
 
-        //a failed element stays hidden rather than showing chrome it never built
         expect(el.rendered).to.be.false;
         expect(el.matches(':state(rendered)')).to.be.false;
     });
@@ -398,8 +372,6 @@ describe('ParsedElement rendered state', () => {
         const el = form.firstElementChild;
         await tick();
 
-        //form association follows the definition, not whoever attached: a subclass
-        //declaring formAssociated gets the form apis from the base's internals
         expect(el.internals).to.not.be.undefined;
         expect(el.internals.form).to.equal(form);
         expect(() => el.internals.setFormValue('v')).to.not.throw();
