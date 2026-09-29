@@ -143,7 +143,6 @@ describe('Field', () => {
         await Rendering.waitFor(field);
         await settle();
         assert.isTrue(document.activeElement === field.querySelector('input'), 'the control is focused once it exists');
-        container.remove();
     });
 
     it('a field that never implements _build says so by name', async () => {

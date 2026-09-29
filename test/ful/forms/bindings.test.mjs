@@ -1,6 +1,7 @@
 import { assert, expect } from 'chai';
 import { Fragments } from '../../../src/ftl/index.mjs';
 import { Bindings } from '../../../src/ful/index.mjs';
+import { attached } from '../../harness.mjs';
 
 describe('Bindings', () => {
     describe('flatten', () => {
@@ -251,7 +252,7 @@ describe('Bindings', () => {
 
         beforeEach(() => {
             form = document.createElement('form');
-            document.body.appendChild(form);
+            attached(form);
 
             inputName = document.createElement('input');
             inputName.name = 'users.0.name';

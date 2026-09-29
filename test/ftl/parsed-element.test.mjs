@@ -3,13 +3,14 @@ import { ParsedElement } from '../../src/ftl/parsed-element.mjs';
 import { registry } from '../../src/ftl/registry.mjs';
 import { Template } from '../../src/ftl/template.mjs';
 import { tick } from '../tick.mjs';
+import { attached } from '../harness.mjs';
 
 describe('ParsedElement web component lifecycle', () => {
     let container;
 
     beforeEach(() => {
         container = document.createElement('div');
-        document.body.appendChild(container);
+        attached(container);
     });
 
     afterEach(() => {
@@ -339,7 +340,7 @@ describe('ParsedElement rendered state', () => {
     let container;
     beforeEach(() => {
         container = document.createElement('div');
-        document.body.appendChild(container);
+        attached(container);
     });
     afterEach(() => container.remove());
 

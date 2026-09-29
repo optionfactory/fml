@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Template, Fragments, ExpressionEvaluator, RenderError } from '../../src/ftl/index.mjs';
+import { attached } from '../harness.mjs';
 
 const modules = {
     math: {
@@ -648,7 +649,7 @@ describe('Template', () => {
         const tplEl = document.createElement('template');
         tplEl.id = 'target-selector';
         tplEl.content.appendChild(document.createTextNode('{{val}}'));
-        document.body.appendChild(tplEl);
+        attached(tplEl);
 
         const t1 = Template.fromSelector('#target-selector', modules, { val: '1' });
         assert.strictEqual(Fragments.toHtml(t1.render()), '1');
@@ -667,7 +668,7 @@ describe('Template', () => {
     it('throws errors when fromSelector catches a non-template element or nothing', () => {
         const badEl = document.createElement('div');
         badEl.id = 'bad-selector';
-        document.body.appendChild(badEl);
+        attached(badEl);
 
         assert.throws(() => Template.fromSelector('#bad-selector'), /template selector does not match/);
         assert.throws(() => Template.fromSelector('#completely-missing'), /template selector does not match/);
@@ -708,7 +709,7 @@ describe('Template', () => {
         const target = document.createElement('div');
         target.id = 'render-target';
         target.innerHTML = '<span>initial</span>';
-        document.body.appendChild(target);
+        attached(target);
 
         const template = Template.fromHtml('<b>data</b>', {}, []);
 

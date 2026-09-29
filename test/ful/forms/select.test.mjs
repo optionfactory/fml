@@ -1741,13 +1741,12 @@ describe('Select focus and key coercion gaps', () => {
         assert.strictEqual(selectEl.querySelector('input').value, 'No');
         container.remove();
 
-        const [undecodable, undecodableContainer] = await mount(
+        const [undecodable] = await mount(
             `<ful-select k-type="boolean" value="banana">pick</ful-select>`,
             labelling([]),
         );
 
         assert.strictEqual(undecodable.value, 'banana', 'what cannot be decoded is left as it is');
-        undecodableContainer.remove();
     });
 
     it('drops the assigned keys the loader does not know', async () => {

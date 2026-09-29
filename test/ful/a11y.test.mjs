@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../src/ftl/index.mjs';
 import { Plugin } from '../../src/ful/index.mjs';
 import 'axe-core/axe.js';
-import { settle } from '../harness.mjs';
+import { settle, attached } from '../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -122,7 +122,7 @@ describe('Accessibility audit', () => {
         it(`passes the axe audit: ${name}`, async () => {
             const container = document.createElement('section');
             container.innerHTML = html;
-            document.body.appendChild(container);
+            attached(container);
             await Rendering.waitForChildren(container);
             await settle();
             //an openable surface is audited the way a reader meets it: open

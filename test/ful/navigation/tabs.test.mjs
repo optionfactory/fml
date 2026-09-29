@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, Plugin } from '../../../src/ful/index.mjs';
-import { captureConsole, mount as mounted, settle as drain } from '../../harness.mjs';
+import { captureConsole, mount as mounted, settle as drain, attached } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -179,7 +179,7 @@ describe('Tabs, async panels', () => {
         const host = document.createElement('div');
         AsyncEvents.asyncOn(host, 'section:requested', (e) => seen.push(e.detail));
         host.innerHTML = '<ful-tabs></ful-tabs>';
-        document.body.appendChild(host);
+        attached(host);
 
         await Rendering.waitFor(host);
         await settle();

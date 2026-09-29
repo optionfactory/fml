@@ -194,11 +194,10 @@ describe('Checkbox rendering', () => {
         assert.isTrue(el.firstElementChild.hasAttribute('switch'));
         assert.strictEqual(input.getAttribute('role'), 'switch');
 
-        const [plain, plainContainer, plainInput] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
+        const [plain, , plainInput] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
         assert.strictEqual(plain.firstElementChild.localName, 'ful-choice');
         assert.isFalse(plain.firstElementChild.hasAttribute('switch'));
         assert.isFalse(plainInput.hasAttribute('role'), 'a plain checkbox keeps the native checkbox role');
-        plainContainer.remove();
     });
 
     it('keeps the inner input out of the surrounding form, so only the host contributes a value', async () => {

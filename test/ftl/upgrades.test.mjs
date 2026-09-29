@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ParsedElement } from '../../src/ftl/parsed-element.mjs';
 import { Registry, registry } from '../../src/ftl/registry.mjs';
 import { Rendering } from '../../src/ftl/rendering.mjs';
-import { settle as drain } from '../harness.mjs';
+import { settle as drain, attached } from '../harness.mjs';
 
 /**
  * Characterizes when an element counts as upgraded, which is what `ftl:ready` and
@@ -38,7 +38,7 @@ describe('Upgrade ordering and readiness', () => {
     beforeEach(() => {
         order = [];
         container = document.createElement('div');
-        document.body.appendChild(container);
+        attached(container);
     });
 
     afterEach(async () => {
@@ -159,7 +159,7 @@ describe('Readiness when a component fails', () => {
         fresh.configure();
         const container = document.createElement('div');
         container.innerHTML = `<broken-el></broken-el><healthy-el></healthy-el>`;
-        document.body.appendChild(container);
+        attached(container);
 
         //the queue must not attach a handler of its own, which is what leaves the failure
         //free to reach the console and the error reporter. taking it here proves that and

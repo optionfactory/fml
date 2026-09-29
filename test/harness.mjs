@@ -1,4 +1,4 @@
-import { Rendering } from '../src/ftl/index.mjs';
+import { Rendering, registry } from '../src/ftl/index.mjs';
 import { settle, tick } from './tick.mjs';
 
 /**
@@ -17,9 +17,19 @@ import { settle, tick } from './tick.mjs';
  */
 const mounted = [];
 
+const LOADERS = ['loaders:select', 'loaders:table', 'loaders:form'];
+let loaders = [];
+
+beforeEach(() => {
+    loaders = LOADERS.map((name) => [name, registry.component(name)]);
+});
+
 afterEach(() => {
     while (mounted.length) {
         mounted.pop().remove();
+    }
+    for (const [name, value] of loaders) {
+        registry.defineComponent(name, value);
     }
 });
 
@@ -37,6 +47,22 @@ const appended = (html) => {
     document.body.appendChild(container);
     mounted.push(container);
     return container;
+};
+
+/**
+ * Appends nodes built by hand to the page, in order, removing them after the
+ * test whatever the test does.
+ * @template {Node} T
+ * @param {T} node
+ * @param {...Node} more
+ * @returns {T} the first node
+ */
+const attached = (node, ...more) => {
+    for (const n of [node, ...more]) {
+        document.body.appendChild(n);
+        mounted.push(n);
+    }
+    return node;
 };
 
 /**
@@ -76,4 +102,4 @@ const captureConsole = (...kinds) => {
     return messages;
 };
 
-export { appended, mount, captureConsole, settle, tick };
+export { appended, attached, mount, captureConsole, settle, tick };

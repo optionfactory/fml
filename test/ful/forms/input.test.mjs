@@ -70,9 +70,8 @@ describe('Input placeholder and :placeholder-shown', () => {
         assert.strictEqual(defaulted.querySelector('input').type, 'number');
         c1.remove();
 
-        const [declared, c2] = await mount(`<ful-input name="a" type="range" v-type="number">l</ful-input>`);
+        const [declared] = await mount(`<ful-input name="a" type="range" v-type="number">l</ful-input>`);
         assert.strictEqual(declared.querySelector('input').type, 'range');
-        c2.remove();
     });
 
     it('announces the decoded number through change', async () => {

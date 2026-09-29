@@ -748,14 +748,13 @@ describe('InputFile disabled and readonly claims', () => {
     });
 
     it('rejects a multi-file drop on a single-file field, as the native input does', async () => {
-        const [single, singleContainer] = await mount(`<ful-input-file dropzone>files</ful-input-file>`);
+        const [single] = await mount(`<ful-input-file dropzone>files</ful-input-file>`);
 
         drop(single, file('a.pdf'), file('b.pdf'));
         assert.deepStrictEqual(selected(single), [], 'the whole drop is rejected');
 
         drop(single, file('one.pdf'));
         assert.deepStrictEqual(selected(single), ['one.pdf'], 'a single-file drop is accepted');
-        singleContainer.remove();
     });
 
     it('ignores dropped directories, keeping the real files of the same drop', async () => {

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { Templates } from '../../src/ftl/templates.mjs';
 import { registry } from '../../src/ftl/registry.mjs';
+import { attached } from '../harness.mjs';
 
 describe('Templates factory', () => {
     beforeEach(() => {
@@ -28,7 +29,7 @@ describe('Templates factory', () => {
         const templateEl = document.createElement('template');
         templateEl.id = 'tpl-selector-test';
         templateEl.innerHTML = '<div>{{ #testMod:transform(value) }}</div>';
-        document.body.appendChild(templateEl);
+        attached(templateEl);
 
         const template = Templates.fromSelector('#tpl-selector-test');
         const fragment = template.render();

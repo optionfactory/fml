@@ -3,7 +3,7 @@ import { assert } from 'chai';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, FormLoader, Plugin } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, attached } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -114,7 +114,7 @@ describe('Form spinner button states', () => {
                 <button type="submit" id="btn-disabled" disabled>Locked Submitter</button>
             </ful-form>
         `;
-        document.body.appendChild(container);
+        attached(container);
 
         //the buttons are the form's own children: one turn past the upgrade is
         //where they are reachable
@@ -172,7 +172,7 @@ describe('Form spinner button states', () => {
                 <button type="submit" id="btn-enabled">Submit</button>
             </ful-form>
         `;
-        document.body.appendChild(container);
+        attached(container);
         await tick();
 
         const fulForm = container.querySelector('ful-form');
@@ -208,7 +208,7 @@ describe('Form spinner button states across overlapping submits', () => {
                 <button type="submit" id="btn-disabled" disabled>Locked Submitter</button>
             </ful-form>
         `;
-        document.body.appendChild(container);
+        attached(container);
         await tick();
 
         const fulForm = container.querySelector('ful-form');

@@ -9,6 +9,7 @@ const onError = capture();
 describe('Client errors reporting: the error event route', () => {
     let calls;
     let scriptEl;
+    const realFetch = window.fetch;
 
     beforeEach(() => {
         calls = [];
@@ -23,6 +24,7 @@ describe('Client errors reporting: the error event route', () => {
 
     afterEach(() => {
         scriptEl.remove();
+        window.fetch = realFetch;
     });
 
     const settle = () => drain();

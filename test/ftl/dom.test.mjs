@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { Fragments, Attributes, LightSlots, Nodes } from '../../src/ftl/dom.mjs';
+import { attached } from '../harness.mjs';
 
 describe('dom.mjs', () => {
     describe('Fragments', () => {
@@ -231,7 +232,7 @@ describe('dom.mjs', () => {
             };
             Object.defineProperty(el, 'ownerDocument', { get: () => fakeDoc });
 
-            document.body.appendChild(parent);
+            attached(parent);
 
             const promise = Nodes.waitParsed(el);
 
@@ -253,7 +254,7 @@ describe('dom.mjs', () => {
             const el = document.createElement('div');
             parent.appendChild(el);
             section.appendChild(parent);
-            document.body.appendChild(section);
+            attached(section);
 
             const fakeDoc = { readyState: 'loading', addEventListener: () => {} };
             Object.defineProperty(el, 'ownerDocument', { get: () => fakeDoc });

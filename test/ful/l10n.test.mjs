@@ -5,7 +5,7 @@ import en from '../../src/ful/l10n/en.mjs';
 import itTranslations from '../../src/ful/l10n/it.mjs';
 import es from '../../src/ful/l10n/es.mjs';
 import fr from '../../src/ful/l10n/fr.mjs';
-import { appended } from '../harness.mjs';
+import { appended, attached } from '../harness.mjs';
 
 const definedBeforeConfigure = customElements.get('ful-input-file') !== undefined;
 
@@ -170,7 +170,7 @@ describe('Built-in messages are data, not markup', () => {
         container.innerHTML = `<ful-table>
             <template slot="schema"><schema><column>a</column></schema></template>
         </ful-table>`;
-        document.body.appendChild(container);
+        attached(container);
         const el = container.querySelector('ful-table');
         await Rendering.waitFor(el);
 
@@ -197,6 +197,5 @@ describe('Plugin language matching', () => {
         await reg.ready();
 
         assert.strictEqual(container.textContent, 'Chiudi', 'an upper-cased tag bakes the Italian messages');
-        container.remove();
     });
 });

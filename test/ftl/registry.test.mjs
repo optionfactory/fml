@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { Registry } from '../../src/ftl/registry.mjs';
+import { attached } from '../harness.mjs';
 
 describe('Registry', () => {
     let registry;
@@ -177,7 +178,7 @@ describe('Registry', () => {
             registry.configure();
 
             const el = document.createElement('queue-el');
-            document.body.appendChild(el);
+            attached(el);
 
             QueueEl.BITS.enqueue(el);
             QueueEl.BITS.enqueue(el);

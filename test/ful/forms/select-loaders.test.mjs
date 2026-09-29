@@ -2,7 +2,7 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin, SelectLoader } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, attached } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -192,7 +192,6 @@ describe('SelectLoader', () => {
 
         assert.deepEqual(options(dropdown), ['Alpha', 'Beta']);
         assert.lengthOf(calls, 1);
-        container.remove();
     });
 
     it('labels a filter preselected by key, so the criterion reads in words', async () => {
@@ -206,7 +205,6 @@ describe('SelectLoader', () => {
 
         assert.deepEqual(filter.value, ['A', 'B']);
         assert.deepEqual(filter.criterion.operands, ['Alpha', 'Beta']);
-        container.remove();
     });
 
     it('caches a revisioned filter vocabulary across mounts, as a select does', async () => {
@@ -539,7 +537,7 @@ describe('SelectLoader fetch discipline', () => {
         try {
             container = document.createElement('div');
             container.innerHTML = '<ful-select src="/quota" revision="1"></ful-select>';
-            document.body.appendChild(container);
+            attached(container);
             const selectEl = container.querySelector('ful-select');
             await Rendering.waitFor(selectEl);
             await opened();

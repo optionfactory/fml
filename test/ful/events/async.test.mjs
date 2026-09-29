@@ -1,12 +1,13 @@
 import { assert, expect } from 'chai';
 import { AsyncEvents } from '../../../src/ful/events/async.mjs';
+import { attached } from '../../harness.mjs';
 
 describe('AsyncEvents', () => {
     let el;
 
     beforeEach(() => {
         el = document.createElement('div');
-        document.body.appendChild(el);
+        attached(el);
     });
 
     afterEach(() => {
@@ -69,7 +70,7 @@ describe('AsyncEvents guarantees', () => {
     let el;
     beforeEach(() => {
         el = document.createElement('div');
-        document.body.appendChild(el);
+        attached(el);
     });
     afterEach(() => {
         el.remove();
@@ -172,7 +173,7 @@ describe('AsyncEvents guarantees', () => {
         AsyncEvents.mixInto(Widget);
         customElements.define('mixed-widget', Widget);
         const widget = document.createElement('mixed-widget');
-        document.body.appendChild(widget);
+        attached(widget);
 
         const listener = widget.asyncOn('save', async (e) => `saved ${e.detail}`);
         assert.deepStrictEqual(await widget.fireAsync(new CustomEvent('save', { detail: 'a' })), ['saved a']);

@@ -233,7 +233,7 @@ describe('InputLocalDate min and max', () => {
 
     it('resolves month and year offsets onto the calendar', async () => {
         const [withMonth, monthContainer] = await mount('max="+2m"');
-        const [withYear, yearContainer] = await mount('max="+1y"');
+        const [withYear] = await mount('max="+1y"');
 
         assert.match(withMonth.max, /^\d{4}-\d{2}-\d{2}$/);
         assert.isAbove(Date.parse(withMonth.max), Date.now(), 'a future month bound points forward');
@@ -241,7 +241,6 @@ describe('InputLocalDate min and max', () => {
         assert.isAbove(Date.parse(withYear.max), Date.now(), 'a future year bound points forward');
 
         monthContainer.remove();
-        yearContainer.remove();
     });
 
     it('passes literal dates and unknown tokens through unchanged', async () => {

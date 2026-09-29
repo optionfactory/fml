@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 import { TableLoader } from '../../../src/ful/navigation/table.mjs';
-import { appended, settle } from '../../harness.mjs';
+import { appended, settle, attached } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -16,7 +16,7 @@ describe('Table sorting', () => {
                     <schema>${schema}</schema>
                 </template>
             </ful-table>`;
-        document.body.appendChild(container);
+        attached(container);
         const tableEl = container.querySelector('ful-table');
         await Rendering.waitFor(tableEl);
         await settle();
@@ -129,7 +129,7 @@ describe('Table load failures', () => {
                     <schema><column title="A" sorter="a">{{ a }}</column></schema>
                 </template>
             </ful-table>`;
-        document.body.appendChild(container);
+        attached(container);
         return [container.querySelector('ful-table'), container];
     };
 
@@ -274,7 +274,7 @@ describe('Table revalidation', () => {
                     <schema><column title="A" sorter="a">{{ a }}</column></schema>
                 </template>
             </ful-table>`;
-        document.body.appendChild(container);
+        attached(container);
         return [container.querySelector('ful-table'), container];
     };
     const rows = (tableEl) => tableEl.querySelector('tbody:not([data-ref])').children.length;
@@ -586,7 +586,7 @@ describe('Table sort and pagination edges', () => {
             <ful-table autoload page-size="10">
                 <template slot="schema"><schema>${columns}</schema></template>
             </ful-table>`;
-        document.body.appendChild(container);
+        attached(container);
         const tableEl = container.querySelector('ful-table');
         await Rendering.waitFor(tableEl);
         await settle();
@@ -729,12 +729,11 @@ describe('Pagination links', () => {
 
     it('renders an even window without overshooting the pages attribute', async () => {
         const [four, fourContainer] = await mountPagination(`pages="4" current="5" total="10"`);
-        const [two, twoContainer] = await mountPagination(`pages="2" current="5" total="10"`);
+        const [two] = await mountPagination(`pages="2" current="5" total="10"`);
 
         assert.deepStrictEqual(pageLabels(four), ['5', '6', '7', '8'], 'four links, around the current page');
         assert.deepStrictEqual(pageLabels(two), ['6', '7'], 'two links, starting at the current page');
         fourContainer.remove();
-        twoContainer.remove();
     });
 
     it('keeps the window full by extending it backwards on the last pages', async () => {
@@ -989,7 +988,7 @@ describe('In memory table loader', () => {
                     <schema><column title="A" sorter="a">{{ a }}</column></schema>
                 </template>
             </ful-table>`;
-        document.body.appendChild(container);
+        attached(container);
         const tableEl = container.querySelector('ful-table');
         await Rendering.waitFor(tableEl);
         await settle();

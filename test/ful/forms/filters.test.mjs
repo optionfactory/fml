@@ -2,7 +2,7 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
-import { appended, settle } from '../../harness.mjs';
+import { appended, settle, attached } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -423,7 +423,7 @@ describe('Filter operator whitelisting', () => {
     it('offers every operator of its vocabulary by default', async () => {
         const [text, textContainer] = await mount(`<ful-filter-text>t</ful-filter-text>`);
         const [date, dateContainer] = await mount(`<ful-filter-local-date>d</ful-filter-local-date>`);
-        const [bool, boolContainer] = await mount(`<ful-filter-boolean>b</ful-filter-boolean>`);
+        const [bool] = await mount(`<ful-filter-boolean>b</ful-filter-boolean>`);
 
         assert.deepStrictEqual(menuValues(text), [
             'EQ',
@@ -441,7 +441,6 @@ describe('Filter operator whitelisting', () => {
         assert.deepStrictEqual(menuValues(bool), ['EQ', 'NEQ']);
         textContainer.remove();
         dateContainer.remove();
-        boolContainer.remove();
     });
 
     it('restricts the menu to the declared operators', async () => {
@@ -461,7 +460,7 @@ describe('Filter operator whitelisting', () => {
         const [date, dateContainer] = await mount(
             `<ful-filter-local-date operators="GTE,EQ,BETWEEN" name="f">d</ful-filter-local-date>`,
         );
-        const [instant, instantContainer] = await mount(
+        const [instant] = await mount(
             `<ful-filter-instant operators="GTE,BETWEEN" name="f">i</ful-filter-instant>`,
         );
 
@@ -477,7 +476,6 @@ describe('Filter operator whitelisting', () => {
         );
 
         dateContainer.remove();
-        instantContainer.remove();
     });
 
     it('re-applies the whitelist when the attribute changes after rendering', async () => {
@@ -631,7 +629,7 @@ describe('Filter sensitivity whitelisting', () => {
         const [pinned, pinnedContainer] = await mount(
             `<ful-filter-text sensitivities="CASE_SENSITIVE" name="f">t</ful-filter-text>`,
         );
-        const [late, lateContainer] = await mount(`<ful-filter-text name="f">t</ful-filter-text>`);
+        const [late] = await mount(`<ful-filter-text name="f">t</ful-filter-text>`);
         const button = pinned.querySelector('[data-ref=sensitivity]');
 
         assert.isFalse(button.hidden, 'the glyph stays: it documents the mode');
@@ -648,7 +646,6 @@ describe('Filter sensitivity whitelisting', () => {
         assert.strictEqual(lateButton.textContent, 'aa');
 
         pinnedContainer.remove();
-        lateContainer.remove();
     });
 });
 
@@ -782,7 +779,7 @@ describe('Filters and selects together', () => {
                     types
                 </ful-select>
             </ful-form>`;
-        document.body.appendChild(container);
+        attached(container);
         const form = container.querySelector('ful-form');
         await Rendering.waitFor(form);
         const select = container.querySelector('ful-select');
@@ -811,7 +808,7 @@ describe('Filters and selects together', () => {
         });
         const container = document.createElement('div');
         container.innerHTML = '<ful-filter-in value="">status</ful-filter-in>';
-        document.body.appendChild(container);
+        attached(container);
         const el = container.querySelector('ful-filter-in');
         await Rendering.waitFor(el);
         await settle();

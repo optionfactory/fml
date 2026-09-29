@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Anchors } from '../../../src/ful/disclosures/anchors.mjs';
+import { attached } from '../../harness.mjs';
 
 const frames = async (count = 3) => {
     for (let i = 0; i !== count; ++i) {
@@ -25,7 +26,7 @@ describe('The anchored popover fallback', () => {
         const invoker = document.createElement('button');
         const popover = document.createElement('div');
         popover.setAttribute('popover', 'manual');
-        document.body.append(invoker, popover);
+        attached(invoker, popover);
         withoutPlatformAnchors(() => Anchors.wire(invoker, popover));
         //the toggle that registers the pair is a queued task, not the
         //synchronous beforetoggle that places it: waiting for it is what keeps
@@ -66,7 +67,7 @@ describe('The placing of a popover as it opens', () => {
         note.setAttribute('placement', 'top');
         note.style.width = '320px';
         note.style.height = '200px';
-        document.body.append(invoker, note);
+        attached(invoker, note);
         try {
             withoutPlatformAnchors(() => Anchors.wire(invoker, note));
 
@@ -98,7 +99,7 @@ describe('The placing of a popover as it opens', () => {
         note.setAttribute('placement', 'bottom');
         note.style.width = '200px';
         note.style.border = '20px solid';
-        document.body.append(invoker, note);
+        attached(invoker, note);
         try {
             Anchors.wire(invoker, note, { handPlace: true });
 
@@ -131,7 +132,7 @@ describe('Anchors.wire invoke and expanded', () => {
         const menu = document.createElement('ul');
         menu.setAttribute('popover', '');
         menu.innerHTML = '<li><button id="item-in-the-menu">A</button></li>';
-        document.body.append(invoker, menu);
+        attached(invoker, menu);
         try {
             withoutPlatformAnchors(() => Anchors.wire(invoker, menu));
             const item = /** @type HTMLElement */ (menu.querySelector('button'));
@@ -170,7 +171,7 @@ describe('Anchors.wire invoke and expanded', () => {
         const menu = document.createElement('ul');
         menu.setAttribute('popover', '');
         menu.innerHTML = '<li><a href="#a">A</a></li>';
-        document.body.append(invoker, menu);
+        attached(invoker, menu);
         try {
             Anchors.wire(invoker, menu, { prefix: 'app-menu', invoke: true, expanded: true });
 
@@ -200,7 +201,7 @@ describe('Anchors.wire invoke and expanded', () => {
         const menu = document.createElement('ul');
         menu.setAttribute('popover', '');
         menu.id = 'mine';
-        document.body.append(invoker, menu);
+        attached(invoker, menu);
         try {
             Anchors.wire(invoker, menu, { invoke: true });
             assert.strictEqual(menu.id, 'mine');
@@ -217,7 +218,7 @@ describe('Anchors.wire invoke and expanded', () => {
         invoker.tabIndex = 0;
         const menu = document.createElement('ul');
         menu.setAttribute('popover', '');
-        document.body.append(invoker, menu);
+        attached(invoker, menu);
         try {
             withoutPlatformAnchors(() => Anchors.wire(invoker, menu, { invoke: true }));
 
@@ -274,7 +275,7 @@ describe('The stretch placement of a dropdown', () => {
         const style = document.createElement('style');
         style.textContent = '#capped-dd { max-width: 200px; }';
         document.head.appendChild(style);
-        document.body.append(invoker, dropdown);
+        attached(invoker, dropdown);
         try {
             await showStretched(invoker, dropdown);
             assert.closeTo(dropdown.getBoundingClientRect().width, 200, 1, 'the content does not push past the cap');
@@ -289,7 +290,7 @@ describe('The stretch placement of a dropdown', () => {
         invoker.style.width = '300px';
         const dropdown = bare();
         dropdown.textContent = 'x';
-        document.body.append(invoker, dropdown);
+        attached(invoker, dropdown);
         try {
             await showStretched(invoker, dropdown);
             assert.closeTo(dropdown.getBoundingClientRect().width, 300, 1, 'the invoker is matched at minimum');
@@ -306,7 +307,7 @@ describe('The stretch placement of a dropdown', () => {
         invoker.style.left = '40px';
         const dropdown = bare();
         dropdown.innerHTML = '<div style="height: 100px;"></div>';
-        document.body.append(invoker, dropdown);
+        attached(invoker, dropdown);
         try {
             await showStretched(invoker, dropdown);
             const here = dropdown.getBoundingClientRect();
@@ -326,7 +327,7 @@ describe('The stretch placement of a dropdown', () => {
         invoker.style.left = '40px';
         const dropdown = bare();
         dropdown.innerHTML = '<div style="height: 200px;"></div>';
-        document.body.append(invoker, dropdown);
+        attached(invoker, dropdown);
         try {
             await showStretched(invoker, dropdown);
             const here = dropdown.getBoundingClientRect();
@@ -368,7 +369,7 @@ describe('Anchors.show, the one-shot placement', () => {
         invoker.style.left = '80px';
         const popover = bare();
         popover.innerHTML = '<div style="width: 120px; height: 80px;"></div>';
-        document.body.append(invoker, popover);
+        attached(invoker, popover);
         try {
             const here = await placed(popover, invoker);
             const there = invoker.getBoundingClientRect();
@@ -383,7 +384,7 @@ describe('Anchors.show, the one-shot placement', () => {
     it('takes a rectangle for an anchor, one read out of an iframe among them', async () => {
         const popover = bare();
         popover.innerHTML = '<div style="width: 100px; height: 50px;"></div>';
-        document.body.append(popover);
+        attached(popover);
         try {
             const here = await placed(popover, new DOMRect(200, 150, 60, 30));
             assert.closeTo(here.left, 200, 1);
@@ -401,7 +402,7 @@ describe('Anchors.show, the one-shot placement', () => {
         invoker.style.left = '80px';
         const popover = bare();
         popover.innerHTML = '<div style="width: 100px; height: 150px;"></div>';
-        document.body.append(invoker, popover);
+        attached(invoker, popover);
         try {
             const here = await placed(popover, invoker, { flip: true, gap: 6 });
             const there = invoker.getBoundingClientRect();
@@ -423,7 +424,7 @@ describe('Anchors.show, the one-shot placement', () => {
         invoker.style.left = '80px';
         const popover = bare();
         popover.innerHTML = '<button id="inside-the-popover">inside</button>';
-        document.body.append(invoker, popover);
+        attached(invoker, popover);
         try {
             Anchors.show(popover, invoker);
             const inside = /** @type HTMLElement */ (popover.querySelector('button'));
@@ -449,7 +450,7 @@ describe('Anchors.show, the one-shot placement', () => {
         invoker.style.left = '10px';
         const popover = bare();
         popover.innerHTML = '<div style="width: 100px; height: 50px;"></div>';
-        document.body.append(invoker, popover);
+        attached(invoker, popover);
         try {
             popover.showPopover();
             const first = await placed(popover, invoker);
