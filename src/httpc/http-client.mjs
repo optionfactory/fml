@@ -486,11 +486,7 @@ class HttpRequestBuilder {
      */
     headers(hs) {
         for (const [k, v] of rawEntries(hs)) {
-            if (v == null) {
-                this.#headers.delete(k);
-            } else {
-                this.#headers.set(k, v);
-            }
+            this.header(k, v);
         }
         return this;
     }
@@ -533,11 +529,7 @@ class HttpRequestBuilder {
         //overriding, as header, headers and params all do: pass every value in one
         //call to get a multi valued parameter
         this.#params.delete(k);
-        const values = vs.filter((v) => v != null);
-        if (values.length === 0) {
-            return this;
-        }
-        for (const v of values) {
+        for (const v of vs.filter((v) => v != null)) {
             this.#params.append(k, v);
         }
         return this;
