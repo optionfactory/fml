@@ -38,7 +38,7 @@
         }
     }
 
-    ful-affix:has(> button[hidden]) {
+    ful-affix:has(> button[hidden]):not(:has(> button:not([hidden]))) {
         display: none;
     }
 

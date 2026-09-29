@@ -942,6 +942,20 @@ describe('A fixed operator or sensitivity', () => {
         assert.deepStrictEqual(el.value, ['CONTAINS', 'IGNORE_CASE', 'needle'], 'the tuple still carries the fixed choices');
     });
 
+    it('keeps the affix for the choice left free when the other is fixed', async () => {
+        for (const [attributes, free] of [
+            ['operator="EQ"', 'sensitivity'],
+            ['sensitivity="MATCH_CASE"', 'operator'],
+        ]) {
+            const [el] = await mount(`<ful-filter-text ${attributes} name="f">t</ful-filter-text>`);
+            const button = el.querySelector(`[data-ref=${free}]`);
+
+            assert.isFalse(button.hidden, `${attributes} leaves the ${free} a choice`);
+            assert.notStrictEqual(getComputedStyle(button.closest('ful-affix')).display, 'none', attributes);
+            assert.isAbove(button.getBoundingClientRect().width, 0, attributes);
+        }
+    });
+
     it('fixes a concrete filter to its operator, instant among them', async () => {
         const [el] = await mount(`<ful-filter-instant operator="GTE" name="f">i</ful-filter-instant>`);
         assert.isTrue(el.querySelector('[data-ref=operator]').hidden);
