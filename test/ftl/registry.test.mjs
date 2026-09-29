@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { Registry } from '../../src/ftl/registry.mjs';
+import { ParsedElement } from '../../src/ftl/parsed-element.mjs';
 import { attached } from '../harness.mjs';
 
 describe('Registry', () => {
@@ -11,13 +12,19 @@ describe('Registry', () => {
 
     describe('Attribute mappers', () => {
         it('correctly marshals and unmarshals all built-in types', () => {
-            class DummyEl extends HTMLElement {
+            class DummyEl extends ParsedElement {
                 static attributes = ['s:string', 'n:number', 'p:presence', 'b:bool', 'j:json', 'c:csv'];
             }
             registry.defineElement('dummy-mappers', DummyEl);
             registry.configure();
 
-            const mappers = DummyEl.BITS.ATTR_TO_MAPPER;
+            const el = /** @type {ParsedElement} */ (document.createElement('dummy-mappers'));
+            const mappers = Object.fromEntries(
+                ['s', 'n', 'p', 'b', 'j', 'c'].map((attr) => [
+                    attr,
+                    { unmarshal: (str) => el.unmarshal(attr, str), marshal: (value) => el.marshal(attr, value) },
+                ]),
+            );
 
             //string
             expect(mappers.s.unmarshal('hello')).to.equal('hello');
@@ -65,7 +72,7 @@ describe('Registry', () => {
         });
 
         it('composes observed attributes along the inheritance chain, the leaf overriding the same name', () => {
-            class ChainBase extends HTMLElement {
+            class ChainBase extends ParsedElement {
                 static observed = ['value', 'inherited:number'];
             }
             class ChainLeaf extends ChainBase {
@@ -74,19 +81,17 @@ describe('Registry', () => {
             registry.defineElement('chain-leaf', ChainLeaf);
             registry.configure();
 
-            const bits = ChainLeaf.BITS;
-            expect([...bits.OBSERVED].sort()).to.deep.equal(['inherited', 'own', 'value']);
-            //the leaf's value:json overrides the base's plain value:string, and its
-            //inherited:presence overrides the base's number, while own:csv stands
-            expect(bits.ATTR_TO_MAPPER.value.unmarshal('{"a":1}')).to.deep.equal({ a: 1 });
-            expect(bits.ATTR_TO_MAPPER.inherited.unmarshal('5')).to.equal(true);
-            expect(bits.ATTR_TO_MAPPER.own.unmarshal('a, b')).to.deep.equal(['a', 'b']);
+            const el = /** @type {ParsedElement} */ (document.createElement('chain-leaf'));
+            expect([...ChainLeaf.observedAttributes].sort()).to.deep.equal(['inherited', 'own', 'value']);
+            expect(el.unmarshal('value', '{"a":1}')).to.deep.equal({ a: 1 });
+            expect(el.unmarshal('inherited', '5')).to.equal(true);
+            expect(el.unmarshal('own', 'a, b')).to.deep.equal(['a', 'b']);
         });
     });
 
     describe('Observed attribute order', () => {
         it('moves a re-declared name to the position of its last declaration', () => {
-            class OrderBase extends HTMLElement {
+            class OrderBase extends ParsedElement {
                 static observed = ['value', 'shape'];
             }
             class OrderLeaf extends OrderBase {
@@ -95,7 +100,7 @@ describe('Registry', () => {
             registry.defineElement('order-leaf', OrderLeaf);
             registry.configure();
 
-            expect(OrderLeaf.BITS.OBSERVED).to.deep.equal(['shape', 'value']);
+            expect([...OrderLeaf.observedAttributes]).to.deep.equal(['shape', 'value']);
         });
     });
 
@@ -183,7 +188,7 @@ describe('Registry', () => {
             QueueEl.BITS.enqueue(el);
             QueueEl.BITS.enqueue(el);
 
-            expect(registry.pending()).to.deep.equal([el]);
+            expect(registry.pending().length === 1 && registry.pending()[0] === el).to.equal(true);
 
             await registry.whenUpgraded(el);
 

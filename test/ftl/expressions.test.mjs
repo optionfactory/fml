@@ -147,56 +147,26 @@ describe('Expression', () => {
     });
 
     it('can report error on method calls', () => {
-        let caught = null;
-        try {
-            Expressions.interpret({}, [{ a: false }], 'a.boom()');
-        } catch (ex) {
-            caught = ex;
-        }
-        assert.isDefined(caught, 'Should have thrown');
+        const caught = assert.throws(() => Expressions.interpret({}, [{ a: false }], 'a.boom()'));
         assert.strictEqual(caught.message, 'Method missing "boom"');
     });
 
     it('reports a bare call on a missing value by name', () => {
-        let caught = null;
-        try {
-            Expressions.interpret({}, [{}], 'boom()');
-        } catch (ex) {
-            caught = ex;
-        }
-        assert.instanceOf(caught, Error);
+        const caught = assert.throws(() => Expressions.interpret({}, [{}], 'boom()'));
         assert.strictEqual(caught.message, 'Method missing "boom"');
     });
 
     it('reports a call following a subscript without interpolating the node', () => {
-        let caught = null;
-        try {
-            Expressions.interpret({}, [{ a: { b: null } }], "a['b']()");
-        } catch (ex) {
-            caught = ex;
-        }
-        assert.instanceOf(caught, Error);
+        const caught = assert.throws(() => Expressions.interpret({}, [{ a: { b: null } }], "a['b']()"));
         assert.strictEqual(caught.message, 'Method missing');
     });
 
     it('can report error on missing module', () => {
-        let caught = null;
-        try {
-            Expressions.interpret({}, [], '#waldo:boom()');
-        } catch (ex) {
-            caught = ex;
-        }
-        assert.isDefined(caught, 'Should have thrown');
+        const caught = assert.throws(() => Expressions.interpret({}, [], '#waldo:boom()'));
         assert.strictEqual(caught.message, 'Module "waldo" not found');
     });
     it('can report error on a function the module does not carry', () => {
-        let caught = null;
-        try {
-            Expressions.interpret({ waldo: {} }, [], '#waldo:isHidden()');
-        } catch (ex) {
-            caught = ex;
-        }
-        assert.isDefined(caught, 'Should have thrown');
+        const caught = assert.throws(() => Expressions.interpret({ waldo: {} }, [], '#waldo:isHidden()'));
         assert.strictEqual(caught.message, 'Function "#waldo:isHidden" not found');
     });
 });
@@ -257,12 +227,8 @@ describe('Templated mode evaluation', () => {
 
     it('throws on unknown templated node type (simulated AST corruption)', () => {
         const badAst = [{ type: Symbol('unknown-fake-type') }];
-        try {
-            Expressions.evaluate({}, [], badAst, Expressions.MODE_TEMPLATED);
-            assert.fail('Should have thrown an error');
-        } catch (ex) {
-            assert.match(ex.message, /unknown node type/);
-        }
+        const ex = assert.throws(() => Expressions.evaluate({}, [], badAst, Expressions.MODE_TEMPLATED));
+        assert.match(ex.message, /unknown node type/);
     });
 });
 
@@ -308,12 +274,8 @@ describe('AST execution edge cases', () => {
             lhs: { type: nodes.literal, value: 1 },
             rhs: { type: nodes.literal, value: 2 },
         };
-        try {
-            Expressions.evaluate({}, [], badAst);
-            assert.fail('Should have thrown an error');
-        } catch (ex) {
-            assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
-        }
+        const ex = assert.throws(() => Expressions.evaluate({}, [], badAst));
+        assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
     });
     it('resolves through a function overlay, and past null and primitive ones', () => {
         const fnOverlay = () => {};

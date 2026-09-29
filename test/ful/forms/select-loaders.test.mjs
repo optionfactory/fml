@@ -243,7 +243,7 @@ describe('SelectLoader', () => {
 
         assert.lengthOf(calls, 1, 'the second mount read the registry revision out of local storage');
         second[1].remove();
-        assert.isDefined(localStorage.getItem('POST@/reg-rev'));
+        assert.isNotNull(localStorage.getItem('POST@/reg-rev'));
         localStorage.removeItem('POST@/reg-rev');
         registry.defineComponent('revision', undefined);
     });

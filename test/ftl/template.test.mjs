@@ -37,16 +37,12 @@ describe('Template', () => {
     it('still rejects a non-plain non-iterable, loudly', () => {
         const data = { d: new Date() };
         const template = Template.fromHtml('<div data-tpl-each="d">{{key}}</div>', modules, data);
-        try {
-            template.render();
-            assert.fail('should have thrown');
-        } catch (e) {
-            let cause = e;
-            while (cause.cause) {
-                cause = cause.cause;
-            }
-            assert.match(cause.message, /Expected an iterable/);
+        const e = assert.throws(() => template.render());
+        let cause = e;
+        while (cause.cause) {
+            cause = cause.cause;
         }
+        assert.match(cause.message, /Expected an iterable/);
     });
 
     it('iterates a Map as its {key, value} entries, in its own order', () => {
@@ -309,16 +305,12 @@ describe('Template', () => {
     it('rendering a non-node from a node interpolation shows a clear error', () => {
         const data = { a: 42 };
         const template = Template.fromHtml('<div>b{{{{a}}}}d</div>', modules, data);
-        try {
-            template.render();
-            assert.fail('Should have thrown');
-        } catch (ex) {
-            let cause = ex;
-            while (cause.cause !== undefined) {
-                cause = cause.cause;
-            }
-            assert.include(cause.message, 'Expected a Node');
+        const ex = assert.throws(() => template.render());
+        let cause = ex;
+        while (cause.cause !== undefined) {
+            cause = cause.cause;
         }
+        assert.include(cause.message, 'Expected a Node');
     });
 
     it('can evaluate a data-* attribute', () => {
@@ -473,13 +465,7 @@ describe('Template', () => {
                         {{self.boom()}}
                     </div>
                 </div>`);
-        let caught = null;
-        try {
-            template.withEvaluator(new ExpressionEvaluator(modules, data)).render();
-        } catch (ex) {
-            caught = ex;
-        }
-        assert.isDefined(caught, 'Should have thrown');
+        const caught = assert.throws(() => template.withEvaluator(new ExpressionEvaluator(modules, data)).render());
         assert.strictEqual(caught.message, 'Error evaluating data-tpl-each="self" in `<div>`');
     });
     it('can show error for text nodes', () => {
@@ -489,13 +475,7 @@ describe('Template', () => {
             {{self.boom()}}
 
         `);
-        let caught = null;
-        try {
-            template.withEvaluator(new ExpressionEvaluator(modules, data)).render();
-        } catch (ex) {
-            caught = ex;
-        }
-        assert.isDefined(caught, 'Should have thrown');
+        const caught = assert.throws(() => template.withEvaluator(new ExpressionEvaluator(modules, data)).render());
         assert.strictEqual(caught.message, 'Error evaluating text node in `{{self.boom()}}`');
     });
     it('can scope variables using *-with and *-var', () => {
@@ -520,15 +500,11 @@ describe('Template', () => {
         const data = { nonIterable: 123 };
         const template = Template.fromHtml('<div data-tpl-each="nonIterable">test</div>', modules, data);
 
-        try {
-            template.render();
-            assert.fail('Should have thrown an error');
-        } catch (ex) {
-            //one frame per nesting level, naming the directive and its expression
-            assert.strictEqual(ex.message, 'Error evaluating data-tpl-each="nonIterable" in `<div>`');
-            assert.match(ex.cause.message, /Expected an iterable/);
-            assert.isUndefined(ex.cause.cause, 'no frame wraps the root cause again');
-        }
+        const ex = assert.throws(() => template.render());
+        //one frame per nesting level, naming the directive and its expression
+        assert.strictEqual(ex.message, 'Error evaluating data-tpl-each="nonIterable" in `<div>`');
+        assert.match(ex.cause.message, /Expected an iterable/);
+        assert.isUndefined(ex.cause.cause, 'no frame wraps the root cause again');
     });
     it('frames the path from the outermost nesting down to the failure', () => {
         const template = Template.fromHtml(
@@ -541,26 +517,22 @@ describe('Template', () => {
             { outer: { rows: [1] } },
         );
 
-        try {
-            template.render();
-            assert.fail('Should have thrown');
-        } catch (ex) {
-            const chain = [];
-            for (let e = ex; e; e = e.cause) {
-                chain.push(e.message);
-            }
-            assert.deepStrictEqual(
-                chain.slice(0, 3),
-                [
-                    'Error evaluating data-tpl-with="outer" in `<section>`',
-                    'Error evaluating data-tpl-each="rows" in `<ul>`',
-                    'Error evaluating data-tpl-if="self.boom()" in `<li>`',
-                ],
-                'outer to inner, one frame per nesting level',
-            );
-            assert.match(chain[chain.length - 1], /Method missing|boom/);
-            assert.notInclude(ex.message, '<li', 'a frame names its node, it does not carry the subtree');
+        const ex = assert.throws(() => template.render());
+        const chain = [];
+        for (let e = ex; e; e = e.cause) {
+            chain.push(e.message);
         }
+        assert.deepStrictEqual(
+            chain.slice(0, 3),
+            [
+                'Error evaluating data-tpl-with="outer" in `<section>`',
+                'Error evaluating data-tpl-each="rows" in `<ul>`',
+                'Error evaluating data-tpl-if="self.boom()" in `<li>`',
+            ],
+            'outer to inner, one frame per nesting level',
+        );
+        assert.match(chain[chain.length - 1], /Method missing|boom/);
+        assert.notInclude(ex.message, '<li', 'a frame names its node, it does not carry the subtree');
     });
 
     it('spends a frame budget rather than growing the chain with the nesting', () => {
@@ -569,17 +541,13 @@ describe('Template', () => {
         const close = '</div>'.repeat(depth);
         const template = Template.fromHtml(`${open}{{ self.boom() }}${close}`, modules, {});
 
-        try {
-            template.render();
-            assert.fail('Should have thrown');
-        } catch (ex) {
-            let frames = 0;
-            for (let e = ex; e instanceof RenderError; e = e.cause) {
-                frames++;
-            }
-            assert.strictEqual(frames, RenderError.FRAMES, 'the budget caps the frames');
-            assert.isTrue(ex.truncated, 'and says the outer context was dropped');
+        const ex = assert.throws(() => template.render());
+        let frames = 0;
+        for (let e = ex; e instanceof RenderError; e = e.cause) {
+            frames++;
         }
+        assert.strictEqual(frames, RenderError.FRAMES, 'the budget caps the frames');
+        assert.isTrue(ex.truncated, 'and says the outer context was dropped');
     });
 
     it('can filter rendering with *-when directives', () => {
@@ -702,7 +670,7 @@ describe('Template', () => {
 
         assert.strictEqual(t3.evaluateExpression('val'), 'hello');
         assert.strictEqual(t3.evaluateExpression('other', { other: 42 }), 42);
-        assert.isDefined(t3.evaluator());
+        assert.instanceOf(t3.evaluator(), ExpressionEvaluator);
     });
 
     it('can target external DOM components for rendering output operations', () => {
@@ -755,39 +723,31 @@ describe('Template', () => {
                 <li class="row" data-tpl-each="rows">{{ nope.deep }}</li>
             </ul>
         `);
-        try {
-            template.withOverlay({ rows: [1] }).render();
-            assert.fail('the render must throw');
-        } catch (ex) {
-            assert.instanceOf(ex, RenderError);
-            const failed = /** @type any */ (ex);
-            assert.strictEqual(
-                failed.message,
-                'Error evaluating data-tpl-each="rows" in `<li class="row">`',
-                'the frame names the node by its open tag, without the directives',
-            );
-            assert.strictEqual(failed.node.nodeType, Node.ELEMENT_NODE, 'the live node, not a clone');
-            assert.strictEqual(failed.node.className, 'row');
+        const ex = assert.throws(() => template.withOverlay({ rows: [1] }).render());
+        assert.instanceOf(ex, RenderError);
+        const failed = /** @type any */ (ex);
+        assert.strictEqual(
+            failed.message,
+            'Error evaluating data-tpl-each="rows" in `<li class="row">`',
+            'the frame names the node by its open tag, without the directives',
+        );
+        assert.strictEqual(failed.node.nodeType, Node.ELEMENT_NODE, 'the live node, not a clone');
+        assert.strictEqual(failed.node.className, 'row');
 
-            const html = failed.html;
-            assert.strictEqual(html, '<li class="row">{{ nope.deep }}</li>', 'the markup is there when asked for');
-            assert.notMatch(html, />\s{2,}</, 'the template indentation is tidied away');
-            assert.strictEqual(html, failed.html, 'and it serializes the same way every time');
-        }
+        const html = failed.html;
+        assert.strictEqual(html, '<li class="row">{{ nope.deep }}</li>', 'the markup is there when asked for');
+        assert.notMatch(html, />\s{2,}</, 'the template indentation is tidied away');
+        assert.strictEqual(html, failed.html, 'and it serializes the same way every time');
     });
 
     it('serializes a failing text node too, not only an element', () => {
         //an interpolation names the text node it failed in, so the markup a
         //developer asks for is that text rather than a subtree
         const template = Template.fromHtml('<p>  {{ nope.deep }}  </p>');
-        try {
-            template.render();
-            assert.fail('the render must throw');
-        } catch (ex) {
-            const failed = /** @type any */ (ex);
-            assert.strictEqual(failed.node.nodeType, Node.TEXT_NODE);
-            assert.strictEqual(failed.html, '{{ nope.deep }}', 'trimmed of the template whitespace');
-        }
+        const ex = assert.throws(() => template.render());
+        const failed = /** @type any */ (ex);
+        assert.strictEqual(failed.node.nodeType, Node.TEXT_NODE);
+        assert.strictEqual(failed.html, '{{ nope.deep }}', 'trimmed of the template whitespace');
     });
 
     it('evaluates a templated string in the template scope', () => {
@@ -830,12 +790,8 @@ describe('Template', () => {
     it('throws RenderError when a dynamic data-tpl-* attribute expression fails', () => {
         const template = Template.fromHtml('<div data-tpl-custom="boom()"></div>', modules, {});
 
-        try {
-            template.render();
-            assert.fail('Should have thrown an error');
-        } catch (ex) {
-            assert.strictEqual(ex.message, 'Error evaluating data-tpl-custom="boom()" in `<div>`');
-        }
+        const ex = assert.throws(() => template.render());
+        assert.strictEqual(ex.message, 'Error evaluating data-tpl-custom="boom()" in `<div>`');
     });
 
     it('keeps converting dataset keys after the attribute cache has evicted the oldest ones', () => {

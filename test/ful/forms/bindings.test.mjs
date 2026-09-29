@@ -301,7 +301,7 @@ describe('Bindings', () => {
             expect(inputName.validationMessage).to.equal('Invalid name');
             expect(inputAge.validationMessage).to.equal('Must be a number');
 
-            expect(document.activeElement).to.equal(inputAge);
+            expect(document.activeElement === inputAge).to.equal(true);
             expect(fieldError.getAttribute('aria-live')).to.equal(
                 'off',
                 'the focus announces the error, a live region would repeat it',
@@ -420,7 +420,7 @@ describe('Bindings', () => {
             Bindings.errors(form, errs, false);
 
             expect(inputName.validationMessage).to.equal('Invalid name');
-            expect(document.activeElement).to.equal(activeBefore);
+            expect(document.activeElement === activeBefore).to.equal(true);
         });
     });
 });
