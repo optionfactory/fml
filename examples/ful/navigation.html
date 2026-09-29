@@ -14,10 +14,10 @@
 
 <body>
     <h1>ful navigation</h1>
-    <p>Tabs, accordion and wizard. The accordion is native <code>details</code>/<code>summary</code>, the tabs follow the tab pattern with the arrow keys, the wizard is the homeinsurance layout: steps claim <code>aria-current</code>, the chrome follows the claim.</p>
+    <p>Tabs, accordion and wizard. The accordion is native <code>details</code>/<code>summary</code>, the tabs follow the tab pattern with the arrow keys, the wizard's steps claim <code>aria-current</code>, the chrome follows the claim.</p>
 
     <h2>tabs</h2>
-    <p>One tablist, three panels: clicks, the arrow keys (wrapping) and <code>Home</code>/<code>End</code> move the active panel, every move answering with a <code>change</code> event.</p>
+    <p>One tablist, three panels: clicks, the arrow keys (wrapping) and <code>Home</code>/<code>End</code> move the active panel, every move answering with a <code>tabs:change</code> event.</p>
     <fieldset>
         <legend>a tablist over shipping, invoices and claims</legend>
         <ful-tabs id="tabs">
@@ -37,6 +37,7 @@
                 <p>No open claims.</p>
             </section>
         </ful-tabs>
+        <output id="tabs-output">the tabs answer here</output>
     </fieldset>
 
     <h2>tabs, async panel</h2>
@@ -289,7 +290,7 @@
         });
 
         byId('tabs').addEventListener('tabs:change', (e) => {
-            byId('wizard-output').textContent = `tabs change: active ${e.detail.active}, previous ${e.detail.previous}`;
+            byId('tabs-output').textContent = `tabs change: active ${e.detail.active}, previous ${e.detail.previous}`;
         });
 
         ful.AsyncEvents.asyncOn(byId('async-tabs'), 'section:requested:#1', async (e) => {

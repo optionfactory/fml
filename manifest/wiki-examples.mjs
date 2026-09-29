@@ -1,9 +1,8 @@
 /**
  * Runs the wiki's ful examples against dist and reports what still holds.
  *
- * The snippets in manifest/wiki-examples.html are transcribed from pages 10-17, 20 and 21
+ * The snippets in manifest/wiki-examples.html are transcribed from pages 10-18, 20 and 21
  * of the wiki: they go stale when those pages change, so edit them together.
- * It has caught four wrong examples so far, which is why it is kept.
  *
  * Usage:
  *   npm run build && node manifest/wiki-examples.mjs

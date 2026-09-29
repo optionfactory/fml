@@ -100,8 +100,8 @@ class UpgradeQueue {
  * and attribute mappers. Elements defined before configure() are deferred and
  * defined by it; from then on every defineElement takes effect immediately.
  * The exported `registry` singleton is the page's own; a `new Registry()` is a
- * separate instance, and Rendering and the ftl:ready machinery wait on the
- * singleton alone.
+ * separate instance with its own upgrade queue, which dispatches its own
+ * ftl:ready on the document, while Rendering waits on the singleton alone.
  */
 class Registry {
     #tagToClass = {};
@@ -212,8 +212,7 @@ class Registry {
      * The property an observed attribute drives, by the platform's own
      * dash-to-camel rule: the one `dataset` applies, so `clear-invalid-on-change`
      * would reach `clearInvalidOnChange` the way `data-clear-invalid-on-change`
-     * reaches `dataset.clearInvalidOnChange`. A single-word name is returned
-     * unchanged, which is what every observed attribute in the library is.
+     * reaches `dataset.clearInvalidOnChange`.
      *
      * It exists because the observed tier is the one that becomes properties:
      * without it an attribute could only be observed if its name happened to be

@@ -42,12 +42,11 @@
         ftl.registry
             .defineModule('l10n', ftl.Localization)
             .defineOverlay({
-                //one flat translations map, baked at startup: built-in fallback, active language, your strings
+                //one flat translations map for the active language
                 l10n: {
                     'greet.hello': 'Ciao {name}',
                     'greet.items': { one: '{count} elemento', other: '{count} elementi' },
                 },
-                language: 'it',
                 locale: 'it-CH',
             })
             .defineElement('greeting-card', GreetingCard)

@@ -67,13 +67,20 @@ class Tooltip extends ParsedElement {
 }
 
 /**
- * A modal dialog on the native platform, open()/ask() resolving with the
- * closer's data-result.
+ * How a dialog ended: `dismissed` tells a cancel from an answer, `result` carries
+ * the `data-result` of the button that closed it and `response` what a submit
+ * answered with, the one that did not happen being null.
+ * @typedef {{ dismissed: boolean, result: string|null, response: any }} DialogOutcome
+ */
+
+/**
+ * A modal dialog on the native platform, open()/ask() resolving with how it
+ * ended, as a `DialogOutcome`.
  *
  * The header carries a close button, as the drawer's does: Escape dismisses a
  * modal on its own, but nothing says so, and a dialog whose only exit is a key
  * you have to know about leaves a pointer with nowhere to go. It answers the way
- * Escape does, with null.
+ * Escape does, with a dismissal.
  *
  * `requires-answer` is for the dialog that must be answered: the close button is not
  * rendered and Escape is refused, so the only way out is a button that carries a
@@ -86,13 +93,6 @@ class Tooltip extends ParsedElement {
  * `ful-dialog-body` and `ful-dialog-footer` match at any depth, which is what a
  * dialog whose content is wrapped in a form needs.
  */
-/**
- * How a dialog ended: `dismissed` tells a cancel from an answer, `result` carries
- * the `data-result` of the button that closed it and `response` what a submit
- * answered with, the one that did not happen being null.
- * @typedef {{ dismissed: boolean, result: string|null, response: any }} DialogOutcome
- */
-
 class Dialog extends ParsedElement {
     static attributes = ['header', 'requires-answer:presence', 'close-on-submit:presence'];
     static slots = true;
@@ -280,7 +280,7 @@ class Dialog extends ParsedElement {
         this.#requests.request(this, this.#body, null, null)?.catch(() => undefined);
     }
     /**
-     * Re-fires section:requested on the body, open or closed: the explicit
+     * Re-fires section:requested for the body, open or closed: the explicit
      * request for a body that wants refreshing. A failed refresh paints its
      * problems, nothing rejects: update() stays the rejecting call.
      */

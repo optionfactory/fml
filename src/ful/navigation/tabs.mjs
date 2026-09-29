@@ -6,8 +6,8 @@ import { SectionRequests } from '../events/sections.mjs';
  * (a tablist of tab buttons, each panel a tabpanel named by its tab). The tabs
  * are declared as <tab> elements in the tabs slot, the panels as the slotless
  * children, paired in order. Entering a panel fires the section:requested
- * family on it (generic and #index, panels being nameless) and awaits the
- * answers, so a panel can deliver itself asynchronously.
+ * family on the host for it (generic and #index, panels being nameless) and
+ * awaits the answers, so a panel can deliver itself asynchronously.
  */
 class Tabs extends ParsedElement {
     static slots = true;
@@ -82,7 +82,7 @@ class Tabs extends ParsedElement {
         return this.#active;
     }
     /**
-     * Re-fires the section:requested family on the panel (by index or the
+     * Re-fires the section:requested family for the panel (by index or the
      * panel element itself), whether active or not: the explicit request for a
      * content that wants refreshing. A failed refresh paints its problems,
      * nothing rejects: there is no caller to reject towards.

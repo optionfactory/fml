@@ -118,6 +118,7 @@ class Pagination extends ParsedElement {
             this.#current = toCurrent ?? 0;
         }
         if (toTotal !== undefined) {
+            //an absent attribute declares no pages, not a NaN one
             this.#total = toTotal ?? 0;
         }
         this.reflectTo('current', this.#current);
@@ -162,7 +163,6 @@ class Pagination extends ParsedElement {
         return this.#total;
     }
     set total(value) {
-        //an absent attribute declares no pages, not a NaN one
         this.update({ total: value });
     }
     get current() {
@@ -325,8 +325,8 @@ class RemoteTableLoader {
  *
  * A component registered under the `loader` attribute replaces this one and
  * must implement `load(pageRequest, sortRequest, filterRequest)`, answering
- * `{ data, page, size }` for the requested page. `pageRequest` carries the page
- * index and its size, `sortRequest` the column and direction, and
+ * `{ data, size }`: the rows of the requested page and the total count of
+ * rows. `pageRequest` carries the page index and its size, `sortRequest` the column and direction, and
  * `filterRequest` the values of the filters in the slot.
  */
 class TableLoader {

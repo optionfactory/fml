@@ -414,8 +414,8 @@ class Field extends ParsedElement {
      * The field's render is the base's: the subclass builds its dom in `_build`
      * and hands back what it built, the base wiring the pieces, mounting the
      * fragment and applying the declared state. Nothing in the base is there to
-     * be called from a subclass's build. `_build` may be async (a select
-     * awaiting its prefetch); a field that builds synchronously stays so.
+     * be called from a subclass's build. `_build` may be async; a field that
+     * builds synchronously stays so.
      */
     render(conf) {
         const built = /** @type {any} */ (this._build(conf));

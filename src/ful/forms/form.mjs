@@ -59,8 +59,8 @@ class LocalFormLoader {
  * - `submit(request, form, response)` performs it and returns the response. The
  *   third argument is whatever a `submit:requested` listener already answered,
  *   which is how a loader with nothing to send returns it unchanged
- * - `transform(response, form)` turns that response into the detail of the
- *   `submit:success` event
+ * - `transform(response, form)` turns that response into the `response` of the
+ *   `submit:success` detail
  *
  * A rejection from any of the three is reported as a `submit:failure`.
  */

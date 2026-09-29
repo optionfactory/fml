@@ -126,7 +126,7 @@
 
 <body>
     <h1>ful kitchen sink</h1>
-    <p>Every control on this page is styled by dist/ful.css alone: no bootstrap css, no bootstrap js, no icon font. Invalid fields are forced through the public setCustomValidity, exactly like a server answer would. The focused field is a presentational replica painted with the library's own custom properties: nothing is focused there, tab through the page for the real rings.</p>
+    <p>Every control on this page is styled by dist/ful.css alone, with no other stylesheet and no icon font. Invalid fields are forced through the public setCustomValidity, exactly like a server answer would. The focused field is a presentational replica painted with the library's own custom properties: nothing is focused there, tab through the page for the real rings.</p>
     <button type="button" class="ful-button" dialog-target="theme-builder">Theme builder</button>
 
     <h2>inputs</h2>
@@ -488,7 +488,7 @@
         <ful-table loader="loaders:mock-data" autoload page-size="5">
             <template slot="schema">
                 <schema>
-                    <column sorter order="asc">
+                    <column sorter="name" order="asc">
                         <title>Name</title>
                         {{ self.name }}
                     </column>
@@ -687,7 +687,7 @@
                 { type: 'FIELD_ERROR', context: 'email', reason: 'not a valid address' },
                 { type: 'FIELD_ERROR', context: 'role', reason: 'pick one' },
                 { type: 'FIELD_ERROR', context: 'tos', reason: 'the terms must be accepted' },
-                { type: 'GENERIC', context: null, reason: 'The server rejected the submission (demo).' },
+                { type: 'GENERIC_PROBLEM', context: null, reason: 'The server rejected the submission (demo).' },
             ];
         });
 

@@ -133,8 +133,7 @@ class ParsedElement extends HTMLElement {
      *
      * An observed attribute drives the property the registry's `propertyOf`
      * names, so a hyphenated attribute is authored with its dashes and read as
-     * a camelCase property. A single-word attribute is its own property name,
-     * which is what every observed attribute in the library is.
+     * a camelCase property.
      */
     async upgrade() {
         if (this.#started) {

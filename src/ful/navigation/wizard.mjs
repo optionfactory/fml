@@ -2,19 +2,18 @@ import { ParsedElement } from '../../ftl/index.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 
 /**
- * A wizard: a progress of steps over one-of-N sections, the homeinsurance
- * layout distilled. The steps are declared as <step> elements in the steps
- * slot, the sections as the slotless children, paired in order; each section
- * may carry a data-step name, which is what move() answers to. The current
- * step is the aria-current=step claim, carried in lockstep by the step and
- * its section: the chrome (including which section is shown) follows the
- * claim alone, so the markup state and the style can never disagree. The
- * progress chrome shows the current step alone by default; the progress
- * attribute picks another shape over the same claims (timeline, dots, none).
- * Entering a section
- * fires the section:requested family on it and awaits the answers, so a
- * section can deliver itself asynchronously; move() resolves when the entered
- * section is painted, and rejects when its delivery fails.
+ * A wizard: a progress of steps over one-of-N sections. The steps are declared
+ * as <step> elements in the steps slot, the sections as the slotless children,
+ * paired in order; each section may carry a data-step name, which is what
+ * move() answers to. The current step is the aria-current=step claim, carried
+ * in lockstep by the step and its section: the chrome (including which section
+ * is shown) follows the claim alone, so the markup state and the style can
+ * never disagree. The progress chrome shows the current step alone by default;
+ * the progress attribute picks another shape over the same claims (timeline,
+ * dots, none). Entering a section fires the section:requested family on the
+ * host for it and awaits the answers, so a section can deliver itself
+ * asynchronously; move() resolves when the entered section is painted, and
+ * rejects when its delivery fails.
  */
 class Wizard extends ParsedElement {
     static slots = true;
@@ -86,7 +85,7 @@ class Wizard extends ParsedElement {
         return this.#move(index);
     }
     /**
-     * Re-fires the section:requested family on the named section (or the
+     * Re-fires the section:requested family for the named section (or the
      * section element itself), whether active or not: the explicit request for a
      * content that wants refreshing. A failed refresh paints its problems,
      * nothing rejects: move() stays the rejecting call.

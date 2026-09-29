@@ -147,7 +147,7 @@ class Drawer extends ParsedElement {
         }
     }
     /**
-     * Re-fires section:requested on the content, open or closed: the explicit
+     * Re-fires section:requested for the content, open or closed: the explicit
      * request for a body that wants refreshing. A failed refresh paints its
      * problems, nothing rejects: update() stays the rejecting call.
      */

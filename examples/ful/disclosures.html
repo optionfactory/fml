@@ -67,7 +67,7 @@
     </fieldset>
 
     <h2>dialogs</h2>
-    <p>The first one is fully declarative: any element carrying <code>dialog-target</code> set to the dialog's id opens it, and the localized acknowledge button closes it. The second one answers with the <code>data-result</code> of the button that closed it: <code>ask()</code> resolves with it, or null on Escape.</p>
+    <p>The first one is fully declarative: any element carrying <code>dialog-target</code> set to the dialog's id opens it, and the localized acknowledge button closes it. The second one answers with the <code>data-result</code> of the button that closed it: <code>ask()</code> resolves with <code>{ dismissed, result, response }</code>, <code>dismissed</code> being true on Escape or the close button.</p>
     <fieldset>
         <legend>a declarative notice and a question answering ask()</legend>
         <button type="button" class="ful-button" dialog-target="notice-dialog">Open the notice</button>
@@ -165,8 +165,8 @@
         const byId = (id) => document.getElementById(id);
 
         byId('ask-confirm').addEventListener('click', async () => {
-            const result = await byId('confirm-dialog').ask();
-            byId('confirm-result').textContent = `ask() resolved with: ${result === null ? 'null (Escape or no result)' : `'${result}'`}`;
+            const { dismissed, result } = await byId('confirm-dialog').ask();
+            byId('confirm-result').textContent = dismissed ? 'ask() resolved with a dismissal' : `ask() resolved with the result '${result}'`;
         });
 
         byId('drawer-deliver').addEventListener('click', async () => {
