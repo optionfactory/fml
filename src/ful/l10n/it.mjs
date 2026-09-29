@@ -31,6 +31,7 @@ export default {
     'filters.boolean.true': 'Sì',
     'filters.boolean.false': 'No',
     'info.tooltip': 'Maggiori informazioni',
+    'failure.no-reason': 'Si è verificato un errore',
     'dialog.acknowledge': 'Ho capito',
     'dialog.close': 'Chiudi',
     'dialog.confirm': 'Conferma',

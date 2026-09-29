@@ -1,7 +1,6 @@
-import { Nodes } from '../../ftl/index.mjs';
+import { Localization, Nodes } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { SectionRequests } from '../events/sections.mjs';
-import { Failure } from '../../httpc/index.mjs';
 
 /**
  * The sections a modal disclosure renders inside its native `<dialog>`: the
@@ -123,7 +122,7 @@ class DialogSections {
             if (!claim.stale) {
                 this.#error?.removeAttribute('hidden');
                 if (this.#error) {
-                    this.#error.textContent = Failure.problemsText(e);
+                    this.#error.textContent = Localization.of().failure(e);
                 }
                 this.#loading?.setAttribute('hidden', '');
                 this.#section.setAttribute('hidden', '');

@@ -1,6 +1,5 @@
-import { Attributes, Fragments, Nodes, ParsedElement, Rendering, Templates } from '../../ftl/index.mjs';
+import { Attributes, Fragments, Localization, Nodes, ParsedElement, Rendering, Templates } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
-import { Failure } from '../../httpc/index.mjs';
 
 /**
  * @typedef {{ page: number, size: number }} TablePageRequest the zero based
@@ -746,10 +745,7 @@ class Table extends ParsedElement {
             this.#loading.setAttribute('hidden', '');
             this.#body.replaceChildren();
             this.#feedback.removeAttribute('hidden');
-            this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Failure.problemsText(
-                error,
-                `${error}`,
-            );
+            this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Localization.of().failure(error);
             this.removeAttribute('aria-busy');
             this.dispatchEvent(
                 new CustomEvent('load:failure', {

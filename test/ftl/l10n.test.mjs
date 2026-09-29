@@ -125,6 +125,38 @@ describe('Localization formatters', () => {
     });
 });
 
+describe('Localization.failure', () => {
+    const receiver = { l10n: { 'failure.no-reason': 'Something went wrong' }, locale: 'en' };
+    const failure = (value) => Localization.failure.call(receiver, value);
+
+    it('reads a value carrying problems as their reasons, one per line', () => {
+        const value = { message: 'invalid', problems: [{ reason: 'blank' }, { reason: 'server said no' }] };
+        assert.strictEqual(failure(value), 'blank\nserver said no');
+    });
+
+    it('reads a missing, null or blank reason as the no-reason message', () => {
+        const value = { problems: [{ reason: null }, {}, { reason: '  ' }, { reason: 'kept' }] };
+        assert.strictEqual(failure(value), 'Something went wrong\nSomething went wrong\nSomething went wrong\nkept');
+    });
+
+    it('does not look up the no-reason message while every reason is there', () => {
+        const value = { problems: [{ reason: 'blank' }] };
+        assert.strictEqual(Localization.failure.call({ l10n: {} }, value), 'blank');
+    });
+
+    it('reads a value without problems as its message, an empty list included', () => {
+        assert.strictEqual(failure(new Error('bang')), 'bang');
+        assert.strictEqual(failure({ message: 'boom', problems: [] }), 'boom');
+    });
+
+    it('reads anything else as its string form, and nothing as the empty string', () => {
+        assert.strictEqual(failure('plain text'), 'plain text');
+        assert.strictEqual(failure(42), '42');
+        assert.strictEqual(failure(null), '');
+        assert.strictEqual(failure(undefined), '');
+    });
+});
+
 describe('Localization.of', () => {
     before(() => {
         registry.defineModule('l10n', Localization).defineOverlay({ l10n: { 'app.title': 'Titolo' }, locale: 'it' });

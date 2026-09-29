@@ -1,4 +1,4 @@
-import { Failure } from '../../httpc/index.mjs';
+import { Localization } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 
 /**
@@ -100,7 +100,7 @@ class SectionRequests {
         const error = document.createElement('div');
         error.className = 'ful-section-error';
         error.setAttribute('role', 'alert');
-        error.textContent = Failure.problemsText(cause);
+        error.textContent = Localization.of().failure(cause);
         section.prepend(error);
     }
 }

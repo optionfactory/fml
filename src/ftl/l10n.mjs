@@ -21,6 +21,10 @@ const POSITIONAL = /\{(\d+)\}/g;
 /** @param {any} v @returns {v is Record<string, string>} */
 const isPlainObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
 
+/** @param {any} problem @returns {string|undefined} the reason, unless it is missing or blank */
+const reasonOf = (problem) =>
+    typeof problem?.reason === 'string' && problem.reason.trim() !== '' ? problem.reason : undefined;
+
 const warned = new Set();
 const warnOnce = (problem) => {
     if (!warned.has(problem)) {
@@ -155,13 +159,34 @@ class Localization {
     }
 
     /**
+     * What went wrong, as text for the reader. A value carrying a non-empty
+     * `problems` array reads as their reasons, one per line, a blank or missing
+     * reason reading as the `failure.no-reason` message. Any other value with a
+     * `message` reads as that message; anything else as its string form, and
+     * null or undefined as the empty string.
+     *
+     * @param {any} value what was thrown or rejected with
+     * @this {Receiver}
+     * @returns {string}
+     */
+    static failure(value) {
+        if (Array.isArray(value?.problems) && value.problems.length > 0) {
+            return value.problems.map((p) => reasonOf(p) ?? Localization.t.call(this, 'failure.no-reason')).join('\n');
+        }
+        if (value?.message !== undefined) {
+            return String(value.message);
+        }
+        return value == null ? '' : String(value);
+    }
+
+    /**
      * An imperative facade over the module functions, resolving the translations
      * and the locale from the registry overlays on every call, the same lookup a
      * template makes: a facade taken at module scope, before the plugin
      * configures, still sees the translations.
      *
      * @param {{ locale?: string }} [overrides] an explicit locale, winning over the registry one
-     * @returns {{ t: (key: string, ...args: any[]) => string, date: (value: Date | number, options?: Intl.DateTimeFormatOptions) => string, number: (value: number, options?: Intl.NumberFormatOptions) => string, bytes: (value: number) => string }}
+     * @returns {{ t: (key: string, ...args: any[]) => string, date: (value: Date | number, options?: Intl.DateTimeFormatOptions) => string, number: (value: number, options?: Intl.NumberFormatOptions) => string, bytes: (value: number) => string, failure: (value: any) => string }}
      */
     static of(overrides = {}) {
         const resolve = (prop) => registry.evaluator().resolve(prop);
@@ -175,6 +200,7 @@ class Localization {
             date: bind(Localization.date),
             number: bind(Localization.number),
             bytes: bind(Localization.bytes),
+            failure: bind(Localization.failure),
         };
     }
 }

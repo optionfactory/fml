@@ -1,5 +1,4 @@
 import { Localization, ParsedElement } from '../../ftl/index.mjs';
-import { Failure } from '../../httpc/index.mjs';
 
 const SEVERITIES = ['info', 'success', 'warning', 'error'];
 
@@ -88,7 +87,7 @@ class Toasts extends ParsedElement {
         item.classList.add(severity);
         item.setAttribute('role', severity === 'error' ? 'alert' : 'status');
         const body = document.createElement('div');
-        body.textContent = Failure.problemsText(message, `${message ?? ''}`);
+        body.textContent = Localization.of().failure(message);
         const dismiss = document.createElement('button');
         dismiss.type = 'button';
         dismiss.setAttribute('aria-label', Localization.of().t('toast.dismiss'));

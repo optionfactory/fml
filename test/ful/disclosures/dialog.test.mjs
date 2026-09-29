@@ -468,6 +468,19 @@ for (const { tag, content, open, update } of elements) {
             assert.isFalse(section.hasAttribute('hidden'));
         });
 
+        it('update() paints a problem without a reason as the localized no-reason message', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            const failure = new Failure('500 Internal Server Error', [
+                { type: 'UNEXPECTED_PROBLEM', context: null, reason: null, details: null },
+            ]);
+
+            await update(el, async () => {
+                throw failure;
+            }).catch(() => undefined);
+
+            assert.strictEqual(el.querySelector('[data-ref=error]').textContent, 'Something went wrong');
+        });
+
         it('update() paints the reasons of a rejection and still rejects its caller', async () => {
             const [el] = await mount(`<${tag} header="t">body</${tag}>`);
             const failure = new Failure('invalid', [

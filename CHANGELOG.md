@@ -108,6 +108,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 #### Localization
 
+- [NEW] `Localization.failure(value)`, available as `#l10n:failure` in templates, turns what went wrong into text: a `Failure`'s reasons one per line, a problem with no reason reading as the new `failure.no-reason` message, an `Error` as its message. The dialog, the drawer, the table, the async sections and the toasts paint through it, so a problem the server sent without a reason no longer shows as the word "null"
 - [NEW] messages take named `{placeholders}` and `{ one, other }` plural forms selected through `Intl.PluralRules` over `{count}`; `Localization.of()` resolves them from script. The built-in messages ship in English, Italian, Spanish and French
 - [ENH] the language tag is read without regard to case (`'IT'`, `'it-IT'` pick Italian)
 - [ENH] `ful-local-date` and `ful-instant` take their locale from the `locale` attribute, then the page's locale, then the platform default
