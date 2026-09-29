@@ -2,6 +2,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { Plugin, Toasts } from '../../../src/ful/index.mjs';
+import { emulateMedia } from '@web/test-runner-commands';
 import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
@@ -26,6 +27,18 @@ describe('Toasts', () => {
 
         assert.strictEqual(getComputedStyle(region).display, 'flex');
         assert.strictEqual(getComputedStyle(region).position, 'fixed');
+    });
+
+    it('appears without sliding in where motion is not wanted', async () => {
+        const [region] = await mount('<ful-toasts></ful-toasts>');
+        await emulateMedia({ reducedMotion: 'reduce' });
+        try {
+            const item = region.show('a toast');
+
+            assert.strictEqual(item.getAnimations().length, 0);
+        } finally {
+            await emulateMedia({ reducedMotion: 'no-preference' });
+        }
     });
 
     it('announces itself as the notifications region', async () => {
