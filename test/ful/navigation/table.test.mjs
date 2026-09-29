@@ -608,16 +608,44 @@ describe('Table sort and pagination edges', () => {
         pending[0].resolve({ data: [{ a: 'one' }], size: 25 });
         await settle();
 
-        const beyond = tableEl.load({ page: 2, size: 10 }, null, {});
+        const successes = [];
+        tableEl.addEventListener('load:success', (e) => successes.push(e.detail.pageRequest));
+        let settled = false;
+        const beyond = tableEl.load({ page: 2, size: 10 }, null, {}).then(() => {
+            settled = true;
+        });
         pending[1].resolve({ data: [], size: 10 });
-        await beyond;
+        await settle();
 
         assert.deepStrictEqual(requests[2].pageRequest, { page: 0, size: 10 }, 'the last existing page is asked for');
+        assert.isFalse(settled, 'the load is not over while the last page is on its way');
+        assert.strictEqual(tableEl.getAttribute('aria-busy'), 'true');
+        assert.deepStrictEqual(successes, [], 'the out-of-range answer is not reported');
+
         pending[2].resolve({ data: [{ a: 'only' }], size: 10 });
-        await settle();
+        await beyond;
 
         assert.deepStrictEqual(rowTexts(tableEl), ['only']);
         assert.strictEqual(tableEl.querySelector('li[data-ref=index]').textContent.trim(), 'Page 1 of 1');
+        assert.isFalse(tableEl.hasAttribute('aria-busy'));
+        assert.deepStrictEqual(successes, [{ page: 0, size: 10 }], 'the page the table shows is the one reported');
+    });
+
+    it('rejects the load when the last page it falls back to fails', async () => {
+        const [tableEl] = await mountDeferred();
+        pending[0].resolve({ data: [{ a: 'one' }], size: 25 });
+        await settle();
+
+        const beyond = tableEl.load({ page: 2, size: 10 }, null, {});
+        pending[1].resolve({ data: [], size: 10 });
+        await settle();
+        pending[2].reject(new Error('boom'));
+
+        const error = await beyond.then(
+            () => null,
+            (e) => e,
+        );
+        assert.strictEqual(error?.message, 'boom');
     });
 
     it('carries no initial sort for an order declared without its sorter', async () => {

@@ -572,23 +572,28 @@ class Table extends ParsedElement {
         this.#noAutoload.setAttribute('hidden', '');
         this.#empty.setAttribute('hidden', '');
         this.setAttribute('aria-busy', 'true');
+        let lastPage;
         try {
             const pageResponse = await this.#loader.load(pageRequest, sortRequest, filterRequest);
             if (claim.stale) {
                 return;
             }
-            this.#latestRequest = { pageRequest, sortRequest, filterRequest };
-            this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
-            //settled before the event: a listener counting what loaded has to
-            //see the table as it now is
-            this.removeAttribute('aria-busy');
-            this.dispatchEvent(
-                new CustomEvent('load:success', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: { pageRequest, sortRequest, filterRequest, response: pageResponse },
-                }),
-            );
+            lastPage = Math.max(0, Math.ceil(pageResponse.size / pageRequest.size) - 1);
+            if (pageRequest.page <= lastPage) {
+                this.#latestRequest = { pageRequest, sortRequest, filterRequest };
+                this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
+                //settled before the event: a listener counting what loaded has to
+                //see the table as it now is
+                this.removeAttribute('aria-busy');
+                this.dispatchEvent(
+                    new CustomEvent('load:success', {
+                        bubbles: true,
+                        cancelable: false,
+                        detail: { pageRequest, sortRequest, filterRequest, response: pageResponse },
+                    }),
+                );
+                return;
+            }
         } catch (/** @type any */ error) {
             if (claim.stale) {
                 //the newer load owns the table and its outcome: a superseded
@@ -615,6 +620,7 @@ class Table extends ParsedElement {
             );
             throw error;
         }
+        return await this.load({ page: lastPage, size: pageRequest.size }, sortRequest, filterRequest);
     }
     /** Hands the loader to the callback, for runtime reconfigurations. */
     async withLoader(fn) {
@@ -632,13 +638,6 @@ class Table extends ParsedElement {
     }
     #update(pageRequest, sortRequest, filterRequest, pageResponse) {
         const pages = Math.ceil(pageResponse.size / pageRequest.size);
-        const lastPage = Math.max(0, pages - 1);
-        if (pageRequest.page > lastPage) {
-            //the data shrank behind the page being answered: the last page that
-            //still exists is loaded instead of an out-of-range empty one
-            this.load({ page: lastPage, size: pageRequest.size }, sortRequest, filterRequest);
-            return;
-        }
         this.#loading.setAttribute('hidden', '');
         this.#body.replaceChildren(
             this.template('row')
