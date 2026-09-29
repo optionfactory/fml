@@ -41,6 +41,30 @@ const booleanValueLabel = (token) => t(token === '' ? 'filters.boolean.any' : `f
 
 const labelTextOf = (filter) => filter.querySelector(':scope > label')?.textContent.trim() || null;
 
+/**
+ * Pins a button to the choice the singular attribute names, hiding it. A name
+ * outside the vocabulary pins the fallback instead, and declaring the plural
+ * beside the singular is ignored: both are warned about.
+ * @param {HTMLElement & { declared(name: string): any }} el
+ * @param {ChoiceButton} button
+ * @param {{ singular: string, plural: string, vocabulary: string[], fallback: string }} names
+ */
+const fixChoice = (el, button, { singular, plural, vocabulary, fallback }) => {
+    const fixed = el.declared(singular);
+    if (fixed === null) {
+        return;
+    }
+    if (el.hasAttribute(plural)) {
+        console.warn(`${el.localName}: ${singular} fixes what ${plural} offers a menu for, the plural is ignored`, el);
+    }
+    const known = vocabulary.includes(fixed);
+    if (!known) {
+        console.warn(`${el.localName}: '${fixed}' is not one of its ${plural}, the default is pinned instead`, el);
+    }
+    button.allowed = [known ? fixed : fallback];
+    button.fixed = true;
+};
+
 /** @returns {FilterCriterion|null} */
 const asCriterion = (label, operator, operands) => {
     const shown = operands.filter((o) => o !== null && o !== undefined && `${o}` !== '');
@@ -111,33 +135,16 @@ class CompareFilter extends Input {
         if (this._operator.value === null) {
             this._showDefaultOperator();
         }
-        this.#fixOperator();
+        fixChoice(this, this._operator, {
+            singular: 'operator',
+            plural: 'operators',
+            vocabulary: this._vocabulary(),
+            fallback: this._defaultOperator(),
+        });
         return { ...pieces, freeze: this._container, also: [this._value2] };
     }
-    #fixOperator() {
-        const fixed = this.declared('operator');
-        if (fixed === null) {
-            return;
-        }
-        if (this.hasAttribute('operators')) {
-            console.warn(`${this.localName}: operator fixes what operators offers a menu for, the plural is ignored`, this);
-        }
-        const vocabulary = this._vocabulary();
-        /** @type {string|null} */
-        let preferred = null;
-        if (vocabulary.includes(fixed)) {
-            preferred = fixed;
-        } else {
-            console.warn(`${this.localName}: '${fixed}' is not one of its operators, the default is pinned instead`, this);
-            preferred = this._defaultOperator();
-        }
-        this._operator.allowed = [preferred];
-        this._operator.fixed = true;
-    }
     _showDefaultOperator() {
-        const preferred = this._defaultOperator();
-        const allowed = this._operator.allowed;
-        this._showOperator(allowed.includes(preferred) ? preferred : allowed[0]);
+        this._showOperator(this._operator.preferring(this._defaultOperator()));
     }
     /**
      * Restores the declared `value` tuple, operator included, as a field reset
@@ -386,27 +393,13 @@ class TextFilter extends CompareFilter {
         );
         this._sensitivityButton.allowed = null;
         this._sensitivityButton.value = SENSITIVITIES[0];
-        this.#fixSensitivity();
+        fixChoice(this, this._sensitivityButton, {
+            singular: 'sensitivity',
+            plural: 'sensitivities',
+            vocabulary: SENSITIVITIES,
+            fallback: 'IGNORE_CASE',
+        });
         return pieces;
-    }
-    #fixSensitivity() {
-        const fixed = this.declared('sensitivity');
-        if (fixed === null) {
-            return;
-        }
-        if (this.hasAttribute('sensitivities')) {
-            console.warn('ful-filter-text: sensitivity fixes what sensitivities offers a menu for, the plural is ignored', this);
-        }
-        /** @type {string|null} */
-        let preferred = null;
-        if (SENSITIVITIES.includes(fixed)) {
-            preferred = fixed;
-        } else {
-            console.warn(`ful-filter-text: '${fixed}' is not one of its sensitivities, the default is pinned instead`, this);
-            preferred = 'IGNORE_CASE';
-        }
-        this._sensitivityButton.allowed = [preferred];
-        this._sensitivityButton.fixed = true;
     }
     _choices() {
         return [...super._choices(), this._sensitivityButton].filter((c) => c);
@@ -436,9 +429,7 @@ class TextFilter extends CompareFilter {
         }
         const previous = this._sensitivityButton.value;
         this._sensitivityButton.allowed = declared;
-        if (!this._sensitivityButton.allowed.includes(previous)) {
-            this._sensitivityButton.value = this._sensitivityButton.allowed[0];
-        }
+        this._sensitivityButton.value = this._sensitivityButton.preferring(previous);
     }
     /**
      * The tuple with the sensitivity after the operator, `[operator,
@@ -474,8 +465,7 @@ class TextFilter extends CompareFilter {
     formResetCallback() {
         super.formResetCallback();
         if (!this.hasAttribute('value')) {
-            const allowed = this._sensitivityButton.allowed;
-            this._sensitivityButton.value = allowed.includes('IGNORE_CASE') ? 'IGNORE_CASE' : allowed[0];
+            this._sensitivityButton.value = this._sensitivityButton.preferring('IGNORE_CASE');
         }
     }
 }
@@ -546,10 +536,7 @@ class BooleanFilter extends Field {
             onPick: () => this._notifyChange(),
         });
         this.operators = this.declared('operators');
-        const allowed = this._operator.allowed;
-        this._operator.value = allowed.includes(BooleanFilter.DEFAULT_OPERATOR)
-            ? BooleanFilter.DEFAULT_OPERATOR
-            : allowed[0];
+        this._operator.value = this._operator.preferring(BooleanFilter.DEFAULT_OPERATOR);
         this._value.allowed = null;
         this._value.value = '';
         return {
@@ -612,10 +599,7 @@ class BooleanFilter extends Field {
     formResetCallback() {
         super.formResetCallback();
         if (!this.hasAttribute('value')) {
-            const allowed = this._operator.allowed;
-            this._operator.value = allowed.includes(BooleanFilter.DEFAULT_OPERATOR)
-                ? BooleanFilter.DEFAULT_OPERATOR
-                : allowed[0];
+            this._operator.value = this._operator.preferring(BooleanFilter.DEFAULT_OPERATOR);
         }
     }
     /**

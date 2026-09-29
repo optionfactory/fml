@@ -107,6 +107,14 @@ class ChoiceButton {
         }
     }
     /**
+     * The choice when the menu allows it, otherwise the first allowed one.
+     * @param {string|null} choice
+     * @returns {string}
+     */
+    preferring(choice) {
+        return choice !== null && this.#allowed.includes(choice) ? choice : this.#allowed[0];
+    }
+    /**
      * Whether fewer than two choices are allowed. A pinned button is disabled,
      * opens no menu and shows the single choice as its value.
      * @returns {boolean}
