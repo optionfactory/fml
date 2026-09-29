@@ -481,13 +481,15 @@ describe('Drawer subclass reuse', () => {
             `;
         }
         registry.defineElement('x-side-panel', SidePanel);
-        const [panel] = await mount('<x-side-panel title="t" placement="start">body</x-side-panel>');
+        const [panel] = await mount('<x-side-panel header="t" placement="start">body</x-side-panel>');
 
         const dialog = panel.querySelector('dialog');
         assert.isTrue(dialog.classList.contains('ful-drawer'));
         assert.strictEqual(dialog.getAttribute('placement'), 'start');
+        assert.strictEqual(panel.querySelector('[data-ref=title]').textContent, 't');
         const content = await panel.update('the panel', () => document.createElement('p'));
         assert.strictEqual(content.querySelector('p').localName, 'p');
+        assert.strictEqual(panel.querySelector('[data-ref=title]').textContent, 'the panel');
         panel.close();
     });
 });
