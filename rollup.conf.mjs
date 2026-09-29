@@ -252,26 +252,22 @@ export default [
     {
         input: 'src/ftl/index.mjs',
         output: outputs('ftl'),
-        treeshake: true,
         plugins: [new RollupPeggyWithSourceMap(), resolve(), new RollupTypeGenerator('ftl')],
     },
     {
         input: 'src/httpc/index.mjs',
         output: outputs('httpc'),
-        treeshake: true,
         plugins: [resolve(), new RollupTypeGenerator('httpc')],
     },
     {
         input: 'src/client-errors/client-errors.mjs',
         output: outputs('client-errors', { modules: false, global: null }),
-        treeshake: true,
         plugins: [resolve()],
     },
     {
         input: 'src/ful/index.mjs',
         external: dependsOn('ftl', 'httpc'),
         output: outputs('ful', { siblings: true }),
-        treeshake: true,
         plugins: [
             resolve(),
             css('ful.css'),
@@ -286,7 +282,6 @@ export default [
         input: 'src/index.mjs',
         external: dependsOn('ftl', 'httpc', 'ful'),
         output: outputs('fml', { script: false, siblings: true }),
-        treeshake: true,
         plugins: [resolve(), new RollupTypeGenerator('fml'), oneModuleGraph()],
     },
     {
@@ -294,7 +289,6 @@ export default [
         //ftl/httpc/ful globals itself, so nothing has to be loaded before it
         input: 'src/index.mjs',
         output: outputs('fml', { modules: false }),
-        treeshake: true,
         plugins: [new RollupPeggyWithSourceMap(), resolve(), css('fml.css')],
     },
 ];

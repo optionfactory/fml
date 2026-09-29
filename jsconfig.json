@@ -6,16 +6,10 @@
         "moduleResolution": "bundler",
         "strict": true,
         "noImplicitAny": false,
-        "strictFunctionTypes": true,
-        "strictBindCallApply": true,
         "skipLibCheck": true,
-        "noImplicitThis": true,
         "noImplicitReturns": true,
-        "alwaysStrict": true,
-        "esModuleInterop": true,
         "checkJs": true,
-        "allowJs": true,
-        "declaration": true
+        "allowJs": true
     },
     "include": ["src/**/*.mjs", "types/**/*.d.ts"]
 }
