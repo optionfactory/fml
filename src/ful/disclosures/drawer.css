@@ -2,11 +2,6 @@
     dialog.ful-drawer {
         --ful-drawer-width: min(90vw, 28rem);
 
-        @media (max-width: 30rem) {
-            --ful-drawer-width: 100vw;
-            border-radius: 0;
-        }
-
         position: fixed;
         inset-block: 0;
         /* the ua sheet pins both inline insets to 0; leaving start at 0 while
@@ -158,6 +153,15 @@
 
             &[closing] {
                 animation-name: ful-drawer-slide-out;
+            }
+        }
+
+        @media (max-width: 30rem) {
+            --ful-drawer-width: 100vw;
+
+            &,
+            &[placement="start"] {
+                border-radius: 0;
             }
         }
     }

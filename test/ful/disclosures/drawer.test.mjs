@@ -2,6 +2,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { AsyncEvents, Plugin, Drawer } from '../../../src/ful/index.mjs';
+import { setViewport } from '@web/test-runner-commands';
 import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
@@ -113,6 +114,34 @@ describe('Drawer', () => {
 
         drawer.close();
         side.close();
+    });
+
+    it('fills a phone screen edge to edge with square corners, on either side', async () => {
+        const { innerWidth: width, innerHeight: height } = window;
+        await setViewport({ width: 400, height: 800 });
+        try {
+            for (const placement of ['end', 'start']) {
+                const [drawer] = await mount(`<ful-drawer header="t" placement="${placement}">body</ful-drawer>`);
+                drawer.open();
+                const dialog = drawer.querySelector('dialog');
+                const style = getComputedStyle(dialog);
+
+                assert.strictEqual(dialog.getBoundingClientRect().width, 400, placement);
+                assert.deepStrictEqual(
+                    [
+                        style.borderStartStartRadius,
+                        style.borderStartEndRadius,
+                        style.borderEndStartRadius,
+                        style.borderEndEndRadius,
+                    ],
+                    ['0px', '0px', '0px', '0px'],
+                    placement,
+                );
+                drawer.close();
+            }
+        } finally {
+            await setViewport({ width, height });
+        }
     });
 
     it('update() shows the loading state, then the delivered content', async () => {
