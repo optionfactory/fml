@@ -97,6 +97,41 @@ describe('Filter value tuples', () => {
     });
 });
 
+describe('A range filter configures both bounds', () => {
+    const typeInto = (input, text) => {
+        input.value = text;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        return input.value;
+    };
+
+    it('filters what is typed into the upper bound as into the lower one', async () => {
+        const [el] = await mount('<ful-filter-text keep="[0-9]" name="f">t</ful-filter-text>');
+
+        assert.strictEqual(typeInto(el.querySelector('[data-ref=value1]'), 'a1b2'), '12');
+        assert.strictEqual(typeInto(el.querySelector('[data-ref=value2]'), 'c3d4'), '34');
+    });
+
+    it('passes input- attributes to both bounds, except the id', async () => {
+        const [el] = await mount('<ful-filter-number input-data-x="y" input-id="bound" name="f">n</ful-filter-number>');
+        const [lower, upper] = [el.querySelector('[data-ref=value1]'), el.querySelector('[data-ref=value2]')];
+
+        assert.strictEqual(lower.dataset.x, 'y');
+        assert.strictEqual(upper.dataset.x, 'y');
+        assert.strictEqual(lower.id, 'bound', 'the label names the lower bound');
+        assert.isFalse(upper.hasAttribute('id'), 'no two controls share the id');
+    });
+
+    it('puts the autocomplete and the placeholder on both bounds, the placeholder live', async () => {
+        const [el] = await mount('<ful-filter-text autocomplete="off" placeholder="from" name="f">t</ful-filter-text>');
+        const bounds = [el.querySelector('[data-ref=value1]'), el.querySelector('[data-ref=value2]')];
+
+        assert.deepStrictEqual(bounds.map((b) => b.getAttribute('autocomplete')), ['off', 'off']);
+        assert.deepStrictEqual(bounds.map((b) => b.getAttribute('placeholder')), ['from', 'from']);
+        el.placeholder = 'search';
+        assert.deepStrictEqual(bounds.map((b) => b.getAttribute('placeholder')), ['search', 'search']);
+    });
+});
+
 describe('InstantFilter instant conversion', () => {
     it('shows an ISO instant as local wall clock time and reports it back as UTC', async () => {
         const [el] = await mount(

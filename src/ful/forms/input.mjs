@@ -79,6 +79,13 @@ const filterOf = (el) => {
  * - `uppercase`, `trim` and `v-type` shape the value as it is read; see `value`.
  *
  * The control's native `change` is stopped and republished as the field's own.
+ *
+ * A subclass template may render more than one control, as the compare filters
+ * render the two bounds of a range: the first is `_input`, the one the field is
+ * named by and whose `change` it republishes, and every one of them gets the
+ * inputmode, `autocomplete`, the `input-` passthrough, the keystroke filter and
+ * the placeholder. The passthrough leaves `input-id` to the first alone, so no
+ * two controls share an id.
  */
 class Input extends Field {
     /** @type {string[]} */
@@ -114,6 +121,8 @@ class Input extends Field {
      * @type {any}
      */
     _input;
+    /** @type {(HTMLInputElement|HTMLTextAreaElement)[]} */
+    #controls = [];
     /**
      * The type the field renders, which a subclass overrides to wrap another
      * native type. The base answers the declared `type`, else `number` under
@@ -133,35 +142,15 @@ class Input extends Field {
         const mode = INPUT_MODES[declared];
         const type = mode ? 'text' : declared;
         const fragment = this.template().withOverlay({ type, slots }).render();
-        this._input = fragment.querySelector(':is(ful-control-group, ful-control) > :is(input, textarea)');
-        if (mode) {
-            Attributes.set(this._input, 'inputmode', mode);
-        }
-
-        Attributes.set(
-            this._input,
-            'autocomplete',
-            this.declared('autocomplete') ?? inheritedAutocomplete(this),
-        );
-        Attributes.forward('input-', this, this._input);
+        this.#controls = /** @type {(HTMLInputElement|HTMLTextAreaElement)[]} */ ([
+            ...fragment.querySelectorAll(':is(ful-control-group, ful-control) > :is(input, textarea)'),
+        ]);
+        this._input = this.#controls[0];
+        const autocomplete = this.declared('autocomplete') ?? inheritedAutocomplete(this);
         const strip = filterOf(this);
-        this._input.addEventListener('input', (evt) => {
-            if (!strip) {
-                return;
-            }
-            const before = evt.target.value;
-            const after = strip(before);
-            if (before === after) {
-                return;
-            }
-            const start = evt.target.selectionStart;
-            evt.target.value = after;
-            if (start === null) {
-                return;
-            }
-            const caret = strip(before.slice(0, start)).length;
-            evt.target.setSelectionRange(caret, caret);
-        });
+        for (const control of this.#controls) {
+            this.#configure(control, mode, autocomplete, strip);
+        }
         this._input.addEventListener('change', (evt) => {
             evt.stopPropagation();
             this._notifyChange();
@@ -172,6 +161,40 @@ class Input extends Field {
             error: fragment.querySelector('ful-field-error'),
             label: fragment.querySelector('label'),
         };
+    }
+    /**
+     * @param {HTMLInputElement|HTMLTextAreaElement} control
+     * @param {string|undefined} mode the inputmode the type names
+     * @param {string|null} autocomplete
+     * @param {((text: string) => string)|null} strip the keystroke filter
+     */
+    #configure(control, mode, autocomplete, strip) {
+        if (mode) {
+            Attributes.set(control, 'inputmode', mode);
+        }
+        Attributes.set(control, 'autocomplete', autocomplete);
+        const id = control.id;
+        Attributes.forward('input-', this, control);
+        if (control !== this._input) {
+            Attributes.set(control, 'id', id || null);
+        }
+        control.addEventListener('input', () => {
+            if (!strip) {
+                return;
+            }
+            const before = control.value;
+            const after = strip(before);
+            if (before === after) {
+                return;
+            }
+            const start = control.selectionStart;
+            control.value = after;
+            if (start === null) {
+                return;
+            }
+            const caret = strip(before.slice(0, start)).length;
+            control.setSelectionRange(caret, caret);
+        });
     }
     /**
      * The control's text, shaped in this order: upper cased under `uppercase`,
@@ -214,7 +237,9 @@ class Input extends Field {
         return v === ' ' ? null : v;
     }
     set placeholder(d) {
-        Attributes.set(this._input, 'placeholder', d ?? ' ');
+        for (const control of this.#controls) {
+            Attributes.set(control, 'placeholder', d ?? ' ');
+        }
         this.reflectTo('placeholder', d);
     }
 }
