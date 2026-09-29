@@ -186,6 +186,22 @@ describe('Drawer', () => {
         assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
     });
 
+    it('reveals the error region before filling it, so the live region announces the problems', async () => {
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
+        const error = drawer.querySelector('[data-ref=error]');
+        const kinds = [];
+        const observer = new MutationObserver((records) => {
+            kinds.push(...records.map((r) => (r.type === 'attributes' ? 'revealed' : 'filled')));
+        });
+        observer.observe(error, { attributes: true, attributeFilter: ['hidden'], childList: true });
+
+        await drawer.update('title', () => Promise.reject(new Error('no such thing'))).catch(() => undefined);
+        observer.disconnect();
+
+        assert.strictEqual(kinds.slice(-2).join(','), 'revealed,filled');
+        await closed(drawer);
+    });
+
     it('a superseded update owns nothing: its outcome is not painted, a newer one wins', async () => {
         const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         let deliverFirst;
@@ -290,6 +306,26 @@ describe('Drawer', () => {
         await closed;
 
         assert.deepStrictEqual(closes, [{ dismissed: false, response: null }]);
+    });
+
+    it('a reopening owes nothing to the save before it: a later close is a dismissal', async () => {
+        const [drawer] = await mount(`
+            <ful-drawer header="Edit" close-on-submit>
+                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+            </ful-drawer>`);
+        const form = drawer.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
+        const closes = [];
+        drawer.addEventListener('close', (e) => closes.push(e.detail.dismissed));
+
+        drawer.open();
+        const saved = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        form.querySelector('button[type=submit]').click();
+        await saved;
+        drawer.open();
+        await closed(drawer);
+
+        assert.strictEqual(closes.join(','), 'false,true');
     });
 
     it('stays open on a failed submit, the form keeping the problems', async () => {

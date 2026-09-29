@@ -1,19 +1,28 @@
 /**
- * Sleeping, debouncing and throttling. Debounce and throttle both return the
- * wrapped function together with a cancel function.
+ * Sleeping, debouncing and throttling. `debounce` and `throttle` both return
+ * the wrapped function together with an abort function, which cancels the call
+ * pending and leaves the wrapped function working.
  */
 class Timing {
-    /** Resolves after the given milliseconds. @param {number} ms */
+    /**
+     * @param {number} ms
+     * @returns {Promise<void>} resolving after `ms` milliseconds
+     */
     static sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
     /**
-     * Executes only after a period of inactivity (pause in events).
-     * Respond to the "end" of a series of events.
+     * Collapses a burst of calls into one call of `func`, a burst ending once
+     * `timeoutMs` pass without a call. By default `func` is called at the end
+     * of the burst with the arguments of its last call. With `immediate` it is
+     * called at the first call of a burst, with that call's arguments, and not
+     * at the end. Without `immediate`, a call the wrapped function receives
+     * from inside `func` starts a new burst.
      * @param {number} timeoutMs
-     * @param {function} func
-     * @param {{ immediate?: boolean }} [options] - immediate fires on the leading edge instead of the trailing one
-     * @returns {[function, function]}
+     * @param {(...args: any[]) => any} func
+     * @param {{ immediate?: boolean }} [options]
+     * @returns {[(...args: any[]) => void, () => void]} the wrapped function
+     * and the abort function
      */
     static debounce(timeoutMs, func, options) {
         const immediate = options?.immediate ?? false;
@@ -31,8 +40,6 @@ class Timing {
             if (!immediate) {
                 func(...args);
             }
-            //func may have called debounced again, arming a new timer with new args:
-            //clearing them then would drop the call that is now pending
             if (tid === null) {
                 args = [];
             }
@@ -56,11 +63,17 @@ class Timing {
         return [debounced, abort];
     }
     /**
-     * Executes at most once per specified time interval, regardless of ongoing events.
+     * Calls `func` at most once per `timeoutMs`, always with the arguments of
+     * the latest call. With `leading`, on by default, a call arriving once the
+     * interval since the previous call of `func` has passed calls it at once;
+     * without it, the first call only starts the interval. With `trailing`, on
+     * by default, a call arriving inside the interval schedules `func` for the
+     * interval's end; without it, such a call is dropped.
      * @param {number} timeoutMs
-     * @param {function} func
-     * @param {{ leading?: boolean, trailing?: boolean }} [options] - which edges of the interval call, both by default
-     * @returns {[function, function]}
+     * @param {(...args: any[]) => any} func
+     * @param {{ leading?: boolean, trailing?: boolean }} [options]
+     * @returns {[(...args: any[]) => void, () => void]} the wrapped function
+     * and the abort function
      */
     static throttle(timeoutMs, func, options) {
         const leading = options?.leading ?? true;

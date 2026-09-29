@@ -88,6 +88,41 @@ describe('The placing of a popover as it opens', () => {
             note.remove();
         }
     });
+
+    it("measures the callout offsets from the popover's padding box, inside its border", async () => {
+        const invoker = document.createElement('button');
+        invoker.textContent = 'i';
+        invoker.style.margin = '300px 0 0 200px';
+        const note = document.createElement('div');
+        note.setAttribute('popover', 'manual');
+        note.setAttribute('placement', 'bottom');
+        note.style.width = '200px';
+        note.style.border = '20px solid';
+        document.body.append(invoker, note);
+        try {
+            Anchors.wire(invoker, note, { handPlace: true });
+
+            note.showPopover();
+            await frames(2);
+
+            const here = note.getBoundingClientRect();
+            const there = invoker.getBoundingClientRect();
+            assert.closeTo(
+                parseFloat(note.style.getPropertyValue('--ful-note-callout-inline')),
+                there.left + there.width / 2 - here.left - 20,
+                1,
+            );
+            assert.closeTo(
+                parseFloat(note.style.getPropertyValue('--ful-note-callout-block')),
+                there.top + there.height / 2 - here.top - 20,
+                1,
+            );
+        } finally {
+            note.hidePopover();
+            invoker.remove();
+            note.remove();
+        }
+    });
 });
 
 describe('Anchors.wire invoke and expanded', () => {

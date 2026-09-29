@@ -2,32 +2,44 @@ import { Failure } from '../../httpc/index.mjs';
 import { Claims } from '../claims.mjs';
 
 /**
- * The async section machinery shared by ful-tabs, ful-wizard, ful-dialog and
- * ful-drawer: every activation of a section fires the section:requested family
- * on the host component (bubbling: the generic type, the #index type, and the
- * data-step name when present) and awaits the union of the answers, wherever
- * they were registered. The event's target is the component, whose local name
- * telling the family, e.target === e.currentTarget separating a host's own
- * sections from a nested component's, while detail.section stays the write
- * target. No listener is a plain pass-through, and the first-entry flag is not
- * even spent, so a listener attached later still sees the first activation. A
- * pending answer shows the loading chrome a frame late (answers that never
- * pend never flash) and declares the section aria-busy; a delivery superseded
- * by a newer activation of the same section owns no chrome; a rejection paints
- * the section's error chrome, replacing whatever a previous answer had
- * painted, and travels to the caller.
+ * The section requests shared by ful-tabs, ful-wizard, ful-dialog and
+ * ful-drawer. Each activation of a section fires a family of events on the host
+ * component and waits for the answers that listeners registered through
+ * `AsyncEvents.asyncOn` attach to them. The events target the component, so
+ * `e.target.localName` names the family and `e.target === e.currentTarget`
+ * separates a host's own sections from those of a nested component, while
+ * `detail.section` is the element the content goes in.
+ *
+ * While an answer is pending, from the next animation frame, the section
+ * carries the `loading` attribute and `aria-busy="true"`; answers that settle
+ * before that frame show neither. A new request for the same section
+ * supersedes the one in flight, which then no longer touches the section's
+ * chrome. A failure removes the section's previous error and prepends a
+ * `.ful-section-error` with the `alert` role, holding the reasons of the
+ * failure's problems, one per line, or its message when it carries none.
  */
 class SectionRequests {
+    /** @type {WeakSet<Element>} */
     #entered = new WeakSet();
-    /** one generation of claims per section: the sections contend separately */
+    /** @type {WeakMap<Element, Claims>} */
     #claims = new WeakMap();
 
     /**
-     * @param {Element} host
-     * @param {Element} section
-     * @param {string|null} name
-     * @param {number|null} index
-     * @returns {Promise<any[]|undefined>} the union of the answers, or undefined when nobody listened
+     * Fires `section:requested`, then `section:requested:#<index>` when an index
+     * is given, then `section:requested:<name>` when a name is given, each
+     * bubbling from `host` with the same detail `{ name, section, index, first }`,
+     * and awaits every answer attached to any of them. `first` is true until a
+     * request for the section is answered by at least one listener, so a request
+     * nobody listened to does not spend it. A request with answers removes the
+     * error a previous failure painted before it waits.
+     * @param {Element} host the component the events are dispatched on
+     * @param {Element} section the element the answers deliver into
+     * @param {string|null} name the section's `data-step`, when it has one
+     * @param {number|null} index the section's zero-based position, when it has one
+     * @returns {Promise<any[]|undefined>} the answers in the order they were
+     * attached, or undefined when nobody listened
+     * @throws what the first failing answer rejected with, after painting its
+     * problems in the section unless a newer request superseded this one
      */
     async request(host, section, name, index) {
         const first = !this.#entered.has(section);
@@ -79,6 +91,10 @@ class SectionRequests {
         }
     }
 
+    /**
+     * @param {Element} section
+     * @param {unknown} cause
+     */
     #paintError(section, cause) {
         section.querySelector(':scope > .ful-section-error')?.remove();
         const error = document.createElement('div');

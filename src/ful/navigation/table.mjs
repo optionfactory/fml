@@ -2,7 +2,33 @@ import { Attributes, Fragments, Nodes, ParsedElement, Rendering, Templates } fro
 import { Claims } from '../claims.mjs';
 import { Failure } from '../../httpc/index.mjs';
 
-/** The sort control of a table header: focusable, keyboard-activated, walking asc, desc, unsorted. */
+/**
+ * @typedef {{ page: number, size: number }} TablePageRequest the zero based
+ * index of the page and the number of rows in a page
+ */
+/**
+ * @typedef {{ sorter: string, order: string }} TableSortRequest the sort key
+ * of a column and its direction, `asc` or `desc`
+ */
+/**
+ * @typedef {{ data: any[], size: number }} TablePageResponse the rows of the
+ * requested page and the total number of rows across every page
+ */
+/**
+ * @typedef {{ load(pageRequest: TablePageRequest, sortRequest: TableSortRequest|null, filterRequest: Record<string, any>): Promise<TablePageResponse> }} TableRowLoader
+ */
+
+/**
+ * The sort control of a table header, `ful-sorter`: a `role="button"` with
+ * `tabindex="0"`, activated by a click or by Enter, NumpadEnter or Space.
+ *
+ * Each activation dispatches `sort:requested` (bubbling, cancelable) with
+ * `detail.value` set to `{ sorter, order }`: `sorter` is the `sorter`
+ * attribute, read once at the upgrade, and `order` is the one after the
+ * current `order` in the cycle `asc`, `desc`, `null`. The button does not
+ * change its own `order`: whoever handles the event sets it, which `ful-table`
+ * does once the sorted page has loaded.
+ */
 class SortButton extends ParsedElement {
     static attributes = ['sorter'];
     static observed = ['order'];
@@ -33,15 +59,23 @@ class SortButton extends ParsedElement {
         });
     }
 
+    /**
+     * The direction the column is sorted in, `null` when unsorted.
+     * @returns {string|null}
+     */
     get order() {
         return this.#order || null;
     }
 
+    /**
+     * Reflects the direction to the `order` attribute and sets `aria-sort` on
+     * the enclosing `<th>`, if any: `ascending` for `asc`, `descending` for any
+     * other non-empty value, removed for an empty one.
+     * @param {string|null} value an empty string or `null` means unsorted
+     */
     set order(value) {
         this.#order = value || null;
         this.reflectTo('order', this.#order);
-        //the column announces the sort, not this button: an attribute on another
-        //element is not a reflection and has no business inside the guard
         const th = this.closest('th');
         if (!th) {
             return;
@@ -50,7 +84,24 @@ class SortButton extends ParsedElement {
     }
 }
 
-/** The pager: a window of page links around the current one, and the reload control. */
+/**
+ * The pager, `ful-pagination`: a previous button, a window of page buttons
+ * around the current page, a next button, a reload button and a line saying
+ * which page of how many is shown.
+ *
+ * The window holds at most `pages` buttons (read once at the upgrade, default 5),
+ * centred on the current page and shifted back on the last pages so it stays
+ * full. The current page's button carries `aria-current="page"` and stays
+ * enabled. Previous and next are disabled where there is no page to go to.
+ *
+ * A click on an enabled button other than the current page dispatches
+ * `page:requested` (bubbling, cancelable) with `detail.value` the zero based
+ * index of the page asked for; the reload button asks for the current page.
+ * The pager does not move itself: whoever handles the event calls `update`,
+ * which `ful-table` does once the page has loaded.
+ *
+ * The icons are the `ful-icon` names in `Pagination.config`.
+ */
 class Pagination extends ParsedElement {
     static observed = ['total:number', 'current:number'];
     static attributes = ['pages:number'];
@@ -88,12 +139,9 @@ class Pagination extends ParsedElement {
         this.addEventListener('click', (/** @type any */ evt) => {
             const el = evt.target.closest('button');
             if (!el || el.hasAttribute('disabled')) {
-                //a disabled button leads nowhere: the page it would ask for does not exist
                 return;
             }
             if (el.getAttribute('aria-current') === 'page') {
-                //the page already shown stays focusable and announced, so it is a
-                //real control: it just has nothing to ask for
                 return;
             }
             this.dispatchEvent(
@@ -108,17 +156,21 @@ class Pagination extends ParsedElement {
         });
     }
     /**
-     * Moves the pager to a page, a page count, or both, and repaints once. The
-     * two are one state: writing them one at a time repainted the bar twice per
-     * load, the first pass drawing the new page against the old count.
-     * @param {{ current?: number|null, total?: number|null }} [state]
+     * Moves the pager to a page, a page count, or both, reflects both to their
+     * attributes and repaints the bar once. A key left out keeps its value; a
+     * `null` one becomes 0. A count below one is shown as one empty page.
+     *
+     * The bar is replaced on every repaint. When the focus was inside it, it
+     * moves to the equivalent control of the new bar: the button of the same
+     * page, else the same enabled control, else the current page's button.
+     * @param {{ current?: number|null, total?: number|null }} [state] `current`
+     * is the zero based index of the page shown, `total` the number of pages
      */
     update({ current: toCurrent, total: toTotal } = {}) {
         if (toCurrent !== undefined) {
             this.#current = toCurrent ?? 0;
         }
         if (toTotal !== undefined) {
-            //an absent attribute declares no pages, not a NaN one
             this.#total = toTotal ?? 0;
         }
         this.reflectTo('current', this.#current);
@@ -126,25 +178,18 @@ class Pagination extends ParsedElement {
         const current = this.#current;
         const total = this.#total;
         const maxRender = this.declared('pages') ?? 5;
-        //an empty table is one empty page: everything downstream renders it like
-        //any single page result
         const pageCount = Math.max(total, 1);
         const hasPrev = current > 0;
         const hasNext = current + 1 < pageCount;
-        //a disabled arrow carries no page: there is nothing valid for it to point at
         const prev = { index: hasPrev ? current - 1 : null, enabled: hasPrev };
         const curr = { index: current, label: current + 1 };
         const next = { index: hasNext ? current + 1 : null, enabled: hasNext };
-        //the window holds at most maxRender pages, centered on the current one and slid
-        //back towards the end so it stays full on the last pages
         const rendered = Math.max(1, Math.min(maxRender, pageCount));
         const first = Math.max(0, Math.min(current - Math.floor((rendered - 1) / 2), pageCount - rendered));
         const pages = Array.from({ length: rendered }, (_, offset) => ({
             index: first + offset,
             label: first + offset + 1,
         }));
-        //the whole bar is replaced, so the control the reader activated is gone
-        //by the time the new one paints: the focus follows it to its equivalent
         const focused = this.contains(document.activeElement)
             ? /** @type HTMLElement */ (document.activeElement).closest('li')?.getAttribute('data-ref')
             : null;
@@ -159,15 +204,31 @@ class Pagination extends ParsedElement {
             this.querySelector('li[data-ref=page] button[aria-current=page]');
         /** @type HTMLElement */ (back)?.focus();
     }
+    /**
+     * The number of pages, as last written.
+     * @returns {number}
+     */
     get total() {
         return this.#total;
     }
+    /**
+     * Same as `update({ total: value })`.
+     * @param {number|null} value
+     */
     set total(value) {
         this.update({ total: value });
     }
+    /**
+     * The zero based index of the page shown.
+     * @returns {number}
+     */
     get current() {
         return this.#current;
     }
+    /**
+     * Same as `update({ current: value })`.
+     * @param {number|null} value
+     */
     set current(value) {
         this.update({ current: value });
     }
@@ -175,8 +236,31 @@ class Pagination extends ParsedElement {
 
 /** Reads the schema declaration into the header and row templates a table renders from. */
 class TableSchemaParser {
+    /**
+     * Builds a header `<tr>` and a row `<tr data-tpl-each="rows">` from the
+     * `<schema>` child of the slot. The `<schema>` attributes are copied onto
+     * both rows. Each `<column>` becomes a `<th>` and a `<td>` carrying the
+     * column's attributes except `title`, `sorter` and `order`, so a
+     * `data-tpl-*` on a column applies to both cells; the two templates carry
+     * `inHeaders` and `inRows` in their scope, so a column can tell them apart,
+     * as in `data-tpl-if="inRows"`. The header cell holds the `<title>` child
+     * element of the column, else the text of its `title` attribute, wrapped
+     * in a `ful-sorter` when the column declares `sorter` or `order`. The body
+     * cell holds the column's remaining children.
+     *
+     * The column elements are consumed: their `<title>`, `title`, `sorter` and
+     * `order` are removed and their children moved into the cells.
+     * @param {DocumentFragment|Element|undefined} nodeOrFragment the `schema`
+     * slot, undefined when the table has none
+     * @param {ReturnType<ParsedElement['template']>} template the template the
+     * header and row templates derive from, keeping its scope
+     * @returns {{ headersTemplate: ReturnType<ParsedElement['template']>, rowsTemplate: ReturnType<ParsedElement['template']>, sort: { sorter: string|null, order: string|null } | null, length: number }}
+     * `sort` is the initial sort, taken from the first column declaring both
+     * `order` and `sorter` (a column with only `order` gets an arrow but no
+     * initial sort), `null` when none does; `length` is the number of columns
+     * @throws {Error} when the slot is missing or holds no `<schema>`
+     */
     static parse(nodeOrFragment, template) {
-        //nodeOrFragment is undefined when the slot is missing altogether
         const schema = nodeOrFragment ? Nodes.queryChildren(nodeOrFragment, 'schema') : null;
         if (!schema) {
             throw new Error('missing expected <schema>: ful-table needs a <template slot="schema"> holding one');
@@ -190,8 +274,6 @@ class TableSchemaParser {
             rowsTr.setAttribute(attr, value ?? '');
         }
         const columns = Nodes.queryChildrenAll(schema, 'column');
-        //only a sortable column carries the initial sort: an order without its
-        //sorter would ask the backend for a "null" property
         const sort =
             columns
                 .filter((v) => v.hasAttribute('order') && v.hasAttribute('sorter'))
@@ -221,11 +303,6 @@ class TableSchemaParser {
                       })();
             const th = document.createElement('th');
             const td = document.createElement('td');
-            //a column's attributes land on both cells, so a `data-tpl-*` written
-            //once applies to the header and the body alike. `inHeaders` and
-            //`inRows` are how an author tells them apart when that is not what
-            //they meant: both templates carry the pair, so a column can say
-            //`data-tpl-if="inRows"` and appear in the body only
             for (const attr of column.getAttributeNames()) {
                 const value = column.getAttribute(attr);
                 th.setAttribute(attr, value ?? '');
@@ -251,12 +328,24 @@ class TableSchemaParser {
 /** Serves a table's rows from an array held in memory, applying the sort and the paging itself. */
 class InMemoryTableLoader {
     #data;
+    /**
+     * @param {any[]} data the rows
+     */
     constructor(data) {
         this.#data = data;
     }
+    /**
+     * Sorts a copy of the rows by the `sorter` property, rows missing it last
+     * in either direction and rows with equal values in their original order,
+     * then slices the requested page. The filters are ignored.
+     * @param {TablePageRequest} pageRequest
+     * @param {{ sorter?: string|null, order?: string|null } | null} sortRequest
+     * `order` `desc` sorts descending, anything else ascending; no `sorter`
+     * keeps the original order
+     * @param {Record<string, any>} filterRequest not read
+     * @returns {Promise<TablePageResponse>}
+     */
     async load(pageRequest, sortRequest, filterRequest) {
-        //the header renders a sorter per sortable column whatever the loader is,
-        //so the local one answers it rather than leaving it inert
         const rows = this.#sorted(sortRequest);
         const begin = pageRequest.page * pageRequest.size;
         const end = begin + pageRequest.size;
@@ -279,7 +368,6 @@ class InMemoryTableLoader {
             if (a === b) {
                 return 0;
             }
-            //a missing value sorts last whichever way the column points
             if (a == null) {
                 return 1;
             }
@@ -289,6 +377,10 @@ class InMemoryTableLoader {
             return (a < b ? -1 : 1) * sign;
         });
     }
+    /**
+     * Replaces the rows. The table shows them at its next load.
+     * @param {any[]} data
+     */
     update(data) {
         this.#data = data;
     }
@@ -300,12 +392,30 @@ class RemoteTableLoader {
     #url;
     #method;
     #responseMapper;
+    /**
+     * @param {{ request(method: string, url: string): any }} http the `http-client` component
+     * @param {string} url
+     * @param {string} method
+     * @param {(response: any) => TablePageResponse} [responseMapper] turns the
+     * parsed json body into the page response; the identity when omitted
+     */
     constructor(http, url, method, responseMapper = (response) => response) {
         this.#http = http;
         this.#url = url;
         this.#method = method;
         this.#responseMapper = responseMapper;
     }
+    /**
+     * Sends the query parameters `page`, `size`, `sort` as `sorter,order`
+     * (left out when `sortRequest` is null) and `filters` as a json object of
+     * the filters with a truthy value (left out when there is none), and
+     * answers the json body through the response mapper.
+     * @param {TablePageRequest} pageRequest
+     * @param {TableSortRequest|null} sortRequest
+     * @param {Record<string, any>} filterRequest
+     * @returns {Promise<TablePageResponse>} rejecting with what the client's
+     * `fetchJson()` rejects with
+     */
     async load(pageRequest, sortRequest, filterRequest) {
         const filters = Object.entries(filterRequest).filter(([k, v]) => v);
         return await this.#http
@@ -330,13 +440,23 @@ class RemoteTableLoader {
  * `filterRequest` the values of the filters in the slot.
  */
 class TableLoader {
+    /**
+     * A table with a `src` attribute gets a `RemoteTableLoader` sending through
+     * the `http-client` component with the `method` attribute or `GET`, and
+     * mapping the response through the component named by `response-mapper`,
+     * if any. A table without `src` gets an empty `InMemoryTableLoader`, which
+     * `withLoader` reaches to give it rows.
+     * @param {Element & { component(name: string): any }} el the table
+     * @param {unknown} [conf] not read
+     * @returns {InMemoryTableLoader | RemoteTableLoader}
+     */
     static create(el, conf) {
         const url = el.getAttribute('src');
         if (url) {
             const http = el.component('http-client');
             const method = el.getAttribute('method') ?? 'GET';
             const responseMapper = el.hasAttribute('response-mapper')
-                ? el.component(el.getAttribute('response-mapper'))
+                ? el.component(/** @type {string} */ (el.getAttribute('response-mapper')))
                 : (/** @type any */ response) => response;
             return new RemoteTableLoader(http, url, method, responseMapper);
         }
@@ -344,15 +464,35 @@ class TableLoader {
     }
 }
 
-/** A table loading its rows from a loader, with sorting, pagination and an optional filter form. */
+/**
+ * A table, `ful-table`, loading its rows a page at a time from a loader, with
+ * a header sorter per sortable column, a `ful-pagination` under it and an
+ * optional filter form.
+ *
+ * The loader is the component named by `loader`, default `loaders:table`
+ * (see `TableLoader`). The `schema` slot declares the columns (see
+ * `TableSchemaParser.parse`); the `filters` slot is wrapped in a `ful-form`,
+ * whose values are the filter request; the `caption`, `footer` and `empty`
+ * slots go in the table's caption, its `<tfoot>` and the panel shown for a
+ * load answering no rows. Attributes starting with `table-` are forwarded,
+ * without the prefix, to the inner `<table>`.
+ *
+ * With `autoload` the first load starts at the upgrade, which does not wait
+ * for it. Without it the table shows an initial panel until `load`,
+ * `reload` or `resetWithFilter` is called.
+ *
+ * Inside the table a `page:requested` loads that page with the current size,
+ * sort and filters; a `sort:requested` loads the current page with the new
+ * sort (none for a `null` order) and, once that load is the one showing, sets
+ * the order of the sorter that asked and clears the others; a `submit:success`
+ * of the filter form loads the first page with the submitted request as the
+ * filters. The loads these start, and the autoload, are not awaited by
+ * anything: a failure shows the error panel and its rejection is unhandled.
+ */
 class Table extends ParsedElement {
+    /** Read once at the upgrade. */
     static attributes = ['loader', 'autoload:presence'];
-    /**
-     * The page size stays live: a rows-per-page control is a normal thing to
-     * put next to a table, and the size is the one piece of the request an
-     * author changes after the table is up. The rest of the request is the
-     * table's own state, moved by the pager, the sorters and the filter form.
-     */
+    /** `page-size` stays live after the upgrade: see `pageSize`. */
     static observed = ['page-size:number'];
     static slots = true;
     static config = {
@@ -429,25 +569,31 @@ class Table extends ParsedElement {
     #feedback;
     #paginator;
     #sorters;
-    //initialised before the render so the size can be read and written on an
-    //element the page has only just created
     /** @type {{ pageRequest: { page: number, size: number }, sortRequest: any, filterRequest: any }} */
     #latestRequest = { pageRequest: { page: 0, size: 10 }, sortRequest: null, filterRequest: {} };
     /** whether a load has been asked for, by autoload or by a caller */
     #loadRequested = false;
     #loads = new Claims();
-    /** How many rows a page asks the loader for: the size the next load will carry. */
+    /**
+     * How many rows a page asks the loader for: the size the next load will
+     * carry. Ten before the render.
+     * @returns {number}
+     */
     get pageSize() {
         return this.#latestRequest.pageRequest.size;
     }
     /**
-     * Changes the page size and reloads from the first page, the current index
-     * meaning nothing under a new size. A table that has not loaded yet only
-     * records it: writing the size is not a request to start loading, which is
-     * what `autoload` and `reload()` are for.
+     * Changes the page size and reloads from the first page, keeping the sort
+     * and the filters. A table that has not loaded yet only records it:
+     * writing the size is not a request to start loading, which is what
+     * `autoload` and `reload()` are for. A write that does not change the size
+     * does nothing. A write made before the render is replaced by the declared
+     * `page-size` when the table renders.
      *
-     * Absent or null is the default of ten, so removing the attribute restores
-     * it rather than asking the loader for NaN rows.
+     * The reload is not awaited: a failure shows the error panel and its
+     * rejection is unhandled.
+     * @param {number|null|undefined} value absent or null is the default of
+     * ten, so removing the attribute restores it
      */
     set pageSize(value) {
         const size = value ?? 10;
@@ -458,11 +604,13 @@ class Table extends ParsedElement {
         if (!this.#loadRequested) {
             return;
         }
-        //the rejection escapes on purpose, as it does for the page, sort and
-        //filter listeners: load renders its own error state and the unhandled
-        //rejection is what reports the failure
         this.reload();
     }
+    /**
+     * @param {{ slots: Record<string, DocumentFragment> }} c
+     * @returns {Promise<void>}
+     * @throws {Error} when the `schema` slot is missing or holds no `<schema>`
+     */
     async render({ slots }) {
         const template = this.template();
         const schema = TableSchemaParser.parse(slots.schema, template);
@@ -489,9 +637,6 @@ class Table extends ParsedElement {
         await Rendering.waitForChildren(this);
 
         const maybeForm = /** @type any */ (Nodes.queryChildren(this, 'ful-form'));
-        //the declared size lands here rather than through the setter: the base
-        //applies the observed values after the render returns, and by then the
-        //autoload below has already asked for the first page
         this.#latestRequest = {
             pageRequest: {
                 page: 0,
@@ -500,9 +645,6 @@ class Table extends ParsedElement {
             sortRequest: schema.sort,
             filterRequest: maybeForm?.values ?? {},
         };
-        //the page, sort and filter listeners let load's rejection escape on purpose:
-        //load renders its own error state, and the unhandled rejection is what
-        //reports the failure (the autoload below reports the same way)
         maybeForm?.addEventListener('submit:success', async (evt) => {
             await this.#loadPage(0, evt.detail.request);
         });
@@ -512,9 +654,6 @@ class Table extends ParsedElement {
         this.addEventListener('sort:requested', async (/** @type any */ e) => {
             const sortRequest = e.detail.value.order ? e.detail.value : null;
             await this.load(this.#latestRequest.pageRequest, sortRequest, this.#latestRequest.filterRequest);
-            //only the load that still owns the table commits the header: a superseded
-            //sort must not wipe the arrows of the one that won, and a failed one
-            //leaves them where they were
             if (this.#latestRequest.sortRequest !== sortRequest) {
                 return;
             }
@@ -524,13 +663,17 @@ class Table extends ParsedElement {
             e.target.order = e.detail.value.order;
         });
         if (this.declared('autoload')) {
-            //not awaited: the first load must not hold up the upgrade, and a loader that
-            //fails or never answers must not keep ftl:ready from firing for the page.
-            //load renders its own error state and lets the failure reject, so it is reported
             this.reload();
         }
     }
 
+    /**
+     * Loads the last request that loaded, or, before any has, the first page
+     * with the declared size and sort and the values of the filters slot. A
+     * size written through `pageSize` since then replaces the page with the
+     * first one at that size.
+     * @returns {Promise<void>} as `load`
+     */
     async reload() {
         return await this.load(
             this.#latestRequest.pageRequest,
@@ -538,21 +681,39 @@ class Table extends ParsedElement {
             this.#latestRequest.filterRequest,
         );
     }
+    /**
+     * Asks the loader for a page and shows it.
+     *
+     * While the load runs the table carries `aria-busy="true"`, and the rows
+     * already shown stay; the spinner panel shows only when there are none.
+     * When the loader answers, the rows and the pager are replaced, the empty
+     * panel shows for an answer with no rows (the `empty` slot rendered with
+     * `schema`, `pageRequest`, `filterRequest` and `pageResponse` in scope),
+     * the request becomes the one
+     * `reload` repeats, `aria-busy` is removed and `load:success` is
+     * dispatched (bubbling, not cancelable) with `detail` set to
+     * `{ pageRequest, sortRequest, filterRequest, response }`. A page beyond
+     * the last one the answer reports is not shown: the last page is loaded
+     * instead, and the returned promise settles with that load.
+     *
+     * When the loader rejects, the rows are removed, the error panel shows the
+     * `reason` of each of the error's `problems`, one per line, or the error as text,
+     * `aria-busy` is removed, `load:failure` is dispatched (bubbling, not
+     * cancelable) with `detail` set to
+     * `{ pageRequest, sortRequest, filterRequest, exception }`, and the
+     * returned promise rejects with the same error.
+     *
+     * A load started after this one supersedes it: when this one's answer or
+     * failure arrives it changes nothing, dispatches nothing and resolves.
+     * @param {TablePageRequest} pageRequest
+     * @param {TableSortRequest|null} sortRequest
+     * @param {Record<string, any>} filterRequest
+     * @returns {Promise<void>}
+     * @throws what the loader rejects with, unless a newer load superseded this one
+     */
     async load(pageRequest, sortRequest, filterRequest) {
-        //marked before the await, not when a response comes back: a size written
-        //while the first load is still in flight has to reload rather than be
-        //overwritten by the answer to the request it replaced
         this.#loadRequested = true;
-        //each load claims the table: a response resolving after a newer load has
-        //started is stale, and neither renders nor updates the request a later
-        //reload replays, whichever order the responses arrive in
         const claim = this.#loads.take();
-        //the rows stay while the table revalidates. Emptying the body and raising
-        //the spinner row in its place collapsed the table to one tall row and
-        //expanded it again on every sort, page and reload: two layout jumps for
-        //what is the same table with newer rows in it. The spinner is for the load
-        //with nothing to show yet, the first one and the one after a failure; the
-        //rest announce themselves through aria-busy, which the stylesheet reads
         this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
         this.#feedback.setAttribute('hidden', '');
         this.#noAutoload.setAttribute('hidden', '');
@@ -568,8 +729,6 @@ class Table extends ParsedElement {
             if (pageRequest.page <= lastPage) {
                 this.#latestRequest = { pageRequest, sortRequest, filterRequest };
                 this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
-                //settled before the event: a listener counting what loaded has to
-                //see the table as it now is
                 this.removeAttribute('aria-busy');
                 this.dispatchEvent(
                     new CustomEvent('load:success', {
@@ -582,14 +741,9 @@ class Table extends ParsedElement {
             }
         } catch (/** @type any */ error) {
             if (claim.stale) {
-                //the newer load owns the table and its outcome: a superseded
-                //failure is neither shown nor thrown
                 return;
             }
             this.#loading.setAttribute('hidden', '');
-            //the rows the failed load was replacing go with it: what the table
-            //holds is no longer what the request asked for, and leaving them
-            //under the error would say the opposite
             this.#body.replaceChildren();
             this.#feedback.removeAttribute('hidden');
             this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Failure.problemsText(
@@ -608,10 +762,22 @@ class Table extends ParsedElement {
         }
         return await this.load({ page: lastPage, size: pageRequest.size }, sortRequest, filterRequest);
     }
-    /** Hands the loader to the callback, for runtime reconfigurations. */
+    /**
+     * Hands the loader to the callback, for runtime reconfigurations, such as
+     * `update(rows)` on the in-memory loader. The loader exists from the
+     * render on. Nothing is reloaded.
+     * @template T
+     * @param {(loader: any) => T | Promise<T>} fn
+     * @returns {Promise<T>} what `fn` returns or resolves to
+     */
     async withLoader(fn) {
         return await fn(this.#loader);
     }
+    /**
+     * Loads the first page with the given filters, keeping the size and the sort.
+     * @param {Record<string, any>} filterRequest
+     * @returns {Promise<void>} as `load`
+     */
     async resetWithFilter(filterRequest) {
         return await this.#loadPage(0, filterRequest);
     }
@@ -637,15 +803,12 @@ class Table extends ParsedElement {
         );
         this.#empty.toggleAttribute('hidden', pageResponse.data.length !== 0);
         if (this.#emptyTemplate && pageResponse.data.length === 0) {
-            //rendered per load, the rows' own scope: the empty state can say
-            //whether nothing was ever there or the filters matched nothing
             this.#emptyAuthors.replaceChildren(
                 this.#emptyTemplate
                     .withOverlay({ schema: this.#schema, pageRequest, filterRequest, pageResponse })
                     .render(),
             );
         }
-        //one move, one repaint: the page and the count are the same state
         this.#paginator.update({ current: pageRequest.page, total: pages });
     }
 }

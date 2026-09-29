@@ -345,6 +345,19 @@ describe('Table revalidation', () => {
         assert.strictEqual(rows(tableEl), 0, 'what the table holds is no longer what was asked for');
         assert.isFalse(tableEl.querySelector('tbody[data-ref=feedback]').hasAttribute('hidden'));
     });
+
+    it('settles the table before load:success reaches its listeners', async () => {
+        const [tableEl] = mount({ load: async () => ({ data: [{ a: 1 }, { a: 2 }], size: 2 }) }, false);
+        await Rendering.waitFor(tableEl);
+        const seen = [];
+        tableEl.addEventListener('load:success', () =>
+            seen.push(`${tableEl.hasAttribute('aria-busy')}:${rows(tableEl)}`),
+        );
+
+        await tableEl.reload();
+
+        assert.deepStrictEqual(seen, ['false:2'], 'not busy, and the rows already in place');
+    });
 });
 
 describe('Table schema', () => {
@@ -1194,6 +1207,10 @@ describe('Table page-size', () => {
                 },
             }),
         });
+    });
+
+    it('answers the default size on a table that has not rendered yet', () => {
+        assert.strictEqual(document.createElement('ful-table').pageSize, 10);
     });
 
     it('answers the size the next load will carry, declared or defaulted', async () => {

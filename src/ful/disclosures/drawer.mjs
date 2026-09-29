@@ -5,13 +5,30 @@ import { Failure } from '../../httpc/index.mjs';
 import { wireTargets } from './targets.mjs';
 
 /**
- * A side panel drawer on the native dialog platform, update() owning its
- * open-deliver cycle.
+ * A side panel on the native `<dialog>`, shown as a modal: a header holding
+ * the title and a localized close button, then loading, error and content
+ * sections, the default slot being the content.
  *
- * The `header` slot is content beside the title, before it: an icon, a badge, a
- * status. It sits outside the heading rather than in it because `update()` sets
- * the title through `textContent`, which would take anything nested there with
- * it.
+ * The `header` attribute is the initial title, rendered as an `h2` that names
+ * the panel through `aria-labelledby`. The `header` slot is rendered in the
+ * header before the title and outside it, so setting the title as text does
+ * not remove it. `placement` is copied onto the native dialog: `end` (the
+ * default, when absent) or `start`, following the writing direction.
+ *
+ * The close button, Escape, and a press and release both on the backdrop all
+ * go through `close()`. Every close dispatches a non-bubbling `close` event on
+ * the element with `detail: { dismissed, response }`: `{ dismissed: false,
+ * response }` when a form closed it under `close-on-submit`, and
+ * `{ dismissed: true, response: null }` for any other close.
+ *
+ * `close-on-submit` closes the drawer when a `ful-form` that is a direct child
+ * of the content section dispatches `submit:success`, carrying its
+ * `detail.response`, which may be null. A form deeper in the content, such as
+ * the filter form of a `ful-table`, does not close it. The listener sits on
+ * the content section, so a form delivered by `update()` is covered as well.
+ *
+ * An element anywhere in the page carrying `dialog-target` set to the
+ * element's id calls `open()` on click.
  */
 class Drawer extends ParsedElement {
     static attributes = ['header', 'placement', 'close-on-submit:presence'];
@@ -35,8 +52,6 @@ class Drawer extends ParsedElement {
     #content;
     #requests = new SectionRequests();
     #updates = new Claims();
-    //what a submit closed the drawer with, told from a close of any other kind:
-    //a save answering with no body at all is still a save
     /** @type {{ dismissed: boolean, response: any }|null} */
     #answer = null;
     #closing = false;
@@ -45,15 +60,15 @@ class Drawer extends ParsedElement {
             this.#closeNow();
         }
     };
+    /**
+     * @param {{ slots: Record<string, DocumentFragment> }} c
+     */
     render({ slots }) {
         const fragment = this.template()
             .withOverlay({ slots, title: this.declared('header') ?? '' })
             .render();
         this.#dialog = fragment.querySelector('[data-ref=dialog]');
         this.#title = fragment.querySelector('[data-ref=title]');
-        //a named surface, like a dialog: the heading announces the drawer on
-        //opening only where it names it, and the reference survives every
-        //textContent update() writes into the heading
         this.#title.id ||= Attributes.uid('ful-drawer-title');
         this.#dialog.setAttribute('aria-labelledby', this.#title.id);
         this.#loading = fragment.querySelector('[data-ref=loading]');
@@ -85,12 +100,6 @@ class Drawer extends ParsedElement {
             );
         });
         if (this.declared('close-on-submit')) {
-            //delegated on the content section rather than bound to the form: a
-            //drawer's form usually arrives with an update() rather than with the
-            //page, and the section outlives every delivery. The form must be the
-            //content's own, a ful-table wrapping its filters in a ful-form of its
-            //own and a search in a table the drawer holds not being the drawer
-            //finishing
             this.#content.addEventListener('submit:success', (/** @type any */ e) => {
                 if (e.target !== Nodes.queryChildren(this.#content, 'ful-form')) {
                     return;
@@ -102,30 +111,40 @@ class Drawer extends ParsedElement {
         this.replaceChildren(fragment);
         wireTargets();
     }
+    /**
+     * The title, read and written as the heading's text.
+     * @type {string}
+     */
     get header() {
         return this.#title.textContent;
     }
+    /** @param {string|null|undefined} v written as text, `''` for null or undefined */
     set header(v) {
         this.#title.textContent = v ?? '';
     }
     /**
-     * Opens the drawer under the given header and waits for the callback: a
-     * resolved value paints the content section (which is returned), a
-     * rejection paints the problems and travels to the caller, and an update
-     * superseded by a newer one paints nothing.
+     * Sets the title, empties and hides the content section, shows the loading
+     * section, opens the drawer if it is closed (putting back one that is
+     * sliding out), and fills the content with what the callback resolves to.
+     * A rejection is shown, as the problems' reasons, in the error section,
+     * which has `role="alert"`, and the content is hidden.
+     *
+     * No `section:requested` is dispatched. When a newer `update()` starts
+     * before the callback settles, this call paints nothing: it resolves with
+     * the content section regardless, and still rejects with the callback's
+     * error.
+     * @param {string} header the title, set as text
+     * @param {() => Node|string|Promise<Node|string>} cb producing the content
+     * @returns {Promise<Element>} the content section, in the document
+     * @throws {any} what the callback threw or rejected with
      */
     async update(header, cb) {
-        //the claim detaches any update still in flight: its outcome belongs to
-        //an abandoned opening and must neither be painted nor own the drawer
         const claim = this.#updates.take();
         this.header = header;
         this.#content.replaceChildren();
         this.#restChrome();
         this.#loading.removeAttribute('hidden');
         this.#content.setAttribute('hidden', '');
-        //update owns its own open-answer-deliver cycle, so it shows the dialog
-        //without going through open(): a user reopen during the wait is a
-        //real open and goes through open()
         this.#show();
         try {
             const delivered = await cb();
@@ -138,8 +157,6 @@ class Drawer extends ParsedElement {
             return this.#content;
         } catch (/** @type any */ e) {
             if (!claim.stale) {
-                //revealed before it is filled, so the live region announces the
-                //change rather than being revealed already holding it
                 this.#error.removeAttribute('hidden');
                 this.#error.textContent = Failure.problemsText(e);
                 this.#loading.setAttribute('hidden', '');
@@ -149,13 +166,27 @@ class Drawer extends ParsedElement {
         }
     }
     /**
-     * Re-fires section:requested for the content, open or closed: the explicit
-     * request for a body that wants refreshing. A failed refresh paints its
-     * problems, nothing rejects: update() stays the rejecting call.
+     * Dispatches `section:requested` for the content again, as `open()` does,
+     * whether the drawer is open or closed. A failed request is painted into
+     * the content section.
+     * @returns {Promise<any[]|undefined>} the listeners' answers, undefined when
+     * nobody answered or the request failed; it never rejects
      */
     refresh() {
         return this.#requests.request(this, this.#content, null, null).catch(() => undefined);
     }
+    /**
+     * Shows the drawer as a modal. On a drawer already open nothing happens,
+     * except that one sliding out stops and stays open.
+     *
+     * The call that opens the drawer resets the outcome of the previous
+     * opening, hides the error and loading sections, and dispatches
+     * `section:requested` on the element (bubbling, with
+     * `detail: { section, first, name: null, index: null }`, `section` being
+     * the content section and `first` true only on the first answered request),
+     * so a listener can fill the content. A failed request is painted into the
+     * content section.
+     */
     open() {
         if (!this.#show()) {
             return;
@@ -163,6 +194,13 @@ class Drawer extends ParsedElement {
         this.#restChrome();
         this.#requests.request(this, this.#content, null, null).catch(() => undefined);
     }
+    /**
+     * Slides the drawer out and closes it when the animation ends, setting the
+     * `closing` attribute on the native dialog meanwhile; the `close` event is
+     * dispatched then, after this call has returned. Where the user prefers
+     * reduced motion, or no animation runs, it closes at once. Does nothing on
+     * a drawer that is closed or already sliding out.
+     */
     close() {
         if (this.#closing || !this.#dialog.open) {
             return;
@@ -188,14 +226,12 @@ class Drawer extends ParsedElement {
         this.#dialog.removeEventListener('animationend', this.#slideOutEnded);
         this.#dialog.removeAttribute('closing');
     }
-    /** Shows the modal, answering whether this call is the one that opened it. */
+    /** @returns {boolean} whether this call is the one that opened the modal */
     #show() {
         this.#stopSlidingOut();
         if (this.#dialog.open) {
             return false;
         }
-        //an opening owes nothing to the one before it: the answer a submit left
-        //belongs to the drawer that closed on it
         this.#answer = null;
         this.#dialog.showModal();
         return true;

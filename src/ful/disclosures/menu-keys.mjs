@@ -1,26 +1,47 @@
-/** how long a type-ahead buffer stands before the next character starts a new search */
+/** how long, in milliseconds, a type-ahead search waits for its next character */
 const TYPEAHEAD_WINDOW = 500;
 
 /**
- * The keyboard protocol of a menu popover: the focus moving into the menu as it
- * opens and back to the invoker as it closes, roving focus over the items with
- * the arrows, Home and End, type-ahead over their text, and Enter and Space
- * activating the focused one.
+ * Wires the keyboard protocol of a menu popover onto it.
  *
- * The menu owns what an item is: `items` answers them in the order they are
- * walked, read on every gesture so a menu that fills itself later needs no
- * rewiring, and `current` names the one an opening focuses, the first otherwise.
+ * - As the menu opens, the focus moves to the item `current` answers, or to
+ *   the first item when it answers none.
+ * - As the menu closes, the focus moves back to the invoker, but only when it
+ *   was inside the menu, so a close caused by a click elsewhere leaves it
+ *   where it went.
+ * - ArrowDown and ArrowUp move the focus to the next and previous item,
+ *   wrapping at both ends; Home and End move it to the first and last.
+ * - Enter, the numpad Enter and Space call `click()` on the focused item and
+ *   move the focus to the invoker. Closing the menu is left to the item's
+ *   click handling.
+ * - Escape moves the focus to the invoker and leaves the close to the
+ *   platform.
+ * - A printable character typed without Ctrl, Alt or Meta searches the
+ *   items' trimmed text, ignoring case, wrapping past the last item.
+ *   Characters typed within 500ms of each other add to one search. A search
+ *   of one character, or of one character repeated, moves the focus to the
+ *   next item after the focused one starting with it, so repeating a letter
+ *   cycles through those items; a longer search moves it to the first item,
+ *   from the focused one on, starting with the whole search. A search that
+ *   matches nothing leaves the focus where it is.
+ *
+ * The keys are read by `KeyboardEvent.code`, the typed characters by
+ * `KeyboardEvent.key`. A handled key has its default prevented, except
+ * Escape and a search that matched nothing. A key whose target is not inside
+ * an item is ignored.
+ *
+ * `items` answers the items in the order they are walked, and is called on
+ * every gesture, so a menu that fills itself later needs no rewiring.
  *
  * @param {HTMLElement} invoker the element the menu belongs to, and where the focus goes back
  * @param {HTMLElement} menu the `[popover]` holding the items
  * @param {{items: () => HTMLElement[], current?: () => HTMLElement|null|undefined}} conf
+ *   `items` answers the items; `current` answers the item an opening focuses
  */
 const wireMenuKeys = (invoker, menu, { items, current = () => null }) => {
     let typed = '';
     let typedAt = 0;
     menu.addEventListener('beforetoggle', (/** @type any */ evt) => {
-        //give the invoker back the focus the menu had borrowed, without
-        //stealing it from wherever else the close came from
         if (evt.newState === 'closed' && menu.contains(document.activeElement)) {
             invoker.focus();
         }
@@ -70,8 +91,6 @@ const wireMenuKeys = (invoker, menu, { items, current = () => null }) => {
                 return;
             }
             case 'Escape': {
-                //the platform's close request hides the menu, the focus is placed
-                //on the invoker before the focused item is detached from it
                 invoker.focus();
                 return;
             }

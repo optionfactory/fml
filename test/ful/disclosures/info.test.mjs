@@ -527,6 +527,22 @@ describe('Dialog delivery', () => {
         assert.notInclude(body.textContent, 'the first', 'the abandoned opening owns no dialog');
     });
 
+    it('reveals the error region before filling it, so the live region announces the problems', async () => {
+        const [dialog] = await mount('<ful-dialog header="Detail"></ful-dialog>');
+        const error = dialog.querySelector('[data-ref=error]');
+        const kinds = [];
+        const observer = new MutationObserver((records) => {
+            kinds.push(...records.map((r) => (r.type === 'attributes' ? 'revealed' : 'filled')));
+        });
+        observer.observe(error, { attributes: true, attributeFilter: ['hidden'], childList: true });
+
+        await dialog.update(() => Promise.reject(new Error('no such thing'))).catch(() => undefined);
+        observer.disconnect();
+
+        assert.strictEqual(kinds.slice(-2).join(','), 'revealed,filled');
+        dialog.close();
+    });
+
     it('a reopening owes nothing to the answer before it', async () => {
         const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
@@ -651,6 +667,23 @@ describe('Dialog close-on-submit', () => {
         await settle();
 
         assert.isTrue(dialog.querySelector('dialog').open, "the table's own filter form is not the dialog's");
+    });
+
+    it('closes on a form update() delivered, the listener outliving every delivery', async () => {
+        const [dialog] = await mount('<ful-dialog close-on-submit header="Edit"></ful-dialog>');
+        const delivered = document.createElement('ful-form');
+        delivered.innerHTML = '<ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button>';
+
+        const body = await dialog.update(async () => delivered);
+        await settle();
+        const inner = body.querySelector('ful-form');
+        AsyncEvents.asyncOn(inner, 'submit:requested', async () => ({ id: 9 }));
+        const closed = new Promise((r) => dialog.addEventListener('close', (e) => r(e.detail), { once: true }));
+        inner.querySelector('button[type=submit]').click();
+        const outcome = await closed;
+
+        assert.isFalse(outcome.dismissed);
+        assert.strictEqual(outcome.response?.id, 9);
     });
 
     it('leaves a dialog that did not ask for it alone', async () => {
@@ -807,6 +840,20 @@ describe('Dialog, the section:requested contract', () => {
         dialog.ask();
         await settle();
         assert.deepStrictEqual(seen, [true, false]);
+        dialog.close();
+    });
+
+    it('fires nothing when update() owns the cycle', async () => {
+        const [dialog] = await mount('<ful-dialog header="h"></ful-dialog>');
+        let fired = 0;
+        AsyncEvents.asyncOn(dialog, 'section:requested', () => {
+            ++fired;
+        });
+
+        await dialog.update(async () => document.createElement('p'));
+        await settle();
+
+        assert.strictEqual(fired, 0);
         dialog.close();
     });
 });

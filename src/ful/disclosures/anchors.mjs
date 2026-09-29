@@ -1,11 +1,3 @@
-/**
- * The anchored popovers' fallback: where the platform lacks CSS anchor
- * positioning, the popovers ful wires on an invoker are placed beside it
- * by hand, the geometry the anchor css draws on its own. Where the
- * platform carries the css the wiring is a no-op: the stylesheet does
- * the work alone.
- */
-
 import { Attributes } from '../../ftl/index.mjs';
 
 /** the viewport's breathing room when clamping, in pixels */
@@ -23,19 +15,16 @@ const platformAnchors = () =>
 
 const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(low, high));
 
-/** a note is the popover that draws a callout, and the only one these offsets serve */
+/** a popover that reads `placement` and gets the callout offsets */
 const isNote = (popover) => popover.matches('ful-note, .ful-note, [placement]');
 
 /**
- * Reports where the invoker's centre falls inside the popover, which is what a
- * callout points at. The two are the same spot until the viewport pushes the
- * popover off its invoker, which the platform's own placement does as readily
- * as the hand placement below, so this is measured in both.
+ * Writes the invoker's centre, measured from the popover's padding box, as
+ * `--ful-note-callout-inline` and `--ful-note-callout-block` on the popover.
  */
 const reportCallout = (popover, invoker) => {
     const box = invoker.getBoundingClientRect();
     const here = popover.getBoundingClientRect();
-    //against the padding box, which is what a percentage inset resolves against
     popover.style.setProperty(
         '--ful-note-callout-inline',
         `${box.left + box.width / 2 - here.left - popover.clientLeft}px`,
@@ -52,10 +41,6 @@ const place = (popover, anchored) => {
     const viewport = document.documentElement;
     const vw = viewport.clientWidth;
     const vh = viewport.clientHeight;
-    //the css gap lives in the margins, and the computed style is live: the
-    //inline zero a previous placing left behind is dropped first so the numbers
-    //read below are the stylesheet's own, not this function's own zero. Reading
-    //them afterwards left every popover flush against its invoker
     popover.style.removeProperty('margin');
     const computed = getComputedStyle(popover);
     const gap = {
@@ -82,9 +67,6 @@ const place = (popover, anchored) => {
         popover.style.top = `${clamp(top, PAD, vh - height - PAD)}px`;
         return;
     }
-    //a popover wraps against the spot it lands on: the width is measured
-    //wide open, the left clamped so it still fits, the vertical placed
-    //against the height that width renders
     const note = isNote(popover);
     const placement = note ? (popover.getAttribute('placement') ?? 'bottom') : 'bottom';
     popover.style.removeProperty('max-width');
@@ -147,10 +129,6 @@ const showOncePlaced = (popover, anchored) => {
 const reflow = () => {
     frame = 0;
     for (const [popover, anchored] of open) {
-        //the platform hides a popover removed while open without firing the
-        //toggle that would have dropped its entry, so the pass that places the
-        //open ones is also where a gone one is forgotten: it is the moment
-        //anybody cares, and it needs no callback on either element's life
         if (!popover.isConnected || !anchored.invoker.isConnected) {
             open.delete(popover);
             continue;
@@ -166,44 +144,68 @@ const schedule = () => {
 };
 
 /**
- * CSS anchor positioning for a popover and the invoker it belongs to, with the
- * hand-placed fallback for the platforms that do not have it.
+ * Places a popover beside the element or the rectangle it belongs to.
+ *
+ * `wire` pairs a popover with one invoker for its lifetime and relies on css
+ * anchor positioning, placing the popover in script only where the platform
+ * lacks it or the caller asks for it. `show` places a popover once, beside
+ * whatever anchor the call hands over.
  */
 class Anchors {
     /**
-     * Anchors a popover to its invoker.
+     * Anchors a popover to its invoker for the popover's lifetime.
      *
-     * The invoker is given an `anchor-name` and the popover a `position-anchor`
-     * pointing at it, which is what a stylesheet needs to place the popover
+     * On every platform the invoker is given an inline `anchor-name` and the
+     * popover a `position-anchor` naming it, `--` followed by a unique id
+     * built from `prefix`. That is what a stylesheet needs to place the popover
      * itself: the library's own menus say `top: anchor(bottom); left:
      * anchor(left)`. **Writing that css is the caller's half of this.** Without
      * it the popover lands wherever the user agent puts a popover, which is not
      * beside the invoker.
      *
-     * Where the platform has no anchor positioning the popover is placed here
-     * instead, beside the invoker whenever it opens, clamped into the viewport,
-     * following it on scroll and resize, and cleaned up on close. That placement
-     * draws the geometry the css above describes, so the two agree.
+     * Where the platform has no css anchor positioning, or under `handPlace`,
+     * the popover is placed in script instead: beside the invoker whenever it
+     * opens, clamped 8px inside the viewport, placed again on every scroll and
+     * resize while open, and its inline placement removed on close. The gap to
+     * the invoker is read from the popover's css margins. From `beforetoggle`
+     * to the placing, in a microtask before the `toggle` event, the popover
+     * carries an inline `visibility: hidden`, so a stylesheet setting
+     * `visibility` on it competes with that. A popover removed from the
+     * document while open, or whose invoker was removed, stops being placed.
+     *
+     * The script placement puts a plain popover below the invoker,
+     * start-aligned. A popover matching `ful-note`, `.ful-note` or
+     * `[placement]` reads its `placement` attribute instead: `top`, `right`,
+     * `left`, or `bottom` by default, centred on the invoker along the other
+     * axis. Such a popover is also given `--ful-note-callout-inline` and
+     * `--ful-note-callout-block`: the invoker's centre, in pixels, measured
+     * from the popover's padding box, which stays on the invoker when the
+     * viewport pushes the popover off it.
+     *
+     * Wiring the same pair twice adds its listeners twice.
      *
      * @param {HTMLElement} invoker the element the popover belongs to
      * @param {HTMLElement} popover the `[popover]` element to place
      * @param {object} [options]
-     * @param {string} [options.prefix] prefixes the generated anchor name and id,
-     *   so the dom says which component a name belongs to
-     * @param {boolean} [options.invoke] points the invoker's `popovertarget` at
-     *   the popover, giving toggle and light dismiss with no script of your own
-     * @param {boolean} [options.expanded] keeps the invoker's `aria-expanded` in
-     *   step with the popover
-     * @param {boolean} [options.stretch] widens the popover to at least its
-     *   invoker's width, capped by its own `max-width`, which is what a combobox
-     *   dropdown wants; it flips above the invoker where the viewport leaves no
-     *   room below
-     * @param {boolean} [options.handPlace] places here on every platform rather
-     *   than only as a fallback, which a popover asks for when it needs to know
-     *   where its invoker ended up: the tooltip's note points a callout at it, and
-     *   a pseudo-element cannot read an anchor outside its own containing block.
-     *   Such a popover declares no anchor placement in css, there being none to
-     *   agree with
+     * @param {string} [options.prefix] prefixes the generated anchor name and
+     *   id, `ful-anchor` by default, so the dom says which component a name
+     *   belongs to
+     * @param {boolean} [options.invoke] makes the invoker toggle the popover,
+     *   which light dismiss then closes with no script of your own. The popover
+     *   is given the generated id when it has none. A `button` or `input`
+     *   invoker gets a `popovertarget` naming it; any other element toggles it
+     *   on click and on the Enter and Space keys
+     * @param {boolean} [options.expanded] sets the invoker's `aria-expanded` to
+     *   `false` at once and keeps it in step with the popover's `toggle` events
+     * @param {boolean} [options.stretch] in the script placement, sizes the
+     *   popover to at least its invoker's width, capped by its own `max-width`
+     *   and the viewport, and flips it above the invoker where the viewport
+     *   leaves no room below, which is what a combobox dropdown wants. The
+     *   `placement` attribute is not read
+     * @param {boolean} [options.handPlace] places in script on every platform
+     *   rather than only as a fallback, for a popover that needs to know where
+     *   its invoker ended up, such as a note pointing a callout at it. Such a
+     *   popover declares no anchor placement in css
      */
     static wire(
         invoker,
@@ -212,7 +214,6 @@ class Anchors {
     ) {
         const uid = Attributes.uid(prefix);
         if (invoke) {
-            //popovertarget needs a target that can be named
             popover.id = popover.id || uid;
             if (invoker.localName === 'button' || invoker.localName === 'input') {
                 invoker.setAttribute('popovertarget', popover.id);
@@ -236,9 +237,6 @@ class Anchors {
                 invoker.setAttribute('aria-expanded', evt.newState === 'open' ? 'true' : 'false');
             });
         }
-        //the naming above is what the stylesheet reads, so it happens either way:
-        //only the hand placement below is the fallback, and only for a popover that
-        //did not ask to be placed here whatever the platform offers
         if (!handPlace && platformAnchors()) {
             return;
         }
@@ -264,29 +262,33 @@ class Anchors {
         }
     }
     /**
-     * Shows and places a popover beside an anchor, once: the popover shared by
-     * many invokers, each open handing over its own anchor, and an anchor that
-     * is a rectangle rather than an element, one read out of an iframe being
-     * the case a paired invoker could not cover. No pairing, no reflow
-     * following, no close wiring: closing is the caller's, or the platform's
-     * for a light-dismissing popover.
+     * Shows a popover and places it beside an anchor, once. It serves a
+     * popover shared by many invokers, each open handing over its own anchor,
+     * and an anchor that is a rectangle rather than an element, such as one
+     * read out of an iframe. Nothing is paired and nothing follows a later
+     * scroll or resize; closing is the caller's, or the platform's for a
+     * light-dismissing popover.
      *
-     * The placement is the menus' own geometry, below the anchor and
-     * start-aligned, clamped into the viewport; `flip` moves it above the
-     * anchor where the viewport leaves no room below, as the css
-     * `position-try-fallbacks` the paired popovers declare. A popover not
-     * already open is shown and placed before the call returns, so the first
-     * position anybody sees is the right one and the caller can move the focus
-     * into it on the next line.
+     * The popover goes below the anchor, start-aligned, clamped 8px inside the
+     * viewport. `flip` moves it above the anchor where there is no room below
+     * and there is room above. The placement is written as inline `top`, `left`,
+     * `right`, `bottom` and `margin`, which stay after the popover closes and
+     * are overwritten by the next call.
+     *
+     * A popover not already open is shown with `showPopover()` and placed
+     * before the call returns, so the first position anybody sees is the right
+     * one and the caller can move the focus into it on the next line. One
+     * already open is placed without being shown again.
      *
      * @param {HTMLElement} popover the `[popover]` element to show, or an
      *   already-shown element to place
-     * @param {Element|DOMRect} anchor the element, or the rectangle, to place
-     *   beside
+     * @param {Element|DOMRect} anchor the element, or the rectangle in
+     *   viewport coordinates, to place beside
      * @param {object} [options]
      * @param {boolean} [options.flip] place above the anchor where no room is
-     *   left below
-     * @param {number} [options.gap] the distance from the anchor, in pixels
+     *   left below, `false` by default
+     * @param {number} [options.gap] the distance from the anchor, in pixels,
+     *   `0` by default
      * @returns {HTMLElement} the popover
      */
     static show(popover, anchor, { flip = false, gap = 0 } = {}) {

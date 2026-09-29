@@ -7,24 +7,31 @@ import { Anchors } from './anchors.mjs';
 import { wireTargets } from './targets.mjs';
 
 /**
- * An info icon button toggling a popover with a short explanation.
+ * An icon button that toggles a native popover, a `ful-note`, holding the
+ * default slot as a short explanation. The popover gives light dismiss and
+ * Escape, and the button carries an `aria-expanded` kept in step with it and
+ * a localized `aria-label`.
  *
- * The marker is the page's `config.icon`, and the `icon` attribute names a
- * `ful-icon` for the tooltip that means something other than plain information:
- * a caveat, a warning, a setting. A name the library does not paint is the
- * page's own, declared as `ful-icon[name='...'] { mask-image: ... }`.
+ * The marker is the `ful-icon` that `Tooltip.config.icon` names for the whole
+ * page, or the one the `icon` attribute names for a single tooltip. A name the
+ * library does not paint is declared by the page as
+ * `ful-icon[name='...'] { mask-image: ... }`.
  *
- * `describes` is for the tooltip standing in a field: the note becomes part of
- * the accessible description of that field's control, so it is announced on
- * reaching the field rather than only on opening the marker, and the marker
- * leaves the tab order, so a form of hinted fields costs no extra keystrokes to
- * walk. The marker stays clickable, and stays a tab stop wherever the note was
- * not taken, a tooltip claiming `describes` outside a field among them: the
- * stop only goes where something else delivers the content.
+ * `placement` picks the side of the marker the note opens on: `top` (the
+ * default), `bottom`, `left` or `right`. The note is placed in script on every
+ * platform, centred on the marker, clamped into the viewport and following the
+ * marker on scroll and resize, with a callout on the edge facing the marker.
+ *
+ * `describes` offers the note to the nearest ancestor that takes a description
+ * (see `describable`), a field's control in practice: when it is taken, the
+ * note becomes part of that control's accessible description and the marker
+ * leaves the tab order, staying clickable. When nothing takes it, the marker
+ * keeps its tab stop and a warning is logged.
  */
 class Tooltip extends ParsedElement {
     static slots = true;
     static attributes = ['placement', 'icon', 'describes:presence'];
+    /** The page-wide defaults: `icon` is the `ful-icon` name of the marker. */
     static config = {
         icon: 'info-circle-fill',
     };
@@ -32,16 +39,14 @@ class Tooltip extends ParsedElement {
         <span role="button" tabindex="0" class="ful-tip" data-ref="trigger" data-tpl-aria-label="#l10n:t('info.tooltip')"><ful-icon data-tpl-name="icon ?? config.icon" aria-hidden="true"></ful-icon></span>
         <ful-note popover data-ref="content">{{{{ slots.default }}}}</ful-note>
     `;
+    /**
+     * @param {{ slots: Record<string, DocumentFragment> }} c
+     */
     render({ slots }) {
         const fragment = this.template().withOverlay({ slots, icon: this.declared('icon') }).render();
         const trigger = /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=trigger]'));
         const content = /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=content]'));
-        //placed here rather than by the anchor css: the note draws a callout that
-        //has to point at the trigger wherever the viewport left room for the note,
-        //which is a measurement the stylesheet cannot make for a pseudo-element
         Anchors.wire(trigger, content, { prefix: 'ful-tooltip', invoke: true, expanded: true, handPlace: true });
-        //above the marker by default: a note opening downwards covers the control
-        //the marker explains, the marker riding the field's label
         content.setAttribute('placement', this.declared('placement') ?? 'top');
         this.replaceChildren(fragment);
         if (this.declared('describes')) {
@@ -49,13 +54,9 @@ class Tooltip extends ParsedElement {
         }
     }
     /**
-     * Offers the note to the field the tooltip stands in, and takes the trigger
-     * out of the tab order only where the offer was accepted: a note nothing
-     * carries is reachable by the keyboard through the marker alone, so
-     * dropping the stop there would leave it reachable by nothing at all.
-     *
-     * The offer goes through the description protocol rather than naming a
-     * field, the library's own arrow running from the forms to the disclosures.
+     * @param {Tooltip} tooltip
+     * @param {HTMLElement} trigger
+     * @param {HTMLElement} content
      */
     static #describe(tooltip, trigger, content) {
         if (!describable(tooltip)?.describedBy(content)) {
@@ -67,31 +68,51 @@ class Tooltip extends ParsedElement {
 }
 
 /**
- * How a dialog ended: `dismissed` tells a cancel from an answer, `result` carries
- * the `data-result` of the button that closed it and `response` what a submit
- * answered with, the one that did not happen being null.
+ * How a dialog ended. `dismissed` is true for Escape, the close button, a
+ * backdrop click, a `data-result=""` button, `close()` without a result and a
+ * removal from the document; `result` is the `data-result` of the button, or
+ * the argument of `close(result)`, that answered; `response` is what the form
+ * answered with under `close-on-submit`. Whichever of `result` and `response`
+ * did not answer is null, as both are on a dismissal.
  * @typedef {{ dismissed: boolean, result: string|null, response: any }} DialogOutcome
  */
 
 /**
- * A modal dialog on the native platform, open()/ask() resolving with how it
- * ended, as a `DialogOutcome`.
+ * A modal dialog on the native `<dialog>`, rendered with a header, a body and
+ * a footer. `open()` and `ask()` show it and resolve with a `DialogOutcome`.
  *
- * The header carries a close button, as the drawer's does: Escape dismisses a
- * modal on its own, but nothing says so, and a dialog whose only exit is a key
- * you have to know about leaves a pointer with nowhere to go. It answers the way
- * Escape does, with a dismissal.
+ * The `header` attribute is the title, rendered as an `h2` that names the
+ * dialog through `aria-labelledby`; without it the dialog is unnamed. The
+ * `header` slot is rendered in the header before the title, the default slot
+ * is the body, and the `buttons` slot is rendered in the footer. Without a
+ * `buttons` slot, and without `close-on-submit`, the footer holds a localized
+ * acknowledge button answering `acknowledged`.
  *
- * `requires-answer` is for the dialog that must be answered: the close button is not
- * rendered and Escape is refused, so the only way out is a button that carries a
- * result. It has to be both, a close button withheld while Escape still worked
- * being decoration rather than a rule.
+ * Any button inside the dialog carrying `data-result` closes it with that
+ * result, an empty one being a dismissal. The header carries a close button,
+ * and a press and release both on the backdrop close the dialog, each as a
+ * dismissal, as Escape does.
  *
- * The chrome is reachable by class as well as by tag, so a plain `<dialog
- * class="ful-dialog">` written by a page gets the same look whatever its
- * structure: the tag form matches a direct child, and `ful-dialog-header`,
- * `ful-dialog-body` and `ful-dialog-footer` match at any depth, which is what a
- * dialog whose content is wrapped in a form needs.
+ * `requires-answer` withholds the close button and refuses Escape and the
+ * backdrop, so the dialog is closed only by a button carrying `data-result`
+ * or from code through `close()`.
+ *
+ * `close-on-submit` closes the dialog when a `ful-form` that is a direct child
+ * of the body dispatches `submit:success`, answering with its
+ * `detail.response`. A form deeper in the body, such as the filter form of a
+ * `ful-table`, does not close it. The listener sits on the body, so a form
+ * delivered by `update()` is covered as well.
+ *
+ * Every close dispatches a non-bubbling `close` event on the element carrying
+ * the `DialogOutcome` as `detail`, before the pending `ask()` calls resolve.
+ * An element anywhere in the page carrying `dialog-target` set to the
+ * element's id opens it on click.
+ *
+ * The chrome is styled by class as well as by tag, so a plain `<dialog
+ * class="ful-dialog">` written by a page gets the same look: the tag form
+ * matches a direct child, and `ful-dialog-header`, `ful-dialog-body` and
+ * `ful-dialog-footer` match at any depth, as a dialog whose content is wrapped
+ * in a form needs.
  */
 class Dialog extends ParsedElement {
     static attributes = ['header', 'requires-answer:presence', 'close-on-submit:presence'];
@@ -119,10 +140,11 @@ class Dialog extends ParsedElement {
     #requests = new SectionRequests();
     #updates = new Claims();
     #resolvers = [];
-    //the answer a submit closed the dialog with, which the return value cannot
-    //carry: it is a string, and a response is whatever the server sent
     /** @type {DialogOutcome|null} */
     #answer = null;
+    /**
+     * @param {{ slots: Record<string, DocumentFragment> }} c
+     */
     render({ slots }) {
         const requiresAnswer = this.declared('requires-answer');
         const closeOnSubmit = this.declared('close-on-submit');
@@ -133,10 +155,6 @@ class Dialog extends ParsedElement {
         this.#body = fragment.querySelector('[data-ref=body]');
         this.#loading = fragment.querySelector('[data-ref=loading]');
         this.#error = fragment.querySelector('[data-ref=error]');
-        //a dialog is a named surface: a reader announces the heading on opening,
-        //which it cannot do unless the heading names the dialog. The name travels
-        //as a reference rather than as aria-label text, so it stays the heading's
-        //own however it is reworded
         const heading = fragment.querySelector('h2');
         if (heading) {
             heading.id ||= Attributes.uid('ful-dialog-title');
@@ -161,18 +179,10 @@ class Dialog extends ParsedElement {
                 this.#dialog.close('');
             }
         });
-        //dismissal, not an answer: the waiters are settled with a dismissal, as
-        //Escape does. Optional because a subclass overriding the template owns
-        //what it renders
         fragment
             .querySelector('[data-ref=close]')
             ?.addEventListener('click', () => this.#dialog.close(''));
         if (closeOnSubmit) {
-            //delegated on the body rather than bound to the form, so a body
-            //delivered later by update() is covered by the same listener. The
-            //form must be the body's own: a ful-table wraps its filters in a
-            //ful-form of its own, and a search in a table the dialog holds is
-            //not the dialog being answered
             this.#body.addEventListener('submit:success', (/** @type any */ e) => {
                 if (e.target !== Nodes.queryChildren(this.#body, 'ful-form')) {
                     return;
@@ -182,36 +192,22 @@ class Dialog extends ParsedElement {
             });
         }
         if (requiresAnswer) {
-            //the platform's own dismissal, refused where the dialog must be
-            //answered: cancel fires for Escape and for a close request the
-            //browser makes on its own, and preventing it leaves the dialog open
             this.#dialog.addEventListener('cancel', (/** @type any */ e) => e.preventDefault());
         }
         this.replaceChildren(fragment);
         wireTargets();
     }
-    /**
-     * How the dialog ended, in one shape for every way it can end: `dismissed`
-     * alone tells a cancel from an answer, so a submit answering with no body at
-     * all (a 204) is still an answer, where a bare `null` could not say which it
-     * was. `result` carries the `data-result` of the button that closed it and
-     * `response` what a submit answered with; the one that did not happen is null.
-     */
+    /** @returns {DialogOutcome} */
     #outcome() {
         if (this.#answer) {
             return this.#answer;
         }
-        //a render that threw adopted no dialog, and a removal still owes its
-        //waiters an answer: reading through it would raise a second, unrelated
-        //failure over the one already reported
         const result = this.#dialog?.returnValue ?? '';
         return result === ''
             ? { dismissed: true, result: null, response: null }
             : { dismissed: false, result, response: null };
     }
-    //answers every waiter with the dialog's own answer: a dismissal while still
-    //open or closed without a result, which is also the unanswered answer a
-    //dialog leaving the document owes its waiters instead of hanging them
+    /** @param {DialogOutcome} outcome */
     #settle(outcome) {
         const resolvers = this.#resolvers;
         this.#resolvers = [];
@@ -219,12 +215,36 @@ class Dialog extends ParsedElement {
             resolve(outcome);
         }
     }
+    /**
+     * Resolves every pending `ask()` and `open()` with the outcome so far,
+     * a dismissal for a dialog still open, so that no caller waits on a dialog
+     * that left the document. The native dialog is not closed and no `close`
+     * event is dispatched.
+     */
     disconnectedCallback() {
         this.#settle(this.#outcome());
     }
+    /**
+     * The same as `ask()`.
+     * @returns {Promise<DialogOutcome>}
+     */
     open() {
         return this.ask();
     }
+    /**
+     * Shows the dialog as a modal and resolves with how it ends.
+     *
+     * The call that opens the dialog resets the outcome of the previous
+     * opening, hides the error and loading sections, and dispatches
+     * `section:requested` on the element (bubbling, with
+     * `detail: { section, first, name: null, index: null }`, `section` being
+     * the body and `first` true only on the first answered request), so a
+     * listener can fill the body. A failed request is painted into the body
+     * and does not reject. On a dialog already open nothing is shown or
+     * requested, and the call waits for the same ending as the calls before it.
+     * @returns {Promise<DialogOutcome>} resolving on close, or on removal from
+     * the document with a dismissal
+     */
     ask() {
         if (this.#show()) {
             this.#restChrome();
@@ -235,23 +255,27 @@ class Dialog extends ParsedElement {
         });
     }
     /**
-     * Opens the dialog and waits for the callback, as `ful-drawer`'s does: a
-     * resolved value paints the body (which is returned), a rejection paints the
-     * problems and travels to the caller, and an update superseded by a newer one
-     * paints nothing. The title is the `header` attribute, configuration like the
-     * rest of the dialog's chrome, so what update() owns is the body alone.
+     * Empties and hides the body, shows the loading section, opens the dialog
+     * if it is closed, and fills the body with what the callback resolves to.
+     * A rejection is shown, as the problems' reasons, in the error section,
+     * which has `role="alert"`, and the body is hidden. The title stays the
+     * `header` attribute.
+     *
+     * No `section:requested` is dispatched, and no `ask()` waiter is added:
+     * listen for the `close` event to learn how the dialog ended. When a newer
+     * `update()` starts before the callback settles, this call paints nothing:
+     * it resolves with the body regardless, and still rejects with the
+     * callback's error.
+     * @param {() => Node|string|Promise<Node|string>} cb producing the body content
+     * @returns {Promise<Element>} the body section, in the document
+     * @throws {any} what the callback threw or rejected with
      */
     async update(cb) {
-        //the claim detaches any update still in flight: its outcome belongs to
-        //an abandoned opening and must neither be painted nor own the dialog
         const claim = this.#updates.take();
         this.#body.replaceChildren();
         this.#restChrome();
         this.#loading?.removeAttribute('hidden');
         this.#body.setAttribute('hidden', '');
-        //update owns its own open-answer-deliver cycle, so it shows the dialog
-        //without going through ask(): a user reopen during the wait is a real
-        //open and goes through ask()
         this.#show();
         try {
             const delivered = await cb();
@@ -264,8 +288,6 @@ class Dialog extends ParsedElement {
             return this.#body;
         } catch (/** @type any */ e) {
             if (!claim.stale) {
-                //revealed before it is filled, so the live region announces the
-                //change rather than being revealed already holding it
                 this.#error?.removeAttribute('hidden');
                 if (this.#error) {
                     this.#error.textContent = Failure.problemsText(e);
@@ -280,24 +302,29 @@ class Dialog extends ParsedElement {
         this.#requests.request(this, this.#body, null, null).catch(() => undefined);
     }
     /**
-     * Re-fires section:requested for the body, open or closed: the explicit
-     * request for a body that wants refreshing. A failed refresh paints its
-     * problems, nothing rejects: update() stays the rejecting call.
+     * Dispatches `section:requested` for the body again, as `ask()` does,
+     * whether the dialog is open or closed. A failed request is painted into
+     * the body.
+     * @returns {Promise<any[]|undefined>} the listeners' answers, undefined when
+     * nobody answered or the request failed; it never rejects
      */
     refresh() {
         return this.#requests.request(this, this.#body, null, null).catch(() => undefined);
     }
+    /**
+     * Closes an open dialog, doing nothing on a closed one. A non-empty result
+     * answers as the button carrying that `data-result` would; no result, or
+     * an empty one, is a dismissal.
+     * @param {string} [result]
+     */
     close(result) {
         this.#dialog.close(result ?? '');
     }
-    /** Shows the modal, answering whether this call is the one that opened it. */
+    /** @returns {boolean} whether this call is the one that opened the modal */
     #show() {
         if (this.#dialog.open) {
             return false;
         }
-        //an opening owes nothing to the one before it: the platform keeps
-        //returnValue across a close with no result, and the answer a submit
-        //left is just as stale
         this.#dialog.returnValue = '';
         this.#answer = null;
         this.#dialog.showModal();
@@ -310,22 +337,20 @@ class Dialog extends ParsedElement {
         this.#body?.removeAttribute('hidden');
     }
     /**
-     * Asks a question in a dialog of the page's own, resolving with its outcome
-     * and removing the element afterwards: the element stays the author's when
-     * the question lives in the page, while a question asked from a button had
-     * to build, render, show, answer and clean up by hand.
+     * Appends a new `ful-dialog` to `document.body`, asks it, and removes it
+     * once it is answered or its render fails.
      *
-     * The body is text or a node: a string is never read as markup, an
-     * `innerHTML` sink being a thing the library does not carry. Each button is
-     * a `[result, label, className?]` tuple rendered as its answer, or a node
-     * the caller has built itself, which is how a button carries anything a
-     * tuple cannot say and how a footer gets a spacer.
-     * @param {string} header
+     * A string body is set as text and never parsed as markup; a node is
+     * appended as it is. Each button is either a `[result, label, className?]`
+     * tuple, rendered as a `button` carrying `data-result`, or a node the
+     * caller built, placed in the footer in the order given. With no buttons
+     * the dialog shows its localized acknowledge button.
+     * @param {string} header the title
      * @param {string|Node} body
      * @param {([string, string, string?]|Node)[]} [buttons]
-     * @param {{ className?: string }} [options] `className` dresses the dialog,
-     *   the way a declared `ful-dialog` is given one to size it
-     * @returns {Promise<DialogOutcome>}
+     * @param {{ className?: string }} [options] `className` is set as the class
+     * of the `ful-dialog` element
+     * @returns {Promise<DialogOutcome>} rejecting with what the render threw
      */
     static async ask(header, body, buttons = [], { className } = {}) {
         const dialog = document.createElement('ful-dialog');
@@ -338,8 +363,6 @@ class Dialog extends ParsedElement {
         } else if (body) {
             dialog.append(body);
         }
-        //buttons are slotted only when there are any: the acknowledge button
-        //is the answer of a question asked without choices of its own
         if (buttons.length > 0) {
             const choices = document.createElement('template');
             choices.setAttribute('slot', 'buttons');
@@ -369,14 +392,15 @@ class Dialog extends ParsedElement {
         }
     }
     /**
-     * Asks a yes/no question, resolving with the confirm button's answer:
-     * the cancel button, the close button and Escape all answer false, a
-     * dismissal being the negative.
-     * @param {string} header
-     * @param {string|Node} body
-     * @param {{ confirm?: string, cancel?: string }} [labels] overriding the localized defaults
-     * @param {{ className?: string }} [options] as `ask` takes them
-     * @returns {Promise<boolean>}
+     * Asks a yes/no question through `Dialog.ask`, with a cancel button and a
+     * confirm button carrying the `ful-button` class.
+     * @param {string} header the title
+     * @param {string|Node} body as `Dialog.ask` takes it
+     * @param {{ confirm?: string, cancel?: string }} [labels] the button labels,
+     * `dialog.confirm` and `dialog.cancel` localized by default
+     * @param {{ className?: string }} [options] as `Dialog.ask` takes them
+     * @returns {Promise<boolean>} true only for the confirm button; the cancel
+     * button, the close button and Escape answer false
      */
     static async confirm(header, body, labels = {}, options = {}) {
         const outcome = await Dialog.ask(

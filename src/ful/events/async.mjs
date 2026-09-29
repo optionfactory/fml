@@ -1,6 +1,7 @@
 /**
  * @typedef {Object} AsyncExtension
- * @property {Promise<any>[]} promises
+ * @property {Promise<any>[]} promises one per `asyncOn` listener the event
+ * reached, in the order they ran
  * @typedef {Event & { async?: AsyncExtension }} AsyncEvent
  */
 /**
@@ -11,19 +12,29 @@
  */
 class AsyncEvents {
     /**
-     * Dispatches an event and handles asynchronous resolution based on the execution mode.
-     * @param {HTMLElement} el - The target element dispatching the event.
-     * @param {AsyncEvent} evt - The event instance.
-     * @param {{mode?: 'broadcast' | 'pipeline' | 'delegate'}} [options] - Configuration options (defaults to 'broadcast').
-     * @returns {Promise<any>} Resolves with an array of values for broadcasts, a single value for pipelines/delegates, or undefined.
+     * Dispatches `evt` on `el` synchronously, then waits for the answers of the
+     * `asyncOn` listeners it reached, on `el` or, for a bubbling event, on its
+     * ancestors. Listeners added with a plain `addEventListener` run but are not
+     * awaited. In `broadcast` mode, the default, it resolves with every answer
+     * in the order the listeners ran, an empty array when none did. In
+     * `pipeline` mode it accepts at most one listener and resolves with its
+     * answer, or undefined when none ran. In `delegate` mode it requires exactly
+     * one listener and resolves with its answer.
+     * @param {HTMLElement} el the element to dispatch on
+     * @param {AsyncEvent} evt the event to dispatch
+     * @param {{mode?: 'broadcast' | 'pipeline' | 'delegate'}} [options]
+     * @returns {Promise<any>} the answer or answers as the mode describes
+     * @throws what the first answer to fail threw or rejected with; or an
+     * Error naming the event and the mode when `pipeline` reached more than one
+     * listener or `delegate` did not reach exactly one, in which case the
+     * listeners have already run and their outcome is discarded. Both arrive as
+     * the rejection of the returned promise.
      */
     static async fireAsync(el, evt, options) {
         el.dispatchEvent(evt);
         const promises = evt.async?.promises ?? [];
         const mode = options?.mode ?? 'broadcast';
         if ((mode === 'pipeline' && promises.length > 1) || (mode === 'delegate' && promises.length !== 1)) {
-            //the listeners ran under a broken configuration: nothing legitimately
-            //awaits their outcome, and their failures are not page errors
             Promise.all(promises).catch(() => {});
             throw new Error(
                 mode === 'pipeline'
@@ -35,12 +46,17 @@ class AsyncEvents {
     }
 
     /**
-     * Registers an asynchronous event listener wrapper.
-     * @param {HTMLElement} el - The target element.
-     * @param {string} type - The event name/type.
-     * @param {Function} fn - The async listener middleware function returning the execution result.
-     * @param {AddEventListenerOptions} [options] - Native addEventListener options.
-     * @returns {EventListener} The underlying proxy listener function needed for cleanup via asyncOff.
+     * Adds a listener whose answer `fireAsync` can await. When the event
+     * reaches it, the listener attaches a promise to `evt.async.promises`,
+     * creating the list when it is the first, then calls `fn` with the event;
+     * the promise settles with what `fn` returns or throws, awaited when it is a
+     * promise. The event is dispatched the usual way, so an event fired with a
+     * plain `dispatchEvent` runs `fn` too, and nobody awaits its answer.
+     * @param {HTMLElement} el the element to listen on
+     * @param {string} type the event type
+     * @param {(evt: any) => any} fn called with the event; its result is the answer
+     * @param {AddEventListenerOptions} [options] passed to `addEventListener`
+     * @returns {EventListener} the listener actually added, which `asyncOff` takes
      */
     static asyncOn(el, type, fn, options) {
         /** @type {(evt: Event) => Promise<void>} */
@@ -63,18 +79,23 @@ class AsyncEvents {
     }
 
     /**
-     * Unregisters an asynchronous event listener proxy.
-     * @param {HTMLElement} el - The target element.
-     * @param {string} type - The event name/type.
-     * @param {EventListener} listener - The proxy listener instance previously returned by asyncOn.
-     * @param {EventListenerOptions} [options] - Native removeEventListener options.
+     * Removes a listener added by `asyncOn`.
+     * @param {HTMLElement} el the element it listens on
+     * @param {string} type the event type it was added for
+     * @param {EventListener} listener what `asyncOn` returned, not the `fn` given to it
+     * @param {EventListenerOptions} [options] passed to `removeEventListener`
+     * @returns {void}
      */
     static asyncOff(el, type, listener, options) {
         el.removeEventListener(type, listener, options);
     }
     /**
-     * Mixes the asynchronous execution engine extensions into target class prototypes.
-     * @param {...Function} classes - The target class constructors to decorate.
+     * Assigns `fireAsync(evt, options)`, `asyncOn(type, fn, options)` and
+     * `asyncOff(type, listener, options)` onto each class's prototype, each
+     * calling the static of the same name with the instance as the element.
+     * Members of those names already on the prototype are overwritten.
+     * @param {...Function} classes the classes to extend
+     * @returns {void}
      */
     static mixInto(...classes) {
         for (const k of classes) {
@@ -92,7 +113,7 @@ class AsyncEvents {
                 /**
                  * @this {HTMLElement}
                  * @param {string} type
-                 * @param {Function} fn
+                 * @param {(evt: any) => any} fn
                  * @param {AddEventListenerOptions} [options]
                  * @returns {EventListener}
                  */

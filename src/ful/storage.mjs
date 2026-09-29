@@ -1,26 +1,45 @@
 /**
- * Builds a json-encoding wrapper over one of the page's storages. The backing
- * is deferred (an accessor, not the storage itself): where storage is denied
- * (blocked cookies, some embedded or private contexts) the accessor itself
- * throws, and must do so per call, never at module load. The methods are bound
- * to nothing: destructuring keeps them working.
- * @param {() => globalThis.Storage} backing
+ * One of the page's storages, holding values encoded as json. The functions
+ * do not use `this`, so they keep working when destructured. Reads never
+ * throw: where the storage cannot be reached at all (blocked cookies, some
+ * embedded or private contexts) a read is a miss and a removal does nothing.
+ * @typedef {Object} JsonStorage
+ * @property {(k: string, v: any) => void} save stores `JSON.stringify(v)`
+ * under `k`, throwing what the encoding or the storage throws: an unreachable
+ * storage, a full quota, a value json cannot encode
+ * @property {(k: string) => any} load the value stored under `k`, decoded;
+ * undefined when there is none, when the storage cannot be reached, or when the
+ * stored text is not json, in which case the entry is also removed
+ * @property {(k: string) => void} remove removes the entry under `k`
+ * @property {(k: string) => any} pop what `load` answers for `k`, removing the
+ * entry
+ */
+/**
+ * One of the page's storages holding values beside a revision.
+ * @typedef {Object} VersionedJsonStorage
+ * @property {(key: string, revision: string, data: any) => void} save stores
+ * `data` with `revision` under `key`, throwing what `JsonStorage.save` throws
+ * @property {(key: string, revision: string) => any} load the data stored under
+ * `key` when it was saved with this exact revision; otherwise undefined, and the
+ * entry is removed, whether it holds another revision, holds no revision at
+ * all, or is missing
+ */
+/**
+ * @param {() => globalThis.Storage} backing called on every operation, so an
+ * unreachable storage fails that operation rather than the module's load
+ * @returns {JsonStorage}
  */
 const storage = (backing) => {
     const remove = (k) => {
         try {
             backing().removeItem(k);
-        } catch {
-            //nothing to remove where storage is unreachable
-        }
+        } catch {}
     };
     const load = (k) => {
         let got;
         try {
             got = backing().getItem(k);
         } catch {
-            //storage can be unreachable altogether (blocked cookies, embedded or
-            //private contexts): a read that cannot reach it is a miss, not a failure
             return undefined;
         }
         if (got === null) {
@@ -29,7 +48,6 @@ const storage = (backing) => {
         try {
             return JSON.parse(got);
         } catch {
-            //not what save wrote: drop it, otherwise every later read fails the same way
             remove(k);
             return undefined;
         }
@@ -46,9 +64,8 @@ const storage = (backing) => {
 };
 
 /**
- * Builds a revision-guarded view over a storage wrapper: a load under a
- * revision other than the stored one is a miss that also evicts the entry.
- * @param {ReturnType<typeof storage>} store
+ * @param {JsonStorage} store
+ * @returns {VersionedJsonStorage}
  */
 const versioned = (store) => ({
     save(key, revision, data) {
@@ -64,9 +81,13 @@ const versioned = (store) => ({
     },
 });
 
+/** `localStorage`, holding json. */
 const LocalStorage = storage(() => localStorage);
+/** `sessionStorage`, holding json. */
 const SessionStorage = storage(() => sessionStorage);
+/** `localStorage`, holding json beside a revision. */
 const VersionedLocalStorage = versioned(LocalStorage);
+/** `sessionStorage`, holding json beside a revision. */
 const VersionedSessionStorage = versioned(SessionStorage);
 
 export { LocalStorage, VersionedLocalStorage, SessionStorage, VersionedSessionStorage };

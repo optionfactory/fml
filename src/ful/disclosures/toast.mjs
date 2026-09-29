@@ -3,28 +3,50 @@ import { Failure } from '../../httpc/index.mjs';
 
 const SEVERITIES = ['info', 'success', 'warning', 'error'];
 
-//the regions alive in the document: the show-toast listener is wired once and
-//forwards to each of them, so a re-hosted or second region never doubles a toast
 const REGIONS = new Set();
 let listenerWired = false;
 
-/** A transient feedback region: each show() stacks a toast that retires on its own timer. */
+/**
+ * @typedef {object} ToastOptions
+ * @property {'info'|'success'|'warning'|'error'} [severity] the theme class and
+ * the announcement, `info` when absent or unknown
+ * @property {number} [timeout] the milliseconds before the toast retires, the
+ * region's own timeout when absent
+ * @property {{ label: any, onClick?: () => void }} [action] a button labelled
+ * with `label` as text, beside the message
+ */
+
+/**
+ * A region of transient messages, with `role="region"` and a localized
+ * `aria-label`. Each `show()` appends a `ful-toast` that retires on its own
+ * timer, so concurrent toasts stack.
+ *
+ * `timeout` is the region's default timer in milliseconds, 5000 when absent
+ * or zero.
+ *
+ * A `show-toast` event dispatched on the document, or bubbling to it, shows its
+ * `detail` in every connected region that has rendered, `detail.message` being
+ * the message and the other fields the `ToastOptions`. The document listener is
+ * added once, so a second region shows each toast once, and an event with no
+ * detail is ignored.
+ */
 class Toasts extends ParsedElement {
     static attributes = ['timeout:number'];
     #timeout;
+    /** Upgrades the region, and makes a re-attached one answer `show-toast` again. */
     connectedCallback() {
         super.connectedCallback();
         if (this.rendered) {
             REGIONS.add(this);
         }
     }
+    /** Stops the region answering `show-toast` while it is out of the document. */
     disconnectedCallback() {
         REGIONS.delete(this);
     }
     render() {
         this.#timeout = this.declared('timeout') || 5000;
         this.setAttribute('role', 'region');
-        //focusable only programmatically, so a retiring toast can hand its focus back
         this.setAttribute('tabindex', '-1');
         this.setAttribute('aria-label', Localization.of().t('toast.region'));
         if (!listenerWired) {
@@ -41,20 +63,27 @@ class Toasts extends ParsedElement {
         REGIONS.add(this);
     }
     /**
-     * Appends a toast carrying the message (a Failure shows its problems'
-     * reasons, one per line), severity picking the theme and the announcement,
-     * the toast retiring through its own timer or its dismiss button.
+     * Appends a `ful-toast` holding the message as text, a `Failure` showing
+     * its problems' reasons one per line and anything else its string form
+     * (`''` for null or undefined). The toast carries the severity as a class
+     * and has `role="alert"` for `error` and `role="status"` otherwise.
      *
-     * The timer holds while the toast is hovered or holds the focus, so an
-     * actionable toast waits for its reader: `action` is `{ label, onClick }`,
-     * a button beside the message whose click answers and retires. The same
-     * options travel in the `show-toast` event's detail.
+     * The toast retires when its timer runs out, when its localized dismiss
+     * button is clicked, or when its action button is clicked, after
+     * `action.onClick` runs. The timer pauses while the pointer is over the
+     * toast or the focus is inside it, and resumes with the time that was left
+     * once both have gone. A retiring toast holding the focus moves it to the
+     * region, which has `tabindex="-1"` for this. The toast is removed once its
+     * `ful-toast-out` animation ends, or at once where the user prefers reduced
+     * motion or no animation runs.
      * @param {any} message
-     * @param {any} [options] severity, timeout and action
-     * @returns {HTMLElement}
+     * @param {ToastOptions} [options]
+     * @returns {HTMLElement} the toast, already in the region
      */
     show(message, options = {}) {
-        const severity = SEVERITIES.includes(options.severity) ? options.severity : 'info';
+        const severity = /** @type {string} */ (
+            SEVERITIES.includes(/** @type {string} */ (options.severity)) ? options.severity : 'info'
+        );
         const item = document.createElement('ful-toast');
         item.classList.add(severity);
         item.setAttribute('role', severity === 'error' ? 'alert' : 'status');
@@ -73,8 +102,6 @@ class Toasts extends ParsedElement {
         let timer = 0;
         const retire = () => {
             clearTimeout(timer);
-            //the toast may hold the focus, on its own buttons: handing it
-            //back to the region keeps the reader somewhere rather than on <body>
             if (item.contains(document.activeElement)) {
                 /** @type HTMLElement */ (this).focus();
             }
@@ -93,7 +120,7 @@ class Toasts extends ParsedElement {
             action.className = 'ful-toast-action';
             action.textContent = String(options.action.label);
             action.addEventListener('click', () => {
-                options.action.onClick?.();
+                /** @type {NonNullable<ToastOptions['action']>} */ (options.action).onClick?.();
                 retire();
             });
             item.append(action);
@@ -104,8 +131,6 @@ class Toasts extends ParsedElement {
                 item.remove();
             }
         });
-        //the pointer and the focus hold independently: a count rather than a
-        //flag, so the pointer leaving while the focus stays keeps the hold
         let holds = 0;
         const hold = () => {
             if (holds === 0) {

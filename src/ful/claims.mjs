@@ -1,4 +1,6 @@
 /**
+ * A hold on one generation of a `Claims`: `stale` turns true once a later
+ * `take()` or `invalidate()` on it starts a newer generation.
  * @typedef {{ readonly stale: boolean }} Claim
  */
 /**
@@ -36,7 +38,10 @@ class Claims {
             },
         };
     }
-    /** Supersedes every claim without holding a new one. */
+    /**
+     * Supersedes every claim without holding a new one.
+     * @returns {void}
+     */
     invalidate() {
         ++this.#generation;
     }

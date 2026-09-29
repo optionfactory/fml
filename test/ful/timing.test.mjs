@@ -141,3 +141,20 @@ describe('Timing.throttle modes', () => {
         assert.deepEqual(calls, ['leading'], 'no trailing call was ever scheduled');
     });
 });
+
+describe('Timing.debounce re-entry', () => {
+    it('a call made from inside the debounced function fires later with its own arguments', async () => {
+        const calls = [];
+        const [debounced] = Timing.debounce(20, (v) => {
+            calls.push(String(v));
+            if (v === 'first') {
+                debounced('again');
+            }
+        });
+
+        debounced('first');
+        await Timing.sleep(100);
+
+        assert.strictEqual(calls.join(','), 'first,again');
+    });
+});

@@ -3,11 +3,24 @@ import { SectionRequests } from '../events/sections.mjs';
 
 /**
  * A tab panel: one visible panel at a time, announced through the tab pattern
- * (a tablist of tab buttons, each panel a tabpanel named by its tab). The tabs
- * are declared as <tab> elements in the tabs slot, the panels as the slotless
- * children, paired in order. Entering a panel fires the section:requested
- * family on the host for it (generic and #index, panels being nameless) and
- * awaits the answers, so a panel can deliver itself asynchronously.
+ * (a tablist of tab buttons, each panel a tabpanel labelled by its tab). The
+ * tabs are declared as `<tab>` elements in the `tabs` slot, the panels as the
+ * slotless children, paired in order. Each `<tab>` becomes a `button` with the
+ * `tab` role carrying the tab's content, inside a `ful-tablist` with the
+ * `tablist` role. A panel that already has an id keeps it and its tab points at
+ * it; a panel without one gets a generated id. Every panel carries
+ * `tabindex="0"`, so the visible one follows its tab in the tab order and the
+ * hidden ones stay out of it.
+ *
+ * The tabs use a roving tabindex and automatic activation: a click activates
+ * its tab, and on the tablist ArrowRight and ArrowLeft move to the next and
+ * previous tab, wrapping around, while Home and End jump to the first and the
+ * last, moving the focus with the activation.
+ *
+ * Entering a panel fires `section:requested` and `section:requested:#<index>`
+ * on the host, bubbling, with detail `{ name: null, section, index, first }`,
+ * and awaits the answers registered through `AsyncEvents.asyncOn`, so a panel
+ * can deliver itself asynchronously: see `SectionRequests`.
  */
 class Tabs extends ParsedElement {
     static slots = true;
@@ -21,6 +34,13 @@ class Tabs extends ParsedElement {
     #panels = [];
     #requests = new SectionRequests();
     #active = 0;
+    /**
+     * Pairs the declared tabs with the panels in order. When the counts
+     * differ, the unpaired tabs and panels are left in the dom as they are and
+     * a warning is logged.
+     * @param {{ slots: Record<string, DocumentFragment> }} conf
+     * @returns {void}
+     */
     render({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this.#tablist = fragment.querySelector('ful-tablist');
@@ -39,15 +59,12 @@ class Tabs extends ParsedElement {
             tab.type = 'button';
             tab.role = 'tab';
             tab.id = Attributes.uid('ful-tab');
-            //an author-named panel keeps its name: the wiring adopts it
             if (!panel.id) {
                 panel.id = Attributes.uid('ful-tabpanel');
             }
             tab.setAttribute('aria-controls', panel.id);
             panel.role = 'tabpanel';
             panel.setAttribute('aria-labelledby', tab.id);
-            //the visible panel joins the tab order: keyboard and reader users
-            //reach its content right after its tab, hidden ones stay out
             panel.tabIndex = 0;
             tab.append(...declared[i].childNodes);
             tab.addEventListener('click', () => {
@@ -78,14 +95,28 @@ class Tabs extends ParsedElement {
         });
         this.replaceChildren(fragment);
     }
+    /**
+     * The index of the visible panel, reflected to the `active` attribute.
+     * Writing it clamps the value to the paired tabs, a value that is not a
+     * number counting as 0, and selects that tab and shows its panel. When the
+     * index changes on a rendered element it dispatches `tabs:change` on the
+     * host (not bubbling) with detail `{ active, previous }`, then fires the
+     * section requests for the entered panel. The first write, which applies
+     * the attribute after the render, fires the requests without the event.
+     * A failed delivery paints the panel's error and rejects nowhere.
+     * @type {number}
+     */
     get active() {
         return this.#active;
     }
     /**
-     * Re-fires the section:requested family for the panel (by index or the
-     * panel element itself), whether active or not: the explicit request for a
-     * content that wants refreshing. A failed refresh paints its problems,
-     * nothing rejects: there is no caller to reject towards.
+     * Fires the section requests again for a panel, whether it is visible or
+     * not, with `first` false once an earlier request was answered.
+     * @param {number | Element} ref the panel's index, or the panel itself
+     * @returns {Promise<any[] | undefined> | undefined} a promise resolving to
+     * the answers, or to undefined when nobody listened or the delivery
+     * failed (its error painted in the panel); undefined, with a warning, when
+     * `ref` names no panel
      */
     refresh(ref) {
         const index = ref instanceof Element ? this.#panels.indexOf(ref) : Number.isInteger(ref) ? ref : NaN;
@@ -110,8 +141,6 @@ class Tabs extends ParsedElement {
             this.dispatchEvent(new CustomEvent('tabs:change', { detail: { active: index, previous } }));
         }
         if (this.#panels.length > 0 && (index !== previous || !this.rendered)) {
-            //the activation is the reader's own gesture: the chrome reports a
-            //failed delivery, there is no caller to reject towards
             this.#requests.request(this, this.#panels[index], null, index).catch(() => undefined);
         }
     }

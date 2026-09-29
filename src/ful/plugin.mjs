@@ -26,7 +26,8 @@ const BUILTIN = { en, it, es, fr };
 /**
  * Registers everything ful provides on a registry: the elements, the loader
  * components, an http client, and the translations for the configured
- * language. A page calls `registry.plugin(new Plugin({…})).configure()` once.
+ * language. A page calls `registry.plugin(new Plugin({…})).configure()` once;
+ * `registry.plugin` calls this plugin's `configure`.
  */
 class Plugin {
     #language;
@@ -34,15 +35,17 @@ class Plugin {
     #httpClient;
 
     /**
-     * @param {{ language?: string, translations?: Record<string, any>, httpClient?: any }} [options]
+     * @param {{ language?: string, translations?: Record<string, any>, httpClient?: HttpClient }} [options]
      * `language` is fixed for the page: a full BCP-47 tag or a primary subtag,
-     * defaulting to the browser's language. `translations` is a flat
-     * active-language map applied over the built-in translations: reword built-in
+     * defaulting to `navigator.language`, then to 'en'. Its primary subtag,
+     * lowercased, picks the built-in translations (en, it, es, fr); the messages
+     * are the english ones, overridden by that language's, overridden by
+     * `translations`, so a language without built-in translations reads in
+     * english. `translations` is a flat map of keys to messages: reword built-in
      * keys ('pagination.showing', …) or add your own ('checkout.total', …).
      * `httpClient` is the client every ful component fetches through, registered
-     * as the `http-client` component: where an unauthorized session goes is an
-     * application decision, so a page that does not want the default's redirect
-     * to '/' builds its own.
+     * as the `http-client` component; without one, `configure` builds a client
+     * that sends the csrf token and navigates to '/' on a 401 response.
      */
     constructor(options = {}) {
         this.#language = options.language ?? navigator?.language ?? 'en';
@@ -50,10 +53,18 @@ class Plugin {
         this.#httpClient = options.httpClient ?? null;
     }
 
+    /**
+     * Defines on `registry` the `l10n` module, the `http-client` component,
+     * every `ful-*` element, the `loaders:select`, `loaders:form` and
+     * `loaders:table` components, and an overlay publishing `l10n` (the merged
+     * messages) and `locale` (the `language` as given) to every template.
+     * @param {{ defineModule(name: string, module: any): any, defineComponent(name: string, component: any): any, defineElement(tag: string, klass: CustomElementConstructor): any, defineOverlay(...data: any[]): any }} registry
+     * the ftl `Registry`, each of those methods answering the registry itself
+     * @returns {void}
+     */
     configure(registry) {
         const httpClient =
             this.#httpClient ?? HttpClient.builder().withCsrfToken().withRedirectOnUnauthorized('/').build();
-        //the fallback chain is baked here: en, the active language, the consumer's own strings
         const language = this.#language.split('-')[0].toLowerCase();
         const l10n = { ...BUILTIN.en, ...BUILTIN[language], ...this.#translations };
         registry
@@ -91,10 +102,6 @@ class Plugin {
             .defineComponent('loaders:select', SelectLoader)
             .defineComponent('loaders:form', FormLoader)
             .defineComponent('loaders:table', TableLoader)
-            //the two names a template and the l10n facade resolve: the messages,
-            //and the locale every formatter needs. The primary subtag is not a
-            //third: it exists to pick the built-in bundle above, and publishing
-            //it put a bare name nothing reads into the scope of every template
             .defineOverlay({
                 l10n,
                 locale: this.#language,
