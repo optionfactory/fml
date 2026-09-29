@@ -8,7 +8,7 @@ class Checkbox extends Field {
     static slots = true;
     static template = `
         <ful-choice data-tpl-switch="isSwitch">
-            <input type="checkbox" data-tpl-role="isSwitch ? 'switch' : false" form="" placeholder=" ">
+            <input type="checkbox" data-tpl-role="isSwitch ? 'switch' : false" form="">
             <label>{{{{ slots.default }}}}</label>
             {{{{ slots.info }}}}
         </ful-choice>

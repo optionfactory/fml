@@ -537,9 +537,7 @@ class RenderError extends Error {
         return text.length > 120 ? `${text.slice(0, 120)}…` : text;
     }
     static stringify(nodeOrFragment) {
-        const t = document.createElement('template');
-        t.content.appendChild(RenderError.#cleanup(nodeOrFragment.cloneNode(true)));
-        return t.innerHTML;
+        return Fragments.toHtml(RenderError.#cleanup(nodeOrFragment.cloneNode(true)));
     }
     static #cleanup(node) {
         if (node.nodeType === Node.TEXT_NODE) {
