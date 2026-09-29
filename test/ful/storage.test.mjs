@@ -6,45 +6,97 @@ import {
     SessionStorage,
 } from '../../src/ful/storage.mjs';
 
-describe('VersionedLocalStorage', () => {
-    beforeEach(() => {
-        localStorage.clear();
-    });
+const kinds = [
+    {
+        name: 'LocalStorage',
+        Plain: LocalStorage,
+        Versioned: VersionedLocalStorage,
+        backing: () => localStorage,
+        other: () => sessionStorage,
+        OtherPlain: SessionStorage,
+    },
+    {
+        name: 'SessionStorage',
+        Plain: SessionStorage,
+        Versioned: VersionedSessionStorage,
+        backing: () => sessionStorage,
+        other: () => localStorage,
+        OtherPlain: LocalStorage,
+    },
+];
 
-    it('saves and successfully loads data with matching revisions', () => {
-        VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });
-        const loaded = VersionedLocalStorage.load('app-config', 'v1');
-        expect(loaded).to.deep.equal({ theme: 'dark' });
-    });
+for (const { name, Plain, Versioned, backing, other, OtherPlain } of kinds) {
+    describe(name, () => {
+        beforeEach(() => {
+            localStorage.clear();
+            sessionStorage.clear();
+        });
 
-    it('returns undefined and evicts stale data if revisions mismatch', () => {
-        VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });
-        const loaded = VersionedLocalStorage.load('app-config', 'v2');
-        expect(loaded).to.be.undefined;
-        expect(localStorage.getItem('app-config')).to.be.null;
-    });
+        it('saves and successfully loads versioned data with matching revisions', () => {
+            Versioned.save('app-config', 'v1', { theme: 'dark' });
+            const loaded = Versioned.load('app-config', 'v1');
+            expect(loaded).to.deep.equal({ theme: 'dark' });
+        });
 
-    it('treats a foreign value under the key as a miss, not a crash', () => {
-        for (const foreign of ['null', '3', '"oops"', '[1,2]']) {
-            localStorage.setItem('app-config', foreign);
-            expect(VersionedLocalStorage.load('app-config', 'v1')).to.be.undefined;
-            expect(localStorage.getItem('app-config')).to.be.null;
-        }
-    });
+        it('returns undefined and evicts stale versioned data if revisions mismatch', () => {
+            Versioned.save('app-config', 'v1', { theme: 'dark' });
+            const loaded = Versioned.load('app-config', 'v2');
+            expect(loaded).to.be.undefined;
+            expect(backing().getItem('app-config')).to.be.null;
+        });
 
-    it('safely pops data, removing it from storage entirely', () => {
-        LocalStorage.save('temp-key', 'ephemeral-data');
+        it('does not touch the same-named key of the other storage on eviction', () => {
+            OtherPlain.save('app-config', 'keep-me');
+            Versioned.save('app-config', 'v1', { theme: 'dark' });
+            const loaded = Versioned.load('app-config', 'v2');
+            expect(loaded).to.be.undefined;
+            expect(other().getItem('app-config')).to.not.be.null;
+        });
 
-        const popped = LocalStorage.pop('temp-key');
-        expect(popped).to.equal('ephemeral-data');
-        expect(localStorage.getItem('temp-key')).to.be.null;
+        it('treats a foreign value under a versioned key as a miss, not a crash', () => {
+            for (const foreign of ['null', '3', '"oops"', '[1,2]']) {
+                backing().setItem('app-config', foreign);
+                expect(Versioned.load('app-config', 'v1')).to.be.undefined;
+                expect(backing().getItem('app-config')).to.be.null;
+            }
+        });
+
+        it('safely pops data, removing it from storage entirely', () => {
+            Plain.save('temp-key', 'ephemeral-data');
+
+            const popped = Plain.pop('temp-key');
+            expect(popped).to.equal('ephemeral-data');
+            expect(backing().getItem('temp-key')).to.be.null;
+        });
+
+        it('load treats unparseable content as absent and drops it', () => {
+            backing().setItem('broken', '{not json');
+
+            expect(Plain.load('broken')).to.be.undefined;
+            expect(backing().getItem('broken')).to.be.null;
+        });
+
+        it('a corrupt entry does not break the versioned reader for good', () => {
+            backing().setItem('app-config', 'GET@/x was truncated');
+
+            expect(Versioned.load('app-config', 'v1')).to.be.undefined;
+
+            Versioned.save('app-config', 'v1', { theme: 'dark' });
+            expect(Versioned.load('app-config', 'v1')).to.deep.equal({ theme: 'dark' });
+        });
+
+        it('load of a missing key is undefined', () => {
+            expect(Plain.load('never.saved.key')).to.be.undefined;
+        });
+
+        it('versioned load of a missing key is undefined without side effects', () => {
+            expect(Versioned.load('never.saved.key', 'r1')).to.be.undefined;
+            expect(backing().getItem('never.saved.key')).to.be.null;
+        });
     });
-});
+}
 
 describe('Unreachable storage', () => {
-    //blocked cookies and some embedded or private contexts make the accessor
-    //itself throw: redefining the property simulates it, and the saved
-    //descriptor puts the real storage back
     const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
     const deny = () => {
         Object.defineProperty(window, 'localStorage', {
@@ -69,86 +121,5 @@ describe('Unreachable storage', () => {
     it('writes still report the failure to their caller', () => {
         deny();
         expect(() => LocalStorage.save('k', 'v')).to.throw();
-    });
-});
-
-describe('VersionedSessionStorage', () => {
-    beforeEach(() => {
-        localStorage.clear();
-        sessionStorage.clear();
-    });
-
-    it('saves and successfully loads data with matching revisions', () => {
-        VersionedSessionStorage.save('app-config', 'v1', { theme: 'dark' });
-        const loaded = VersionedSessionStorage.load('app-config', 'v1');
-        expect(loaded).to.deep.equal({ theme: 'dark' });
-    });
-
-    it('returns undefined and evicts stale data from sessionStorage if revisions mismatch', () => {
-        VersionedSessionStorage.save('app-config', 'v1', { theme: 'dark' });
-        const loaded = VersionedSessionStorage.load('app-config', 'v2');
-        expect(loaded).to.be.undefined;
-        expect(sessionStorage.getItem('app-config')).to.be.null;
-    });
-
-    it('does not touch same-named localStorage keys on eviction', () => {
-        LocalStorage.save('app-config', 'keep-me');
-        VersionedSessionStorage.save('app-config', 'v1', { theme: 'dark' });
-        const loaded = VersionedSessionStorage.load('app-config', 'v2');
-        expect(loaded).to.be.undefined;
-        expect(localStorage.getItem('app-config')).to.not.be.null;
-    });
-
-    it('safely pops data, removing it from storage entirely', () => {
-        SessionStorage.save('temp-key', 'ephemeral-data');
-
-        const popped = SessionStorage.pop('temp-key');
-        expect(popped).to.equal('ephemeral-data');
-        expect(sessionStorage.getItem('temp-key')).to.be.null;
-    });
-});
-describe('Corrupt entries', () => {
-    beforeEach(() => {
-        localStorage.clear();
-        sessionStorage.clear();
-    });
-
-    it('LocalStorage.load treats unparseable content as absent and drops it', () => {
-        localStorage.setItem('broken', '{not json');
-
-        expect(LocalStorage.load('broken')).to.be.undefined;
-        expect(localStorage.getItem('broken')).to.be.null;
-    });
-
-    it('SessionStorage.load treats unparseable content as absent and drops it', () => {
-        sessionStorage.setItem('broken', '{not json');
-
-        expect(SessionStorage.load('broken')).to.be.undefined;
-        expect(sessionStorage.getItem('broken')).to.be.null;
-    });
-
-    it('a corrupt entry does not break the versioned readers for good', () => {
-        localStorage.setItem('app-config', 'GET@/x was truncated');
-
-        expect(VersionedLocalStorage.load('app-config', 'v1')).to.be.undefined;
-
-        //the next save is readable again
-        VersionedLocalStorage.save('app-config', 'v1', { theme: 'dark' });
-        expect(VersionedLocalStorage.load('app-config', 'v1')).to.deep.equal({ theme: 'dark' });
-    });
-});
-
-describe('Absent entries', () => {
-    it('LocalStorage.load of a missing key is undefined', () => {
-        expect(LocalStorage.load('never.saved.key')).to.be.undefined;
-    });
-
-    it('SessionStorage.load of a missing key is undefined', () => {
-        expect(SessionStorage.load('never.saved.key')).to.be.undefined;
-    });
-
-    it('VersionedSessionStorage.load of a missing key is undefined without side effects', () => {
-        expect(VersionedSessionStorage.load('never.saved.key', 'r1')).to.be.undefined;
-        expect(sessionStorage.getItem('never.saved.key')).to.be.null;
     });
 });

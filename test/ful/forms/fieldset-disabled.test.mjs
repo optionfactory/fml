@@ -8,44 +8,93 @@ registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const mount = async (fieldsetAttr, inner) => {
     registry.defineComponent('loaders:select', {
-        create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => ({ key: v, label: v })) }),
+        create: () => ({
+            prefetch: async () => {},
+            load: async () => [],
+            exact: async (...k) => k.map((v) => ({ key: v, label: v })),
+        }),
     });
-    const container = appended(`<fieldset ${fieldsetAttr}>${inner}</fieldset>`);
+    const container = appended(
+        `<ful-form><fieldset ${fieldsetAttr}>${inner}</fieldset><input name="keep" value="kept"></ful-form>`,
+    );
     await Rendering.waitFor(container);
     for (let i = 0; i !== 20; ++i) {
         await tick();
     }
     const fieldset = container.querySelector('fieldset');
-    return [fieldset, fieldset.firstElementChild, container];
+    return [fieldset, fieldset.firstElementChild, container.querySelector('ful-form')];
 };
 
 describe('Disabled fields and fieldsets', () => {
-    //disabled follows native semantics: the attribute is the field's own claim and
-    //nothing but its author ever writes it, a disabled fieldset ancestry is honored
-    //through :disabled and the browser's own disabling of the inner controls. the
-    //property reflects the claim only, exactly like a native input's
+    const FILTER_CONTROLS = 'input, [data-ref=operator]';
     const cases = [
-        ['ful-input', `<ful-input name="a" value="x">l</ful-input>`],
-        ['ful-checkbox', `<ful-checkbox name="a" value="true">l</ful-checkbox>`],
-        ['ful-select', `<ful-select name="a" value="x">l</ful-select>`],
+        ['ful-input', `<ful-input name="a" value="x">l</ful-input>`, 'input'],
+        ['ful-checkbox', `<ful-checkbox name="a" value="true">l</ful-checkbox>`, 'input'],
+        ['ful-select', `<ful-select name="a" value="x">l</ful-select>`, 'input'],
         [
             'ful-radio-group',
-            `<ful-radio-group name="a" value="x">l<ful-radio value="x">x</ful-radio></ful-radio-group>`,
+            `<ful-radio-group name="a" value="x">l<ful-radio value="x">x</ful-radio><ful-radio value="y">y</ful-radio></ful-radio-group>`,
+            'input',
+            'fieldset',
         ],
-        ['ful-filter-text', `<ful-filter-text name="a">l</ful-filter-text>`],
+        ['ful-input-file', `<ful-input-file name="a">l</ful-input-file>`, 'input'],
+        ['ful-filter-text', `<ful-filter-text name="a">l</ful-filter-text>`, FILTER_CONTROLS],
+        ['ful-filter-local-date', `<ful-filter-local-date name="a">l</ful-filter-local-date>`, FILTER_CONTROLS],
+        ['ful-filter-instant', `<ful-filter-instant name="a">l</ful-filter-instant>`, FILTER_CONTROLS],
     ];
-    //the first native control inside the field: the ancestry disables it as a
-    //descendant of the fieldset, without any attribute of its own
-    const inner = (field) => field.querySelector('input');
 
-    for (const [tag, markup] of cases) {
+    for (const [tag, markup, selector, carriers = selector] of cases) {
+        const across = (field, test, among = selector) => {
+            const states = Array.from(field.querySelectorAll(among), test);
+            return states.every(Boolean) ? 'all' : states.some(Boolean) ? 'some' : 'none';
+        };
+        const disabledControls = (field) => across(field, (c) => c.matches(':disabled'));
+        const claimedControls = (field) => across(field, (c) => c.hasAttribute('disabled'), carriers);
+
         it(`${tag} stays enabled inside a fieldset without the disabled attribute`, async () => {
             const [, field] = await mount('', markup);
 
             assert.isFalse(field.disabled);
             assert.isFalse(field.hasAttribute('disabled'));
             assert.isFalse(field.matches(':disabled'));
-            assert.isFalse(inner(field).matches(':disabled'));
+            assert.strictEqual(disabledControls(field), 'none');
+        });
+
+        it(`${tag} mirrors the disabled attribute and property onto its controls, and takes them back off`, async () => {
+            const [, field] = await mount('', markup);
+
+            field.setAttribute('disabled', '');
+            assert.isTrue(field.disabled, 'the claim reads back');
+            assert.isTrue(field.matches(':disabled'), 'the host matches :disabled');
+            assert.strictEqual(disabledControls(field), 'all', 'every control is disabled');
+            assert.strictEqual(claimedControls(field), 'all', 'the controls carry the attribute');
+
+            field.removeAttribute('disabled');
+            assert.isFalse(field.disabled);
+            assert.isFalse(field.matches(':disabled'));
+            assert.strictEqual(disabledControls(field), 'none');
+            assert.strictEqual(claimedControls(field), 'none');
+
+            field.disabled = true;
+            assert.isTrue(field.hasAttribute('disabled'), 'the property reflects onto the attribute');
+            assert.strictEqual(disabledControls(field), 'all');
+            field.disabled = false;
+            assert.isFalse(field.hasAttribute('disabled'));
+            assert.strictEqual(disabledControls(field), 'none');
+        });
+
+        it(`${tag} leaves the submitted values while disabled, and comes back once re-enabled`, async () => {
+            const [, field, form] = await mount('', markup);
+            assert.property(form.values, 'a', 'the field contributes while enabled');
+
+            field.disabled = true;
+
+            assert.notProperty(form.values, 'a');
+            assert.strictEqual(form.values.keep, 'kept', 'the other fields still contribute');
+
+            field.disabled = false;
+
+            assert.property(form.values, 'a');
         });
 
         it(`${tag} follows a disabled fieldset without claiming it, and follows it back`, async () => {
@@ -54,13 +103,13 @@ describe('Disabled fields and fieldsets', () => {
             assert.isFalse(field.disabled, 'the property reflects the claim only, like a native input');
             assert.isFalse(field.hasAttribute('disabled'), 'the ancestry is not claimed as its own');
             assert.isTrue(field.matches(':disabled'), 'the ancestry is honored through :disabled');
-            assert.isTrue(inner(field).matches(':disabled'), 'the inner control is disabled by the browser');
+            assert.strictEqual(disabledControls(field), 'all', 'the controls are disabled by the browser');
 
             fieldset.removeAttribute('disabled');
 
             assert.isFalse(field.disabled);
             assert.isFalse(field.matches(':disabled'));
-            assert.isFalse(inner(field).matches(':disabled'), 'the inner control follows the fieldset back');
+            assert.strictEqual(disabledControls(field), 'none', 'the controls follow the fieldset back');
         });
 
         it(`${tag} disabled before the fieldset is disabled stays disabled when it is re-enabled`, async () => {
@@ -71,13 +120,17 @@ describe('Disabled fields and fieldsets', () => {
 
             fieldset.setAttribute('disabled', '');
             assert.isTrue(field.disabled, 'the element stays disabled under the fieldset');
+            assert.strictEqual(disabledControls(field), 'all', 'claim and ancestry agree while both are on');
 
             fieldset.removeAttribute('disabled');
 
             assert.isTrue(field.disabled, 'the claim made before the fieldset survived the re-enable');
             assert.isTrue(field.hasAttribute('disabled'));
             assert.isTrue(field.matches(':disabled'));
-            assert.isTrue(inner(field).matches(':disabled'));
+            assert.strictEqual(disabledControls(field), 'all', 'the claim alone holds the controls');
+
+            field.disabled = false;
+            assert.strictEqual(disabledControls(field), 'none', 'un-claiming under a plain fieldset enables it');
         });
 
         it(`${tag} disabled while the fieldset is disabled stays disabled when it is re-enabled`, async () => {
@@ -101,6 +154,7 @@ describe('Disabled fields and fieldsets', () => {
             assert.isTrue(field.disabled, 'the element stays on its declared claim');
             assert.isTrue(field.hasAttribute('disabled'));
             assert.isTrue(field.matches(':disabled'));
+            assert.strictEqual(disabledControls(field), 'all', 'the controls carry the declared claim');
         });
 
         it(`${tag} cannot be enabled out of a disabled fieldset by un-claiming`, async () => {
@@ -111,7 +165,7 @@ describe('Disabled fields and fieldsets', () => {
 
             assert.isFalse(field.disabled, 'the claim is gone');
             assert.isTrue(field.matches(':disabled'), 'the ancestry still disables it');
-            assert.isTrue(inner(field).matches(':disabled'), 'the inner control stays disabled');
+            assert.strictEqual(disabledControls(field), 'all', 'the controls stay disabled');
         });
     }
 });

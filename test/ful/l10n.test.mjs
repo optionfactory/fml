@@ -7,6 +7,8 @@ import es from '../../src/ful/l10n/es.mjs';
 import fr from '../../src/ful/l10n/fr.mjs';
 import { appended } from '../harness.mjs';
 
+const definedBeforeConfigure = customElements.get('ful-input-file') !== undefined;
+
 registry
     .plugin(
         new Plugin({
@@ -139,6 +141,7 @@ describe('Plugin translations', () => {
     const file = (name, size = 10) => new File(['x'.repeat(size)], name, { lastModified: 1 });
 
     it('overrides a built-in message at configure time', async () => {
+        assert.isFalse(definedBeforeConfigure, 'the element stays inert until configure');
         const [el] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
 
         pick(el, file('a.txt'));
@@ -147,7 +150,6 @@ describe('Plugin translations', () => {
             el.querySelector('ful-field-warnings ful-field-warning').innerText,
             'we only take .pdf around here',
         );
-
     });
 
     it('leaves the messages it does not override intact', async () => {
@@ -159,7 +161,6 @@ describe('Plugin translations', () => {
             el.querySelector('ful-field-warnings ful-field-warning').innerText,
             'Maximum of 2 files exceeded',
         );
-
     });
 });
 
@@ -176,7 +177,6 @@ describe('Built-in messages are data, not markup', () => {
         const cell = el.querySelector('tbody[data-ref=initial]');
         assert.include(cell.textContent, '<b id="l10n-escape">start searching</b>');
         assert.isNull(document.getElementById('l10n-escape'), 'the markup must not have become an element');
-
     });
 });
 

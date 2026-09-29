@@ -87,16 +87,21 @@ describe('Expression', () => {
     verify('can use member access', 'a.b.c', [{ a: { b: { c: 1 } } }], 1);
     verify('can use nullsafe member access', 'a?.b.c', [{}], undefined);
     verify('can call a method', 'a.toLowerCase()', [{ a: 'M' }], 'm');
-    verify('can navigate array', "a['b']", [{ a: { b: 'M' } }], 'M');
-    verify('can navigate array', "a?.['b']", [{ a: null }], undefined);
+    verify('can subscript with a string key', "a['b']", [{ a: { b: 'M' } }], 'M');
+    verify('answers undefined for a nullsafe subscript on null', "a?.['b']", [{ a: null }], undefined);
     verify('can call function from data', 'a()', [{ a: () => 'M' }], 'M');
     verify('can evaluate ternary operator', 'a ? b : c', [{ a: false, b: 'lhs', c: 'rhs' }], 'rhs');
-    verify('can evaluate elvis operator', 'a ?: c', [{ a: false, b: 'lhs', c: 'rhs' }], 'rhs');
-    verify('can evaluate elvis operator', 'a ?: b', [{ a: 'lhs', b: 'rhs' }], 'lhs');
-    verify('can evaluate ??', 'a ?? b', [{ a: 'rhs', b: 'lhs' }], 'rhs');
-    verify('can evaluate ??', 'a ?? b', [{ a: undefined, b: 'lhs' }], 'lhs');
-    verify('can evaluate ??', 'a ?? b', [{ a: null, b: 'lhs' }], 'lhs');
-    verify('can evaluate ??', 'a ?? b', [{ a: false, b: 'rhs' }], false);
+    verify('elvis answers the rhs when the lhs is falsy', 'a ?: c', [{ a: false, b: 'lhs', c: 'rhs' }], 'rhs');
+    verify('elvis answers the lhs when it is truthy', 'a ?: b', [{ a: 'lhs', b: 'rhs' }], 'lhs');
+    verify('?? answers a defined lhs', 'a ?? b', [{ a: 'defined', b: 'fallback' }], 'defined');
+    verify('?? falls back when the lhs is undefined', 'a ?? b', [{ a: undefined, b: 'fallback' }], 'fallback');
+    verify('?? falls back when the lhs is null', 'a ?? b', [{ a: null, b: 'fallback' }], 'fallback');
+    verify(
+        '?? keeps a false lhs, falling back only on null and undefined',
+        'a ?? b',
+        [{ a: false, b: 'fallback' }],
+        false,
+    );
     verify('can evaluate eq', 'a == b', [{ a: 1, b: 1 }], true);
     verify('can evaluate neq', 'a != b', [{ a: 1, b: 1 }], false);
     verify('can evaluate gt', 'a > b', [{ a: 2, b: 1 }], true);
@@ -106,7 +111,7 @@ describe('Expression', () => {
     verify('can evaluate not', '!a', [{ a: true }], false);
     verify('can evaluate boolean literal (true)', 'true', [], true);
     verify('can evaluate boolean literal (false)', 'false', [], false);
-    verify('can evaluate self', 'self', ['someValue'], 'someValue');
+    verify('resolves self to the innermost overlay', 'self', [{ val: 1 }, 'outer', 'someValue'], 'someValue');
     verify('can call a function', '#one()', [], 1);
     verify('can call a function in module', '#math:isEven(2)', [], true);
     verify('modules can contain numbers', "#l10n:t('a')", [], 'a');
@@ -119,13 +124,13 @@ describe('Expression', () => {
     verify('evaluates every part of a template string dict key', '{`{a}-{b}`: 1}', [{ a: 'x', b: 'y' }], { 'x-y': 1 });
     verify('can use empty array literal', '[]', [{}], []);
     verify('can use array literal', '[1,2]', [{}], [1, 2]);
-    verify('can use string literal', '"abc"', [{}], 'abc');
-    verify('can use string literal', "'abc'", [{}], 'abc');
-    verify('can use tstring literal', '`abc`', [{}], 'abc');
-    verify('can use tstring literal', '`abc{var}`', [{ var: 'def' }], 'abcdef');
-    verify('can use number literal', '12.3', [{}], 12.3);
-    verify('can use number literal', '-12.3', [{}], -12.3);
-    verify('can use number literal', '-.3', [{}], -0.3);
+    verify('can use a double quoted string literal', '"abc"', [{}], 'abc');
+    verify('can use a single quoted string literal', "'abc'", [{}], 'abc');
+    verify('can use a tstring literal', '`abc`', [{}], 'abc');
+    verify('interpolates data into a tstring literal', '`abc{var}`', [{ var: 'def' }], 'abcdef');
+    verify('can use a number literal', '12.3', [{}], 12.3);
+    verify('can use a negative number literal', '-12.3', [{}], -12.3);
+    verify('can use a negative number literal without a leading zero', '-.3', [{}], -0.3);
     verify(null, '(!a && !b) == !(a || b)', [{ a: true, b: false }], true);
     verify(null, '!a && !b == !(a || b)', [{ a: true, b: false }], false);
     verify(null, 'a.b[c.d].toLowerCase()', [{ a: { b: { z: 'M' } }, c: { d: 'z' } }], 'm');
@@ -310,13 +315,17 @@ describe('AST execution edge cases', () => {
             assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
         }
     });
-    it('resolves through a function overlay, and past a null one', () => {
+    it('resolves through a function overlay, and past null and primitive ones', () => {
         const fnOverlay = () => {};
         fnOverlay.secretKey = 'activated';
         const resFn = Expressions.interpret({}, [fnOverlay], 'secretKey');
         assert.strictEqual(resFn, 'activated');
 
-        const resNull = Expressions.interpret({}, [null, undefined, { targetValue: 42 }], 'targetValue');
+        const resNull = Expressions.interpret(
+            {},
+            [{ targetValue: 42 }, null, undefined, 'raw string primitive', 7],
+            'targetValue',
+        );
         assert.strictEqual(resNull, 42);
     });
     it('parses one expression once, answering the same ast', () => {

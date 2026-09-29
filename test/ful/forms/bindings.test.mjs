@@ -67,15 +67,6 @@ describe('Bindings', () => {
             assert.deepEqual(got, { a: { b: 'v' } });
         });
 
-        it('can extract value from an input text', () => {
-            const el = Fragments.fromHtml(`
-            <form>
-                <input type="text" name="a" value="1">
-            </form>
-        `);
-            const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: '1' });
-        });
         it('can extract value from a select', () => {
             const el = Fragments.fromHtml(`
             <form>
@@ -110,15 +101,6 @@ describe('Bindings', () => {
             const got = Bindings.extractFrom(el.querySelector('form'));
             assert.deepEqual(got, { a: false });
         });
-        it('can extract value from an checked checkbox', () => {
-            const el = Fragments.fromHtml(`
-            <form>
-                <input type="checkbox" name="a" checked>
-            </form>
-        `);
-            const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: true });
-        });
         it('can extract value from an checked radio button', () => {
             const el = Fragments.fromHtml(`
             <form>
@@ -149,15 +131,6 @@ describe('Bindings', () => {
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
             assert.deepEqual(got, { a: { a: true, b: true, c: 'lorem ipsum' } });
-        });
-        it('tags with disabled are ignored', () => {
-            const el = Fragments.fromHtml(`
-            <form>
-                <input type="checkbox" name="a.a" checked disabled>
-            </form>
-        `);
-            const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, {});
         });
         it('tags children of a disabled fieldset are ignored', () => {
             const el = Fragments.fromHtml(`

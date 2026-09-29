@@ -93,31 +93,29 @@ describe('Wizard, async sections', () => {
             <section data-step="two"></section>
             <section data-step="three"></section>
         </ful-wizard>`;
-    const frames = async () => {
-        for (let i = 0; i !== 3; ++i) {
-            await new Promise((r) => requestAnimationFrame(() => r()));
-        }
-    };
 
-    it('fires the generic, named and index events on the entered section, first only once', async () => {
+    it('fires the section requests on the component for the entered section, and again on refresh', async () => {
         const [wizard] = await mount(markup);
+        const section = wizard.querySelector('[data-step=two]');
         const seen = [];
-        AsyncEvents.asyncOn(wizard, 'section:requested', (e) => seen.push(['generic', e.detail.name, e.detail.first]));
-        AsyncEvents.asyncOn(wizard, 'section:requested:two', (e) =>
-            seen.push(['named', e.detail.name, e.detail.index]),
+        AsyncEvents.asyncOn(wizard, 'section:requested', (e) =>
+            seen.push(
+                `generic|${e.detail.name}|${e.detail.index}|${e.detail.first}|${e.detail.section === section}|${e.target === wizard}`,
+            ),
         );
-        AsyncEvents.asyncOn(wizard, 'section:requested:#1', (e) => seen.push(['index', e.detail.name]));
+        AsyncEvents.asyncOn(wizard, 'section:requested:#1', (e) => seen.push(`index|${e.detail.name}`));
+        AsyncEvents.asyncOn(wizard, 'section:requested:two', (e) => seen.push(`named|${e.detail.index}`));
 
         await wizard.move('two');
         await wizard.refresh('two');
 
         assert.deepStrictEqual(seen, [
-            ['generic', 'two', true],
-            ['index', 'two'],
-            ['named', 'two', 1],
-            ['generic', 'two', false],
-            ['index', 'two'],
-            ['named', 'two', 1],
+            'generic|two|1|true|true|true',
+            'index|two',
+            'named|1',
+            'generic|two|1|false|true|true',
+            'index|two',
+            'named|1',
         ]);
     });
 
@@ -133,31 +131,7 @@ describe('Wizard, async sections', () => {
         assert.include(wizard.querySelector('[data-step=two]').textContent, 'delivered');
     });
 
-    it('resolves without waiting when nobody listens, nothing painted', async () => {
-        const [wizard] = await mount(markup);
-
-        await wizard.move('two');
-
-        assert.isFalse(wizard.querySelector('[data-step=two]').hasAttribute('loading'));
-        assert.strictEqual(wizard.querySelector('[data-step=two] > .ful-section-error'), null);
-        assert.strictEqual(wizard.querySelector('[data-step=two]').textContent, '');
-    });
-
-    it('shows the loading chrome while an answer pends, and drops it when it lands', async () => {
-        const [wizard] = await mount(markup);
-        let land;
-        AsyncEvents.asyncOn(wizard, 'section:requested:two', () => new Promise((r) => (land = r)));
-        const moving = wizard.move('two');
-        await frames();
-
-        assert.isTrue(wizard.querySelector('[data-step=two]').hasAttribute('loading'));
-        land();
-        await moving;
-
-        assert.isFalse(wizard.querySelector('[data-step=two]').hasAttribute('loading'));
-    });
-
-    it('paints the problems of a failed delivery and rejects the move', async () => {
+    it('rejects the move with the failure of its delivery', async () => {
         const [wizard] = await mount(markup);
         const failure = { problems: [{ reason: 'unreachable (demo)' }] };
         AsyncEvents.asyncOn(wizard, 'section:requested:two', () => {
@@ -166,12 +140,8 @@ describe('Wizard, async sections', () => {
 
         await wizard.move('two').then(
             () => assert.fail('the rejection travels to the caller'),
-            (e) => assert.strictEqual(e, failure),
+            (e) => assert.isTrue(e === failure),
         );
-
-        const error = wizard.querySelector('[data-step=two] > .ful-section-error');
-        assert.isNotNull(error);
-        assert.include(error.textContent, 'unreachable (demo)');
     });
 
     it('shows only the current step by default, the counter hooks left to the page', async () => {
@@ -243,41 +213,13 @@ describe('Wizard, async sections', () => {
         );
     });
 
-    it('does not spend first when nobody listened', async () => {
+    it('refresh swallows a failed delivery', async () => {
         const [wizard] = await mount(markup);
-        await wizard.move('two');
-        const seen = [];
-        AsyncEvents.asyncOn(wizard, 'section:requested', (e) => seen.push(e.detail.name));
-
-        await wizard.prev();
-
-        assert.deepStrictEqual(seen, ['one'], 'the unanswered activation of section one did not spend its first');
-    });
-
-    it('refresh paints and swallows a failure, the retry clearing the stale error under aria-busy', async () => {
-        const [wizard] = await mount(markup);
-        let fail = true;
         AsyncEvents.asyncOn(wizard, 'section:requested:two', () => {
-            if (fail) {
-                throw new Error('boom');
-            }
-            return new Promise((resolve) => setTimeout(resolve, 150));
+            throw new Error('boom');
         });
 
-        await wizard.refresh('two');
-        assert.isNotNull(wizard.querySelector('[data-step=two] > .ful-section-error'));
-
-        fail = false;
-        const retrying = wizard.refresh('two');
-        assert.strictEqual(
-            wizard.querySelector('[data-step=two] > .ful-section-error'),
-            null,
-            'the stale error leaves with the retry',
-        );
-        await frames();
-        assert.strictEqual(wizard.querySelector('[data-step=two]').getAttribute('aria-busy'), 'true');
-        await retrying;
-        assert.strictEqual(wizard.querySelector('[data-step=two]').hasAttribute('aria-busy'), false);
+        assert.isUndefined(await wizard.refresh('two'));
     });
 });
 

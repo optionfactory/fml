@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { Failure } from '../../../src/httpc/index.mjs';
 import { AsyncEvents, Plugin, Dialog } from '../../../src/ful/index.mjs';
 import { appended, settle as drain } from '../../harness.mjs';
 
@@ -84,14 +85,17 @@ describe('Dialog', () => {
         const second = dialog.ask();
         dialog.querySelector('dialog').close();
 
-        assert.isTrue((await second).dismissed, 'the stale acknowledged is not the answer');
+        assert.deepStrictEqual(
+            await second,
+            { dismissed: true, result: null, response: null },
+            'the stale acknowledged is not the answer',
+        );
         assert.deepStrictEqual(results, [null], 'the close event agrees');
     });
 
-    it('a dialog leaving the document while open answers its waiters with null', async () => {
+    it('a dialog leaving the document while open answers its waiters with a dismissal', async () => {
         const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
         const asked = dialog.ask();
-        //the removal is the subject of the test, not its teardown
         container.remove();
 
         assert.isTrue((await asked).dismissed, 'the await does not hang on a destroyed element');
@@ -128,22 +132,6 @@ describe('Dialog', () => {
         assert.deepStrictEqual(answers, ['acknowledged']);
     });
 
-    it('carries a header slot beside the heading, as the drawer does', async () => {
-        const [dialog] = await mount(`
-            <ful-dialog header="Seleziona Master">
-                <i slot="header" class="bi bi-layers" aria-hidden="true"></i>
-                the body
-            </ful-dialog>`);
-
-        const header = dialog.querySelector('.ful-dialog-header');
-        assert.isNotNull(header.querySelector('i.bi-layers'), 'the slotted content stands in the header');
-        assert.isNull(
-            header.querySelector('h2 i.bi-layers'),
-            'beside the heading rather than in it, the heading being text the header attribute sets',
-        );
-        assert.strictEqual(header.querySelector('h2').textContent.trim(), 'Seleziona Master');
-    });
-
     it('renders a header for a slot alone, with no heading to show', async () => {
         const [dialog] = await mount(
             '<ful-dialog requires-answer><ful-badge slot="header">3</ful-badge>the body</ful-dialog>',
@@ -152,108 +140,15 @@ describe('Dialog', () => {
         assert.isNotNull(dialog.querySelector('.ful-dialog-header ful-badge'));
     });
 
-    it('any element carrying dialog-target opens the dialog it names, clones included', async () => {
+    it('a dialog-target click on an open dialog leaves the answer to its opening', async () => {
         const [dialog, container] = await mount(`
             <ful-dialog id="target-dialog" header="h">body</ful-dialog>
             <a dialog-target="target-dialog">Vedi il dettaglio</a>`);
-        const trigger = container.querySelector('a');
-        const cloned = trigger.cloneNode(true);
-        container.appendChild(cloned);
 
         const opened = dialog.open();
-        trigger.click();
+        container.querySelector('a').click();
         dialog.querySelector('[data-ref=acknowledge]').click();
-        assert.strictEqual((await opened).result, 'acknowledged', 'opening an open dialog is a no-op, not a crash');
-
-        const again = dialog.ask();
-        cloned.click();
-        assert.isTrue(dialog.querySelector('dialog').open, 'the cloned trigger opens the dialog');
-        dialog.querySelector('[data-ref=acknowledge]').click();
-        assert.strictEqual((await again).result, 'acknowledged');
-    });
-});
-
-describe('Dialog delivery', () => {
-    it('update() opens the dialog, shows the ring while it waits and paints what it delivers', async () => {
-        const [dialog] = await mount('<ful-dialog header="Detail"></ful-dialog>');
-        const loading = dialog.querySelector('[data-ref=loading]');
-        const body = dialog.querySelector('[data-ref=body]');
-        const { promise, resolve } = Promise.withResolvers();
-
-        const updated = dialog.update(() => promise);
-        assert.isTrue(dialog.querySelector('dialog').open, 'the delivery opens it');
-        assert.isFalse(loading.hasAttribute('hidden'), 'the ring covers the wait');
-        assert.isTrue(body.hasAttribute('hidden'), 'an empty body is not shown while it waits');
-
-        const delivered = document.createElement('p');
-        delivered.textContent = 'the detail';
-        resolve(delivered);
-        await updated;
-
-        assert.isTrue(loading.hasAttribute('hidden'));
-        assert.isFalse(body.hasAttribute('hidden'));
-        assert.include(body.textContent, 'the detail');
-    });
-
-    it('update() paints the problems of a rejection and still rejects its caller', async () => {
-        const [dialog] = await mount('<ful-dialog header="Detail"></ful-dialog>');
-        const error = dialog.querySelector('[data-ref=error]');
-
-        const failed = dialog.update(() => Promise.reject(new Error('no such thing')));
-        await failed.then(
-            () => assert.fail('the rejection travels to the caller'),
-            () => undefined,
-        );
-
-        assert.isFalse(error.hasAttribute('hidden'), 'the problems are shown');
-        assert.include(error.textContent, 'no such thing');
-        assert.isTrue(dialog.querySelector('[data-ref=loading]').hasAttribute('hidden'));
-    });
-
-    it('a delivery superseded by a newer one paints nothing', async () => {
-        const [dialog] = await mount('<ful-dialog header="Detail"></ful-dialog>');
-        const body = dialog.querySelector('[data-ref=body]');
-        const first = Promise.withResolvers();
-
-        const stale = dialog.update(() => first.promise);
-        const fresh = document.createElement('p');
-        fresh.textContent = 'the second';
-        await dialog.update(() => Promise.resolve(fresh));
-
-        const abandoned = document.createElement('p');
-        abandoned.textContent = 'the first';
-        first.resolve(abandoned);
-        await stale;
-
-        assert.include(body.textContent, 'the second');
-        assert.notInclude(body.textContent, 'the first', 'the abandoned opening owns no dialog');
-    });
-
-    it('reveals the error region before filling it, so the live region announces the problems', async () => {
-        const [dialog] = await mount('<ful-dialog header="Detail"></ful-dialog>');
-        const error = dialog.querySelector('[data-ref=error]');
-        const kinds = [];
-        const observer = new MutationObserver((records) => {
-            kinds.push(...records.map((r) => (r.type === 'attributes' ? 'revealed' : 'filled')));
-        });
-        observer.observe(error, { attributes: true, attributeFilter: ['hidden'], childList: true });
-
-        await dialog.update(() => Promise.reject(new Error('no such thing'))).catch(() => undefined);
-        observer.disconnect();
-
-        assert.strictEqual(kinds.slice(-2).join(','), 'revealed,filled');
-        dialog.close();
-    });
-
-    it('a reopening owes nothing to the answer before it', async () => {
-        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
-        const asked = dialog.ask();
-        dialog.querySelector('[data-ref=acknowledge]').click();
-        assert.strictEqual((await asked).result, 'acknowledged');
-
-        const again = dialog.ask();
-        dialog.querySelector('dialog').close();
-        assert.deepStrictEqual(await again, { dismissed: true, result: null, response: null });
+        assert.strictEqual((await opened).result, 'acknowledged');
     });
 });
 
@@ -327,97 +222,15 @@ describe('Dialog close-on-submit', () => {
         assert.isNotNull(dialog.querySelector('[data-ref=acknowledge]'));
     });
 
-    it('answers with the response its own form submitted, closing the dialog', async () => {
+    it('ask() answers with the response its own form submitted, no button carrying it', async () => {
         const [dialog] = await mount(form());
         const inner = dialog.querySelector('ful-form');
         AsyncEvents.asyncOn(inner, 'submit:requested', async () => ({ id: 7 }));
 
         const asked = dialog.ask();
         inner.querySelector('button[type=submit]').click();
-        const answer = await asked;
 
-        assert.isFalse(answer.dismissed);
-        assert.isNull(answer.result, 'no button carried the answer');
-        assert.deepStrictEqual(answer.response, { id: 7 });
-        assert.isFalse(dialog.querySelector('dialog').open);
-    });
-
-    it('a submit answering with no body at all is still an answer, not a dismissal', async () => {
-        const [dialog] = await mount(form());
-        const inner = dialog.querySelector('ful-form');
-        AsyncEvents.asyncOn(inner, 'submit:requested', async () => null);
-
-        const asked = dialog.ask();
-        inner.querySelector('button[type=submit]').click();
-        const answer = await asked;
-
-        assert.isFalse(answer.dismissed, 'a 204 answers, and dismissed is what says so');
-        assert.isNull(answer.response);
-    });
-
-    it('stays open on a failed submit, the form keeping the problems', async () => {
-        const [dialog] = await mount(form());
-        const inner = dialog.querySelector('ful-form');
-        AsyncEvents.asyncOn(inner, 'submit:requested', async () => {
-            throw new Error('rejected upstream');
-        });
-
-        dialog.ask();
-        inner.querySelector('button[type=submit]').click();
-        await settle();
-
-        assert.isTrue(dialog.querySelector('dialog').open, 'the problems are of no use behind a closed dialog');
-    });
-
-    it('is not answered by a form of its own content: a table searching is not the dialog closing', async () => {
-        const [dialog] = await mount(`
-            <ful-dialog close-on-submit header="Pick">
-                <ful-table page-size="5">
-                    <div slot="filters">
-                        <ful-filter-text name="byName">Name</ful-filter-text>
-                        <button type="submit">Search</button>
-                    </div>
-                    <template slot="schema"><schema><column title="Name">{{ name }}</column></schema></template>
-                </ful-table>
-            </ful-dialog>`);
-
-        dialog.ask();
-        dialog.querySelector('ful-table button[type=submit]').click();
-        await settle();
-
-        assert.isTrue(dialog.querySelector('dialog').open, "the table's own filter form is not the dialog's");
-    });
-
-    it('closes on a form update() delivered, the listener outliving every delivery', async () => {
-        const [dialog] = await mount('<ful-dialog close-on-submit header="Edit"></ful-dialog>');
-        const delivered = document.createElement('ful-form');
-        delivered.innerHTML = '<ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button>';
-
-        const body = await dialog.update(async () => delivered);
-        await settle();
-        const inner = body.querySelector('ful-form');
-        AsyncEvents.asyncOn(inner, 'submit:requested', async () => ({ id: 9 }));
-        const closed = new Promise((r) => dialog.addEventListener('close', (e) => r(e.detail), { once: true }));
-        inner.querySelector('button[type=submit]').click();
-        const outcome = await closed;
-
-        assert.isFalse(outcome.dismissed);
-        assert.strictEqual(outcome.response?.id, 9);
-    });
-
-    it('leaves a dialog that did not ask for it alone', async () => {
-        const [dialog] = await mount(`
-            <ful-dialog header="Edit">
-                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
-            </ful-dialog>`);
-        const inner = dialog.querySelector('ful-form');
-        AsyncEvents.asyncOn(inner, 'submit:requested', async () => ({ id: 7 }));
-
-        dialog.ask();
-        inner.querySelector('button[type=submit]').click();
-        await settle();
-
-        assert.isTrue(dialog.querySelector('dialog').open, 'closing on submit is opt in');
+        assert.deepStrictEqual(await asked, { dismissed: false, result: null, response: { id: 7 } });
     });
 });
 
@@ -481,29 +294,6 @@ describe('Dialog dismissal', () => {
         dialog.close('answered');
         assert.isFalse(native.open, 'a result still closes it');
     });
-    it('dismisses on a click outside the dialog, as the close button does', async () => {
-        const [dialog] = await mount('<ful-dialog header="Pick one">the body</ful-dialog>');
-        const native = dialog.querySelector('dialog');
-        const answered = dialog.ask();
-
-        native.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-        native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-        assert.isFalse(native.open);
-        assert.deepStrictEqual(await answered, { dismissed: true, result: null, response: null });
-    });
-
-    it('stays open when a click inside the dialog merely ends over the backdrop', async () => {
-        const [dialog] = await mount('<ful-dialog header="Pick one"><p data-ref="body">the body</p></ful-dialog>');
-        const native = dialog.querySelector('dialog');
-        dialog.ask();
-
-        dialog.querySelector('[data-ref=body]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-        native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        assert.isTrue(native.open);
-        dialog.close('answered');
-    });
-
     it('renders no header at all under requires-answer with nothing to head it', async () => {
         const [dialog] = await mount('<ful-dialog requires-answer>the body</ful-dialog>');
 
@@ -517,62 +307,6 @@ describe('Dialog dismissal', () => {
 
         assert.strictEqual(getComputedStyle(nested).display, 'flex');
         assert.strictEqual(getComputedStyle(nested).justifyContent, 'flex-end');
-    });
-});
-
-describe('Dialog, the section:requested contract', () => {
-    it('fires on the body on open, first only the first time', async () => {
-        const [dialog] = await mount('<ful-dialog header="h">the body</ful-dialog>');
-        const seen = [];
-        AsyncEvents.asyncOn(dialog, 'section:requested', (e) => {
-            seen.push(e.detail.first);
-            e.detail.section.append('delivered');
-        });
-
-        dialog.ask();
-        await settle();
-        assert.deepStrictEqual(seen, [true], 'ask() opens, the request fires');
-        assert.include(dialog.querySelector('[data-ref=body]').textContent, 'delivered');
-
-        dialog.close();
-        await settle();
-        dialog.ask();
-        await settle();
-        assert.deepStrictEqual(seen, [true, false]);
-        dialog.close();
-    });
-
-    it('fires nothing when update() owns the cycle', async () => {
-        const [dialog] = await mount('<ful-dialog header="h"></ful-dialog>');
-        let fired = 0;
-        AsyncEvents.asyncOn(dialog, 'section:requested', () => {
-            ++fired;
-        });
-
-        await dialog.update(async () => document.createElement('p'));
-        await settle();
-
-        assert.strictEqual(fired, 0);
-        dialog.close();
-    });
-});
-
-describe('Dialog, refresh', () => {
-    it('re-fires the body request, its failures painted and swallowed', async () => {
-        const [dialog] = await mount('<ful-dialog header="h">the body</ful-dialog>');
-        let fail = true;
-        AsyncEvents.asyncOn(dialog, 'section:requested', () => {
-            if (fail) {
-                throw new Error('boom');
-            }
-        });
-
-        await dialog.refresh();
-        assert.isNotNull(dialog.querySelector('[data-ref=body] > .ful-section-error'));
-
-        fail = false;
-        await dialog.refresh();
-        assert.strictEqual(dialog.querySelector('[data-ref=body] > .ful-section-error'), null);
     });
 });
 
@@ -685,3 +419,324 @@ describe('Dialog.ask and Dialog.confirm', () => {
         assert.isFalse(await dismissed, 'a dismissal is a no');
     });
 });
+
+const elements = [
+    { tag: 'ful-dialog', content: 'body', open: (el) => void el.ask(), update: (el, cb) => el.update(cb) },
+    { tag: 'ful-drawer', content: 'content', open: (el) => el.open(), update: (el, cb) => el.update('title', cb) },
+];
+const closed = async (el) => {
+    const done = new Promise((resolve) => el.addEventListener('close', resolve, { once: true }));
+    el.close();
+    await done;
+};
+
+for (const { tag, content, open, update } of elements) {
+    const editing = `
+        <${tag} close-on-submit header="Edit">
+            <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+        </${tag}>`;
+    const submitted = async (el, answer) => {
+        const form = el.querySelector('ful-form');
+        AsyncEvents.asyncOn(form, 'submit:requested', answer);
+        const done = new Promise((r) => el.addEventListener('close', (e) => r(e.detail), { once: true }));
+        form.querySelector('button[type=submit]').click();
+        return await done;
+    };
+
+    describe(`${tag}, the shared sections`, () => {
+        it('update() opens it, shows the loading section while it waits, and paints the delivery', async () => {
+            const [el] = await mount(`<${tag} header="t">old</${tag}>`);
+            const loading = el.querySelector('[data-ref=loading]');
+            const section = el.querySelector(`[data-ref=${content}]`);
+            const { promise, resolve } = Promise.withResolvers();
+
+            const updated = update(el, () => promise);
+            assert.isTrue(el.querySelector('dialog').open, 'the delivery opens it');
+            assert.isFalse(loading.hasAttribute('hidden'), 'the loading section covers the wait');
+            assert.isTrue(section.hasAttribute('hidden'), 'an empty content is not shown while it waits');
+
+            const delivered = document.createElement('p');
+            delivered.textContent = 'the detail';
+            resolve(delivered);
+            const resolved = await updated;
+
+            assert.isTrue(resolved === section, 'update resolves with the content section');
+            assert.isTrue(delivered.parentElement === section);
+            assert.notInclude(section.textContent, 'old');
+            assert.isTrue(loading.hasAttribute('hidden'));
+            assert.isFalse(section.hasAttribute('hidden'));
+        });
+
+        it('update() paints the reasons of a rejection and still rejects its caller', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            const failure = new Failure('invalid', [
+                { type: 'FIELD_ERROR', context: null, reason: 'must not be blank' },
+                { type: 'GENERIC_PROBLEM', context: null, reason: 'start is after end' },
+            ]);
+
+            await update(el, async () => {
+                throw failure;
+            }).then(
+                () => assert.fail('the rejection travels to the caller'),
+                (e) => assert.isTrue(e === failure),
+            );
+
+            const error = el.querySelector('[data-ref=error]');
+            assert.isFalse(error.hasAttribute('hidden'), 'the problems are shown');
+            assert.include(error.textContent, 'must not be blank');
+            assert.include(error.textContent, 'start is after end');
+            assert.isTrue(el.querySelector('[data-ref=loading]').hasAttribute('hidden'));
+            assert.isTrue(el.querySelector(`[data-ref=${content}]`).hasAttribute('hidden'));
+        });
+
+        it('reveals the error region before filling it, so the live region announces the problems', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            const error = el.querySelector('[data-ref=error]');
+            const kinds = [];
+            const observer = new MutationObserver((records) => {
+                kinds.push(...records.map((r) => (r.type === 'attributes' ? 'revealed' : 'filled')));
+            });
+            observer.observe(error, { attributes: true, attributeFilter: ['hidden'], childList: true });
+
+            await update(el, () => Promise.reject(new Error('no such thing'))).catch(() => undefined);
+            observer.disconnect();
+
+            assert.strictEqual(kinds.slice(-2).join(','), 'revealed,filled');
+            assert.include(error.textContent, 'no such thing', 'a failure with no problems shows its message');
+            await closed(el);
+        });
+
+        it('a superseded update() paints nothing, resolving with the section the newer one filled', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            const first = Promise.withResolvers();
+            const stale = update(el, () => first.promise);
+            const fresh = document.createElement('p');
+            fresh.textContent = 'the second';
+            const freshSection = await update(el, async () => fresh);
+
+            const abandoned = document.createElement('p');
+            abandoned.textContent = 'the first';
+            first.resolve(abandoned);
+            const staleSection = await stale;
+
+            assert.isTrue(staleSection === freshSection, 'there is one content section, shared by the openings');
+            assert.isFalse(abandoned.isConnected, 'the superseded delivery was never painted');
+            assert.include(freshSection.textContent, 'the second');
+            assert.isTrue(el.querySelector('[data-ref=loading]').hasAttribute('hidden'));
+        });
+
+        it('fires section:requested for the content when opened, first only the first time', async () => {
+            const [el] = await mount(`<${tag} header="t"></${tag}>`);
+            const seen = [];
+            AsyncEvents.asyncOn(el, 'section:requested', (e) => {
+                seen.push(`${e.detail.first}|${e.detail.name}|${e.detail.index}`);
+                e.detail.section.append('delivered');
+            });
+
+            open(el);
+            await settle();
+            assert.deepStrictEqual(seen, ['true|null|null']);
+            assert.include(el.querySelector(`[data-ref=${content}]`).textContent, 'delivered');
+
+            await closed(el);
+            await settle();
+            open(el);
+            await settle();
+            assert.deepStrictEqual(seen, ['true|null|null', 'false|null|null']);
+            await closed(el);
+        });
+
+        it('fires nothing when update() owns the cycle, nor on an open while it stands', async () => {
+            const [el] = await mount(`<${tag} header="t"></${tag}>`);
+            let fired = 0;
+            AsyncEvents.asyncOn(el, 'section:requested', () => {
+                ++fired;
+            });
+
+            await update(el, async () => document.createElement('p'));
+            open(el);
+            await settle();
+            assert.strictEqual(fired, 0);
+
+            await closed(el);
+            await settle();
+            open(el);
+            await settle();
+            assert.strictEqual(fired, 1, 'a later declarative open asks again');
+            await closed(el);
+        });
+
+        it('refresh re-fires the content request, its failures painted and swallowed', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            let fail = true;
+            AsyncEvents.asyncOn(el, 'section:requested', () => {
+                if (fail) {
+                    throw new Error('boom');
+                }
+            });
+
+            assert.isUndefined(await el.refresh());
+            assert.isNotNull(el.querySelector(`[data-ref=${content}] > .ful-section-error`));
+
+            fail = false;
+            await el.refresh();
+            assert.isNull(el.querySelector(`[data-ref=${content}] > .ful-section-error`));
+        });
+
+        it('renders the header slot in the header, before the heading and outside it', async () => {
+            const [el] = await mount(`<${tag} header="Nave"><i slot="header" class="bi bi-water"></i>body</${tag}>`);
+            const header = el.querySelector('header');
+
+            assert.strictEqual(header.querySelector('i')?.className, 'bi bi-water');
+            assert.strictEqual(header.firstElementChild.localName, 'i', 'before the heading');
+            assert.isNull(header.querySelector('h2 i'), 'outside the heading, which is text');
+            assert.strictEqual(header.querySelector('h2').textContent.trim(), 'Nave');
+        });
+
+        it('opens from any element carrying dialog-target, clones included', async () => {
+            const [el, container] = await mount(`
+                <${tag} id="target-${tag}" header="t">body</${tag}>
+                <button type="button" dialog-target="target-${tag}">details</button>`);
+            const native = el.querySelector('dialog');
+            const trigger = container.querySelector('[dialog-target]');
+            const cloned = trigger.cloneNode(true);
+            container.appendChild(cloned);
+
+            trigger.click();
+            assert.isTrue(native.open);
+            trigger.click();
+            assert.isTrue(native.open, 'a click on an open one is a no-op, not a crash');
+            await closed(el);
+            assert.isFalse(native.open);
+
+            cloned.click();
+            assert.isTrue(native.open, 'the cloned trigger opens it');
+            await closed(el);
+        });
+
+        it('dismisses on a press and release both on the backdrop', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            const native = el.querySelector('dialog');
+            const done = new Promise((r) => el.addEventListener('close', (e) => r(e.detail), { once: true }));
+            open(el);
+
+            native.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            const detail = await done;
+
+            assert.isFalse(native.open);
+            assert.isTrue(detail.dismissed, 'a backdrop click is a dismissal like any other');
+            assert.isNull(detail.response);
+        });
+
+        it('stays open when a click inside it merely ends over the backdrop', async () => {
+            const [el] = await mount(`<${tag} header="t"><p data-ref="inside">body</p></${tag}>`);
+            const native = el.querySelector('dialog');
+            open(el);
+
+            el.querySelector('[data-ref=inside]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            assert.isTrue(native.open);
+            await closed(el);
+        });
+
+        it('closes on its own form succeeding, the close event carrying the response', async () => {
+            const [el] = await mount(editing);
+            open(el);
+
+            const detail = await submitted(el, async () => ({ id: 7 }));
+
+            assert.isFalse(el.querySelector('dialog').open);
+            assert.isFalse(detail.dismissed);
+            assert.strictEqual(detail.response?.id, 7);
+        });
+
+        it('a submit answering with no body at all is still an answer, not a dismissal', async () => {
+            const [el] = await mount(editing);
+            open(el);
+
+            const detail = await submitted(el, async () => null);
+
+            assert.isFalse(detail.dismissed, 'a 204 answers, and dismissed is what says so');
+            assert.isNull(detail.response);
+        });
+
+        it('a reopening owes nothing to the submit before it: a later close is a dismissal', async () => {
+            const [el] = await mount(editing);
+            const dismissals = [];
+            el.addEventListener('close', (e) => dismissals.push(e.detail.dismissed));
+            open(el);
+            await submitted(el, async () => ({ id: 7 }));
+
+            open(el);
+            await closed(el);
+
+            assert.strictEqual(dismissals.join(','), 'false,true');
+        });
+
+        it('stays open on a failed submit, the form keeping the problems', async () => {
+            const [el] = await mount(editing);
+            const form = el.querySelector('ful-form');
+            AsyncEvents.asyncOn(form, 'submit:requested', async () => {
+                throw new Error('rejected upstream');
+            });
+
+            open(el);
+            form.querySelector('button[type=submit]').click();
+            await settle();
+
+            assert.isTrue(el.querySelector('dialog').open, 'the problems are of no use behind a closed one');
+            await closed(el);
+        });
+
+        it('closes on a form update() delivered, the listener outliving every delivery', async () => {
+            const [el] = await mount(`<${tag} close-on-submit header="Edit"></${tag}>`);
+            const delivered = document.createElement('ful-form');
+            delivered.innerHTML =
+                '<ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button>';
+
+            await update(el, async () => delivered);
+            await settle();
+            const detail = await submitted(el, async () => ({ id: 9 }));
+
+            assert.isFalse(detail.dismissed);
+            assert.strictEqual(detail.response?.id, 9);
+        });
+
+        it('is not answered by a form of its own content: a table searching is not it closing', async () => {
+            const [el] = await mount(`
+                <${tag} close-on-submit header="Pick">
+                    <ful-table page-size="5">
+                        <div slot="filters">
+                            <ful-filter-text name="byName">Name</ful-filter-text>
+                            <button type="submit">Search</button>
+                        </div>
+                        <template slot="schema"><schema><column title="Name">{{ name }}</column></schema></template>
+                    </ful-table>
+                </${tag}>`);
+
+            open(el);
+            el.querySelector('ful-table button[type=submit]').click();
+            await settle();
+
+            assert.isTrue(el.querySelector('dialog').open, "the table's own filter form is not its own");
+            await closed(el);
+        });
+
+        it('leaves one that did not ask for close-on-submit alone', async () => {
+            const [el] = await mount(`
+                <${tag} header="Edit">
+                    <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
+                </${tag}>`);
+            const form = el.querySelector('ful-form');
+            AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
+
+            open(el);
+            form.querySelector('button[type=submit]').click();
+            await settle();
+
+            assert.isTrue(el.querySelector('dialog').open, 'closing on submit is opt in');
+            await closed(el);
+        });
+    });
+}

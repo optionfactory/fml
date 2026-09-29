@@ -94,19 +94,6 @@ describe('httpc client', () => {
             );
         });
 
-        it('reports a failures+json body that is not an array as a generic problem, keeping it droppable', async () => {
-            const res = new Response(JSON.stringify({ oops: true }), {
-                status: 500,
-                statusText: 'Server Error',
-                headers: { 'Content-Type': 'application/failures+json' },
-            });
-            const err = await HttpClientError.fromResponse(res);
-            expect(err.status).to.equal(500);
-            expect(Array.isArray(err.problems)).to.be.true;
-            expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
-            expect(err.dropping('x.').problems).to.have.lengthOf(1);
-        });
-
         it('reports a problem+json body that does not decode as a generic problem, keeping the status', async () => {
             const res = new Response('<html>proxy error page</html>', {
                 status: 502,
@@ -119,7 +106,7 @@ describe('httpc client', () => {
             expect(err.message).to.equal('502 Bad Gateway: the application/problem+json body does not decode as json');
         });
 
-        it('reports a failures+json body that is not an array', async () => {
+        it('reports a failures+json body that is not an array as a generic problem, keeping it droppable', async () => {
             const res = new Response(JSON.stringify({ oops: true }), {
                 status: 400,
                 statusText: 'Bad Request',
@@ -128,6 +115,8 @@ describe('httpc client', () => {
             const err = await HttpClientError.fromResponse(res);
             expect(err.status).to.equal(400);
             expect(Array.isArray(err.problems)).to.be.true;
+            expect(err.problems[0].type).to.equal('GENERIC_PROBLEM');
+            expect(err.dropping('x.').problems).to.have.lengthOf(1);
             expect(err.message).to.equal(
                 '400 Bad Request: the application/failures+json body does not decode as a failures array',
             );
@@ -201,30 +190,44 @@ describe('httpc client', () => {
             expect(`${fetchArgs.url.pathname}${fetchArgs.url.search}${fetchArgs.url.hash}`).to.equal('/a?p=1#frag');
         });
 
-        it('sends the headers and params left after a null removes one', async () => {
+        it('sends the headers and params left after a null removes one, through the singular and plural forms', async () => {
             await client
                 .get('/test')
-                .headers({ 'X-Keep': '1', 'X-Remove': '2' })
+                .headers({ 'X-Keep': '1', 'X-Remove': '2', 'X-Plural': '3' })
                 .header('X-Remove', null)
+                .headers({ 'X-Plural': null, 'X-Undefined': undefined })
                 .param('p1', 'v1', 'v2')
                 .param('p2', 'v3')
                 .param('p2', null)
+                .params({ p3: 'v4' })
+                .params({ p3: null })
                 .fetch();
 
             expect(fetchArgs.url.toString()).to.include('?p1=v1&p1=v2');
             expect(fetchArgs.url.toString()).to.not.include('p2');
+            expect(fetchArgs.url.toString()).to.not.include('p3');
 
             const reqHeaders = new Headers(fetchArgs.init.headers);
             expect(reqHeaders.get('X-Keep')).to.equal('1');
             expect(reqHeaders.has('X-Remove')).to.be.false;
+            expect(reqHeaders.has('X-Plural')).to.be.false;
+            expect(reqHeaders.has('X-Undefined')).to.be.false;
         });
 
-        it('overrides a param already set, and keeps every value of a single call', async () => {
-            await client.get('/test').param('page', '1').param('page', '2').param('k', 'a', 'b').fetch();
+        it('overrides a param or a header already set, and keeps every value of a single param call', async () => {
+            await client
+                .get('/test')
+                .param('page', '1')
+                .param('page', '2')
+                .param('k', 'a', 'b')
+                .header('X-One', 'first')
+                .header('X-One', 'second')
+                .fetch();
 
             const url = new URL(fetchArgs.url.toString());
             expect(url.searchParams.getAll('page')).to.deep.equal(['2']);
             expect(url.searchParams.getAll('k')).to.deep.equal(['a', 'b']);
+            expect(new Headers(fetchArgs.init.headers).get('X-One')).to.equal('second');
         });
 
         it('skips nullish entries among real values, in any position', async () => {
@@ -295,24 +298,6 @@ describe('httpc client', () => {
             }
         });
 
-        it('removes headers and params set to null through the plural forms', async () => {
-            await client
-                .get('/test')
-                .headers({ 'X-Keep': '1', 'X-Remove': '2' })
-                .headers({ 'X-Remove': null, 'X-Undefined': undefined })
-                .params({ p1: 'v1', p2: 'v2' })
-                .params({ p2: null })
-                .fetch();
-
-            expect(fetchArgs.url.toString()).to.include('p1=v1');
-            expect(fetchArgs.url.toString()).to.not.include('p2');
-
-            const reqHeaders = new Headers(fetchArgs.init.headers);
-            expect(reqHeaders.get('X-Keep')).to.equal('1');
-            expect(reqHeaders.has('X-Remove')).to.be.false;
-            expect(reqHeaders.has('X-Undefined')).to.be.false;
-        });
-
         it('accepts the other headers and params initializer shapes', async () => {
             await client
                 .get('/test?q=0')
@@ -320,7 +305,7 @@ describe('httpc client', () => {
                 .headers(new Headers({ 'X-Instance': 'b' }))
                 .params([['p1', 'v1']])
                 .params(new URLSearchParams('p2=v2'))
-                .params('p3=v3')
+                .params('p3=v3&p4=v4')
                 .fetch();
 
             const url = fetchArgs.url.toString();
@@ -328,6 +313,7 @@ describe('httpc client', () => {
             expect(url).to.include('p1=v1');
             expect(url).to.include('p2=v2');
             expect(url).to.include('p3=v3');
+            expect(url).to.include('p4=v4');
 
             const reqHeaders = new Headers(fetchArgs.init.headers);
             expect(reqHeaders.get('X-Pair')).to.equal('a');
@@ -621,23 +607,10 @@ describe('HttpRequestBuilder request-level configuration', () => {
         expect(response.status).to.equal(500);
     });
 
-    it('accepts a query string as the params initializer', async () => {
-        await client.request('GET', '/q').params('a=1&b=2').fetchJson();
-        expect(String(fetchArgs.url)).to.include('a=1');
-        expect(String(fetchArgs.url)).to.include('b=2');
-    });
-
     it('tolerates a null params initializer, contributing no query string', async () => {
         await client.request('GET', '/no-params').params(null).fetchJson();
 
         expect(String(fetchArgs.url)).to.not.include('?');
-    });
-
-    it('sets a single header, overriding a previous value for the same key', async () => {
-        await client.request('GET', '/h').header('X-One', 'first').header('X-One', 'second').fetchJson();
-
-        const reqHeaders = new Headers(fetchArgs.init.headers);
-        expect(reqHeaders.get('X-One')).to.equal('second');
     });
 
     it('carries a raw body without inventing a content type', async () => {

@@ -77,23 +77,6 @@ describe('Drawer', () => {
         assert.isFalse(dialog.open, 'no animationend will ever come, the close lands at once');
     });
 
-    it('opens and closes, and any dialog-target element opens it too', async () => {
-        const [drawer, container] = await mount(`
-            <ful-drawer id="target-drawer" header="t">body</ful-drawer>
-            <button type="button" dialog-target="target-drawer">details</button>`);
-        const dialog = drawer.querySelector('dialog');
-
-        drawer.open();
-        assert.isTrue(dialog.open);
-
-        await closed(drawer);
-        assert.isFalse(dialog.open);
-
-        container.querySelector('[dialog-target]').click();
-        assert.isTrue(dialog.open);
-        drawer.close();
-    });
-
     it('opens on the inline end side by default, and on the start side when asked', async () => {
         const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const [side] = await mount('<ful-drawer header="t" placement="start">body</ful-drawer>');
@@ -145,89 +128,6 @@ describe('Drawer', () => {
         }
     });
 
-    it('update() shows the loading state, then the delivered content', async () => {
-        const [drawer] = await mount('<ful-drawer header="t">old</ful-drawer>');
-        let deliver;
-        const updated = drawer.update('Nuova controparte', () => new Promise((resolve) => (deliver = resolve)));
-
-        assert.isTrue(drawer.querySelector('dialog').open);
-        assert.isFalse(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
-        assert.isTrue(drawer.querySelector('[data-ref=content]').hasAttribute('hidden'));
-
-        const form = document.createElement('form');
-        deliver(form);
-        const content = await updated;
-
-        assert.strictEqual(drawer.header, 'Nuova controparte');
-        assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
-        assert.isFalse(content.hasAttribute('hidden'));
-        assert.strictEqual(content.querySelector('form'), form, 'update resolves with the content section');
-    });
-
-    it('update() reports a rejecting callback in the error section and rethrows', async () => {
-        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
-        const failure = new Failure('invalid', [
-            { type: 'FIELD_ERROR', context: null, reason: 'must not be blank' },
-            { type: 'GENERIC_PROBLEM', context: null, reason: 'start is after end' },
-        ]);
-        const failed = drawer.update('title', async () => {
-            throw failure;
-        });
-
-        await failed.then(
-            () => assert.fail('the rejection travels to the caller'),
-            (e) => assert.strictEqual(e, failure),
-        );
-
-        const error = drawer.querySelector('[data-ref=error]');
-        assert.isFalse(error.hasAttribute('hidden'));
-        assert.include(error.textContent, 'must not be blank');
-        assert.include(error.textContent, 'start is after end');
-        assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
-    });
-
-    it('reveals the error region before filling it, so the live region announces the problems', async () => {
-        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
-        const error = drawer.querySelector('[data-ref=error]');
-        const kinds = [];
-        const observer = new MutationObserver((records) => {
-            kinds.push(...records.map((r) => (r.type === 'attributes' ? 'revealed' : 'filled')));
-        });
-        observer.observe(error, { attributes: true, attributeFilter: ['hidden'], childList: true });
-
-        await drawer.update('title', () => Promise.reject(new Error('no such thing'))).catch(() => undefined);
-        observer.disconnect();
-
-        assert.strictEqual(kinds.slice(-2).join(','), 'revealed,filled');
-        await closed(drawer);
-    });
-
-    it('a superseded update owns nothing: its outcome is not painted, a newer one wins', async () => {
-        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
-        let deliverFirst;
-        const first = drawer.update('first', () => new Promise((resolve) => (deliverFirst = resolve)));
-        const second = drawer.update('second', async () => {
-            const fresh = document.createElement('p');
-            fresh.textContent = 'the newer content';
-            return fresh;
-        });
-        const secondContent = await second;
-        assert.include(secondContent.textContent, 'the newer content');
-
-        const stale = document.createElement('p');
-        stale.textContent = 'the stale content';
-        deliverFirst(stale);
-        const firstContent = await first;
-        assert.strictEqual(firstContent, secondContent, 'the drawer has one content section, shared by its openings');
-        assert.isFalse(stale.isConnected, 'the superseded delivery was never painted');
-        assert.include(
-            drawer.querySelector('[data-ref=content]').textContent,
-            'the newer content',
-            'only the newer outcome is painted',
-        );
-        assert.isTrue(drawer.querySelector('[data-ref=loading]').hasAttribute('hidden'));
-    });
-
     it('answers with a close event, Escape included', async () => {
         const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const closes = [];
@@ -239,163 +139,6 @@ describe('Drawer', () => {
         drawer.close();
         await closed;
         assert.deepStrictEqual(closes, [{ dismissed: true, response: null }]);
-    });
-
-    it('dismisses on a click outside the panel, which the backdrop takes for the dialog', async () => {
-        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
-        const dialog = drawer.querySelector('dialog');
-        const closes = [];
-        drawer.addEventListener('close', (e) => closes.push(e.detail));
-
-        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
-        drawer.open();
-        dialog.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-        dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        await closed;
-        assert.isFalse(dialog.open);
-        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }], 'a backdrop click is a dismissal like any other');
-    });
-
-    it('stays open when a click inside it merely ends over the backdrop', async () => {
-        const [drawer] = await mount('<ful-drawer header="t"><p data-ref="body">body</p></ful-drawer>');
-        const dialog = drawer.querySelector('dialog');
-        drawer.open();
-
-        //a selection dragged out of the panel: the press was inside, the release is not
-        drawer.querySelector('[data-ref=body]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-        dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        assert.isTrue(dialog.open);
-        drawer.close();
-    });
-
-    it('closes on its own form succeeding, the close event carrying the response', async () => {
-        const [drawer] = await mount(`
-            <ful-drawer header="Edit" close-on-submit>
-                <ful-form data-ref="edit">
-                    <ful-input name="label" value="a">Label</ful-input>
-                    <button type="submit">Save</button>
-                </ful-form>
-            </ful-drawer>`);
-        const form = drawer.querySelector('ful-form');
-        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
-        const closes = [];
-        drawer.addEventListener('close', (e) => closes.push(e.detail));
-
-        drawer.open();
-        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
-        form.querySelector('button[type=submit]').click();
-        await closed;
-
-        assert.isFalse(drawer.querySelector('dialog').open);
-        assert.deepStrictEqual(closes, [{ dismissed: false, response: { id: 7 } }]);
-    });
-
-    it('a save answering with no body at all is still a save, not a dismissal', async () => {
-        const [drawer] = await mount(`
-            <ful-drawer header="Edit" close-on-submit>
-                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
-            </ful-drawer>`);
-        const form = drawer.querySelector('ful-form');
-        AsyncEvents.asyncOn(form, 'submit:requested', async () => null);
-        const closes = [];
-        drawer.addEventListener('close', (e) => closes.push(e.detail));
-
-        drawer.open();
-        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
-        form.querySelector('button[type=submit]').click();
-        await closed;
-
-        assert.deepStrictEqual(closes, [{ dismissed: false, response: null }]);
-    });
-
-    it('a reopening owes nothing to the save before it: a later close is a dismissal', async () => {
-        const [drawer] = await mount(`
-            <ful-drawer header="Edit" close-on-submit>
-                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
-            </ful-drawer>`);
-        const form = drawer.querySelector('ful-form');
-        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
-        const closes = [];
-        drawer.addEventListener('close', (e) => closes.push(e.detail.dismissed));
-
-        drawer.open();
-        const saved = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
-        form.querySelector('button[type=submit]').click();
-        await saved;
-        drawer.open();
-        await closed(drawer);
-
-        assert.strictEqual(closes.join(','), 'false,true');
-    });
-
-    it('stays open on a failed submit, the form keeping the problems', async () => {
-        const [drawer] = await mount(`
-            <ful-drawer header="Edit" close-on-submit>
-                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
-            </ful-drawer>`);
-        const form = drawer.querySelector('ful-form');
-        AsyncEvents.asyncOn(form, 'submit:requested', async () => {
-            throw new Error('rejected upstream');
-        });
-
-        drawer.open();
-        form.querySelector('button[type=submit]').click();
-        await settle();
-
-        assert.isTrue(drawer.querySelector('dialog').open, 'the problems are of no use behind a closed drawer');
-    });
-
-    it('closes on a form update() delivered, the listener outliving every delivery', async () => {
-        const [drawer] = await mount('<ful-drawer header="Edit" close-on-submit></ful-drawer>');
-        const delivered = document.createElement('ful-form');
-        delivered.innerHTML = '<ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button>';
-
-        const content = await drawer.update('Edit', async () => delivered);
-        await settle();
-        const form = content.querySelector('ful-form');
-        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 9 }));
-        const closes = [];
-        drawer.addEventListener('close', (e) => closes.push(e.detail));
-
-        const closed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
-        form.querySelector('button[type=submit]').click();
-        await closed;
-
-        assert.deepStrictEqual(closes, [{ dismissed: false, response: { id: 9 } }]);
-    });
-
-    it('is not closed by a form of its own content: a table searching is not the drawer finishing', async () => {
-        const [drawer] = await mount(`
-            <ful-drawer header="Pick" close-on-submit>
-                <ful-table page-size="5">
-                    <div slot="filters">
-                        <ful-filter-text name="byName">Name</ful-filter-text>
-                        <button type="submit">Search</button>
-                    </div>
-                    <template slot="schema"><schema><column title="Name">{{ name }}</column></schema></template>
-                </ful-table>
-            </ful-drawer>`);
-
-        drawer.open();
-        drawer.querySelector('ful-table button[type=submit]').click();
-        await settle();
-
-        assert.isTrue(drawer.querySelector('dialog').open, "the table's own filter form is not the drawer's");
-    });
-
-    it('leaves a drawer that did not ask for it alone', async () => {
-        const [drawer] = await mount(`
-            <ful-drawer header="Edit">
-                <ful-form><ful-input name="label" value="a">Label</ful-input><button type="submit">Save</button></ful-form>
-            </ful-drawer>`);
-        const form = drawer.querySelector('ful-form');
-        AsyncEvents.asyncOn(form, 'submit:requested', async () => ({ id: 7 }));
-
-        drawer.open();
-        form.querySelector('button[type=submit]').click();
-        await settle();
-
-        assert.isTrue(drawer.querySelector('dialog').open, 'closing on submit is opt in');
     });
 
     it('slides in from the inline end side, mirrored in rtl', async () => {
@@ -531,38 +274,6 @@ describe('Drawer subclass reuse', () => {
     });
 });
 
-describe('Drawer, the section:requested contract', () => {
-    it('fires on the content when opened, not when update() owns the cycle', async () => {
-        const [drawer] = await mount('<ful-drawer header="t"></ful-drawer>');
-        const seen = [];
-        AsyncEvents.asyncOn(drawer, 'section:requested', (e) => {
-            seen.push(e.detail.first);
-            e.detail.section.append('delivered');
-        });
-
-        drawer.open();
-        await settle();
-
-        assert.deepStrictEqual(seen, [true]);
-        assert.include(drawer.querySelector('[data-ref=content]').textContent, 'delivered');
-
-        await closed(drawer);
-        await settle();
-        await drawer.update('title', async () => document.createElement('p'));
-        drawer.open();
-        await settle();
-
-        assert.deepStrictEqual(seen, [true], 'update() owns its cycle, its open fires nothing');
-        await closed(drawer);
-        await settle();
-
-        drawer.open();
-        await settle();
-        assert.deepStrictEqual(seen, [true, false], 'a later declarative open asks again');
-        drawer.close();
-    });
-});
-
 describe('Drawer, the declarative content against update()', () => {
     const frames = async () => {
         for (let i = 0; i !== 3; ++i) {
@@ -625,44 +336,14 @@ describe('Drawer, the declarative content against update()', () => {
         void waiting;
     });
 
-    it('refresh re-fires the content request, its failures painted and swallowed', async () => {
-        const [drawer] = await mount('<ful-drawer header="t"></ful-drawer>');
-        let fail = true;
-        AsyncEvents.asyncOn(drawer, 'section:requested', () => {
-            if (fail) {
-                throw new Error('boom');
-            }
-        });
-
-        await drawer.refresh();
-        assert.isNotNull(drawer.querySelector('[data-ref=content] > .ful-section-error'));
-
-        fail = false;
-        await drawer.refresh();
-        assert.strictEqual(drawer.querySelector('[data-ref=content] > .ful-section-error'), null);
-    });
 });
 
 describe('Drawer header slot', () => {
-    it('renders slotted content in the header, before the title', async () => {
-        const [el] = await mount(
-            '<ful-drawer header="Nave"><i slot="header" class="bi bi-water"></i>body</ful-drawer>',
-        );
-        const header = el.querySelector('header');
-        const icon = header.querySelector('i');
-        assert.isNotNull(icon, 'the slot is rendered into the header');
-        assert.strictEqual(icon.className, 'bi bi-water');
-        assert.strictEqual(
-            header.firstElementChild.tagName,
-            'I',
-            'before the title, where a leading affordance belongs',
-        );
-    });
-
     it('keeps it when the title changes, the title being set as text', async () => {
         const [el] = await mount('<ful-drawer header="a"><i slot="header"></i>body</ful-drawer>');
         await el.update('Dati Nave', async () => document.createElement('p'));
         assert.strictEqual(el.querySelector('header > h2').textContent, 'Dati Nave');
+        assert.strictEqual(el.header, 'Dati Nave', 'the property reads the heading');
         assert.strictEqual(el.querySelectorAll('header > i').length, 1, 'the slot survives the title');
     });
 

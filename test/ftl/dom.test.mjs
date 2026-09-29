@@ -151,18 +151,6 @@ describe('dom.mjs', () => {
 
             expect(slots['my-slot'].querySelector('b').textContent).to.equal('Bold');
         });
-
-        it('extracts slot content from non-JS script elements as HTML', () => {
-            const el = document.createElement('div');
-            const script = document.createElement('script');
-            script.setAttribute('slot', 'script-slot');
-            script.type = 'text/html';
-            script.innerHTML = '<i>Italic</i>';
-            el.appendChild(script);
-
-            const slots = LightSlots.from(el);
-            expect(slots['script-slot'].querySelector('i').textContent).to.equal('Italic');
-        });
     });
 
     describe('Nodes', () => {

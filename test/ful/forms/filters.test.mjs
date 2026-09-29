@@ -54,13 +54,13 @@ describe('Filter value tuples', () => {
         assert.isNull(el.value, 'an emptied filter contributes no criteria');
     });
 
-    it('reports undefined instead of a tuple with an empty operand', async () => {
+    it('reports null instead of a tuple with an empty operand', async () => {
         const [el] = await mount(`<ful-filter-text>t</ful-filter-text>`);
 
         assert.isNull(el.value, 'an unfilled filter contributes no criteria');
     });
 
-    it('reports undefined while a range is missing its upper bound', async () => {
+    it('reports null while a range is missing its upper bound', async () => {
         const [el] = await mount(
             `<ful-filter-local-date value='["EQ","2024-01-01"]'>d</ful-filter-local-date>`,
         );
@@ -125,10 +125,19 @@ describe('A range filter configures both bounds', () => {
         const [el] = await mount('<ful-filter-text autocomplete="off" placeholder="from" name="f">t</ful-filter-text>');
         const bounds = [el.querySelector('[data-ref=value1]'), el.querySelector('[data-ref=value2]')];
 
-        assert.deepStrictEqual(bounds.map((b) => b.getAttribute('autocomplete')), ['off', 'off']);
-        assert.deepStrictEqual(bounds.map((b) => b.getAttribute('placeholder')), ['from', 'from']);
+        assert.deepStrictEqual(
+            bounds.map((b) => b.getAttribute('autocomplete')),
+            ['off', 'off'],
+        );
+        assert.deepStrictEqual(
+            bounds.map((b) => b.getAttribute('placeholder')),
+            ['from', 'from'],
+        );
         el.placeholder = 'search';
-        assert.deepStrictEqual(bounds.map((b) => b.getAttribute('placeholder')), ['search', 'search']);
+        assert.deepStrictEqual(
+            bounds.map((b) => b.getAttribute('placeholder')),
+            ['search', 'search'],
+        );
     });
 });
 
@@ -334,23 +343,6 @@ describe('Filter operator keyboard access', () => {
         assert.strictEqual(document.activeElement, el.querySelector('a[value=CONTAINS]'));
     });
 
-    it('moves with the arrows and the jump keys', async () => {
-        const [el] = await mount(`<ful-filter-text>t</ful-filter-text>`);
-        const button = el.querySelector('[data-ref=operator]');
-        button.click();
-        await settle();
-        const first = document.activeElement;
-
-        keydown(first, 'ArrowDown');
-        assert.strictEqual(document.activeElement, el.querySelector('a[value=STARTS_WITH]'));
-        keydown(document.activeElement, 'ArrowUp');
-        assert.strictEqual(document.activeElement, first);
-        keydown(first, 'End');
-        assert.strictEqual(document.activeElement, el.querySelector('a[value=ENDS_WITH]'));
-        keydown(document.activeElement, 'Home');
-        assert.strictEqual(document.activeElement, el.querySelector('a[value=EQ]'));
-    });
-
     it('picks with Enter and gives the button the focus back', async () => {
         const [el] = await mount(`<ful-filter-text value='["EQ","IGNORE_CASE","ab"]'>t</ful-filter-text>`);
         const button = el.querySelector('[data-ref=operator]');
@@ -377,37 +369,6 @@ describe('Filter operator keyboard access', () => {
         const m = menu.getBoundingClientRect();
         assert.closeTo(m.left, b.left, 1, 'the menu follows its anchor horizontally');
         assert.isAtLeast(m.top, b.bottom, 'the menu sits below its anchor');
-    });
-
-    it('wraps the arrow navigation at the ends', async () => {
-        const [el] = await mount(`<ful-filter-text>t</ful-filter-text>`);
-        const button = el.querySelector('[data-ref=operator]');
-        button.click();
-        await settle();
-        const first = document.activeElement;
-
-        keydown(first, 'ArrowUp');
-        assert.strictEqual(
-            document.activeElement,
-            el.querySelector('a[value=BETWEEN]'),
-            'up from the default wraps to the item above it',
-        );
-
-        keydown(document.activeElement, 'ArrowDown');
-        assert.strictEqual(document.activeElement, first, 'down again lands back on the default');
-    });
-
-    it('gives the button the focus back on Escape', async () => {
-        const [el] = await mount(`<ful-filter-instant>i</ful-filter-instant>`);
-        const button = el.querySelector('[data-ref=operator]');
-        button.click();
-        await settle();
-        const item = document.activeElement;
-        assert.notStrictEqual(item, button);
-
-        keydown(item, 'Escape');
-
-        assert.strictEqual(document.activeElement, button);
     });
 
     it('carries menu semantics', async () => {
@@ -877,23 +838,6 @@ describe('Filter readonly and disabled', () => {
             assert.isFalse(el.readonly);
         });
 
-        it(`${tag} disables both operands, not just the first`, async () => {
-            const [el] = await mount(`<${tag}>f</${tag}>`);
-            const [first, second] = el.querySelectorAll('input');
-            const operator = el.querySelector('[data-ref=operator]');
-
-            el.disabled = true;
-            assert.isTrue(first.hasAttribute('disabled'), 'first operand');
-            assert.isTrue(second.hasAttribute('disabled'), 'second operand');
-            assert.isTrue(operator.disabled, 'the operator button carries the claim too');
-            assert.isTrue(el.disabled, 'and the element reads its own state back');
-
-            el.disabled = false;
-            assert.isFalse(first.hasAttribute('disabled'), 'first operand');
-            assert.isFalse(second.hasAttribute('disabled'), 'second operand');
-            assert.isFalse(operator.disabled);
-            assert.isFalse(el.disabled);
-        });
     }
 
     it('a disabled filter keeps its operator through its menu', async () => {

@@ -49,7 +49,12 @@ describe('Template', () => {
     });
 
     it('iterates a Map as its {key, value} entries, in its own order', () => {
-        const data = { m: new Map([['b', 2], ['a', 1]]) };
+        const data = {
+            m: new Map([
+                ['b', 2],
+                ['a', 1],
+            ]),
+        };
         const template = Template.fromHtml('<div data-tpl-each="m">{{key}}={{value}}</div>', modules, data);
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>b=2</div><div>a=1</div>');
@@ -134,10 +139,7 @@ describe('Template', () => {
             data,
         );
         const rendered = template.render();
-        assert.strictEqual(
-            Fragments.toHtml(rendered),
-            '<b>0(?) x</b><b>1(?) y</b><i>false a</i><i>true b</i>',
-        );
+        assert.strictEqual(Fragments.toHtml(rendered), '<b>0(?) x</b><b>1(?) y</b><i>false a</i><i>true b</i>');
     });
 
     it('exposes the stat to tpl-when, which gates after each opened the scope', () => {
@@ -153,11 +155,7 @@ describe('Template', () => {
 
     it('lets an item property sharing the stat name win, as data always does', () => {
         const data = { items: [{ s: 'shadow' }] };
-        const template = Template.fromHtml(
-            '<div data-tpl-each="items" data-tpl-stat="s">{{s}}</div>',
-            modules,
-            data,
-        );
+        const template = Template.fromHtml('<div data-tpl-each="items" data-tpl-stat="s">{{s}}</div>', modules, data);
         const rendered = template.render();
         assert.strictEqual(Fragments.toHtml(rendered), '<div>shadow</div>');
     });
@@ -481,10 +479,7 @@ describe('Template', () => {
             caught = ex;
         }
         assert.isDefined(caught, 'Should have thrown');
-        assert.strictEqual(
-            caught.message,
-            'Error evaluating data-tpl-each="self" in `<div>`',
-        );
+        assert.strictEqual(caught.message, 'Error evaluating data-tpl-each="self" in `<div>`');
     });
     it('can show error for text nodes', () => {
         const data = [1, 2];
@@ -583,19 +578,6 @@ describe('Template', () => {
             }
             assert.strictEqual(frames, RenderError.FRAMES, 'the budget caps the frames');
             assert.isTrue(ex.truncated, 'and says the outer context was dropped');
-        }
-    });
-
-    it('serializes the offending node only when asked', () => {
-        const template = Template.fromHtml('<div id="host" data-tpl-each="nope">deep</div>', modules, { nope: 1 });
-
-        try {
-            template.render();
-            assert.fail('Should have thrown');
-        } catch (ex) {
-            assert.strictEqual(ex.message, 'Error evaluating data-tpl-each="nope" in `<div id="host">`');
-            assert.include(ex.html, 'deep', 'the markup is there for whoever wants it');
-            assert.strictEqual(ex.node.id, 'host', 'and the live node, not a clone');
         }
     });
 
@@ -767,11 +749,9 @@ describe('Template', () => {
     });
 
     it('serializes the offending node only when asked, tidied of the template whitespace', () => {
-        //the markup is what a developer reads in the console; it is deliberately
-        //not on the message, so nothing ships the rendered rows to a reporter
         const template = Template.fromHtml(`
             <ul class="rows">
-                <li data-tpl-each="rows">{{ nope.deep }}</li>
+                <li class="row" data-tpl-each="rows">{{ nope.deep }}</li>
             </ul>
         `);
         try {
@@ -780,14 +760,16 @@ describe('Template', () => {
         } catch (ex) {
             assert.instanceOf(ex, RenderError);
             const failed = /** @type any */ (ex);
-            //a frame names its node by the open tag; what it never carries is the
-            //subtree, which is what would ship rendered data to a reporter
-            assert.include(failed.message, '<li', 'the frame names the node');
-            assert.notInclude(failed.message, '</li>', 'and stops at the open tag');
+            assert.strictEqual(
+                failed.message,
+                'Error evaluating data-tpl-each="rows" in `<li class="row">`',
+                'the frame names the node by its open tag, without the directives',
+            );
             assert.strictEqual(failed.node.nodeType, Node.ELEMENT_NODE, 'the live node, not a clone');
+            assert.strictEqual(failed.node.className, 'row');
 
             const html = failed.html;
-            assert.include(html, '<li', 'the markup is there when asked for');
+            assert.strictEqual(html, '<li class="row">{{ nope.deep }}</li>', 'the markup is there when asked for');
             assert.notMatch(html, />\s{2,}</, 'the template indentation is tidied away');
             assert.strictEqual(html, failed.html, 'and it serializes the same way every time');
         }

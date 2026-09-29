@@ -53,6 +53,7 @@ describe('Field implicit submission', () => {
         ['ful-input-instant', `<ful-input-instant name="a">label</ful-input-instant>`, 'input'],
         ['ful-input-local-time', `<ful-input-local-time name="a">label</ful-input-local-time>`, 'input'],
         ['ful-checkbox', `<ful-checkbox name="a">label</ful-checkbox>`, 'input'],
+        ['ful-select with its dropdown closed', `<ful-select name="a">label</ful-select>`, 'input'],
         [
             'ful-radio-group',
             `<ful-radio-group name="a">label<ful-radio value="k1">one</ful-radio></ful-radio-group>`,
@@ -105,6 +106,39 @@ describe('Field implicit submission', () => {
         });
     }
 
+    it('leaves any other key alone', async () => {
+        const form = await mount(`<ful-input name="a">label</ful-input>`);
+
+        form.querySelector('input').dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', bubbles: true, cancelable: true }),
+        );
+        await settle();
+
+        assert.deepStrictEqual(submits, []);
+    });
+
+    it('submits nothing, and says nothing, from a field no form owns', async () => {
+        const container = appended('<ful-input name="lonely" value="x">lonely</ful-input>');
+        const field = container.firstElementChild;
+        await Rendering.waitFor(field);
+        await settle();
+        const errors = [];
+        const onError = (e) => {
+            errors.push(String(e.error ?? e.message));
+            e.preventDefault();
+        };
+        window.addEventListener('error', onError);
+        try {
+            enter(field.querySelector('input'));
+            await settle();
+
+            assert.deepStrictEqual(errors, [], 'a field outside any form does not reach for one');
+            assert.deepStrictEqual(submits, [], 'and nothing was submitted');
+        } finally {
+            window.removeEventListener('error', onError);
+        }
+    });
+
     it('leaves Enter alone while an input method is composing', async () => {
         const form = await mount(`<ful-input name="a">label</ful-input>`);
 
@@ -136,5 +170,58 @@ describe('Field implicit submission', () => {
         await settle();
 
         assert.deepStrictEqual(submits, [], 'the platform submits it, so the base must not submit it again');
+    });
+
+    describe('submitter', () => {
+        const submitterOf = async (controls) => {
+            const container = appended(`
+                <ful-form>
+                    <ful-input name="i">label</ful-input>
+                    ${controls}
+                </ful-form>`);
+            const form = container.firstElementChild;
+            await Rendering.waitFor(form);
+            await Rendering.waitForChildren(form);
+            await settle();
+            const submitters = [];
+            form.addEventListener('submit', (e) => submitters.push(e.detail.submitter));
+
+            enter(form.querySelector('ful-input input'));
+            await settle();
+
+            assert.strictEqual(submits.length, 1);
+            assert.lengthOf(submitters, 1);
+            return submitters[0];
+        };
+
+        it('is the first enabled submit control', async () => {
+            const submitter = await submitterOf(`
+                <button type="button" id="not-a-submitter">cancel</button>
+                <button type="submit" id="disabled-submitter" disabled>stale</button>
+                <button type="submit" id="the-submitter">go</button>
+                <button type="submit" id="later-submitter">also go</button>`);
+
+            assert.strictEqual(submitter.id, 'the-submitter');
+        });
+
+        it('is absent when the form has no submit control', async () => {
+            const submitter = await submitterOf('');
+
+            assert.isUndefined(submitter);
+        });
+
+        it('is absent when the only candidate belongs to another form', async () => {
+            const submitter = await submitterOf(`<button type="submit" form="">foreign</button>`);
+
+            assert.isUndefined(submitter, 'the foreign button is neither passed to requestSubmit nor recorded');
+        });
+
+        it('is the owned submit control over a foreign one coming first in document order', async () => {
+            const submitter = await submitterOf(`
+                <button type="submit" form="">foreign</button>
+                <button type="submit" id="the-submitter">go</button>`);
+
+            assert.strictEqual(submitter.id, 'the-submitter');
+        });
     });
 });

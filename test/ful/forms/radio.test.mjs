@@ -172,30 +172,6 @@ describe('RadioGroup state', () => {
         assert.isTrue(group.hasAttribute('readonly'), 'the property reflects back onto the attribute');
     });
 
-    it('disables every radio when the group is disabled', async () => {
-        const container = await mount(GROUP, { children: true });
-        const group = container.querySelector('ful-radio-group');
-        assert.isFalse(group.disabled);
-
-        group.disabled = true;
-
-        assert.isTrue(group.disabled);
-        assert.isTrue(Array.from(group.querySelectorAll('input[type=radio]')).every((i) => i.matches(':disabled')));
-
-        group.disabled = false;
-        assert.isFalse(group.disabled);
-        assert.isFalse(group.querySelector('input[type=radio]').matches(':disabled'));
-    });
-
-    it('renders disabled inside a disabled fieldset', async () => {
-        const container = await mount(`<form><fieldset disabled>${GROUP}</fieldset></form>`, { children: true });
-        const group = container.querySelector('ful-radio-group');
-
-        assert.isFalse(group.disabled, 'the property reflects the claim only, like a native input');
-        assert.isTrue(group.matches(':disabled'), 'the ancestry is honored through :disabled');
-        assert.isTrue(Array.from(group.querySelectorAll('input[type=radio]')).every((i) => i.matches(':disabled')));
-    });
-
     it('announces a required group on the radiogroup host, the role that accepts it', async () => {
         const container = await mount(GROUP.replace('name="a"', 'name="a" required'), { children: true });
         const group = container.querySelector('ful-radio-group');

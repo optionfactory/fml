@@ -319,6 +319,11 @@ describe('Table revalidation', () => {
             tableEl.querySelector('tbody[data-ref=loading]').hasAttribute('hidden'),
             'an empty body has nothing to keep, so the spinner stands in for it',
         );
+        assert.strictEqual(
+            tableEl.querySelector('tbody[data-ref=loading] ful-spinner[role=status]')?.textContent.trim(),
+            'Loading…',
+            'the spinner has text to announce',
+        );
     });
 
     it('drops the rows a failed load was replacing', async () => {

@@ -141,18 +141,6 @@ describe('Checkbox states', () => {
         assert.isFalse(input.hasAttribute('aria-required'));
     });
 
-    it('disables the inner input, which is what keeps it out of a submitted payload', async () => {
-        const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
-
-        el.disabled = true;
-        assert.isTrue(input.hasAttribute('disabled'));
-        assert.isTrue(el.disabled);
-
-        el.disabled = false;
-        assert.isFalse(input.hasAttribute('disabled'));
-        assert.isFalse(el.disabled);
-    });
-
     it('forwards focus to the inner input, so labels and form navigation land on something focusable', async () => {
         const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 

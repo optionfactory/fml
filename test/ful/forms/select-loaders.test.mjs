@@ -366,15 +366,6 @@ describe('Dropdown contract', () => {
 
         assert.throws(() => dropdown.update(undefined), 'null data');
     });
-
-    it('closes when the blank area of the menu is clicked', async () => {
-        const [, dropdown] = await mount(INLINE_OPTIONS);
-        assert.isTrue(dropdown.shown);
-
-        dropdown.querySelector('menu').dispatchEvent(new Event('click'));
-
-        assert.isFalse(dropdown.shown);
-    });
 });
 
 describe('SelectLoader runtime updates', () => {

@@ -1,13 +1,10 @@
 import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
-import { Plugin, Field, Bindings } from '../../../src/ful/index.mjs';
+import { Plugin, Field } from '../../../src/ful/index.mjs';
 import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
-registry.defineComponent('loaders:select', {
-    create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...k) => k.map((v) => ({ key: v, label: v })) }),
-});
 
 const mount = async (html) => {
     const container = appended(html);
@@ -16,101 +13,11 @@ const mount = async (html) => {
     return container;
 };
 
-describe('The disabled attribute after the upgrade', () => {
-    it('stays live: the claim, the control and the extraction move together', async () => {
-        const container = await mount('<form><ful-input name="a" value="x">l</ful-input></form>');
-        const field = container.querySelector('ful-input');
-        const input = field.querySelector('input');
-
-        field.setAttribute('disabled', '');
-
-        assert.isTrue(field.disabled, 'the claim reads back');
-        assert.isTrue(field.matches(':disabled'), 'the host matches :disabled');
-        assert.isTrue(input.matches(':disabled'), 'the inner control is disabled');
-        assert.deepStrictEqual(Bindings.extractFrom(container.querySelector('form')), {}, 'the value is left out');
-
-        field.removeAttribute('disabled');
-
-        assert.isFalse(field.matches(':disabled'));
-        assert.isFalse(input.matches(':disabled'));
-        assert.deepStrictEqual(Bindings.extractFrom(container.querySelector('form')), { a: 'x' });
-
-        //the property still behaves, the reflection guard keeps it out of the observer
-        field.disabled = true;
-        assert.isTrue(field.hasAttribute('disabled'));
-        assert.isTrue(input.matches(':disabled'));
-        field.disabled = false;
-        assert.isFalse(field.hasAttribute('disabled'));
-        assert.isFalse(input.matches(':disabled'));
-    });
-
-    const cases = [
-        ['ful-checkbox', `<ful-checkbox name="a" value="true">l</ful-checkbox>`],
-        ['ful-select', `<ful-select name="a" value="x">l</ful-select>`],
-        [
-            'ful-radio-group',
-            `<ful-radio-group name="a" value="x">l<ful-radio value="x">x</ful-radio></ful-radio-group>`,
-        ],
-        ['ful-filter-text', `<ful-filter-text name="a">l</ful-filter-text>`],
-    ];
-    for (const [tag, markup] of cases) {
-        it(`${tag} mirrors the attribute onto its control, and takes it back off`, async () => {
-            const container = await mount(markup);
-            const field = container.querySelector(tag);
-            const inner = field.querySelector('input');
-
-            field.setAttribute('disabled', '');
-            assert.isTrue(inner.matches(':disabled'), `${tag} disables its control`);
-            field.removeAttribute('disabled');
-            assert.isFalse(inner.matches(':disabled'));
-        });
-    }
-
-    it('composes with a disabled fieldset ancestry like the property does', async () => {
-        const container = await mount('<form><fieldset><ful-input name="a" value="x">l</ful-input></fieldset></form>');
-        const fieldset = container.querySelector('fieldset');
-        const field = container.querySelector('ful-input');
-        const input = field.querySelector('input');
-
-        field.setAttribute('disabled', '');
-        fieldset.setAttribute('disabled', '');
-        assert.isTrue(input.matches(':disabled'), 'claim and ancestry agree while both are on');
-
-        fieldset.removeAttribute('disabled');
-        assert.isTrue(input.matches(':disabled'), 'the claim alone holds the control');
-        assert.isTrue(field.matches(':disabled'));
-
-        //un-claiming inside a disabled fieldset cannot enable the field
-        fieldset.setAttribute('disabled', '');
-        field.removeAttribute('disabled');
-        assert.isFalse(field.hasAttribute('disabled'), 'the claim is gone');
-        assert.isTrue(field.matches(':disabled'), 'the ancestry still disables it');
-        assert.isTrue(input.matches(':disabled'), 'the inner control stays disabled');
-    });
-
-    it("composes with a radio group's own fieldset under an outer one", async () => {
-        const container = await mount(
-            '<form><fieldset><ful-radio-group name="a" value="x">l<ful-radio value="x">x</ful-radio></ful-radio-group></fieldset></form>',
-        );
-        const fieldset = container.querySelector('fieldset');
-        const group = container.querySelector('ful-radio-group');
-        const radio = group.querySelector('input[type=radio]');
-
-        fieldset.setAttribute('disabled', '');
-        group.setAttribute('disabled', '');
-        assert.isTrue(radio.matches(':disabled'), 'ancestry and the group claim agree');
-
-        fieldset.removeAttribute('disabled');
-        assert.isTrue(radio.matches(':disabled'), "the group's own claim survives the outer fieldset");
-
-        group.removeAttribute('disabled');
-        assert.isFalse(radio.matches(':disabled'), 'un-claiming under a plain fieldset enables it');
-    });
-
+describe('Field', () => {
     it('tolerates a claim arriving while an async render is still in flight', async () => {
         const uncaught = [];
         const onError = (e) => {
-            uncaught.push(e.error ?? e.message);
+            uncaught.push(e.error?.message ?? e.message);
             e.preventDefault();
         };
         window.addEventListener('error', onError);
@@ -127,7 +34,6 @@ describe('The disabled attribute after the upgrade', () => {
         });
         const container = appended('<ful-select name="a">l</ful-select>');
         const selectEl = container.querySelector('ful-select');
-        //let the upgrade reach the prefetch await, then claim through the attribute
         for (let i = 0; i !== 5; ++i) {
             await tick();
         }
@@ -142,45 +48,10 @@ describe('The disabled attribute after the upgrade', () => {
         window.removeEventListener('error', onError);
     });
 
-    it('applies a value arriving while an async render is still in flight', async () => {
+    it('ignores a value property written before the render, without crashing', async () => {
         const uncaught = [];
         const onError = (e) => {
-            uncaught.push(e.error ?? e.message);
-            e.preventDefault();
-        };
-        window.addEventListener('error', onError);
-        let release = /** @type any */ (null);
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: () =>
-                    new Promise((resolve) => {
-                        release = resolve;
-                    }),
-                load: async () => [],
-                exact: async (...k) => k.map((v) => ({ key: v, label: v })),
-            }),
-        });
-        const container = appended('<ful-select name="a">l</ful-select>');
-        const selectEl = container.querySelector('ful-select');
-        //let the upgrade reach the prefetch await, then write through the attribute
-        for (let i = 0; i !== 5; ++i) {
-            await tick();
-        }
-        selectEl.setAttribute('value', 'kept');
-        release();
-        await Rendering.waitFor(selectEl);
-        await settle();
-
-        assert.deepStrictEqual(uncaught, [], 'the write does not crash the unrendered field');
-        assert.strictEqual(selectEl.value, 'kept', 'the render applied it');
-        assert.strictEqual(selectEl.querySelector('input').value, 'kept');
-        window.removeEventListener('error', onError);
-    });
-
-    it('takes a value property write before the render without crashing, and applies it', async () => {
-        const uncaught = [];
-        const onError = (e) => {
-            uncaught.push(e.error ?? e.message);
+            uncaught.push(e.error?.message ?? e.message);
             e.preventDefault();
         };
         window.addEventListener('error', onError);
@@ -211,11 +82,13 @@ describe('The disabled attribute after the upgrade', () => {
             static slots = true;
             static template = '<label>{{{{ slots.default }}}}</label><input form="">';
             async _build({ slots }) {
-                //a select awaiting its prefetch is the real case: the base takes a
-                //promise of pieces and wires them when it settles
                 await new Promise((r) => setTimeout(r, 0));
                 const fragment = this.template().withOverlay({ slots }).render();
-                return { fragment, control: fragment.querySelector('input'), error: null };
+                return {
+                    fragment,
+                    control: fragment.querySelector('input'),
+                    error: null,
+                };
             }
             get value() {
                 return this.querySelector('input')?.value || null;
@@ -236,7 +109,8 @@ describe('The disabled attribute after the upgrade', () => {
         assert.strictEqual(String(field.querySelector('input').value), 'late');
     });
 
-    it('a focus() asked before the render lands once the control exists', async () => {        let release;
+    it('a focus() asked before the render lands once the control exists', async () => {
+        let release;
         const gate = new Promise((r) => {
             release = r;
         });
@@ -246,7 +120,11 @@ describe('The disabled attribute after the upgrade', () => {
             async _build() {
                 await gate;
                 const fragment = this.template().render();
-                return { fragment, control: fragment.querySelector('input'), error: null };
+                return {
+                    fragment,
+                    control: fragment.querySelector('input'),
+                    error: null,
+                };
             }
             get value() {
                 return null;
@@ -273,8 +151,6 @@ describe('The disabled attribute after the upgrade', () => {
         registry.defineElement('x-no-build-field', NoBuildField);
 
         const el = document.createElement('x-no-build-field');
-        //the base value pair is inert rather than absent, so the form integration
-        //has a member to write through whatever the subclass forgot
         assert.isUndefined(el.value);
         el.value = 'ignored';
         assert.isUndefined(el.value);
@@ -340,7 +216,11 @@ describe('The disabled attribute after the upgrade', () => {
             static template = '<label>{{{{ slots.default }}}}</label><input form="">';
             _build({ slots }) {
                 const fragment = this.template().withOverlay({ slots }).render();
-                return { fragment, control: fragment.querySelector('input'), error: null };
+                return {
+                    fragment,
+                    control: fragment.querySelector('input'),
+                    error: null,
+                };
             }
         }
         registry.defineElement('x-bare-field', BareField);

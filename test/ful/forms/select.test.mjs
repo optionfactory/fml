@@ -28,10 +28,11 @@ const mountSelect = async (html, loader) => {
     await settle();
     return [selectEl, container];
 };
+const labelKeys = async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` }));
 const labelling = (options) => ({
     prefetch: async () => {},
     load: async () => options,
-    exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+    exact: labelKeys,
 });
 const ONE_OPTION = [{ key: 'k1', label: 'Label 1' }];
 
@@ -402,7 +403,7 @@ describe('Select and dropdown keyboard interaction', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+                exact: labelKeys,
                 load: async (needle) => {
                     needles.push(needle);
                     return [{ key: 'k1', label: 'Label 1' }];
@@ -424,7 +425,7 @@ describe('Select and dropdown keyboard interaction', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+                exact: labelKeys,
                 load: async () => [
                     { key: 'k1', label: 'Label 1' },
                     { key: 'k2', label: 'Label 2' },
@@ -448,7 +449,7 @@ describe('Select and dropdown keyboard interaction', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 prefetch: async () => {},
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+                exact: labelKeys,
                 load: async () => [
                     { key: 'k1', label: 'Label 1' },
                     { key: 'k2', label: 'Label 2' },
@@ -748,11 +749,7 @@ describe('Select key types', () => {
             { key: true, label: 'Yes', metadata: undefined },
             { key: false, label: 'No', metadata: undefined },
         ]);
-    const echoing = () => ({
-        prefetch: async () => {},
-        load: async () => [],
-        exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-    });
+    const echoing = () => labelling([]);
 
     it('keeps a string assignment selected when the loader keys are numbers', async () => {
         const [selectEl] = await mount(`<ful-select value="16"></ful-select>`, numeric());
@@ -870,29 +867,10 @@ describe('Select enter key inside a form', () => {
                 transform: async (r) => r,
             }),
         });
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-                load: async () => [{ key: 'k1', label: 'Label 1' }],
-            }),
-        });
+        registry.defineComponent('loaders:select', { create: () => labelling(ONE_OPTION) });
     });
 
-    it('submits the form when the dropdown is closed', async () => {
-        const [selectEl] = await mount(`
-            <ful-form>
-                <ful-select name="s">label</ful-select>
-                <button type="submit">go</button>
-            </ful-form>`);
-
-        enter(selectEl);
-        await settle();
-
-        assert.strictEqual(submits.length, 1, 'enter reaches the form');
-    });
-
-    it('submits the form from the numpad Enter too, which the platform treats alike', async () => {
+    it('submits the form from the numpad Enter while the dropdown is closed', async () => {
         const [selectEl] = await mount(`
             <ful-form>
                 <ful-select name="s">label</ful-select>
@@ -948,19 +926,7 @@ describe('Select enter key inside a form', () => {
 });
 
 describe('Select selection removal', () => {
-    const labelling = () => ({
-        prefetch: async () => {},
-        load: async () => [{ key: 'k1', label: 'Label 1' }],
-        exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-    });
-    const mount = async (html, loader) => {
-        registry.defineComponent('loaders:select', { create: () => loader ?? labelling() });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling(ONE_OPTION));
     const click = (el) => el.dispatchEvent(new Event('click', { bubbles: true }));
     const badges = (selectEl) => [...selectEl.querySelectorAll('ful-control > ful-badge')];
     const items = (selectEl) => [...selectEl.querySelectorAll('ful-item-list > ful-item')];
@@ -1129,20 +1095,7 @@ describe('Select selection removal', () => {
 });
 
 describe('Select chips and picked options', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [{ key: 'k1', label: 'Label k1' }],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) => mountSelect(html, labelling([{ key: 'k1', label: 'Label k1' }]));
 
     it('marks the picked options selected, leaving the highlight to activedescendant', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1"></ful-select>`);
@@ -1383,7 +1336,7 @@ describe('Select loader access and entries', () => {
         return {
             prefetch: async () => {},
             load: async () => data,
-            exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+            exact: labelKeys,
             update: (d) => {
                 data = d;
                 return 'updated';
@@ -1459,54 +1412,18 @@ describe('Select edits made while a lookup is in flight', () => {
     });
 });
 
-describe('Select chips and validity', () => {
-    const mount = mountSelect;
-    const keydown = (input, code, options = {}) => {
-        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, ...options }));
+describe('Select Tab and custom validity', () => {
+    const keydown = (input, code) => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
     };
-    const labelling = () => ({
-        prefetch: async () => {},
-        load: async () => [],
-        exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-    });
-    beforeEach(() => {
-        registry.defineComponent('loaders:select', { create: () => labelling() });
-    });
 
-    it('removes the last chip on Backspace at the caret start', async () => {
-        const [selectEl] = await mount(`<ful-select multiple value="k1,k2">labels</ful-select>`);
+    it('closes the open dropdown on Tab without picking the highlighted option', async () => {
+        const [selectEl] = await mountSelect(`<ful-select>labels</ful-select>`, labelling(ONE_OPTION));
         const input = selectEl.querySelector('input');
-        assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 2, 'two chips are rendered');
-
-        input.setSelectionRange(0, 0);
-        keydown(input, 'Backspace');
-
-        assert.deepStrictEqual(selectEl.value, ['k1'], 'the newest chip is gone');
-        assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 1);
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1');
-    });
-
-    it('ignores the chip remove button while readonly', async () => {
-        const [selectEl] = await mount(
-            `<ful-select multiple item-list readonly value="k1,k2">labels</ful-select>`,
-        );
-
-        selectEl.querySelector('ful-item button')?.click();
-
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'a readonly select keeps its selection');
-    });
-
-    it('closes the open dropdown on Tab without picking anything', async () => {
-        const [selectEl] = await mount(`<ful-select>labels</ful-select>`);
-        const input = selectEl.querySelector('input');
-        registry.defineComponent('loaders:select', {
-            create: () => ({ load: async () => [{ key: 'k1', label: 'Label 1' }], exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })) }),
-        });
         input.dispatchEvent(new Event('click', { bubbles: true }));
-        for (let i = 0; i !== 10; ++i) {
-            await tick();
-        }
+        await opened();
         assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
+        assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 1');
 
         keydown(input, 'Tab');
 
@@ -1516,7 +1433,7 @@ describe('Select chips and validity', () => {
     });
 
     it('clears the field error when the custom validity is reset', async () => {
-        const [selectEl] = await mount(`<ful-select>labels</ful-select>`);
+        const [selectEl] = await mountSelect(`<ful-select>labels</ful-select>`, labelling([]));
 
         selectEl.setCustomValidity('nope');
         assert.strictEqual(selectEl.querySelector('ful-field-error').innerText, 'nope');
@@ -1527,23 +1444,14 @@ describe('Select chips and validity', () => {
 });
 
 describe('Select pointer picking', () => {
-    const mount = async (html) => {
-        registry.defineComponent('loaders:select', {
-            create: () => ({
-                prefetch: async () => {},
-                load: async () => [
-                    { key: 'k1', label: 'Label 1' },
-                    { key: 'k2', label: 'Label 2' },
-                ],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }),
-        });
-        const container = appended(html);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
-        await settle();
-        return [selectEl, container];
-    };
+    const mount = (html) =>
+        mountSelect(
+            html,
+            labelling([
+                { key: 'k1', label: 'Label 1' },
+                { key: 'k2', label: 'Label 2' },
+            ]),
+        );
 
     it('picks the clicked option and closes the dropdown', async () => {
         const [selectEl] = await mount(`<ful-select>pick</ful-select>`);
@@ -1746,7 +1654,7 @@ describe('Select failed searches', () => {
                 load: async () => {
                     throw new Error('search backend down');
                 },
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+                exact: labelKeys,
             }),
         });
         const container = appended(`<ful-select>pick</ful-select>`);
@@ -1789,14 +1697,7 @@ describe('Select focus and key coercion gaps', () => {
     const mount = mountSelect;
 
     it('hands its focus to the combobox', async () => {
-        const [selectEl] = await mount(
-            `<ful-select>pick</ful-select>`,
-            (() => ({
-                prefetch: async () => {},
-                load: async () => [],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-            }))(),
-        );
+        const [selectEl] = await mount(`<ful-select>pick</ful-select>`, labelling([]));
 
         selectEl.focus();
 
@@ -1824,14 +1725,9 @@ describe('Select focus and key coercion gaps', () => {
         assert.strictEqual(selectEl.querySelector('input').value, 'No');
         container.remove();
 
-        const echoing = {
-            prefetch: async () => {},
-            load: async () => [],
-            exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
-        };
         const [undecodable, undecodableContainer] = await mount(
             `<ful-select k-type="boolean" value="banana">pick</ful-select>`,
-            echoing,
+            labelling([]),
         );
 
         assert.strictEqual(undecodable.value, 'banana', 'what cannot be decoded is left as it is');
@@ -1972,7 +1868,7 @@ describe('Select attributes during the async render window', () => {
                         release = resolve;
                     }),
                 load: async () => [],
-                exact: async (...keys) => keys.map((k) => ({ key: k, label: `Label ${k}` })),
+                exact: labelKeys,
             }),
         });
     });

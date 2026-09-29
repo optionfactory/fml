@@ -654,16 +654,6 @@ describe('InputFile disabled and readonly claims', () => {
             assert.include(el.querySelector('ful-item[data-name="a.txt"]').textContent, 'a.txt');
         });
 
-        it(`mirrors the ${claim} from markup`, async () => {
-            const [el] = await mount(`<ful-input-file ${attribute}>files</ful-input-file>`);
-            const input = el.querySelector('input[type=file]');
-            if (claim === 'disabled') {
-                assert.isTrue(input.matches(':disabled'), 'the inner control carries the claim');
-            } else {
-                assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the chrome is frozen');
-            }
-        });
-
         it(`keeps a drop from reaching the browser's default handling while ${claim}`, async () => {
             const [el] = await mount(`<ful-input-file ${attribute}>files</ful-input-file>`);
             const dropped = new DragEvent('drop', { dataTransfer: transfer(file('z.txt')), cancelable: true });
@@ -673,6 +663,12 @@ describe('InputFile disabled and readonly claims', () => {
             assert.isTrue(dropped.defaultPrevented);
         });
     }
+    it('mirrors the readonly from markup', async () => {
+        const [el] = await mount(`<ful-input-file readonly>files</ful-input-file>`);
+
+        assert.strictEqual(el.querySelector('input[type=file]').getAttribute('aria-readonly'), 'true');
+    });
+
     it('drops the picker button while readonly, the input taking back its padding', async () => {
         const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
         const input = el.querySelector('input[type=file]');
@@ -749,17 +745,6 @@ describe('InputFile disabled and readonly claims', () => {
         //platform never hides a disabled control either
         assert.notStrictEqual(getComputedStyle(group).display, 'none');
         assert.notStrictEqual(getComputedStyle(el.querySelector('ful-item-list')).display, 'none');
-    });
-
-    it('mirrors the disabled claim, live', async () => {
-        const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
-        const input = el.querySelector('input[type=file]');
-
-        el.setAttribute('disabled', '');
-        assert.isTrue(el.matches(':disabled'));
-        assert.isTrue(input.matches(':disabled'));
-        el.removeAttribute('disabled');
-        assert.isFalse(input.matches(':disabled'));
     });
 
     it('rejects a multi-file drop on a single-file field, as the native input does', async () => {
