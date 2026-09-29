@@ -107,6 +107,16 @@ describe('Table sorting', () => {
             'other keys do not sort',
         );
     });
+
+    it('sorts on the numpad Enter too', async () => {
+        const [tableEl] = await mount(`<column title="A" sorter="a" order="asc">{{ a }}</column>`);
+        const [sorterA] = tableEl.querySelectorAll('ful-sorter');
+
+        sorterA.dispatchEvent(new KeyboardEvent('keydown', { code: 'NumpadEnter', key: 'Enter', bubbles: true }));
+        await settle();
+
+        assert.deepStrictEqual(sorts[1], { sorter: 'a', order: 'desc' });
+    });
 });
 
 describe('Table load failures', () => {

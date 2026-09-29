@@ -60,6 +60,7 @@ const wireMenuKeys = (invoker, menu, { items, current = () => null }) => {
                 return;
             }
             case 'Enter':
+            case 'NumpadEnter':
             case 'Space': {
                 evt.preventDefault();
                 item.click();

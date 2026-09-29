@@ -25,7 +25,7 @@ class SortButton extends ParsedElement {
             );
         });
         this.addEventListener('keydown', (/** @type any */ evt) => {
-            if (evt.code !== 'Enter' && evt.code !== 'Space') {
+            if (!['Enter', 'NumpadEnter', 'Space'].includes(evt.code)) {
                 return;
             }
             evt.preventDefault();

@@ -137,6 +137,20 @@ describe('ful-menu', () => {
         assert.strictEqual(focused(), 'More', 'with the focus back on the invoker');
     });
 
+    it('activates the focused item with the numpad Enter too', async () => {
+        const { invoker, menu } = await build();
+        const picked = [];
+        for (const item of menu.items) {
+            item.addEventListener('click', () => picked.push(item.textContent));
+        }
+
+        await opened(invoker, menu);
+        press('NumpadEnter', 'Enter');
+
+        assert.deepStrictEqual(picked, ['History']);
+        assert.isFalse(menu.matches(':popover-open'));
+    });
+
     it("closes on an item's click, the invoker taking the focus back", async () => {
         const { invoker, menu } = await build();
 
