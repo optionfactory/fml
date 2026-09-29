@@ -118,7 +118,7 @@
                 "l-expr": "The expression yielding an option's label, evaluated against each row of the response.",
                 "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
                 "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
-                "method": "The method the vocabulary is fetched with; POST when absent.",
+                "method": "The method the vocabulary is fetched with; POST when absent. Stays live, as src does.",
                 "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
                 "multiple": "Always on for this element: a set of one is still a set, and a single selection would answer a bare key where the filter request wants an array.",
                 "name": "The field name the surrounding form submits the selection under.",
@@ -126,7 +126,7 @@
                 "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
                 "operator": "A fixed operator sent in front of the chosen keys, for the field a compare reads rather than a set: absent the value is the bare array an InEnum or an InList takes, present it is [operator, ...keys]. No menu is rendered either way, the operator being the author naming the server's comparison rather than a choice offered to whoever is filtering. The criterion reports it, so a chip can show it.",
                 "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
-                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
+                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory. Stays live: writing it builds the loader again and reloads as reload() does, dropping a selected key the new vocabulary does not know.",
                 "value": "Comma separated list of the selected keys. Empty contributes nothing, so the table drops the filter rather than sending an empty set."
             },
             "slots": {
@@ -325,14 +325,14 @@
                 "l-expr": "The expression yielding an option's label, evaluated against each row of the response.",
                 "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
                 "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
-                "method": "The method the vocabulary is fetched with; POST when absent.",
+                "method": "The method the vocabulary is fetched with; POST when absent. Stays live, as src does.",
                 "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
                 "multiple": "Selects any number of options rather than one: the value is a comma separated list of keys and the selection renders as ful-badge chips.",
                 "name": "The field name the surrounding form submits the selection under.",
                 "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
                 "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
                 "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
-                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory.",
+                "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory. Stays live: writing it builds the loader again and reloads as reload() does, dropping a selected key the new vocabulary does not know.",
                 "value": "The selected keys, comma separated, whether or not the select is multiple. A key given here is trimmed and cannot contain a comma; assign such a key through the property instead. The property answers a key for a single select and an array for a multiple one. A single select reads a present but empty attribute as the empty key, the one an <option value=\"\"> carries, where an absent attribute means no selection; a multiple select reads it as no keys."
             },
             "slots": {

@@ -179,6 +179,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] item-list entries are removable chips sized like a control, and the open dropdown marks the options already picked
 - [ENH] a `preload` select paints its label and control at once instead of holding its upgrade on the prefetch; a first open during the prefetch joins it
 - [ENH] `multiple` is live, and the loader's attributes (`src`, `method`, `mode`, `preload`, `revision`, `k-expr`, `l-expr`, `d-expr`, `m-expr`, `response-mapper`) are declared and documented in the IDE metadata
+- [ENH] `src` and `method` stay live on `ful-select` and `ful-filter-in`: writing either, as an attribute or as a property, closes the dropdown, builds the loader again and reloads as `reload()` does, so a select following another control no longer reaches for `reconfigureUrl`
 - [ENH] a key containing a comma assigned through the property warns once per element
 - [ENH] a claim landing while the dropdown is open closes it
 - [BUG] a click on another control inside a `ful-select` (a tooltip, an affix button) no longer opens the dropdown

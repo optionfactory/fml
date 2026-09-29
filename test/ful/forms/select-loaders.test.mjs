@@ -174,7 +174,12 @@ describe('SelectLoader', () => {
     });
 
     it('gives ful-filter-in the same remote vocabulary a select gets', async () => {
-        const calls = stubHttp({ '/kinds': [['A', 'Alpha'], ['B', 'Beta']] });
+        const calls = stubHttp({
+            '/kinds': [
+                ['A', 'Alpha'],
+                ['B', 'Beta'],
+            ],
+        });
         const container = appended('<ful-filter-in src="/kinds" name="byKind">Kind</ful-filter-in>');
         const filter = container.querySelector('ful-filter-in');
         await Rendering.waitFor(filter);
@@ -187,7 +192,12 @@ describe('SelectLoader', () => {
     });
 
     it('labels a filter preselected by key, so the criterion reads in words', async () => {
-        stubHttp({ '/kinds2': [['A', 'Alpha'], ['B', 'Beta']] });
+        stubHttp({
+            '/kinds2': [
+                ['A', 'Alpha'],
+                ['B', 'Beta'],
+            ],
+        });
         const container = appended(
             '<ful-filter-in src="/kinds2" name="byKind" multiple value="A,B">Kind</ful-filter-in>',
         );
@@ -302,7 +312,6 @@ describe('SelectLoader', () => {
             { s: [''] },
             'opening asks with an empty needle',
         );
-
     });
 
     it('maps the response through the declared expressions', async () => {
@@ -499,8 +508,15 @@ describe('SelectLoader fetch discipline', () => {
 
         const next = loader.exact('k1');
         pending[1].resolve([['k1', 'New']]);
-        assert.deepStrictEqual(await next, [{ key: 'k1', label: 'New', metadata: undefined }], 'the next caller is served from the new url');
-        assert.deepStrictEqual(calls.map((c) => c.url), ['/old', '/new']);
+        assert.deepStrictEqual(
+            await next,
+            [{ key: 'k1', label: 'New', metadata: undefined }],
+            'the next caller is served from the new url',
+        );
+        assert.deepStrictEqual(
+            calls.map((c) => c.url),
+            ['/old', '/new'],
+        );
     });
 
     it('serves the fetched options when the cache write hits a full quota', async () => {
@@ -638,7 +654,12 @@ describe('Select reload, for a vocabulary that depends on another control', () =
     });
 
     it('drops a selected key the new vocabulary no longer knows', async () => {
-        const bodies = { '/v': [['k1', 'One'], ['k2', 'Two']] };
+        const bodies = {
+            '/v': [
+                ['k1', 'One'],
+                ['k2', 'Two'],
+            ],
+        };
         stub(bodies);
         const selectEl = await mount('src="/v" multiple value="k1,k2"');
         await settle();
@@ -691,5 +712,124 @@ describe('Select reload, for a vocabulary that depends on another control', () =
 
         assert.strictEqual(selectEl.value, null);
         assert.strictEqual(calls.length, before, 'an empty selection asks the endpoint nothing');
+    });
+
+    it('does not ask anything while the base applies the declared src', async () => {
+        const calls = stub({ '/v': [['k1', 'One']] });
+        await mount('src="/v"');
+        await settle();
+
+        assert.deepStrictEqual(calls, []);
+    });
+
+    it('asks the new url when src changes, relabelling the selection without a change event', async () => {
+        const calls = stub({ '/a': [['k1', 'From a']], '/b': [['k1', 'From b']] });
+        const selectEl = await mount('src="/a" value="k1"');
+        await settle();
+        let changes = 0;
+        selectEl.addEventListener('change', () => ++changes);
+
+        selectEl.setAttribute('src', '/b');
+        await settle();
+
+        assert.strictEqual(selectEl.entry.label, 'From b');
+        assert.strictEqual(calls.at(-1), '/b');
+        assert.strictEqual(changes, 0);
+    });
+
+    it('drops a selected key the vocabulary at the new src does not know', async () => {
+        stub({
+            '/a': [
+                ['k1', 'One'],
+                ['k2', 'Two'],
+            ],
+            '/b': [['k2', 'Two']],
+        });
+        const selectEl = await mount('src="/a" multiple value="k1,k2"');
+        await settle();
+
+        selectEl.src = '/b';
+        await settle();
+
+        assert.deepStrictEqual(selectEl.value, ['k2']);
+        assert.strictEqual(selectEl.getAttribute('src'), '/b');
+        assert.strictEqual(selectEl.src, '/b');
+    });
+
+    it('points a chunked loader at the new src', async () => {
+        const calls = stub({ '/a': [['k1', 'From a']], '/b': [['k1', 'From b']] });
+        const selectEl = await mount('src="/a" mode="chunked" value="k1"');
+        await settle();
+
+        selectEl.src = '/b';
+        await settle();
+
+        assert.strictEqual(selectEl.entry.label, 'From b');
+        assert.include(calls, '/b');
+    });
+
+    it('asks with the new method when method changes', async () => {
+        const methods = [];
+        registry.defineComponent('http-client', {
+            request(method) {
+                methods.push(method);
+                return {
+                    param() {
+                        return this;
+                    },
+                    async fetchJson() {
+                        return [['k1', 'One']];
+                    },
+                };
+            },
+        });
+        const selectEl = await mount('src="/v" value="k1"');
+        await settle();
+
+        selectEl.method = 'GET';
+        await settle();
+
+        assert.strictEqual(methods.at(-1), 'GET');
+        assert.strictEqual(selectEl.getAttribute('method'), 'GET');
+        assert.strictEqual(selectEl.method, 'GET');
+    });
+
+    it('closes an open dropdown when src changes, so it lists no stale options', async () => {
+        stub({ '/a': [['k1', 'From a']], '/b': [['k2', 'From b']] });
+        const selectEl = await mount('src="/a"');
+        keydown(selectEl.querySelector('input'), 'ArrowDown', { altKey: true });
+        await settle();
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+
+        selectEl.src = '/b';
+        await settle();
+
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+    });
+
+    it('ignores a write that does not change the url', async () => {
+        const calls = stub({ '/v': [['k1', 'One']] });
+        const selectEl = await mount('src="/v" value="k1"');
+        await settle();
+        const before = calls.length;
+
+        selectEl.src = '/v';
+        await settle();
+
+        assert.strictEqual(calls.length, before);
+    });
+
+    it('gives ful-filter-in the same live src', async () => {
+        stub({ '/a': [['k1', 'From a']], '/b': [['k1', 'From b']] });
+        const filterEl = appended(
+            '<ful-filter-in src="/a" name="byKind" value="k1">Kind</ful-filter-in>',
+        ).querySelector('ful-filter-in');
+        await Rendering.waitFor(filterEl);
+        await settle();
+
+        filterEl.src = '/b';
+        await settle();
+
+        assert.deepStrictEqual(filterEl.criterion.operands, ['From b']);
     });
 });

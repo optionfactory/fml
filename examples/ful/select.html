@@ -136,6 +136,23 @@
         </ful-select>
     </fieldset>
 
+    <h2>a select that follows another</h2>
+    <p><code>src</code> stays live: the city select points at the cities of the chosen region, and a city the new region does not have is dropped from the selection.</p>
+    <fieldset>
+        <legend>writing src from the other select's change</legend>
+        <ful-select id="region" value="north">
+            Region
+            <select slot="options">
+                <option value="north">North</option>
+                <option value="centre">Centre</option>
+                <option value="south">South</option>
+            </select>
+        </ful-select>
+        <ful-select id="city" src="/api/cities?region=north" value="milano">
+            City
+        </ful-select>
+    </fieldset>
+
     <h2>the native baseline</h2>
     <fieldset>
         <legend>a plain select, for comparison</legend>
@@ -189,24 +206,34 @@
             }
         }
 
-        /** A mock of the endpoint behind src, answering the positional rows the default response mapper reads. */
+        /** A mock of the endpoints behind src, answering the positional rows the default response mapper reads. */
         class DemoHttpClient {
-            request() {
+            static #bodies = {
+                '/api/statuses': [
+                    ['quoted', 'Quoted'],
+                    ['issued', 'Issued'],
+                    ['suspended', 'Suspended'],
+                    ['renewed', 'Renewed'],
+                    ['cancelled', 'Cancelled'],
+                    ['expired', 'Expired'],
+                ],
+                '/api/cities?region=north': [['milano', 'Milano'], ['torino', 'Torino'], ['genova', 'Genova']],
+                '/api/cities?region=centre': [['roma', 'Roma'], ['firenze', 'Firenze']],
+                '/api/cities?region=south': [['napoli', 'Napoli'], ['bari', 'Bari'], ['palermo', 'Palermo']],
+            };
+            request(method, url) {
                 return {
                     fetchJson: async () => {
                         await new Promise((resolve) => setTimeout(resolve, 500));
-                        return [
-                            ['quoted', 'Quoted'],
-                            ['issued', 'Issued'],
-                            ['suspended', 'Suspended'],
-                            ['renewed', 'Renewed'],
-                            ['cancelled', 'Cancelled'],
-                            ['expired', 'Expired'],
-                        ];
+                        return DemoHttpClient.#bodies[url] ?? [];
                     },
                 };
             }
         }
+
+        document.querySelector('#region').addEventListener('change', (e) => {
+            document.querySelector('#city').src = `/api/cities?region=${e.detail.value}`;
+        });
 
         ftl.registry
             .plugin(new ful.Plugin({ httpClient: new DemoHttpClient() }))

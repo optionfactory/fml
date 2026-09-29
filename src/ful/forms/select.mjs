@@ -673,14 +673,13 @@ class Select extends Field {
      * Read once at the upgrade, so a later write changes nothing: `name`,
      * `loader` (the component building the loader, `loaders:select` by
      * default), `k-type` (`number` or `boolean` coerce the keys, strings
-     * otherwise), and the loader configuration `SelectLoader.create` reads.
+     * otherwise), and the loader configuration `SelectLoader.create` reads,
+     * but for `src` and `method`, which stay live.
      */
     static attributes = [
         'name',
         'loader',
         'k-type',
-        'src',
-        'method',
         'mode',
         'preload:presence',
         'revision',
@@ -691,10 +690,11 @@ class Select extends Field {
         'response-mapper',
     ];
     /**
-     * Beside the field's claims: `multiple`, `item-list`, and `value` as a comma
-     * separated list of keys, trimmed, whether or not the select is multiple.
+     * Beside the field's claims: `multiple`, `item-list`, `value` as a comma
+     * separated list of keys, trimmed, whether or not the select is multiple,
+     * and `src` and `method`.
      */
-    static observed = ['multiple:presence', 'item-list:presence', 'value:csv'];
+    static observed = ['multiple:presence', 'item-list:presence', 'value:csv', 'src', 'method'];
     /**
      * Reads a present but empty `value` attribute of a single select as the
      * empty key, which an `<option value="">` can carry; a multiple select reads
@@ -738,6 +738,9 @@ class Select extends Field {
         `,
     };
     #loader;
+    /** @type {{ src: string|null, method: string|null }} */
+    #builtFrom = { src: null, method: null };
+    #options;
     #control;
     #ddmenu;
     #input;
@@ -756,9 +759,8 @@ class Select extends Field {
      */
     _build({ slots }) {
         const name = this.declared('name');
-        this.#loader = this.component(this.declared('loader') ?? 'loaders:select').create(this, {
-            options: slots.options,
-        });
+        this.#options = slots.options;
+        this.#buildLoader();
 
         this.#multiple = this.declared('multiple');
         this.#loader.prefetch?.()?.catch((/** @type any */ e) => {
@@ -933,11 +935,11 @@ class Select extends Field {
      * change does not survive it, and one it still knows keeps its place with a
      * fresh label. The badges and items follow, and no `change` is dispatched.
      *
-     * Pass a url first where the vocabulary lives at a different address:
+     * Where the vocabulary lives at a different address, write `src` instead,
+     * which builds the loader for the new url and reloads:
      *
-     *     citta.addEventListener('change', async () => {
-     *         await cap.withLoader((l) => l.reconfigureUrl(`/api/cap?citta=${citta.value}`));
-     *         await cap.reload();
+     *     citta.addEventListener('change', () => {
+     *         cap.src = `/api/cap?citta=${citta.value}`;
      *     });
      * @returns {Promise<void>}
      * @throws what the loader's invalidate, prefetch or key lookup throws
@@ -950,6 +952,66 @@ class Select extends Field {
             return;
         }
         await this.#resolve(keys, this.#assignments.take());
+    }
+    /**
+     * The url the loader asks for the vocabulary, reflected as the `src`
+     * attribute.
+     * @returns {string|null}
+     */
+    get src() {
+        return this.getAttribute('src');
+    }
+    /**
+     * Points the select at another vocabulary: the dropdown closes, the loader
+     * is built again through its component's `create`, as at the render, and
+     * the select reloads as `reload()` does, so a selected key the new
+     * vocabulary does not know is dropped and one it knows is labelled again,
+     * with no `change` dispatched. A write that does not change the url does
+     * nothing.
+     *
+     * The reload is not awaited: a failed fetch or lookup surfaces as an
+     * unhandled rejection.
+     * @param {string|null|undefined} value null or undefined removes the url,
+     * which the default loader answers with the slotted options
+     */
+    set src(value) {
+        this.reflectTo('src', value ?? null);
+        this.#rebuildIfChanged();
+    }
+    /**
+     * The http method the default loader sends, reflected as the `method`
+     * attribute; `POST` when absent.
+     * @returns {string|null}
+     */
+    get method() {
+        return this.getAttribute('method');
+    }
+    /**
+     * Changes the http method the way `src` changes the url: the loader is
+     * built again and the select reloads.
+     * @param {string|null|undefined} value
+     */
+    set method(value) {
+        this.reflectTo('method', value ?? null);
+        this.#rebuildIfChanged();
+    }
+    #buildLoader() {
+        this.#builtFrom = { src: this.getAttribute('src'), method: this.getAttribute('method') };
+        this.#loader = this.component(this.declared('loader') ?? 'loaders:select').create(this, {
+            options: this.#options,
+        });
+    }
+    #rebuildIfChanged() {
+        if (
+            this.getAttribute('src') === this.#builtFrom.src &&
+            this.getAttribute('method') === this.#builtFrom.method
+        ) {
+            return;
+        }
+        this.#abortdload();
+        this.#close();
+        this.#buildLoader();
+        this.reload();
     }
     #badges() {
         return Array.from(this.#control.querySelectorAll(':scope > ful-badge'));

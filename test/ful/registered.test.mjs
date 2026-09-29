@@ -250,6 +250,8 @@ const ELEMENTS = [
         html: `<ful-filter-in name="a">label<template slot="options"><option value="k">K</option></template></ful-filter-in>`,
         observed: {
             value: ['k', ['k']],
+            src: ['/api/kinds', '/api/kinds'],
+            method: ['GET', 'GET'],
             multiple: ['', true],
             'item-list': ['', true],
             disabled: ['', true],
@@ -275,6 +277,8 @@ const ELEMENTS = [
         html: `<ful-select name="a"><template slot="options"><option value="k1">Label 1</option></template>label</ful-select>`,
         observed: {
             value: ['k1', 'k1'],
+            src: ['/api/kinds', '/api/kinds'],
+            method: ['GET', 'GET'],
             disabled: ['', true],
             readonly: ['', true],
             required: ['', true],
