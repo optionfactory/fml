@@ -7,7 +7,15 @@ import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const settle = () => drain(20, 80);
+before(() => {
+    const style = document.createElement('style');
+    style.id = 'quick-drawer-slides';
+    style.textContent = 'dialog.ful-drawer { animation-duration: 10ms !important; }';
+    document.head.append(style);
+});
+after(() => document.getElementById('quick-drawer-slides')?.remove());
+
+const settle = () => drain();
 const closed = async (drawer) => {
     const done = new Promise((resolve) => drawer.addEventListener('close', resolve, { once: true }));
     drawer.close();
@@ -239,8 +247,8 @@ describe('Drawer', () => {
         assert.isFalse(dialog.hasAttribute('closing'));
         assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-in');
 
+        await Promise.all(dialog.getAnimations().map((a) => a.finished));
         await settle();
-        await new Promise((r) => setTimeout(r, 300));
 
         assert.isTrue(dialog.open, 'the abandoned slide out does not take the reopened drawer with it');
         assert.deepStrictEqual(closes, []);

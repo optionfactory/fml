@@ -5,7 +5,7 @@ import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const settle = () => drain(20, 80);
+const settle = () => drain();
 const mount = async (html) => {
     const container = appended(html);
     await Rendering.waitFor(container);

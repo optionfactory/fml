@@ -3,6 +3,7 @@ import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 import { appended, settle } from '../../harness.mjs';
+import { installClock } from '../../clock.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -1314,18 +1315,22 @@ describe('Select blur', () => {
     it('does not let a throttled search reopen the dropdown after blur', async () => {
         const [selectEl] = await mount(`<ful-select></ful-select>`);
         const input = selectEl.querySelector('input');
-        //the leading edge opens it, the second request is queued on the trailing edge
-        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
-        await opened();
-        input.value = 'ty';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+        const clock = installClock();
+        try {
+            selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+            await opened();
+            input.value = 'ty';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
 
-        input.dispatchEvent(new FocusEvent('blur'));
-        //the throttle window is 400ms: outlive it to catch a load that was not aborted
-        await new Promise((resolve) => setTimeout(resolve, 450));
+            input.dispatchEvent(new FocusEvent('blur'));
+            await clock.advance(450);
+            await settle();
 
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+            assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+            assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        } finally {
+            clock.uninstall();
+        }
     });
 });
 
@@ -1398,17 +1403,23 @@ describe('Select edits made while a lookup is in flight', () => {
                 },
             }),
         });
-        const container = appended(`<ful-select multiple name="s" value="k1,k2">label</ful-select>`);
-        const selectEl = container.querySelector('ful-select');
-        await Rendering.waitFor(selectEl);
+        const clock = installClock();
+        try {
+            const container = appended(`<ful-select multiple name="s" value="k1,k2">label</ful-select>`);
+            const selectEl = container.querySelector('ful-select');
+            await Rendering.waitFor(selectEl);
 
-        selectEl.querySelectorAll('ful-badge')[1].dispatchEvent(new Event('click', { bubbles: true }));
-        assert.deepStrictEqual(selectEl.value, ['k1']);
+            selectEl.querySelectorAll('ful-badge')[1].dispatchEvent(new Event('click', { bubbles: true }));
+            assert.deepStrictEqual(selectEl.value, ['k1']);
 
-        await new Promise((resolve) => setTimeout(resolve, 120));
+            await clock.advance(120);
+            await settle();
 
-        assert.deepStrictEqual(selectEl.value, ['k1'], 'the lookup must not undo the removal');
-        assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1', 'the survivor is still labelled');
+            assert.deepStrictEqual(selectEl.value, ['k1'], 'the lookup must not undo the removal');
+            assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1', 'the survivor is still labelled');
+        } finally {
+            clock.uninstall();
+        }
     });
 });
 
@@ -1682,11 +1693,16 @@ describe('Select failed searches', () => {
         await settle();
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'the failed search closed the dropdown');
 
-        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        const clock = installClock();
+        try {
+            selectEl.dispatchEvent(new Event('click', { bubbles: true }));
 
-        assert.strictEqual(input.value, 'ty', 'clicking back in must not wipe the needle being retried');
-        //the throttle window outlives the test: drain it so no load leaks out
-        await new Promise((resolve) => setTimeout(resolve, 450));
+            assert.strictEqual(input.value, 'ty', 'clicking back in must not wipe the needle being retried');
+            await clock.advance(450);
+            await settle();
+        } finally {
+            clock.uninstall();
+        }
 
         assert.isAbove(rejections.length, rejectionsBefore, 'the retried search failed again, as configured');
         assert.isTrue(rejections.some((r) => String(r?.message ?? r).includes('search backend down')));

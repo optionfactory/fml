@@ -7,7 +7,15 @@ import { appended, settle as drain } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const settle = () => drain(20, 80);
+before(() => {
+    const style = document.createElement('style');
+    style.id = 'quick-drawer-slides';
+    style.textContent = 'dialog.ful-drawer { animation-duration: 10ms !important; }';
+    document.head.append(style);
+});
+after(() => document.getElementById('quick-drawer-slides')?.remove());
+
+const settle = () => drain();
 const mount = async (html) => {
     const container = appended(html);
     await Rendering.waitFor(container);

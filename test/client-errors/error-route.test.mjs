@@ -25,7 +25,7 @@ describe('Client errors reporting: the error event route', () => {
         scriptEl.remove();
     });
 
-    const settle = () => drain(20, 100);
+    const settle = () => drain();
 
     it('reports the message, the location and the stack an error event carries', async () => {
         onError({

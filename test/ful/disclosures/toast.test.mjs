@@ -4,10 +4,11 @@ import { Failure } from '../../../src/httpc/index.mjs';
 import { Plugin, Toasts } from '../../../src/ful/index.mjs';
 import { emulateMedia } from '@web/test-runner-commands';
 import { appended, settle as drain } from '../../harness.mjs';
+import { useClock } from '../../clock.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const settle = () => drain(20, 80);
+const settle = () => drain();
 const mount = async (html) => {
     const container = appended(html);
     await Rendering.waitFor(container);
@@ -164,47 +165,6 @@ describe('Toasts', () => {
         }
     });
 
-    it('holds the timer while the toast is hovered, and lets it run again on leaving', async () => {
-        const [toasts] = await mount('<ful-toasts></ful-toasts>');
-
-        const item = toasts.show('waiting', { timeout: 60 });
-        item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        assert.isFalse(item.classList.contains('ful-toast-out'), 'a hovered toast outlives its timer');
-
-        item.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        assert.isTrue(item.classList.contains('ful-toast-out'), 'and retires once left');
-    });
-
-    it('holds the timer while the toast holds the focus', async () => {
-        const [toasts] = await mount('<ful-toasts></ful-toasts>');
-
-        const item = toasts.show('waiting', { timeout: 60 });
-        item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        assert.isFalse(item.classList.contains('ful-toast-out'), 'a focused toast outlives its timer');
-
-        item.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        assert.isTrue(item.classList.contains('ful-toast-out'));
-    });
-
-    it('holds through overlapping pointer and focus, the last one leaving to re-arm', async () => {
-        const [toasts] = await mount('<ful-toasts></ful-toasts>');
-
-        const item = toasts.show('waiting', { timeout: 60 });
-        item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-        item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
-        item.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        assert.isFalse(item.classList.contains('ful-toast-out'), 'the pointer leaving does not release a held focus');
-
-        item.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        assert.isTrue(item.classList.contains('ful-toast-out'), 'the last hold leaving re-arms the timer');
-    });
-
     it('the show-toast listener is wired once: a second region does not double the toast, a removed one stops answering', async () => {
         const [first, firstContainer] = await mount('<ful-toasts id="first-region"></ful-toasts>');
         const [second] = await mount('<ful-toasts id="second-region"></ful-toasts>');
@@ -271,5 +231,50 @@ describe('Toasts', () => {
         assert.strictEqual(item.localName, 'ful-toast');
         assert.strictEqual(getComputedStyle(item).display, 'flex', 'the item chrome follows the tag');
         assert.strictEqual(getComputedStyle(toasts).position, 'fixed', 'the region chrome follows the hosted toasts');
+    });
+});
+
+describe('Toast timer holds', () => {
+    const clock = useClock();
+
+    it('holds the timer while the toast is hovered, and lets it run again on leaving', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+
+        const item = toasts.show('waiting', { timeout: 60 });
+        item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+        await clock.advance(200);
+        assert.isFalse(item.classList.contains('ful-toast-out'), 'a hovered toast outlives its timer');
+
+        item.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+        await clock.advance(200);
+        assert.isTrue(item.classList.contains('ful-toast-out'), 'and retires once left');
+    });
+
+    it('holds the timer while the toast holds the focus', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+
+        const item = toasts.show('waiting', { timeout: 60 });
+        item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        await clock.advance(200);
+        assert.isFalse(item.classList.contains('ful-toast-out'), 'a focused toast outlives its timer');
+
+        item.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        await clock.advance(200);
+        assert.isTrue(item.classList.contains('ful-toast-out'));
+    });
+
+    it('holds through overlapping pointer and focus, the last one leaving to re-arm', async () => {
+        const [toasts] = await mount('<ful-toasts></ful-toasts>');
+
+        const item = toasts.show('waiting', { timeout: 60 });
+        item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+        item.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        item.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+        await clock.advance(200);
+        assert.isFalse(item.classList.contains('ful-toast-out'), 'the pointer leaving does not release a held focus');
+
+        item.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        await clock.advance(200);
+        assert.isTrue(item.classList.contains('ful-toast-out'), 'the last hold leaving re-arms the timer');
     });
 });

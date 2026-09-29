@@ -17,7 +17,7 @@ describe('Client errors reporting', () => {
         rejections.push(e.reason);
         e.preventDefault();
     };
-    const settle = () => drain(20, 100);
+    const settle = () => drain();
     const reject = (reason) => {
         window.dispatchEvent(
             new PromiseRejectionEvent('unhandledrejection', {
@@ -146,7 +146,7 @@ describe('Client errors reporting shapes', () => {
         rejections.push(e.reason);
         e.preventDefault();
     };
-    const settle = () => drain(20, 100);
+    const settle = () => drain();
     const reject = (reason) => {
         window.dispatchEvent(
             new PromiseRejectionEvent('unhandledrejection', {

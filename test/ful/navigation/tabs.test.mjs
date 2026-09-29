@@ -5,7 +5,7 @@ import { captureConsole, mount as mounted, settle as drain } from '../../harness
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
-const settle = () => drain(20, 80);
+const settle = () => drain();
 //the harness owns the container and its teardown; the wait stays this suite's,
 //since its drain is counted in clamped turns and the components lean on it
 const mount = async (html) => {

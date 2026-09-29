@@ -13,7 +13,7 @@ describe('Upgrade ordering and readiness', () => {
     let container;
     let order;
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const settle = () => drain(20, 80);
+    const settle = () => drain();
     /** an element that takes a while to render, so nothing can pass by luck of timing */
     const slow = (name) => {
         class Slow extends ParsedElement {
@@ -139,7 +139,7 @@ describe('Upgrade ordering and readiness', () => {
 });
 
 describe('Readiness when a component fails', () => {
-    const settle = () => drain(20, 80);
+    const settle = () => drain();
 
     it('reports ready anyway, and hands the failure out rather than swallowing it', async () => {
         class Broken extends ParsedElement {

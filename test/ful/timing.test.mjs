@@ -1,5 +1,21 @@
 import { assert } from 'chai';
 import { Timing } from '../../src/ful/index.mjs';
+import { useClock } from '../clock.mjs';
+
+const clock = useClock();
+
+describe('Timing.sleep', () => {
+    it('resolves once its time has passed, not before', async () => {
+        let done = false;
+        Timing.sleep(50).then(() => {
+            done = true;
+        });
+        await clock.advance(49);
+        assert.isFalse(done);
+        await clock.advance(1);
+        assert.isTrue(done);
+    });
+});
 
 describe('Timing.debounce', () => {
     it('fires once after the quiet period', async () => {
@@ -8,7 +24,7 @@ describe('Timing.debounce', () => {
         debounced('a');
         debounced('b');
         debounced('c');
-        await Timing.sleep(100);
+        await clock.advance(100);
         assert.deepStrictEqual(calls, ['c']);
     });
 
@@ -17,7 +33,7 @@ describe('Timing.debounce', () => {
         const [debounced, abort] = Timing.debounce(20, (v) => calls.push(v));
         debounced('a');
         abort();
-        await Timing.sleep(100);
+        await clock.advance(100);
         assert.deepStrictEqual(calls, []);
     });
 
@@ -26,9 +42,9 @@ describe('Timing.debounce', () => {
         const [debounced, abort] = Timing.debounce(20, (v) => calls.push(v));
         debounced('a');
         abort();
-        await Timing.sleep(100);
+        await clock.advance(100);
         debounced('b');
-        await Timing.sleep(100);
+        await clock.advance(100);
         assert.deepStrictEqual(calls, ['b']);
     });
 });
@@ -46,7 +62,7 @@ describe('Timing.throttle', () => {
         const [throttled] = Timing.throttle(50, (v) => calls.push(v));
         throttled('a');
         throttled('b');
-        await Timing.sleep(200);
+        await clock.advance(200);
         assert.deepStrictEqual(calls, ['a', 'b']);
     });
 
@@ -56,28 +72,25 @@ describe('Timing.throttle', () => {
         throttled('a');
         throttled('b');
         abort();
-        await Timing.sleep(10);
+        await clock.advance(10);
         assert.deepStrictEqual(calls, ['a'], 'the aborted trailing call must not fire');
 
         throttled('c');
-        await Timing.sleep(200);
+        await clock.advance(200);
         assert.deepStrictEqual(calls, ['a', 'c']);
     });
 
-    it('a call past the window while the trailing edge is still pending fires at once, cancelling the stale one', async () => {
+    it('a call arriving past the window, the trailing edge still armed because the thread was busy, fires at once and cancels the stale one', async () => {
         const calls = [];
         const [throttled] = Timing.throttle(80, (v) => calls.push(v));
         throttled('leading');
         throttled('trailing');
-        //block the main thread past the window: the pending timer cannot fire,
-        //so the next call arrives late with the stale trailing edge still armed
-        const until = performance.now() + 120;
-        while (performance.now() < until) {}
+        clock.skip(120);
 
         throttled('late');
 
         assert.deepStrictEqual(calls, ['leading', 'late'], 'the late call does not wait for the stale timer');
-        await Timing.sleep(150);
+        await clock.advance(150);
         assert.deepStrictEqual(calls, ['leading', 'late'], 'the cancelled trailing edge never fires');
     });
 });
@@ -88,11 +101,11 @@ describe('Timing.debounce rescheduling', () => {
         const [debounced] = Timing.debounce(60, (v) => calls.push(v));
 
         debounced('old');
-        await Timing.sleep(30);
+        await clock.advance(30);
         debounced('new');
-        await Timing.sleep(40);
+        await clock.advance(40);
         assert.deepEqual(calls, [], 'the window restarted: nothing fired yet');
-        await Timing.sleep(40);
+        await clock.advance(40);
 
         assert.deepEqual(calls, ['new'], 'only the newest arguments fire, once');
     });
@@ -107,11 +120,11 @@ describe('Timing.debounce immediate', () => {
         assert.deepEqual(calls, ['first'], 'the leading edge fires immediately');
 
         debounced('second');
-        await Timing.sleep(20);
+        await clock.advance(20);
         debounced('third');
         assert.deepEqual(calls, ['first'], 'calls inside the window do not re-fire');
 
-        await Timing.sleep(90);
+        await clock.advance(90);
         assert.deepEqual(calls, ['first'], 'the immediate mode fires once per burst');
     });
 });
@@ -124,7 +137,7 @@ describe('Timing.throttle modes', () => {
         throttled('first');
         assert.deepEqual(calls, [], 'the leading edge is suppressed');
 
-        await Timing.sleep(90);
+        await clock.advance(90);
         assert.deepEqual(calls, ['first'], 'the trailing edge fires it');
     });
 
@@ -133,11 +146,11 @@ describe('Timing.throttle modes', () => {
         const [throttled] = Timing.throttle(60, (v) => calls.push(v), { trailing: false });
 
         throttled('leading');
-        await Timing.sleep(20);
+        await clock.advance(20);
         throttled('dropped');
         assert.deepEqual(calls, ['leading']);
 
-        await Timing.sleep(80);
+        await clock.advance(80);
         assert.deepEqual(calls, ['leading'], 'no trailing call was ever scheduled');
     });
 });
@@ -153,7 +166,7 @@ describe('Timing.debounce re-entry', () => {
         });
 
         debounced('first');
-        await Timing.sleep(100);
+        await clock.advance(100);
 
         assert.strictEqual(calls.join(','), 'first,again');
     });

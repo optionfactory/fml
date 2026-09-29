@@ -29,9 +29,11 @@ const tick = () =>
  * time, which is faster and is not the same wait. A suite that needs the wall
  * time says how much, rather than getting it by accident from the clamp.
  */
+const wallClock = performance.now.bind(performance);
+
 const settle = async (turns = 20, atLeastMs = 8) => {
-    const start = performance.now();
-    for (let i = 0; i < turns || performance.now() - start < atLeastMs; ++i) {
+    const start = wallClock();
+    for (let i = 0; i < turns || wallClock() - start < atLeastMs; ++i) {
         await tick();
     }
 };
