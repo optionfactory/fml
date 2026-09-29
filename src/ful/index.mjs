@@ -38,8 +38,10 @@ export {
 } from './forms/filters.mjs';
 import './forms/filters.css';
 export { Anchors } from './disclosures/anchors.mjs';
-export { Tooltip, Dialog } from './disclosures/info.mjs';
-import './disclosures/info.css';
+export { Tooltip } from './disclosures/tooltip.mjs';
+import './disclosures/tooltip.css';
+export { Dialog } from './disclosures/dialog.mjs';
+import './disclosures/dialog.css';
 export { Drawer } from './disclosures/drawer.mjs';
 import './disclosures/drawer.css';
 export { Menu } from './disclosures/menu.mjs';

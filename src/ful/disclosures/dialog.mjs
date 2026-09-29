@@ -1,71 +1,6 @@
-import { Attributes, Localization, Nodes, ParsedElement, Rendering } from '../../ftl/index.mjs';
-import { Claims } from '../claims.mjs';
-import { describable } from '../descriptions.mjs';
-import { SectionRequests } from '../events/sections.mjs';
-import { Failure } from '../../httpc/index.mjs';
-import { Anchors } from './anchors.mjs';
+import { Attributes, Localization, ParsedElement, Rendering } from '../../ftl/index.mjs';
+import { DialogSections } from './dialog-sections.mjs';
 import { wireTargets } from './targets.mjs';
-
-/**
- * An icon button that toggles a native popover, a `ful-note`, holding the
- * default slot as a short explanation. The popover gives light dismiss and
- * Escape, and the button carries an `aria-expanded` kept in step with it and
- * a localized `aria-label`.
- *
- * The marker is the `ful-icon` that `Tooltip.config.icon` names for the whole
- * page, or the one the `icon` attribute names for a single tooltip. A name the
- * library does not paint is declared by the page as
- * `ful-icon[name='...'] { mask-image: ... }`.
- *
- * `placement` picks the side of the marker the note opens on: `top` (the
- * default), `bottom`, `left` or `right`. The note is placed in script on every
- * platform, centred on the marker, clamped into the viewport and following the
- * marker on scroll and resize, with a callout on the edge facing the marker.
- *
- * `describes` offers the note to the nearest ancestor that takes a description
- * (see `describable`), a field's control in practice: when it is taken, the
- * note becomes part of that control's accessible description and the marker
- * leaves the tab order, staying clickable. When nothing takes it, the marker
- * keeps its tab stop and a warning is logged.
- */
-class Tooltip extends ParsedElement {
-    static slots = true;
-    static attributes = ['placement', 'icon', 'describes:presence'];
-    /** The page-wide defaults: `icon` is the `ful-icon` name of the marker. */
-    static config = {
-        icon: 'info-circle-fill',
-    };
-    static template = `
-        <span role="button" tabindex="0" class="ful-tip" data-ref="trigger" data-tpl-aria-label="#l10n:t('info.tooltip')"><ful-icon data-tpl-name="icon ?? config.icon" aria-hidden="true"></ful-icon></span>
-        <ful-note popover data-ref="content">{{{{ slots.default }}}}</ful-note>
-    `;
-    /**
-     * @param {{ slots: Record<string, DocumentFragment> }} c
-     */
-    render({ slots }) {
-        const fragment = this.template().withOverlay({ slots, icon: this.declared('icon') }).render();
-        const trigger = /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=trigger]'));
-        const content = /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=content]'));
-        Anchors.wire(trigger, content, { prefix: 'ful-tooltip', invoke: true, expanded: true, handPlace: true });
-        content.setAttribute('placement', this.declared('placement') ?? 'top');
-        this.replaceChildren(fragment);
-        if (this.declared('describes')) {
-            Tooltip.#describe(this, trigger, content);
-        }
-    }
-    /**
-     * @param {Tooltip} tooltip
-     * @param {HTMLElement} trigger
-     * @param {HTMLElement} content
-     */
-    static #describe(tooltip, trigger, content) {
-        if (!describable(tooltip)?.describedBy(content)) {
-            console.warn('a ful-tooltip declares describes but stands in nothing that takes a description', tooltip);
-            return;
-        }
-        trigger.tabIndex = -1;
-    }
-}
 
 /**
  * How a dialog ended. `dismissed` is true for Escape, the close button, a
@@ -134,11 +69,7 @@ class Dialog extends ParsedElement {
         </dialog>
     `;
     #dialog;
-    #body;
-    #loading;
-    #error;
-    #requests = new SectionRequests();
-    #updates = new Claims();
+    #sections;
     #resolvers = [];
     /** @type {DialogOutcome|null} */
     #answer = null;
@@ -151,10 +82,8 @@ class Dialog extends ParsedElement {
         const fragment = this.template()
             .withOverlay({ slots, header: this.declared('header') ?? '', requiresAnswer, closeOnSubmit })
             .render();
-        this.#dialog = fragment.querySelector('[data-ref=dialog]');
-        this.#body = fragment.querySelector('[data-ref=body]');
-        this.#loading = fragment.querySelector('[data-ref=loading]');
-        this.#error = fragment.querySelector('[data-ref=error]');
+        this.#sections = new DialogSections(this, fragment, 'body');
+        this.#dialog = this.#sections.dialog;
         const heading = fragment.querySelector('h2');
         if (heading) {
             heading.id ||= Attributes.uid('ful-dialog-title');
@@ -165,29 +94,21 @@ class Dialog extends ParsedElement {
             this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
             this.#settle(outcome);
         });
-        let pressedOutside = false;
-        this.#dialog.addEventListener('mousedown', (/** @type any */ e) => {
-            pressedOutside = e.target === this.#dialog;
-        });
         this.#dialog.addEventListener('click', (/** @type any */ e) => {
             const result = e.target.closest('button[data-result]')?.dataset.result;
             if (result !== undefined) {
                 this.#dialog.close(result);
-                return;
-            }
-            if (!requiresAnswer && pressedOutside && e.target === this.#dialog) {
-                this.#dialog.close('');
             }
         });
+        if (!requiresAnswer) {
+            this.#sections.onBackdrop(() => this.#dialog.close(''));
+        }
         fragment
             .querySelector('[data-ref=close]')
             ?.addEventListener('click', () => this.#dialog.close(''));
         if (closeOnSubmit) {
-            this.#body.addEventListener('submit:success', (/** @type any */ e) => {
-                if (e.target !== Nodes.queryChildren(this.#body, 'ful-form')) {
-                    return;
-                }
-                this.#answer = { dismissed: false, result: null, response: e.detail.response };
+            this.#sections.onSubmitted((response) => {
+                this.#answer = { dismissed: false, result: null, response };
                 this.#dialog.close('submitted');
             });
         }
@@ -247,8 +168,8 @@ class Dialog extends ParsedElement {
      */
     ask() {
         if (this.#show()) {
-            this.#restChrome();
-            this.#request();
+            this.#sections.restChrome();
+            this.#sections.request();
         }
         return new Promise((resolve) => {
             this.#resolvers.push(resolve);
@@ -271,35 +192,7 @@ class Dialog extends ParsedElement {
      * @throws {any} what the callback threw or rejected with
      */
     async update(cb) {
-        const claim = this.#updates.take();
-        this.#body.replaceChildren();
-        this.#restChrome();
-        this.#loading?.removeAttribute('hidden');
-        this.#body.setAttribute('hidden', '');
-        this.#show();
-        try {
-            const delivered = await cb();
-            if (claim.stale) {
-                return this.#body;
-            }
-            this.#body.replaceChildren(delivered);
-            this.#loading?.setAttribute('hidden', '');
-            this.#body.removeAttribute('hidden');
-            return this.#body;
-        } catch (/** @type any */ e) {
-            if (!claim.stale) {
-                this.#error?.removeAttribute('hidden');
-                if (this.#error) {
-                    this.#error.textContent = Failure.problemsText(e);
-                }
-                this.#loading?.setAttribute('hidden', '');
-                this.#body.setAttribute('hidden', '');
-            }
-            throw e;
-        }
-    }
-    #request() {
-        this.#requests.request(this, this.#body, null, null).catch(() => undefined);
+        return await this.#sections.update(cb, () => this.#show());
     }
     /**
      * Dispatches `section:requested` for the body again, as `ask()` does,
@@ -309,7 +202,7 @@ class Dialog extends ParsedElement {
      * nobody answered or the request failed; it never rejects
      */
     refresh() {
-        return this.#requests.request(this, this.#body, null, null).catch(() => undefined);
+        return this.#sections.request();
     }
     /**
      * Closes an open dialog, doing nothing on a closed one. A non-empty result
@@ -329,12 +222,6 @@ class Dialog extends ParsedElement {
         this.#answer = null;
         this.#dialog.showModal();
         return true;
-    }
-    #restChrome() {
-        this.#error?.replaceChildren();
-        this.#error?.setAttribute('hidden', '');
-        this.#loading?.setAttribute('hidden', '');
-        this.#body?.removeAttribute('hidden');
     }
     /**
      * Appends a new `ful-dialog` to `document.body`, asks it, and removes it
@@ -416,4 +303,4 @@ class Dialog extends ParsedElement {
     }
 }
 
-export { Tooltip, Dialog };
+export { Dialog };

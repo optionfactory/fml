@@ -31,10 +31,11 @@ describe('Element metadata', function () {
         });
         const modules = [
             'disclosures/accordion',
+            'disclosures/dialog',
             'disclosures/drawer',
-            'disclosures/info',
             'disclosures/menu',
             'disclosures/toast',
+            'disclosures/tooltip',
             'forms/bindings',
             'forms/checkbox',
             'forms/field',

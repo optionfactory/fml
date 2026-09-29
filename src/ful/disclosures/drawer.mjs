@@ -1,7 +1,5 @@
-import { Attributes, Nodes, ParsedElement } from '../../ftl/index.mjs';
-import { Claims } from '../claims.mjs';
-import { SectionRequests } from '../events/sections.mjs';
-import { Failure } from '../../httpc/index.mjs';
+import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { DialogSections } from './dialog-sections.mjs';
 import { wireTargets } from './targets.mjs';
 
 /**
@@ -47,11 +45,7 @@ class Drawer extends ParsedElement {
     `;
     #dialog;
     #title;
-    #loading;
-    #error;
-    #content;
-    #requests = new SectionRequests();
-    #updates = new Claims();
+    #sections;
     /** @type {{ dismissed: boolean, response: any }|null} */
     #answer = null;
     #closing = false;
@@ -67,13 +61,11 @@ class Drawer extends ParsedElement {
         const fragment = this.template()
             .withOverlay({ slots, title: this.declared('header') ?? '' })
             .render();
-        this.#dialog = fragment.querySelector('[data-ref=dialog]');
+        this.#sections = new DialogSections(this, fragment, 'content');
+        this.#dialog = this.#sections.dialog;
         this.#title = fragment.querySelector('[data-ref=title]');
         this.#title.id ||= Attributes.uid('ful-drawer-title');
         this.#dialog.setAttribute('aria-labelledby', this.#title.id);
-        this.#loading = fragment.querySelector('[data-ref=loading]');
-        this.#error = fragment.querySelector('[data-ref=error]');
-        this.#content = fragment.querySelector('[data-ref=content]');
         const placement = this.declared('placement');
         if (placement) {
             this.#dialog.setAttribute('placement', placement);
@@ -81,15 +73,7 @@ class Drawer extends ParsedElement {
         /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=close]')).addEventListener('click', () =>
             this.close(),
         );
-        let pressedOutside = false;
-        this.#dialog.addEventListener('mousedown', (e) => {
-            pressedOutside = e.target === this.#dialog;
-        });
-        this.#dialog.addEventListener('click', (e) => {
-            if (pressedOutside && e.target === this.#dialog) {
-                this.close();
-            }
-        });
+        this.#sections.onBackdrop(() => this.close());
         this.#dialog.addEventListener('cancel', (e) => {
             e.preventDefault();
             this.close();
@@ -100,11 +84,8 @@ class Drawer extends ParsedElement {
             );
         });
         if (this.declared('close-on-submit')) {
-            this.#content.addEventListener('submit:success', (/** @type any */ e) => {
-                if (e.target !== Nodes.queryChildren(this.#content, 'ful-form')) {
-                    return;
-                }
-                this.#answer = { dismissed: false, response: e.detail.response };
+            this.#sections.onSubmitted((response) => {
+                this.#answer = { dismissed: false, response };
                 this.close();
             });
         }
@@ -139,31 +120,8 @@ class Drawer extends ParsedElement {
      * @throws {any} what the callback threw or rejected with
      */
     async update(header, cb) {
-        const claim = this.#updates.take();
         this.header = header;
-        this.#content.replaceChildren();
-        this.#restChrome();
-        this.#loading.removeAttribute('hidden');
-        this.#content.setAttribute('hidden', '');
-        this.#show();
-        try {
-            const delivered = await cb();
-            if (claim.stale) {
-                return this.#content;
-            }
-            this.#content.replaceChildren(delivered);
-            this.#loading.setAttribute('hidden', '');
-            this.#content.removeAttribute('hidden');
-            return this.#content;
-        } catch (/** @type any */ e) {
-            if (!claim.stale) {
-                this.#error.removeAttribute('hidden');
-                this.#error.textContent = Failure.problemsText(e);
-                this.#loading.setAttribute('hidden', '');
-                this.#content.setAttribute('hidden', '');
-            }
-            throw e;
-        }
+        return await this.#sections.update(cb, () => this.#show());
     }
     /**
      * Dispatches `section:requested` for the content again, as `open()` does,
@@ -173,7 +131,7 @@ class Drawer extends ParsedElement {
      * nobody answered or the request failed; it never rejects
      */
     refresh() {
-        return this.#requests.request(this, this.#content, null, null).catch(() => undefined);
+        return this.#sections.request();
     }
     /**
      * Shows the drawer as a modal. On a drawer already open nothing happens,
@@ -191,8 +149,8 @@ class Drawer extends ParsedElement {
         if (!this.#show()) {
             return;
         }
-        this.#restChrome();
-        this.#requests.request(this, this.#content, null, null).catch(() => undefined);
+        this.#sections.restChrome();
+        this.#sections.request();
     }
     /**
      * Slides the drawer out and closes it when the animation ends, setting the
@@ -235,12 +193,6 @@ class Drawer extends ParsedElement {
         this.#answer = null;
         this.#dialog.showModal();
         return true;
-    }
-    #restChrome() {
-        this.#error.replaceChildren();
-        this.#error.setAttribute('hidden', '');
-        this.#loading.setAttribute('hidden', '');
-        this.#content.removeAttribute('hidden');
     }
 }
 
