@@ -25,7 +25,7 @@ describe('Accordion', () => {
         const [accordion] = await mount(markup);
         const details = accordion.querySelectorAll('ful-accordion-group > details');
 
-        assert.lengthOf(details, 3);
+        assert.lengthOf(details, 3, 'every details written as a child is rendered inside the group, none dropped');
         assert.isNull(details[0].getAttribute('name'), 'a free accordion assigns no name');
         assert.isTrue(details[1].open, 'the author-claimed open panel stays open');
     });
@@ -39,7 +39,7 @@ describe('Accordion', () => {
             details[2].getAttribute('name'),
             'one shared name for the whole group',
         );
-        assert.isTrue(details[1].open);
+        assert.isTrue(details[1].open, 'naming the group for exclusivity leaves the author-claimed open panel open');
 
         details[0].open = true;
         await settle();
@@ -51,10 +51,21 @@ describe('Accordion', () => {
         const details = [...accordion.querySelectorAll('details')];
 
         accordion.exclusive = true;
-        assert.strictEqual(details[0].getAttribute('name'), details[1].getAttribute('name'));
-        assert.strictEqual(accordion.getAttribute('exclusive'), '');
+        assert.strictEqual(
+            details[0].getAttribute('name'),
+            details[1].getAttribute('name'),
+            'turning exclusive on at runtime gives every panel of the group one shared name',
+        );
+        assert.strictEqual(
+            accordion.getAttribute('exclusive'),
+            '',
+            'the exclusive property is reflected to the exclusive attribute',
+        );
 
         accordion.exclusive = false;
-        assert.isNull(details[0].getAttribute('name'));
+        assert.isNull(
+            details[0].getAttribute('name'),
+            'turning exclusive off removes the shared name so panels open independently again',
+        );
     });
 });

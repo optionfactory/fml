@@ -40,28 +40,37 @@ const ONE_OPTION = [{ key: 'k1', label: 'Label 1' }];
 describe('Select and dropdown combobox ARIA compliance', () => {
     beforeEach(() => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => {}, load: async () => [], exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })) }),
+            create: () => ({
+                prefetch: async () => {},
+                load: async () => [],
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
+            }),
         });
     });
 
     it('parses and behaves the same way when multiple is toggled after the render', async () => {
-        const container = appended(`<ful-select><template slot="options"><option value="k1">One</option><option value="k2">Two</option></template></ful-select>`);
+        const container = appended(
+            `<ful-select><template slot="options"><option value="k1">One</option><option value="k2">Two</option></template></ful-select>`,
+        );
         const el = container.querySelector('ful-select');
         await Rendering.waitFor(el);
 
-        assert.isFalse(el.multiple);
+        assert.isFalse(el.multiple, 'a select without the multiple attribute is single');
         el.setAttribute('multiple', '');
-        assert.isTrue(el.multiple);
+        assert.isTrue(el.multiple, 'setting the multiple attribute after the render makes the select multiple');
         el.setAttribute('value', 'k1,k2');
         await settle();
-        assert.deepEqual(el.value, ['k1', 'k2']);
+        assert.deepEqual(
+            el.value,
+            ['k1', 'k2'],
+            'a multiple select reads the value attribute as a comma separated list of keys',
+        );
 
         el.removeAttribute('multiple');
-        assert.isFalse(el.multiple);
+        assert.isFalse(el.multiple, 'removing the multiple attribute makes the select single again');
         el.setAttribute('value', 'k1');
         await settle();
-        assert.equal(el.value, 'k1');
-
+        assert.equal(el.value, 'k1', 'a single select reads the value attribute as its one key');
     });
 
     it('carries the combobox roles from the first render', async () => {
@@ -73,11 +82,14 @@ describe('Select and dropdown combobox ARIA compliance', () => {
 
         const input = selectEl.querySelector('input');
 
-        assert.strictEqual(input.getAttribute('role'), 'combobox');
-        assert.strictEqual(input.getAttribute('aria-autocomplete'), 'list');
-        assert.strictEqual(input.getAttribute('aria-haspopup'), 'listbox');
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-
+        assert.strictEqual(input.getAttribute('role'), 'combobox', 'the input is the combobox');
+        assert.strictEqual(
+            input.getAttribute('aria-autocomplete'),
+            'list',
+            'the combobox declares that it completes through a list',
+        );
+        assert.strictEqual(input.getAttribute('aria-haspopup'), 'listbox', 'the combobox declares a listbox popup');
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false', 'the combobox starts collapsed');
     });
 
     it('mirrors aria-expanded onto the input as the dropdown opens and closes', async () => {
@@ -90,11 +102,18 @@ describe('Select and dropdown combobox ARIA compliance', () => {
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await tick();
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'true',
+            'opening the dropdown marks the combobox expanded',
+        );
 
         input.dispatchEvent(new Event('blur'));
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'false',
+            'blur closes the dropdown and marks the combobox collapsed',
+        );
     });
 });
 
@@ -136,8 +155,14 @@ describe('Select and dropdown load failure handling', () => {
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
 
-        assert.isNotNull(selectEl.querySelector('input[role=combobox]'));
-        assert.isTrue(warns.some((args) => String(args[0]).includes('prefetch')));
+        assert.isNotNull(
+            selectEl.querySelector('input[role=combobox]'),
+            'a failed prefetch does not keep the combobox from rendering',
+        );
+        assert.isTrue(
+            warns.some((args) => String(args[0]).includes('prefetch')),
+            'the failed prefetch is warned about on the console',
+        );
     });
 
     it('hides the dropdown and reports the rejection when load fails', async () => {
@@ -160,14 +185,21 @@ describe('Select and dropdown load failure handling', () => {
         await opened();
 
         const dropdown = selectEl.querySelector('ful-dropdown');
-        assert.isFalse(dropdown.shown);
+        assert.isFalse(dropdown.shown, 'a failed load hides the dropdown');
         assert.strictEqual(
             selectEl.querySelector('input[role=combobox]').getAttribute('aria-expanded'),
             'false',
             'a failed open leaves the combobox collapsed',
         );
-        assert.strictEqual(rejections.length, rejectionsBefore + 1);
-        assert.isTrue(rejections.some((r) => String(r?.message ?? r).includes('boom')));
+        assert.strictEqual(
+            rejections.length,
+            rejectionsBefore + 1,
+            'the failed load surfaces as one unhandled rejection',
+        );
+        assert.isTrue(
+            rejections.some((r) => String(r?.message ?? r).includes('boom')),
+            'the rejection carries the error the loader threw',
+        );
     });
 
     it('reports the rejection and keeps the requested keys when exact lookup fails', async () => {
@@ -186,9 +218,13 @@ describe('Select and dropdown load failure handling', () => {
         const rejectionsBefore = rejections.length;
         await settle(3, 10);
 
-        assert.strictEqual(rejections.length, rejectionsBefore + 1);
+        assert.strictEqual(
+            rejections.length,
+            rejectionsBefore + 1,
+            'a failed lookup surfaces as one unhandled rejection',
+        );
         assert.strictEqual(selectEl.value, 'k1', 'the requested key is kept');
-        assert.isTrue(warns.length === 0);
+        assert.isTrue(warns.length === 0, 'a failed lookup is reported as a rejection, not as a warning');
     });
 });
 describe('Select and dropdown keyboard interaction', () => {
@@ -224,7 +260,7 @@ describe('Select and dropdown keyboard interaction', () => {
 
         keydown(selectEl.querySelector('input'), 'Enter');
 
-        assert.deepStrictEqual(uncaught, []);
+        assert.deepStrictEqual(uncaught, [], 'Enter before the dropdown renders throws nothing');
     });
 
     it('ignores Enter when the dropdown was never opened', async () => {
@@ -236,14 +272,18 @@ describe('Select and dropdown keyboard interaction', () => {
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         keydown(selectEl.querySelector('input'), 'Enter');
 
-        assert.deepStrictEqual(uncaught, []);
-        assert.deepStrictEqual(changes, []);
-        assert.isNull(selectEl.value);
+        assert.deepStrictEqual(uncaught, [], 'Enter with the dropdown never opened throws nothing');
+        assert.deepStrictEqual(changes, [], 'Enter with the list closed picks nothing, so no change is dispatched');
+        assert.isNull(selectEl.value, 'Enter with the list closed selects nothing');
     });
 
     it('ignores arrow keys when the shown dropdown has no options', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => {}, exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })), load: async () => [] }),
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
+                load: async () => [],
+            }),
         });
         const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
@@ -252,7 +292,10 @@ describe('Select and dropdown keyboard interaction', () => {
         const input = selectEl.querySelector('input');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        assert.isTrue(
+            selectEl.querySelector('ful-dropdown').shown,
+            'a click opens the dropdown even when the loader answers no options',
+        );
 
         keydown(input, 'ArrowDown');
         keydown(input, 'ArrowUp');
@@ -260,13 +303,17 @@ describe('Select and dropdown keyboard interaction', () => {
         keydown(input, 'PageUp');
         keydown(input, 'Enter');
 
-        assert.deepStrictEqual(uncaught, []);
-        assert.isNull(selectEl.value);
+        assert.deepStrictEqual(uncaught, [], 'moving and accepting over an empty list throws nothing');
+        assert.isNull(selectEl.value, 'an empty list offers nothing to accept');
     });
 
     it('says no results when the search matches nothing', async () => {
         registry.defineComponent('loaders:select', {
-            create: () => ({ prefetch: async () => {}, exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })), load: async () => [] }),
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
+                load: async () => [],
+            }),
         });
         const [selectEl] = mount(`<ful-select></ful-select>`);
         await Rendering.waitFor(selectEl);
@@ -277,7 +324,7 @@ describe('Select and dropdown keyboard interaction', () => {
 
         const empty = selectEl.querySelector('ful-dropdown [data-ref=empty]');
         assert.isFalse(empty.hidden, 'the message replaces the empty list');
-        assert.strictEqual(empty.innerText, 'No results');
+        assert.strictEqual(empty.innerText, 'No results', 'the empty state reads the localized no results message');
         assert.isTrue(selectEl.querySelector('menu').hidden, 'no empty listbox is exposed');
     });
 
@@ -289,8 +336,11 @@ describe('Select and dropdown keyboard interaction', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
-        assert.isTrue(selectEl.querySelector('ful-dropdown [data-ref=empty]').hidden);
-        assert.isFalse(selectEl.querySelector('menu').hidden);
+        assert.isTrue(
+            selectEl.querySelector('ful-dropdown [data-ref=empty]').hidden,
+            'the empty state stays hidden while the list has options',
+        );
+        assert.isFalse(selectEl.querySelector('menu').hidden, 'the listbox is shown while it has options');
     });
 
     it('accepts the highlighted option on Enter', async () => {
@@ -306,11 +356,15 @@ describe('Select and dropdown keyboard interaction', () => {
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
         keydown(input, 'Enter');
 
-        assert.deepStrictEqual(uncaught, []);
-        assert.strictEqual(selectEl.value, 'k1');
-        assert.strictEqual(changes.length, 1);
-        assert.strictEqual(changes[0].label, 'Label 1');
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.deepStrictEqual(uncaught, [], 'accepting on Enter throws nothing');
+        assert.strictEqual(
+            selectEl.value,
+            'k1',
+            'Enter accepts the first option, which is highlighted when the list opens',
+        );
+        assert.strictEqual(changes.length, 1, 'one pick dispatches one change');
+        assert.strictEqual(changes[0].label, 'Label 1', 'the change detail carries the picked entry');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'accepting a pick closes the dropdown');
     });
 
     it('announces its own value in the change detail, with the entry beside it', async () => {
@@ -324,9 +378,9 @@ describe('Select and dropdown keyboard interaction', () => {
         await opened();
         keydown(selectEl.querySelector('input'), 'Enter');
 
-        assert.lengthOf(details, 1);
+        assert.lengthOf(details, 1, 'one pick dispatches one change');
         assert.strictEqual(details[0].value, selectEl.value, 'the detail is the value the property answers');
-        assert.strictEqual(details[0].value, 'k1');
+        assert.strictEqual(details[0].value, 'k1', 'the detail value is the key of the accepted option');
         assert.strictEqual(details[0].entry.label, 'Label 1', 'the labeled selection rides beside it');
     });
 
@@ -339,13 +393,13 @@ describe('Select and dropdown keyboard interaction', () => {
 
         assert.isNotNull(controls, 'the combobox names what it controls');
         const listbox = selectEl.querySelector(`#${controls}`);
-        assert.isNotNull(listbox, 'and that name resolves');
-        assert.strictEqual(listbox.getAttribute('role'), 'listbox');
+        assert.isNotNull(listbox, 'the aria-controls id names an element inside the select');
+        assert.strictEqual(listbox.getAttribute('role'), 'listbox', 'the controlled element is the listbox');
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
         const active = input.getAttribute('aria-activedescendant');
-        assert.isNotNull(active);
+        assert.isNotNull(active, 'opening the list announces an active option');
         assert.isNotNull(listbox.querySelector(`#${active}`), 'the active option lives inside the listbox');
     });
 
@@ -369,7 +423,7 @@ describe('Select and dropdown keyboard interaction', () => {
 
         keydown(input, 'ArrowDown', { altKey: true });
         await opened();
-        assert.strictEqual(active(), highlighted());
+        assert.strictEqual(active(), highlighted(), 'reopening the list announces the highlighted option again');
         input.dispatchEvent(new FocusEvent('blur'));
         assert.isNull(active(), 'blur drops the announcement too');
     });
@@ -382,12 +436,20 @@ describe('Select and dropdown keyboard interaction', () => {
 
         input.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'a click on the input opens the dropdown');
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'true',
+            'the open dropdown marks the combobox expanded',
+        );
 
         input.dispatchEvent(new Event('click', { bubbles: true }));
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'a second click on the input closes the dropdown');
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'false',
+            'the closed dropdown marks the combobox collapsed',
+        );
     });
 
     it('offers the whole list when opened from rest, the label is not a needle', async () => {
@@ -405,7 +467,7 @@ describe('Select and dropdown keyboard interaction', () => {
         const [selectEl] = mount(`<ful-select value="k1"></ful-select>`);
         await settle();
         const input = selectEl.querySelector('input');
-        assert.strictEqual(input.value, 'Label k1');
+        assert.strictEqual(input.value, 'Label k1', 'the assigned key is shown by its label while the list is closed');
 
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
@@ -431,7 +493,11 @@ describe('Select and dropdown keyboard interaction', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
-        assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 2');
+        assert.strictEqual(
+            selectEl.querySelector('menu li[selected]').textContent.trim(),
+            'Label 2',
+            'the list opens with the selected entry highlighted',
+        );
 
         keydown(input, 'Enter');
         assert.strictEqual(selectEl.value, 'k2', 're-accepting the highlighted selection keeps it');
@@ -459,7 +525,11 @@ describe('Select and dropdown keyboard interaction', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
-        assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 1');
+        assert.strictEqual(
+            selectEl.querySelector('menu li[selected]').textContent.trim(),
+            'Label 1',
+            'the selected entry is highlighted in place of the row the custom template marks selected',
+        );
 
         keydown(input, 'Enter');
         assert.strictEqual(selectEl.value, 'k1', 're-accepting the highlighted selection keeps it');
@@ -475,14 +545,14 @@ describe('Select and dropdown keyboard interaction', () => {
 
         keydown(input, 'End');
         keydown(input, 'Enter');
-        assert.strictEqual(selectEl.value, 'k2');
+        assert.strictEqual(selectEl.value, 'k2', 'End highlights the last option, which Enter accepts');
 
         keydown(input, 'ArrowDown', { altKey: true });
         await opened();
         keydown(input, 'End');
         keydown(input, 'Home');
         keydown(input, 'Enter');
-        assert.strictEqual(selectEl.value, 'k1');
+        assert.strictEqual(selectEl.value, 'k1', 'Home highlights the first option again after End');
     });
 
     it('pages through the options with PageDown and PageUp', async () => {
@@ -506,12 +576,20 @@ describe('Select and dropdown keyboard interaction', () => {
 
         keydown(input, 'ArrowDown', { altKey: true });
         await opened();
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'Alt+ArrowDown opens the dropdown');
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'true',
+            'the open dropdown marks the combobox expanded',
+        );
 
         keydown(input, 'ArrowUp', { altKey: true });
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'Alt+ArrowUp closes the dropdown');
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'false',
+            'the closed dropdown marks the combobox collapsed',
+        );
     });
 });
 
@@ -536,8 +614,12 @@ describe('Select value resolution', () => {
         const [single] = await mount(`<ful-select value="it"></ful-select>`);
         const [multi] = await mount(`<ful-select multiple value="it,fr"></ful-select>`);
 
-        assert.strictEqual(single.value, 'it');
-        assert.deepEqual(multi.value, ['it', 'fr']);
+        assert.strictEqual(single.value, 'it', 'a single select reads the value attribute as one key');
+        assert.deepEqual(
+            multi.value,
+            ['it', 'fr'],
+            'a multiple select reads the value attribute as a comma separated list of keys',
+        );
     });
 
     it('warns once for a key carrying a comma, which no key may', async () => {
@@ -554,8 +636,12 @@ describe('Select value resolution', () => {
         } finally {
             console.warn = warn;
         }
-        assert.lengthOf(warnings, 1);
-        assert.include(String(warnings[0][0]), 'cannot contain a comma');
+        assert.lengthOf(warnings, 1, 'assigning a key with a comma warns once');
+        assert.include(
+            String(warnings[0][0]),
+            'cannot contain a comma',
+            'the warning says a key cannot contain a comma',
+        );
         assert.strictEqual(selectEl.value, 'a,b', 'the key is kept: splitting here would truncate a single select');
     });
 
@@ -572,56 +658,64 @@ describe('Select value resolution', () => {
             console.warn = warn;
         }
 
-        assert.lengthOf(warnings, 1);
+        assert.lengthOf(warnings, 1, 'the comma warning is given once per element, however many bad keys are assigned');
     });
 
     it('trims the keys it reads from the attribute', async () => {
         const [selectEl] = await mount(`<ful-select value=" it "></ful-select>`);
 
-        assert.strictEqual(selectEl.value, 'it');
+        assert.strictEqual(selectEl.value, 'it', 'keys read from the value attribute are trimmed');
     });
 
     it('does not query the loader when there is no value', async () => {
         const [selectEl] = await mount(`<ful-select></ful-select>`);
 
-        assert.deepStrictEqual(exactCalls, []);
-        assert.isNull(selectEl.value);
+        assert.deepStrictEqual(exactCalls, [], 'with no value there is no key for the loader to label');
+        assert.isNull(selectEl.value, 'a single select with no value answers null');
     });
 
     it('does not query the loader when a multiple select has no value', async () => {
         const [selectEl] = await mount(`<ful-select multiple></ful-select>`);
 
-        assert.deepStrictEqual(exactCalls, []);
-        assert.deepStrictEqual(selectEl.value, []);
+        assert.deepStrictEqual(exactCalls, [], 'with no value there is no key for the loader to label');
+        assert.deepStrictEqual(selectEl.value, [], 'a multiple select with no value answers an empty array');
     });
 
     it('still resolves an empty key, which an <option value=""> can carry', async () => {
         const [selectEl] = await mount(`<ful-select></ful-select>`);
-        assert.deepStrictEqual(exactCalls, []);
+        assert.deepStrictEqual(exactCalls, [], 'with no value the loader is not asked at the upgrade');
 
         selectEl.value = '';
         await settle();
 
-        assert.deepStrictEqual(exactCalls, [['']]);
-        assert.strictEqual(selectEl.value, '');
+        assert.deepStrictEqual(
+            exactCalls,
+            [['']],
+            'the empty string is a key like any other, so the loader is asked to label it',
+        );
+        assert.strictEqual(selectEl.value, '', 'the empty key stays selected');
     });
 
     it('resolves the declared keys', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
 
-        assert.deepStrictEqual(exactCalls, [['k1', 'k2']]);
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(exactCalls, [['k1', 'k2']], 'the declared keys are looked up in one exact call');
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'the declared keys are selected in their declared order');
     });
 
     it('clears without querying the loader when the value attribute is removed', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1"></ful-select>`);
-        assert.deepStrictEqual(exactCalls, [['k1']]);
+        assert.deepStrictEqual(exactCalls, [['k1']], 'the declared key is looked up at the upgrade');
 
         selectEl.removeAttribute('value');
         await settle();
 
-        assert.deepStrictEqual(exactCalls, [['k1']]);
-        assert.deepStrictEqual(selectEl.value, []);
+        assert.deepStrictEqual(
+            exactCalls,
+            [['k1']],
+            'removing the value attribute clears the selection without asking the loader',
+        );
+        assert.deepStrictEqual(selectEl.value, [], 'removing the value attribute empties a multiple selection');
     });
 });
 
@@ -643,7 +737,7 @@ describe('Select value assignment', () => {
 
         assert.strictEqual(selectEl.value, 'k1', 'value must not lag behind the assignment');
         await settle();
-        assert.strictEqual(selectEl.value, 'k1');
+        assert.strictEqual(selectEl.value, 'k1', 'the assigned key stays selected once the lookup has resolved');
     });
 
     it('labels the field once the loader resolves them', async () => {
@@ -656,7 +750,7 @@ describe('Select value assignment', () => {
 
         await new Promise((resolve) => setTimeout(resolve, 30));
         await settle();
-        assert.strictEqual(input.value, 'Label k1');
+        assert.strictEqual(input.value, 'Label k1', 'the label replaces the key once the loader answers');
     });
 
     it('restores the label in the field when the dropdown leaves', async () => {
@@ -681,8 +775,12 @@ describe('Select value assignment', () => {
         selectEl.value = 'fast';
         await settle();
 
-        assert.strictEqual(selectEl.value, 'fast');
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label fast');
+        assert.strictEqual(selectEl.value, 'fast', 'a later assignment wins over the late answer to an earlier one');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Label fast',
+            'the field shows the label of the newest assignment, not the late one',
+        );
     });
 
     it('carries its value as soon as the upgrade completes, labels follow', async () => {
@@ -695,7 +793,11 @@ describe('Select value assignment', () => {
         assert.strictEqual(selectEl.value, 'k1', 'the value does not wait for the loader');
         await new Promise((resolve) => setTimeout(resolve, 30));
         await settle();
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label k1');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Label k1',
+            'the label follows once the loader answers',
+        );
     });
 
     it('does not hold up the upgrade when the loader never answers', async () => {
@@ -710,8 +812,8 @@ describe('Select value assignment', () => {
             new Promise((resolve) => setTimeout(() => resolve('still waiting'), 300)),
         ]);
 
-        assert.strictEqual(outcome, 'upgraded');
-        assert.strictEqual(selectEl.value, 'k1');
+        assert.strictEqual(outcome, 'upgraded', 'the upgrade completes without waiting on the key lookup');
+        assert.strictEqual(selectEl.value, 'k1', 'the declared key is selected while the lookup is still pending');
     });
 });
 
@@ -737,8 +839,12 @@ describe('Select key types', () => {
     it('keeps a string assignment selected when the loader keys are numbers', async () => {
         const [selectEl] = await mount(`<ful-select value="16"></ful-select>`, numeric());
 
-        assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
+        assert.strictEqual(selectEl.value, '16', 'without k-type the key stays the string the attribute carries');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Label 16',
+            'the string key is labelled by the loose match against the numeric key',
+        );
     });
 
     it('coerces a javascript assignment of a number to a string key', async () => {
@@ -747,42 +853,52 @@ describe('Select key types', () => {
         selectEl.value = 16;
         await settle();
 
-        assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
+        assert.strictEqual(selectEl.value, '16', 'without k-type an assigned number is coerced to a string key');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Label 16',
+            'the coerced key is labelled by the loose match against the numeric key',
+        );
     });
 
     it('exposes number keys when k-type is number', async () => {
         const [selectEl] = await mount(`<ful-select k-type="number" value="16"></ful-select>`, numeric());
 
-        assert.strictEqual(selectEl.value, 16);
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
-        assert.deepStrictEqual(selectEl.entry, { key: 16, label: 'Label 16', metadata: undefined });
+        assert.strictEqual(selectEl.value, 16, 'k-type number coerces the key to a number');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Label 16',
+            'the numeric key is labelled by the loader',
+        );
+        assert.deepStrictEqual(
+            selectEl.entry,
+            { key: 16, label: 'Label 16', metadata: undefined },
+            'the entry carries the numeric key the loader answered with its label',
+        );
     });
 
     it('coerces every key of a multiple assignment', async () => {
-        const [selectEl] = await mount(
-            `<ful-select k-type="number" multiple value="16,17"></ful-select>`,
-            numeric(),
-        );
+        const [selectEl] = await mount(`<ful-select k-type="number" multiple value="16,17"></ful-select>`, numeric());
 
-        assert.deepStrictEqual(selectEl.value, [16, 17]);
+        assert.deepStrictEqual(selectEl.value, [16, 17], 'k-type coerces every key of a multiple selection');
     });
 
     it('exposes boolean keys when k-type is boolean', async () => {
-        const [selectEl] = await mount(
-            `<ful-select k-type="boolean" value="true"></ful-select>`,
-            booleany(),
-        );
+        const [selectEl] = await mount(`<ful-select k-type="boolean" value="true"></ful-select>`, booleany());
 
-        assert.strictEqual(selectEl.value, true);
-        assert.strictEqual(selectEl.querySelector('input').value, 'Yes');
+        assert.strictEqual(selectEl.value, true, 'k-type boolean coerces the key to a boolean');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Yes', 'the boolean key is labelled by the loader');
     });
 
     it('keeps a key that does not decode as it is', async () => {
         const [selectEl] = await mount(`<ful-select k-type="number" value="abc"></ful-select>`, echoing());
 
-        assert.strictEqual(selectEl.value, 'abc');
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label abc');
+        assert.strictEqual(selectEl.value, 'abc', 'a key that does not decode as a number is kept as the string it is');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Label abc',
+            'the undecoded key is labelled by the loader',
+        );
     });
 
     it('reports an option picked from the dropdown as a string by default', async () => {
@@ -792,8 +908,8 @@ describe('Select key types', () => {
         await opened();
         selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
 
-        assert.strictEqual(selectEl.value, '16');
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
+        assert.strictEqual(selectEl.value, '16', 'without k-type a picked key is reported as a string');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16', 'the picked entry labels the field');
     });
 
     it('coerces an option picked from the dropdown when k-type is number', async () => {
@@ -803,8 +919,8 @@ describe('Select key types', () => {
         await opened();
         selectEl.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
 
-        assert.strictEqual(selectEl.value, 16);
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16');
+        assert.strictEqual(selectEl.value, 16, 'k-type number coerces the picked key to a number');
+        assert.strictEqual(selectEl.querySelector('input').value, 'Label 16', 'the picked entry labels the field');
     });
 });
 
@@ -816,13 +932,17 @@ describe('Item list focus', () => {
         );
         const row = selectEl.querySelector('ful-item > div');
         assert.isNotNull(row, 'the list rendered a row to focus');
-        assert.strictEqual(getComputedStyle(row).outlineStyle, 'none', 'nothing while unfocused');
+        assert.strictEqual(getComputedStyle(row).outlineStyle, 'none', 'an unfocused row draws no outline');
 
         row.querySelector('button').focus();
 
         const focused = getComputedStyle(row);
         assert.strictEqual(focused.outlineStyle, 'solid', 'the keyboard focus is shown');
-        assert.notInclude(focused.outlineColor, '255, 255, 255', 'and not as white on white');
+        assert.notInclude(
+            focused.outlineColor,
+            '255, 255, 255',
+            'the focus outline is not white, which would not show on a white row',
+        );
         assert.notStrictEqual(focused.outlineOffset, '0px', 'set off, so the page shows through the gap');
     });
 });
@@ -860,7 +980,11 @@ describe('Select enter key inside a form', () => {
         enter(selectEl, 'NumpadEnter');
         await settle();
 
-        assert.strictEqual(submits.length, 1);
+        assert.strictEqual(
+            submits.length,
+            1,
+            'Enter with the dropdown closed submits the enclosing form, from the numpad key too',
+        );
     });
 
     it('accepts the highlighted option instead of submitting when the dropdown is open', async () => {
@@ -901,7 +1025,7 @@ describe('Select enter key inside a form', () => {
         enter(selectEl);
         await settle();
 
-        assert.strictEqual(submits.length, 0);
+        assert.strictEqual(submits.length, 0, 'Enter outside a form has nothing to submit');
     });
 });
 
@@ -919,18 +1043,21 @@ describe('Select selection removal', () => {
         click(badges(selectEl)[1]);
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k3'], 'the clicked badge is the one removed');
-        assert.strictEqual(changes.length, 1);
+        assert.strictEqual(changes.length, 1, 'removing a badge dispatches one change');
         assert.deepStrictEqual(
             changes[0].map((v) => v.key),
             ['k1', 'k3'],
+            'the change detail carries the entries left after the removal',
         );
         assert.deepStrictEqual(
             badges(selectEl).map((b) => b.innerText),
             ['Label k1', 'Label k3'],
+            'the remaining badges show the labels of the remaining entries',
         );
         assert.deepStrictEqual(
             items(selectEl).map((i) => i.getAttribute('data-key')),
             ['k1', 'k3'],
+            'the item list follows the selection',
         );
     });
 
@@ -946,7 +1073,11 @@ describe('Select selection removal', () => {
 
         click(badges(selectEl)[1]);
 
-        assert.deepStrictEqual(seen, [{ badges: ['k1', 'k3'], items: ['k1', 'k3'] }]);
+        assert.deepStrictEqual(
+            seen,
+            [{ badges: ['k1', 'k3'], items: ['k1', 'k3'] }],
+            'the change listener sees the badges and items already updated to the new selection',
+        );
     });
 
     it('drops the entry whose item remove button was clicked', async () => {
@@ -956,19 +1087,26 @@ describe('Select selection removal', () => {
 
         click(items(selectEl)[2].querySelector('button'));
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.strictEqual(changes.length, 1);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k1', 'k2'],
+            'the entry whose remove button was clicked is dropped and the others are kept',
+        );
+        assert.strictEqual(changes.length, 1, 'removing an item dispatches one change');
         assert.deepStrictEqual(
             changes[0].map((v) => v.key),
             ['k1', 'k2'],
+            'the change detail carries the entries left after the removal',
         );
         assert.deepStrictEqual(
             items(selectEl).map((i) => i.getAttribute('data-key')),
             ['k1', 'k2'],
+            'the item list follows the selection',
         );
         assert.deepStrictEqual(
             badges(selectEl).map((b) => b.innerText),
             ['Label k1', 'Label k2'],
+            'the badges follow the selection',
         );
     });
 
@@ -993,10 +1131,11 @@ describe('Select selection removal', () => {
 
         click(items(selectEl)[0].querySelector('button'));
 
-        assert.deepStrictEqual(selectEl.value, ['k2']);
+        assert.deepStrictEqual(selectEl.value, ['k2'], 'the remove button in the slotted template drops its entry');
         assert.deepStrictEqual(
             items(selectEl).map((i) => i.querySelector('em')?.textContent),
             ['Label k2'],
+            'the slotted template renders the remaining entry',
         );
     });
 
@@ -1008,8 +1147,12 @@ describe('Select selection removal', () => {
         click(selectEl.querySelector('ful-control'));
         click(items(selectEl)[0].querySelector('div'));
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.deepStrictEqual(changes, []);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k1', 'k2'],
+            'a click on the control or on an item outside its remove button removes no entry',
+        );
+        assert.deepStrictEqual(changes, [], 'a click that removes nothing dispatches no change');
     });
 
     it('keeps the selection when a disabled select is clicked', async () => {
@@ -1021,8 +1164,12 @@ describe('Select selection removal', () => {
         click(badges(selectEl)[0]);
         click(items(selectEl)[0].querySelector('button'));
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.deepStrictEqual(changes, []);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k1', 'k2'],
+            'a disabled select keeps its selection when a badge or a remove button is clicked',
+        );
+        assert.deepStrictEqual(changes, [], 'a disabled select dispatches no change');
     });
 
     it('keeps the selection when a readonly select is clicked', async () => {
@@ -1034,8 +1181,12 @@ describe('Select selection removal', () => {
         click(badges(selectEl)[0]);
         click(items(selectEl)[0].querySelector('button'));
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.deepStrictEqual(changes, []);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k1', 'k2'],
+            'a readonly select keeps its selection when a badge or a remove button is clicked',
+        );
+        assert.deepStrictEqual(changes, [], 'a readonly select dispatches no change');
     });
 
     it('keeps the selection when a claim lands while the dropdown is open on a pick', async () => {
@@ -1053,7 +1204,7 @@ describe('Select selection removal', () => {
         );
 
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the pick is not applied');
-        assert.deepStrictEqual(changes, []);
+        assert.deepStrictEqual(changes, [], 'a pick refused by a claim dispatches no change');
         assert.isFalse(dropdown.shown, 'the leftover dropdown is closed');
     });
 
@@ -1066,10 +1217,10 @@ describe('Select selection removal', () => {
 
         input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', bubbles: true }));
 
-        assert.isNull(selectEl.value);
+        assert.isNull(selectEl.value, 'Backspace at the start of a single select clears its selection');
         assert.deepStrictEqual(changes, [null], 'a single select reports no selection as null');
-        assert.deepStrictEqual(badges(selectEl), []);
-        assert.strictEqual(input.value, '');
+        assert.deepStrictEqual(badges(selectEl), [], 'a single select carries no badges');
+        assert.strictEqual(input.value, '', 'the field is emptied along with the selection');
     });
 });
 
@@ -1078,9 +1229,9 @@ describe('Select chips and picked options', () => {
 
     it('marks the picked options selected, leaving the highlight to activedescendant', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1"></ful-select>`);
-        selectEl.querySelector('input').dispatchEvent(
-            new KeyboardEvent('keydown', { code: 'ArrowDown', altKey: true, bubbles: true }),
-        );
+        selectEl
+            .querySelector('input')
+            .dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', altKey: true, bubbles: true }));
         await settle();
 
         const picked = [...selectEl.querySelectorAll('menu li')].filter(
@@ -1097,7 +1248,7 @@ describe('Select chips and picked options', () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`);
 
         const chips = [...selectEl.querySelectorAll('ful-badge')];
-        assert.lengthOf(chips, 2);
+        assert.lengthOf(chips, 2, 'each selected key has its chip');
         assert.deepStrictEqual(
             chips.map((c) => c.getAttribute('tabindex')),
             ['0', '-1'],
@@ -1123,10 +1274,10 @@ describe('Select chips keyboard access', () => {
         assert.strictEqual(document.activeElement, second, 'the caret hands over to the last chip');
 
         keydown(document.activeElement, 'ArrowLeft');
-        assert.strictEqual(document.activeElement, first);
+        assert.strictEqual(document.activeElement, first, 'ArrowLeft on a chip moves the focus to the previous chip');
 
         keydown(document.activeElement, 'ArrowRight');
-        assert.strictEqual(document.activeElement, second);
+        assert.strictEqual(document.activeElement, second, 'ArrowRight on a chip moves the focus to the next chip');
 
         keydown(document.activeElement, 'ArrowRight');
         assert.strictEqual(document.activeElement, input, 'past the last chip the field takes over');
@@ -1140,18 +1291,27 @@ describe('Select chips keyboard access', () => {
 
         second.focus();
         keydown(second, 'Enter');
-        assert.deepStrictEqual(selectEl.value, ['k1']);
+        assert.deepStrictEqual(selectEl.value, ['k1'], 'Enter on a focused chip removes its entry');
         assert.deepStrictEqual(
             changes[0].map((v) => v.key),
             ['k1'],
+            'the change detail carries the entries left after the removal',
         );
-        assert.strictEqual(document.activeElement, selectEl.querySelector('input'));
+        assert.strictEqual(
+            document.activeElement,
+            selectEl.querySelector('input'),
+            'removing a chip returns the focus to the field',
+        );
 
         const survivor = selectEl.querySelector('ful-control > ful-badge');
         survivor.focus();
         keydown(survivor, 'Delete');
         assert.deepStrictEqual(selectEl.value, [], 'the last chip goes too');
-        assert.strictEqual(document.activeElement, selectEl.querySelector('input'));
+        assert.strictEqual(
+            document.activeElement,
+            selectEl.querySelector('input'),
+            'removing the last chip returns the focus to the field',
+        );
     });
 
     it('returns to the field from a chip on Escape, removing nothing', async () => {
@@ -1163,9 +1323,13 @@ describe('Select chips keyboard access', () => {
         badge.focus();
         keydown(badge, 'Escape');
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.deepStrictEqual(changes, []);
-        assert.strictEqual(document.activeElement, selectEl.querySelector('input'));
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'Escape on a chip removes nothing');
+        assert.deepStrictEqual(changes, [], 'Escape on a chip dispatches no change');
+        assert.strictEqual(
+            document.activeElement,
+            selectEl.querySelector('input'),
+            'Escape on a chip returns the focus to the field',
+        );
     });
 
     it('leaves a readonly select alone', async () => {
@@ -1176,7 +1340,7 @@ describe('Select chips keyboard access', () => {
         badge.focus();
         keydown(badge, 'Enter');
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'Enter on a chip of a readonly select removes nothing');
     });
 });
 
@@ -1198,10 +1362,12 @@ describe('Select backspace', () => {
         assert.deepStrictEqual(
             changes[0].map((v) => v.key),
             ['k1'],
+            'the change detail carries the entries left after the removal',
         );
         assert.deepStrictEqual(
             [...selectEl.querySelectorAll('ful-control > ful-badge')].map((b) => b.innerText),
             ['Label k1'],
+            'the badges follow the selection',
         );
     });
 
@@ -1216,7 +1382,7 @@ describe('Select backspace', () => {
         backspace(input);
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'backspace belongs to the text being typed');
-        assert.deepStrictEqual(changes, []);
+        assert.deepStrictEqual(changes, [], 'a Backspace that edits the typed text dispatches no change');
     });
 
     it('leaves the selection alone while text is selected from the start', async () => {
@@ -1230,7 +1396,7 @@ describe('Select backspace', () => {
         backspace(input);
 
         assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'backspace deletes the highlighted text');
-        assert.deepStrictEqual(changes, []);
+        assert.deepStrictEqual(changes, [], 'a Backspace that deletes the selected text dispatches no change');
     });
 
     it('does not fire a change when there is nothing to remove', async () => {
@@ -1242,8 +1408,8 @@ describe('Select backspace', () => {
 
         backspace(input);
 
-        assert.deepStrictEqual(selectEl.value, []);
-        assert.deepStrictEqual(changes, []);
+        assert.deepStrictEqual(selectEl.value, [], 'an empty selection stays empty');
+        assert.deepStrictEqual(changes, [], 'a Backspace with nothing to remove dispatches no change');
     });
 
     it('ignores backspace on a readonly select', async () => {
@@ -1254,7 +1420,11 @@ describe('Select backspace', () => {
 
         backspace(input);
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k1', 'k2'],
+            'Backspace at the start of a readonly select removes nothing',
+        );
     });
 });
 
@@ -1267,13 +1437,13 @@ describe('Select blur', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
         input.value = 'typed';
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'the dropdown is open before the blur');
 
         input.dispatchEvent(new FocusEvent('blur'));
 
         assert.strictEqual(input.value, '', 'a half typed needle is not kept around');
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false', 'blur marks the combobox collapsed');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'blur closes the dropdown');
     });
 
     it('stays open when focus moves to something inside the select', async () => {
@@ -1286,8 +1456,15 @@ describe('Select blur', () => {
         input.dispatchEvent(new FocusEvent('blur', { relatedTarget: selectEl.querySelector('menu') }));
 
         assert.strictEqual(input.value, 'typed', 'clicking an option must not wipe the needle first');
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'true',
+            'focus moving inside the select keeps the combobox expanded',
+        );
+        assert.isTrue(
+            selectEl.querySelector('ful-dropdown').shown,
+            'focus moving inside the select keeps the dropdown open',
+        );
     });
 
     it('does not let a throttled search reopen the dropdown after blur', async () => {
@@ -1304,8 +1481,15 @@ describe('Select blur', () => {
             await clock.advance(450);
             await settle();
 
-            assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-            assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+            assert.isFalse(
+                selectEl.querySelector('ful-dropdown').shown,
+                'a throttled search that fires after the blur does not reopen the dropdown',
+            );
+            assert.strictEqual(
+                input.getAttribute('aria-expanded'),
+                'false',
+                'the combobox stays collapsed after the throttled search fires',
+            );
         } finally {
             clock.uninstall();
         }
@@ -1343,29 +1527,38 @@ describe('Select loader access and entries', () => {
         assert.deepStrictEqual(
             [...selectEl.querySelectorAll('menu li')].map((li) => li.textContent.trim()),
             ['Nine'],
+            'the next open lists the options the loader was updated with',
         );
     });
 
     it('reports label and metadata through entry, keys through value', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1,k2"></ful-select>`, described());
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.deepStrictEqual(selectEl.entry, [
-            { key: 'k1', label: 'Label k1', metadata: { id: 'k1' } },
-            { key: 'k2', label: 'Label k2', metadata: { id: 'k2' } },
-        ]);
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'value answers the selected keys');
+        assert.deepStrictEqual(
+            selectEl.entry,
+            [
+                { key: 'k1', label: 'Label k1', metadata: { id: 'k1' } },
+                { key: 'k2', label: 'Label k2', metadata: { id: 'k2' } },
+            ],
+            'entry answers the selected entries with the labels and metadata the loader gave',
+        );
     });
 
     it('reports the one entry of a single select, and null when it has none', async () => {
         const [selectEl] = await mount(`<ful-select value="k1"></ful-select>`, described());
 
-        assert.deepStrictEqual(selectEl.entry, { key: 'k1', label: 'Label k1', metadata: { id: 'k1' } });
+        assert.deepStrictEqual(
+            selectEl.entry,
+            { key: 'k1', label: 'Label k1', metadata: { id: 'k1' } },
+            'a single select answers its one entry, metadata included',
+        );
 
         selectEl.value = null;
         await settle();
 
-        assert.isNull(selectEl.entry);
-        assert.isNull(selectEl.value);
+        assert.isNull(selectEl.entry, 'a single select with no selection answers a null entry');
+        assert.isNull(selectEl.value, 'a single select with no selection answers a null value');
     });
 });
 
@@ -1388,13 +1581,21 @@ describe('Select edits made while a lookup is in flight', () => {
             await Rendering.waitFor(selectEl);
 
             selectEl.querySelectorAll('ful-badge')[1].dispatchEvent(new Event('click', { bubbles: true }));
-            assert.deepStrictEqual(selectEl.value, ['k1']);
+            assert.deepStrictEqual(
+                selectEl.value,
+                ['k1'],
+                'removing a badge takes effect at once, before the lookup answers',
+            );
 
             await clock.advance(120);
             await settle();
 
             assert.deepStrictEqual(selectEl.value, ['k1'], 'the lookup must not undo the removal');
-            assert.strictEqual(selectEl.querySelector('ful-badge').innerText, 'Label k1', 'the survivor is still labelled');
+            assert.strictEqual(
+                selectEl.querySelector('ful-badge').innerText,
+                'Label k1',
+                'the survivor is still labelled',
+            );
         } finally {
             clock.uninstall();
         }
@@ -1411,24 +1612,36 @@ describe('Select Tab and custom validity', () => {
         const input = selectEl.querySelector('input');
         input.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
-        assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 1');
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'true', 'the dropdown is open before the Tab');
+        assert.strictEqual(
+            selectEl.querySelector('menu li[selected]').textContent.trim(),
+            'Label 1',
+            'the first option is highlighted before the Tab',
+        );
 
         keydown(input, 'Tab');
 
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        assert.isNull(selectEl.value);
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false', 'Tab marks the combobox collapsed');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'Tab closes the dropdown');
+        assert.isNull(selectEl.value, 'Tab leaves the highlighted option unpicked');
     });
 
     it('clears the field error when the custom validity is reset', async () => {
         const [selectEl] = await mountSelect(`<ful-select>labels</ful-select>`, labelling([]));
 
         selectEl.setCustomValidity('nope');
-        assert.strictEqual(selectEl.querySelector('ful-field-error').innerText, 'nope');
+        assert.strictEqual(
+            selectEl.querySelector('ful-field-error').innerText,
+            'nope',
+            'a custom validity message is shown in the field error',
+        );
 
         selectEl.setCustomValidity();
-        assert.strictEqual(selectEl.querySelector('ful-field-error').innerText, '');
+        assert.strictEqual(
+            selectEl.querySelector('ful-field-error').innerText,
+            '',
+            'resetting the custom validity empties the field error',
+        );
     });
 });
 
@@ -1451,9 +1664,9 @@ describe('Select pointer picking', () => {
         selectEl.querySelectorAll('menu li')[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
         assert.strictEqual(selectEl.value, 'k2', 'the clicked option is the picked one');
-        assert.strictEqual(input.value, 'Label 2');
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+        assert.strictEqual(input.value, 'Label 2', 'the field shows the label of the clicked option');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'a pick closes the dropdown');
+        assert.strictEqual(input.getAttribute('aria-expanded'), 'false', 'a pick marks the combobox collapsed');
     });
 
     it('closes without picking when the blank area of the menu is clicked', async () => {
@@ -1463,8 +1676,11 @@ describe('Select pointer picking', () => {
 
         selectEl.querySelector('menu').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        assert.isNull(selectEl.value);
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.isNull(selectEl.value, 'a click on the blank area of the menu picks nothing');
+        assert.isFalse(
+            selectEl.querySelector('ful-dropdown').shown,
+            'a click on the blank area of the menu closes the dropdown',
+        );
     });
 });
 
@@ -1481,9 +1697,17 @@ describe('Select dropdown opening', () => {
         keydown(input, 'ArrowDown');
         await opened();
 
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(input.getAttribute('aria-expanded'), 'true');
-        assert.strictEqual(selectEl.querySelector('menu li[selected]').textContent.trim(), 'Label 1');
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'a plain ArrowDown opens the dropdown');
+        assert.strictEqual(
+            input.getAttribute('aria-expanded'),
+            'true',
+            'the open dropdown marks the combobox expanded',
+        );
+        assert.strictEqual(
+            selectEl.querySelector('menu li[selected]').textContent.trim(),
+            'Label 1',
+            'the list opens with the current selection highlighted',
+        );
     });
 
     it('closes on Escape, bringing the label of the selection back', async () => {
@@ -1495,7 +1719,7 @@ describe('Select dropdown opening', () => {
 
         keydown(input, 'Escape');
 
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'Escape closes the dropdown');
         assert.strictEqual(input.value, 'Label k1', 'escaping an edit restores the resolved label');
     });
 
@@ -1506,8 +1730,12 @@ describe('Select dropdown opening', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
-        assert.strictEqual(selectEl.querySelector('input').getAttribute('aria-expanded'), 'false');
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'a disabled select does not open on click');
+        assert.strictEqual(
+            selectEl.querySelector('input').getAttribute('aria-expanded'),
+            'false',
+            'a disabled select keeps the combobox collapsed',
+        );
     });
 
     it('does not open when a readonly select is clicked', async () => {
@@ -1517,7 +1745,7 @@ describe('Select dropdown opening', () => {
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'a readonly select does not open on click');
     });
 
     it('leaves a click on another control inside it to that control', async () => {
@@ -1533,7 +1761,11 @@ describe('Select dropdown opening', () => {
             selectEl.querySelector('ful-dropdown').shown,
             'reading the note beside a select should not drop the dropdown over it',
         );
-        assert.notStrictEqual(document.activeElement, selectEl.querySelector('input'));
+        assert.notStrictEqual(
+            document.activeElement,
+            selectEl.querySelector('input'),
+            'a click on the tooltip leaves the focus away from the combobox',
+        );
     });
 
     it('still opens when its own control group is clicked', async () => {
@@ -1541,12 +1773,10 @@ describe('Select dropdown opening', () => {
             `<ful-select value="k1">pick<ful-tooltip slot="info">a note</ful-tooltip></ful-select>`,
         );
 
-        selectEl
-            .querySelector('ful-control-group')
-            .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        selectEl.querySelector('ful-control-group').dispatchEvent(new MouseEvent('click', { bubbles: true }));
         await opened();
 
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'a click on the control group opens the dropdown');
     });
 });
 
@@ -1560,7 +1790,7 @@ describe('Select inner control isolation', () => {
 
         selectEl.querySelector('input').dispatchEvent(new Event('change', { bubbles: true }));
 
-        assert.deepStrictEqual(seen, [], 'only the element announces changes, with tuple details');
+        assert.deepStrictEqual(seen, [], 'the change of the inner input is not dispatched as a change of the select');
     });
 
     it('ignores typing on a disabled select', async () => {
@@ -1587,7 +1817,7 @@ describe('Select inner control isolation', () => {
         input.dispatchEvent(new FocusEvent('focus'));
 
         assert.strictEqual(input.selectionStart, 2, 'refocusing mid-edit must not select the whole needle');
-        assert.strictEqual(input.selectionEnd, 2);
+        assert.strictEqual(input.selectionEnd, 2, 'refocusing mid-edit leaves the selection collapsed at the caret');
     });
 });
 
@@ -1606,8 +1836,12 @@ describe('Select stray clicks', () => {
 
         stray.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.deepStrictEqual(seen, []);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k1', 'k2'],
+            'a badge that is not a direct child of the control is not a selection chip, so no entry is removed',
+        );
+        assert.deepStrictEqual(seen, [], 'a click on a stray badge dispatches no change');
     });
 
     it('removes nothing when a button outside any item is clicked in the item list', async () => {
@@ -1621,8 +1855,8 @@ describe('Select stray clicks', () => {
 
         stray.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
-        assert.deepStrictEqual(seen, []);
+        assert.deepStrictEqual(selectEl.value, ['k1', 'k2'], 'a button that is not inside an item removes no entry');
+        assert.deepStrictEqual(seen, [], 'a click on a stray button dispatches no change');
     });
 });
 
@@ -1681,7 +1915,10 @@ describe('Select failed searches', () => {
         }
 
         assert.isAbove(rejections.length, rejectionsBefore, 'the retried search failed again, as configured');
-        assert.isTrue(rejections.some((r) => String(r?.message ?? r).includes('search backend down')));
+        assert.isTrue(
+            rejections.some((r) => String(r?.message ?? r).includes('search backend down')),
+            'the reported rejection carries the error the loader threw',
+        );
     });
 });
 
@@ -1693,7 +1930,11 @@ describe('Select focus and key coercion gaps', () => {
 
         selectEl.focus();
 
-        assert.strictEqual(document.activeElement, selectEl.querySelector('input'));
+        assert.strictEqual(
+            document.activeElement,
+            selectEl.querySelector('input'),
+            'focusing the select moves the focus to its combobox',
+        );
     });
 
     it('coerces false and keeps undecodable keys when k-type is boolean', async () => {
@@ -1704,9 +1945,7 @@ describe('Select focus and key coercion gaps', () => {
                 [false, 'No'],
             ],
             exact: async (...keys) =>
-                [true, false]
-                    .filter((r) => keys.some((k) => r == k))
-                    .map((r) => ({ key: r, label: r ? 'Yes' : 'No' })),
+                [true, false].filter((r) => keys.some((k) => r == k)).map((r) => ({ key: r, label: r ? 'Yes' : 'No' })),
         };
         const [selectEl, container] = await mount(
             `<ful-select k-type="boolean" value="false">pick</ful-select>`,
@@ -1714,7 +1953,11 @@ describe('Select focus and key coercion gaps', () => {
         );
 
         assert.strictEqual(selectEl.value, false, 'the string token decodes to the boolean');
-        assert.strictEqual(selectEl.querySelector('input').value, 'No');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'No',
+            'the decoded false key is labelled by the loader',
+        );
         container.remove();
 
         const [undecodable] = await mount(
@@ -1737,6 +1980,7 @@ describe('Select focus and key coercion gaps', () => {
         assert.deepStrictEqual(
             [...selectEl.querySelectorAll('ful-control > ful-badge')].map((b) => b.innerText),
             ['Label k1'],
+            'the badges show only the keys the loader answered',
         );
     });
 });
@@ -1790,14 +2034,21 @@ describe('Select stale searches', () => {
 
         const dropdown = selectEl.querySelector('ful-dropdown');
         assert.isTrue(dropdown.shown, 'the newest open owns the dropdown');
-        assert.match(dropdown.querySelector('menu').textContent, /fast/);
+        assert.match(
+            dropdown.querySelector('menu').textContent,
+            /fast/,
+            'the dropdown lists the options of the newest open',
+        );
         assert.notMatch(dropdown.querySelector('menu').textContent, /slow/, 'the stale search renders nothing');
         assert.strictEqual(
             input.getAttribute('aria-activedescendant'),
             activeDescendant,
             'the stale search highlights nothing',
         );
-        assert.isTrue(dropdown.querySelector('ful-spinner').hasAttribute('hidden'));
+        assert.isTrue(
+            dropdown.querySelector('ful-spinner').hasAttribute('hidden'),
+            'the spinner is hidden once the newest search has rendered',
+        );
     });
 
     it('discards a search failing after a newer open, without hiding it nor reporting the failure', async () => {
@@ -1815,7 +2066,11 @@ describe('Select stale searches', () => {
 
         const dropdown = selectEl.querySelector('ful-dropdown');
         assert.isTrue(dropdown.shown, 'a superseded failure must not hide the newer open');
-        assert.match(dropdown.querySelector('menu').textContent, /fast/);
+        assert.match(
+            dropdown.querySelector('menu').textContent,
+            /fast/,
+            'the dropdown keeps the options of the newest open',
+        );
         assert.strictEqual(rejections.length, rejectionsBefore, 'a superseded failure is not reported');
     });
 
@@ -1828,7 +2083,7 @@ describe('Select stale searches', () => {
         await settle();
 
         const dropdown = selectEl.querySelector('ful-dropdown');
-        assert.isFalse(dropdown.shown);
+        assert.isFalse(dropdown.shown, 'a search landing after the blur does not reopen the dropdown');
         assert.isTrue(dropdown.querySelector('menu').hasAttribute('hidden'), 'the late search renders no options');
         assert.isNull(
             input.getAttribute('aria-activedescendant'),
@@ -1902,7 +2157,11 @@ describe('Select attributes during the async render window', () => {
         await settle();
 
         assert.strictEqual(selectEl.value, 'k1', 'the live attribute wins over the pre-prefetch snapshot');
-        assert.strictEqual(selectEl.querySelector('input').value, 'Label k1');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Label k1',
+            'the label is resolved for the live value',
+        );
     });
 
     it('survives a form reset while the prefetch is in flight', async () => {
@@ -1914,7 +2173,7 @@ describe('Select attributes during the async render window', () => {
         await settle();
 
         assert.deepStrictEqual(uncaught, [], 'the reset does not crash the unrendered field');
-        assert.isNull(selectEl.value);
+        assert.isNull(selectEl.value, 'a reset during the prefetch leaves the select empty');
     });
 });
 
@@ -1943,9 +2202,13 @@ describe('Disabled options', () => {
         const [locked, free, sealed] = selectEl.querySelectorAll('menu li');
         assert.strictEqual(locked.getAttribute('aria-disabled'), 'true', 'metadata.disabled refuses the entry');
         assert.strictEqual(locked.getAttribute('title'), 'it has children', 'metadata.reason says why');
-        assert.isFalse(free.hasAttribute('aria-disabled'));
-        assert.strictEqual(sealed.getAttribute('aria-disabled'), 'true');
-        assert.isFalse(sealed.hasAttribute('title'), 'no reason, no title');
+        assert.isFalse(free.hasAttribute('aria-disabled'), 'an entry without metadata.disabled is not marked disabled');
+        assert.strictEqual(
+            sealed.getAttribute('aria-disabled'),
+            'true',
+            'every entry whose metadata.disabled is truthy is marked disabled',
+        );
+        assert.isFalse(sealed.hasAttribute('title'), 'a disabled entry without metadata.reason gets no title');
     });
 
     it('reports a refused row as disabled to a reader and to the stylesheet', async () => {
@@ -1955,8 +2218,11 @@ describe('Disabled options', () => {
         await settle();
 
         const [locked, free] = selectEl.querySelectorAll('menu li');
-        assert.isTrue(locked.matches('[aria-disabled="true"]'), 'the row the stylesheet mutes');
-        assert.isFalse(free.matches('[aria-disabled="true"]'));
+        assert.isTrue(
+            locked.matches('[aria-disabled="true"]'),
+            'a row whose metadata.disabled is truthy matches the selector the stylesheet mutes',
+        );
+        assert.isFalse(free.matches('[aria-disabled="true"]'), 'an enabled row does not match the muted selector');
         assert.notStrictEqual(
             getComputedStyle(locked).color,
             getComputedStyle(free).color,
@@ -1972,7 +2238,11 @@ describe('Disabled options', () => {
         await settle();
         const highlighted = () => selectEl.querySelector('menu li[selected]')?.textContent.trim();
 
-        assert.strictEqual(highlighted(), 'Free', 'the first enabled option, not the first row');
+        assert.strictEqual(
+            highlighted(),
+            'Free',
+            'the list opens highlighting the first enabled option, not the disabled first row',
+        );
 
         keydown(input, 'ArrowUp');
         assert.strictEqual(highlighted(), 'Free', 'backwards stops before the disabled first row');
@@ -2003,7 +2273,7 @@ describe('Disabled options', () => {
         const [locked, free] = selectEl.querySelectorAll('menu li');
         const menu = selectEl.querySelector('menu');
         assert.isTrue(press(locked), 'a refused entry would otherwise strand the focus on the menu');
-        assert.isTrue(press(free), 'and an enabled one moves it just the same');
+        assert.isTrue(press(free), 'pressing an enabled entry is refused as well, so the combobox keeps the focus');
         assert.isFalse(press(menu), 'the menu itself is left alone, so its scrollbar still drags');
     });
 
@@ -2018,12 +2288,12 @@ describe('Disabled options', () => {
         locked.click();
         await settle();
         assert.isTrue(dropdown.shown, 'a refused row leaves the dropdown open');
-        assert.strictEqual(selectEl.value, null, 'and the selection alone');
+        assert.strictEqual(selectEl.value, null, 'a refused row leaves the selection unchanged');
 
         free.click();
         await settle();
-        assert.isFalse(dropdown.shown);
-        assert.strictEqual(selectEl.value, 'free');
+        assert.isFalse(dropdown.shown, 'a click on an enabled row closes the dropdown');
+        assert.strictEqual(selectEl.value, 'free', 'a click on an enabled row picks it');
     });
 });
 
@@ -2141,7 +2411,7 @@ describe('Clearing a single select', () => {
         await press(input, 'ArrowDown', { altKey: true });
 
         assert.strictEqual(input.value, 'Alpha', 'a select showing nothing reads as an empty one');
-        assert.strictEqual(el.value, 'k1');
+        assert.strictEqual(el.value, 'k1', 'opening the dropdown keeps the selected key');
     });
 
     it('commits an emptied box as a clear when the field is left', async () => {
@@ -2152,8 +2422,8 @@ describe('Clearing a single select', () => {
         await typing(input, '');
         await press(input, 'Tab');
 
-        assert.isNull(el.value);
-        assert.strictEqual(input.value, '');
+        assert.isNull(el.value, 'leaving an emptied single select clears its selection');
+        assert.strictEqual(input.value, '', 'the cleared select shows an empty field');
     });
 
     it('reverts an emptied box when the edit is cancelled', async () => {
@@ -2164,8 +2434,8 @@ describe('Clearing a single select', () => {
         await typing(input, '');
         await press(input, 'Escape');
 
-        assert.strictEqual(el.value, 'k1');
-        assert.strictEqual(input.value, 'Alpha');
+        assert.strictEqual(el.value, 'k1', 'Escape after emptying the field keeps the selected key');
+        assert.strictEqual(input.value, 'Alpha', 'Escape after emptying the field restores the label of the selection');
     });
 
     it('reverts a search that matched nothing, rather than clearing', async () => {
@@ -2176,8 +2446,16 @@ describe('Clearing a single select', () => {
         await typing(input, 'Alp');
         await press(input, 'Tab');
 
-        assert.strictEqual(el.value, 'k1');
-        assert.strictEqual(input.value, 'Alpha');
+        assert.strictEqual(
+            el.value,
+            'k1',
+            'leaving the field after a search that picked nothing keeps the selected key',
+        );
+        assert.strictEqual(
+            input.value,
+            'Alpha',
+            'leaving the field after a search that picked nothing restores the label of the selection',
+        );
     });
 
     it('keeps the value when the field is left untouched', async () => {
@@ -2187,25 +2465,33 @@ describe('Clearing a single select', () => {
         input.focus();
         await press(input, 'Tab');
 
-        assert.strictEqual(el.value, 'k1');
+        assert.strictEqual(el.value, 'k1', 'leaving an untouched field keeps the selected key');
     });
 
     it('reads a present but empty value attribute as the empty key', async () => {
         const [el] = await mount('<ful-select value="">pick</ful-select>');
-        assert.strictEqual(el.value, '', 'the empty key, not no selection');
+        assert.strictEqual(
+            el.value,
+            '',
+            'a present but empty value attribute is the empty key, not an absent selection',
+        );
         await settle();
-        assert.strictEqual(el.querySelector('input').value, 'None');
+        assert.strictEqual(
+            el.querySelector('input').value,
+            'None',
+            'the empty key is labelled by the option carrying it',
+        );
     });
 
     it('an absent value attribute stays no selection', async () => {
         const [el] = await mount('<ful-select>pick</ful-select>');
-        assert.strictEqual(el.value, null);
-        assert.strictEqual(el.querySelector('input').value, '');
+        assert.strictEqual(el.value, null, 'without a value attribute a single select has no selection');
+        assert.strictEqual(el.querySelector('input').value, '', 'without a selection the field is empty');
     });
 
     it('a multiple select reads an empty value attribute as no keys', async () => {
         const [el] = await mount('<ful-select multiple value="">pick</ful-select>');
-        assert.deepStrictEqual(el.value, []);
+        assert.deepStrictEqual(el.value, [], 'a multiple select reads an empty value attribute as no keys');
     });
 
     it('does not read a multiple select, whose box is empty by design, as a clear', async () => {
@@ -2215,6 +2501,10 @@ describe('Clearing a single select', () => {
         input.focus();
         await press(input, 'Tab');
 
-        assert.deepEqual(el.value, ['k1', 'k2']);
+        assert.deepEqual(
+            el.value,
+            ['k1', 'k2'],
+            'the empty input of a multiple select is not read as a clear when the field is left',
+        );
     });
 });

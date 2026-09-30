@@ -24,12 +24,12 @@ describe('Checkbox toggling', () => {
         const [el, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         label.click();
-        assert.isTrue(el.value, 'first click checks');
+        assert.isTrue(el.value, 'a click on the label, bound to the input by for and id, checks the box');
         assert.isTrue(input.checked, 'the inner input follows the value');
 
         label.click();
-        assert.isFalse(el.value, 'second click unchecks');
-        assert.isFalse(input.checked);
+        assert.isFalse(el.value, 'a second click on the label unchecks the box');
+        assert.isFalse(input.checked, 'the inner input follows the value back to unchecked');
     });
 
     it('announces each toggle with a single bubbling change carrying the new value', async () => {
@@ -40,7 +40,7 @@ describe('Checkbox toggling', () => {
 
         assert.lengthOf(seen, 1, 'exactly one change per toggle');
         assert.strictEqual(seen[0].target, el, 'the host is the source, not the inner input');
-        assert.deepStrictEqual(seen[0].detail, { value: true });
+        assert.deepStrictEqual(seen[0].detail, { value: true }, 'the change detail carries the new value');
     });
 
     it('republishes the inner input change as its own, so listeners never see it twice', async () => {
@@ -51,8 +51,12 @@ describe('Checkbox toggling', () => {
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
         assert.lengthOf(seen, 1, 'the inner change must be stopped and replaced, not forwarded too');
-        assert.strictEqual(seen[0].target, el);
-        assert.deepStrictEqual(seen[0].detail, { value: true });
+        assert.strictEqual(seen[0].target, el, 'the republished change comes from the host, not from the inner input');
+        assert.deepStrictEqual(
+            seen[0].detail,
+            { value: true },
+            'the republished change carries the new value in its detail',
+        );
     });
 
     it('ignores label clicks while readonly', async () => {
@@ -74,8 +78,8 @@ describe('Checkbox toggling', () => {
 
         label.click();
 
-        assert.isFalse(el.value);
-        assert.lengthOf(seen, 0);
+        assert.isFalse(el.value, 'a click on the label of a disabled checkbox does not toggle it');
+        assert.lengthOf(seen, 0, 'a disabled checkbox announces no change');
     });
 });
 
@@ -85,7 +89,7 @@ describe('Checkbox value', () => {
         assert.isTrue(input.checked, 'value:bool checks the box at render');
 
         el.value = false;
-        assert.isFalse(input.checked);
+        assert.isFalse(input.checked, 'writing false to the value unchecks the inner input');
 
         input.checked = true;
         assert.isTrue(el.value, 'the input is the single source of truth');
@@ -95,10 +99,13 @@ describe('Checkbox value', () => {
         const [el, , input] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         el.setAttribute('value', 'true');
-        assert.isTrue(input.checked);
+        assert.isTrue(input.checked, 'a later value attribute of true checks the box');
 
         el.setAttribute('value', 'false');
-        assert.isFalse(input.checked);
+        assert.isFalse(
+            input.checked,
+            'a later value attribute of false unchecks it, only the text true meaning checked',
+        );
     });
 });
 
@@ -110,15 +117,18 @@ describe('Checkbox states', () => {
 
         assert.isFalse(box.inert, 'inert would take the whole choice out of the accessibility tree');
         assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the claim is announced instead');
-        assert.isTrue(el.readonly);
+        assert.isTrue(el.readonly, 'the readonly attribute is read into the readonly property');
         assert.isFalse(input.hasAttribute('disabled'), 'a disabled input would drop the value on submit');
 
         input.click();
         assert.isTrue(el.value, 'a click on a readonly checkbox does not toggle it');
 
         el.removeAttribute('readonly');
-        assert.isFalse(el.readonly);
-        assert.isNull(input.getAttribute('aria-readonly'));
+        assert.isFalse(el.readonly, 'removing the readonly attribute lifts the readonly property');
+        assert.isNull(
+            input.getAttribute('aria-readonly'),
+            'aria-readonly is removed from the input once the claim is lifted',
+        );
         input.click();
         assert.isFalse(el.value, 'and it toggles again once the claim is lifted');
     });
@@ -129,14 +139,17 @@ describe('Checkbox states', () => {
         el.readonly = true;
         el.required = true;
 
-        assert.isTrue(el.hasAttribute('readonly'));
-        assert.isTrue(el.hasAttribute('required'));
+        assert.isTrue(el.hasAttribute('readonly'), 'the readonly property is reflected to the host attribute');
+        assert.isTrue(el.hasAttribute('required'), 'the required property is reflected to the host attribute');
         assert.strictEqual(input.getAttribute('aria-required'), 'true', 'required is announced to screen readers');
-        assert.isTrue(el.required);
+        assert.isTrue(el.required, 'the required property reads back what was written');
 
         el.required = false;
-        assert.isFalse(el.hasAttribute('required'));
-        assert.isFalse(input.hasAttribute('aria-required'));
+        assert.isFalse(el.hasAttribute('required'), 'writing false to required removes the host attribute');
+        assert.isFalse(
+            input.hasAttribute('aria-required'),
+            'writing false to required removes aria-required from the input',
+        );
     });
 
     it('forwards focus to the inner input, so labels and form navigation land on something focusable', async () => {
@@ -144,7 +157,7 @@ describe('Checkbox states', () => {
 
         el.focus();
 
-        assert.strictEqual(document.activeElement, input);
+        assert.strictEqual(document.activeElement, input, 'focus() on the host lands on the inner input');
     });
 });
 
@@ -155,13 +168,17 @@ describe('Checkbox validity', () => {
 
         el.setCustomValidity('required');
 
-        assert.strictEqual(fieldError.innerText, 'required');
+        assert.strictEqual(
+            fieldError.innerText,
+            'required',
+            'the custom validity message is rendered in the field error',
+        );
         assert.isTrue(el.internals.validity.customError, 'and the element reports itself invalid');
 
         el.setCustomValidity(null);
 
-        assert.strictEqual(fieldError.innerText, '');
-        assert.isTrue(el.internals.validity.valid);
+        assert.strictEqual(fieldError.innerText, '', 'a null custom validity empties the rendered error');
+        assert.isTrue(el.internals.validity.valid, 'a null custom validity makes the checkbox valid again');
     });
 
     it('describes the input by its field error, so the message is read out with the control', async () => {
@@ -169,16 +186,20 @@ describe('Checkbox validity', () => {
 
         const fieldError = el.querySelector('ful-field-error');
         assert.isNotEmpty(fieldError.id, 'the error region is given an id to be pointed at');
-        assert.strictEqual(input.getAttribute('aria-describedby'), fieldError.id);
+        assert.strictEqual(
+            input.getAttribute('aria-describedby'),
+            fieldError.id,
+            'the input is described by the field error, so the message is read out with the control',
+        );
     });
 
     it('names the input with for and id, so the dom carries the association', async () => {
         const [, , input, label] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
 
         assert.isNotEmpty(input.id, 'the control is given an id to be pointed at');
-        assert.strictEqual(label.getAttribute('for'), input.id);
+        assert.strictEqual(label.getAttribute('for'), input.id, 'the label points at the input through for');
         assert.lengthOf(input.labels, 1, 'the platform sees the association, not only the a11y tree');
-        assert.isTrue(input.labels[0] === label);
+        assert.isTrue(input.labels[0] === label, 'the one label the platform associates is the rendered label');
     });
 });
 
@@ -186,13 +207,27 @@ describe('Checkbox rendering', () => {
     it('renders the switch variant with the switch role, and the plain one without it', async () => {
         const [el, , input] = await mount(`<ful-checkbox name="a" type="switch">label</ful-checkbox>`);
 
-        assert.strictEqual(el.firstElementChild.localName, 'ful-choice');
-        assert.isTrue(el.firstElementChild.hasAttribute('switch'));
-        assert.strictEqual(input.getAttribute('role'), 'switch');
+        assert.strictEqual(
+            el.firstElementChild.localName,
+            'ful-choice',
+            'the switch variant renders its choice in a ful-choice container',
+        );
+        assert.isTrue(
+            el.firstElementChild.hasAttribute('switch'),
+            'the switch variant marks its ful-choice with the switch attribute, which styles it as a switch',
+        );
+        assert.strictEqual(input.getAttribute('role'), 'switch', 'the switch variant gives the input the switch role');
 
         const [plain, , plainInput] = await mount(`<ful-checkbox name="a">label</ful-checkbox>`);
-        assert.strictEqual(plain.firstElementChild.localName, 'ful-choice');
-        assert.isFalse(plain.firstElementChild.hasAttribute('switch'));
+        assert.strictEqual(
+            plain.firstElementChild.localName,
+            'ful-choice',
+            'the plain checkbox renders its choice in a ful-choice container too',
+        );
+        assert.isFalse(
+            plain.firstElementChild.hasAttribute('switch'),
+            "the plain checkbox's ful-choice carries no switch attribute",
+        );
         assert.isFalse(plainInput.hasAttribute('role'), 'a plain checkbox keeps the native checkbox role');
     });
 
@@ -242,7 +277,10 @@ describe('Checkbox stacked layout', () => {
     it('leaves the label beside the control without the class', async () => {
         const plain = await heights('');
 
-        assert.isFalse(plain.sameHeight);
+        assert.isFalse(
+            plain.sameHeight,
+            'without the ful-stacked class the choice is not stretched to the height of the input beside it',
+        );
         assert.isFalse(plain.controlBelowLabel, 'the control shares the label line');
         plain.container.remove();
     });

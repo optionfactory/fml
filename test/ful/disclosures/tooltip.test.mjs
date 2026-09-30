@@ -3,7 +3,6 @@ import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin, Tooltip } from '../../../src/ful/index.mjs';
 import { appended, settle as drain } from '../../harness.mjs';
 
-
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
 const settle = () => drain();
@@ -14,14 +13,21 @@ const mount = async (html) => {
     return [container.firstElementChild, container];
 };
 
-
 describe('Tooltip', () => {
     it('shows the configured icon, and the one the icon attribute names', async () => {
         const [plain] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
-        assert.strictEqual(plain.querySelector('ful-icon').getAttribute('name'), 'info-circle-fill');
+        assert.strictEqual(
+            plain.querySelector('ful-icon').getAttribute('name'),
+            'info-circle-fill',
+            'without an icon attribute the marker is the icon the page-wide config names',
+        );
 
         const [warned] = await mount('<ful-tooltip icon="exclamation-circle">check it</ful-tooltip>');
-        assert.strictEqual(warned.querySelector('ful-icon').getAttribute('name'), 'exclamation-circle');
+        assert.strictEqual(
+            warned.querySelector('ful-icon').getAttribute('name'),
+            'exclamation-circle',
+            'the icon attribute names the marker for this one tooltip',
+        );
     });
     it('describes the field it stands in and leaves its tab order, under describes', async () => {
         const [field] = await mount(
@@ -38,7 +44,7 @@ describe('Tooltip', () => {
         assert.strictEqual(trigger.tabIndex, -1, 'the marker is no longer a tab stop');
 
         trigger.click();
-        assert.isTrue(note.matches(':popover-open'));
+        assert.isTrue(note.matches(':popover-open'), "a described tooltip's marker still opens the note on click");
         note.hidePopover();
 
         assert.isFalse(field.describedBy(null), 'a field takes nothing rather than everything');
@@ -51,7 +57,10 @@ describe('Tooltip', () => {
         const note = tooltip.querySelector('[popover]');
         const trigger = tooltip.querySelector('.ful-tip');
 
-        assert.isFalse(trigger.matches(':disabled'), 'the marker is not a form control, so the fieldset does not reach it');
+        assert.isFalse(
+            trigger.matches(':disabled'),
+            'the marker is not a form control, so the fieldset does not reach it',
+        );
         assert.strictEqual(trigger.tabIndex, 0, 'and it keeps its tab stop');
 
         trigger.click();
@@ -81,8 +90,16 @@ describe('Tooltip', () => {
         const control = field.querySelector('input');
         const note = field.querySelector('ful-tooltip [popover]');
 
-        assert.notInclude(control.getAttribute('aria-describedby').split(' '), note.id);
-        assert.strictEqual(field.querySelector('ful-tooltip .ful-tip').tabIndex, 0);
+        assert.notInclude(
+            control.getAttribute('aria-describedby').split(' '),
+            note.id,
+            "a tooltip without describes does not add its note to the control's description",
+        );
+        assert.strictEqual(
+            field.querySelector('ful-tooltip .ful-tip').tabIndex,
+            0,
+            'a tooltip without describes keeps its marker as a tab stop',
+        );
     });
     it('renders an icon marker wired to a popover carrying the explanation', async () => {
         const [tooltip, container] = await mount('<ful-tooltip>explains the label</ful-tooltip>');
@@ -90,15 +107,30 @@ describe('Tooltip', () => {
         const button = tooltip.querySelector('.ful-tip');
         const popover = tooltip.querySelector('[popover]');
 
-        assert.strictEqual(button.getAttribute('aria-label'), 'More information');
-        assert.isNull(button.getAttribute('popovertarget'), 'a marker is not a form control, so it drives the note from script');
-        assert.strictEqual(button.getAttribute('aria-expanded'), 'false');
-        assert.include(popover.textContent, 'explains the label');
+        assert.strictEqual(
+            button.getAttribute('aria-label'),
+            'More information',
+            'the marker is named with the localized More information label',
+        );
+        assert.isNull(
+            button.getAttribute('popovertarget'),
+            'a marker is not a form control, so it drives the note from script',
+        );
+        assert.strictEqual(
+            button.getAttribute('aria-expanded'),
+            'false',
+            'the marker says aria-expanded false while the note is closed',
+        );
+        assert.include(popover.textContent, 'explains the label', "the default slot is the note's text");
 
         button.click();
-        assert.isTrue(popover.matches(':popover-open'));
+        assert.isTrue(popover.matches(':popover-open'), 'a click on the marker opens the note');
         await settle();
-        assert.strictEqual(button.getAttribute('aria-expanded'), 'true');
+        assert.strictEqual(
+            button.getAttribute('aria-expanded'),
+            'true',
+            "the marker's aria-expanded follows the note to open",
+        );
         const triggerBox = button.getBoundingClientRect();
         const noteBox = popover.getBoundingClientRect();
         assert.isAtMost(
@@ -113,9 +145,13 @@ describe('Tooltip', () => {
         );
 
         button.click();
-        assert.isFalse(popover.matches(':popover-open'));
+        assert.isFalse(popover.matches(':popover-open'), 'a second click on the marker closes the note');
         await settle();
-        assert.strictEqual(button.getAttribute('aria-expanded'), 'false');
+        assert.strictEqual(
+            button.getAttribute('aria-expanded'),
+            'false',
+            "the marker's aria-expanded follows the note back to closed",
+        );
     });
 
     it('anchors the note on the side the placement attribute picks', async () => {
@@ -162,7 +198,11 @@ describe('Tooltip', () => {
         button.click();
         await settle();
 
-        assert.strictEqual(getComputedStyle(note).overflow, 'visible');
+        assert.strictEqual(
+            getComputedStyle(note).overflow,
+            'visible',
+            'the open note does not clip its overflow, so the callout drawn outside its box stays visible',
+        );
         const point = getComputedStyle(note, '::after');
         assert.notStrictEqual(point.content, 'none', 'the note draws a callout');
         assert.include(point.rotate, '45', 'a square turned a corner towards the trigger');
@@ -306,11 +346,25 @@ describe('Tooltip subclass reuse', () => {
         const button = tip.querySelector('button');
         const note = tip.querySelector('ful-note');
 
-        assert.isTrue(button.classList.contains('ful-tip'));
+        assert.isTrue(
+            button.classList.contains('ful-tip'),
+            "the subclass template's ful-tip class is kept on the marker",
+        );
         button.click();
-        assert.isTrue(note.matches(':popover-open'));
+        assert.isTrue(
+            note.matches(':popover-open'),
+            'a subclass marker carrying data-ref trigger still opens its note on click',
+        );
         await settle();
-        assert.strictEqual(button.getAttribute('aria-expanded'), 'true');
-        assert.strictEqual(note.getAttribute('placement'), 'top');
+        assert.strictEqual(
+            button.getAttribute('aria-expanded'),
+            'true',
+            "the subclass marker's aria-expanded follows the note to open",
+        );
+        assert.strictEqual(
+            note.getAttribute('placement'),
+            'top',
+            "the placement attribute is copied onto the subclass's note",
+        );
     });
 });

@@ -27,8 +27,11 @@ describe('AsyncEvents', () => {
 
         const results = await AsyncEvents.fireAsync(el, evt);
 
-        expect(results).to.be.an('array');
-        expect(results).to.deep.equal(['Task A Completed', 'Task B Completed']);
+        expect(results, 'broadcast mode, the default, resolves with an array').to.be.an('array');
+        expect(
+            results,
+            'every answer is collected in the order the listeners ran, whatever the order they settle in',
+        ).to.deep.equal(['Task A Completed', 'Task B Completed']);
     });
 
     it('intercepts a single return value when explicitly using "pipeline" mode', async () => {
@@ -40,7 +43,9 @@ describe('AsyncEvents', () => {
 
         const result = await AsyncEvents.fireAsync(el, evt, { mode: 'pipeline' });
 
-        expect(result).to.equal('Pipeline Intercepted Value');
+        expect(result, 'pipeline mode resolves with the one listener answer itself, not an array').to.equal(
+            'Pipeline Intercepted Value',
+        );
     });
 
     it('answers an empty array when nothing listened', async () => {
@@ -48,7 +53,8 @@ describe('AsyncEvents', () => {
 
         const results = await AsyncEvents.fireAsync(el, evt);
 
-        expect(results).to.be.an('array').that.is.empty;
+        expect(results, 'broadcast mode resolves with an empty array when no listener ran').to.be.an('array').that.is
+            .empty;
     });
 
     it('collects the answer of a listener on an ancestor', async () => {
@@ -63,7 +69,9 @@ describe('AsyncEvents', () => {
 
         const results = await AsyncEvents.fireAsync(child, evt);
 
-        expect(results).to.deep.equal(['Bubbled Task']);
+        expect(results, 'a bubbling event collects the answers of listeners on the ancestors').to.deep.equal([
+            'Bubbled Task',
+        ]);
     });
 });
 describe('AsyncEvents guarantees', () => {
@@ -88,7 +96,7 @@ describe('AsyncEvents guarantees', () => {
             caught = e;
         }
 
-        assert.strictEqual(caught?.message, 'disk full');
+        assert.strictEqual(caught?.message, 'disk full', 'fireAsync rejects with what the failing listener threw');
     });
 
     it('refuses a pipeline with more than one listener, naming the event', async () => {
@@ -102,8 +110,12 @@ describe('AsyncEvents guarantees', () => {
             caught = e;
         }
 
-        assert.include(caught?.message, `Event "save"`);
-        assert.include(caught?.message, 'pipeline');
+        assert.include(
+            caught?.message,
+            `Event "save"`,
+            'the error names the event whose pipeline reached more than one listener',
+        );
+        assert.include(caught?.message, 'pipeline', 'the error names the mode that was violated');
     });
 
     it('reports only the mode violation when a listener of the broken configuration fails', async () => {
@@ -134,7 +146,7 @@ describe('AsyncEvents guarantees', () => {
     it('accepts a pipeline with no listener at all, resolving undefined', async () => {
         const got = await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'pipeline' });
 
-        assert.isUndefined(got);
+        assert.isUndefined(got, 'pipeline mode allows zero listeners and resolves undefined when none ran');
     });
 
     it('requires exactly one listener in delegate mode', async () => {
@@ -142,17 +154,21 @@ describe('AsyncEvents guarantees', () => {
             () => null,
             (e) => e,
         );
-        assert.include(none.message, 'requires exactly one');
+        assert.include(none.message, 'requires exactly one', 'delegate mode rejects when no listener ran');
 
         AsyncEvents.asyncOn(el, 'save', async () => 'only');
-        assert.strictEqual(await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' }), 'only');
+        assert.strictEqual(
+            await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' }),
+            'only',
+            'delegate mode resolves with the answer of its one listener',
+        );
 
         AsyncEvents.asyncOn(el, 'save', async () => 'second');
         const two = await AsyncEvents.fireAsync(el, new CustomEvent('save'), { mode: 'delegate' }).then(
             () => null,
             (e) => e,
         );
-        assert.include(two.message, 'requires exactly one');
+        assert.include(two.message, 'requires exactly one', 'delegate mode rejects when more than one listener ran');
     });
 
     it('stops calling a listener that has been removed', async () => {
@@ -164,8 +180,8 @@ describe('AsyncEvents guarantees', () => {
 
         const got = await AsyncEvents.fireAsync(el, new CustomEvent('save'));
 
-        assert.deepStrictEqual(calls, []);
-        assert.deepStrictEqual(got, []);
+        assert.deepStrictEqual(calls, [], 'asyncOff removes the listener asyncOn returned, so it is not called');
+        assert.deepStrictEqual(got, [], 'a removed listener contributes no answer');
     });
 
     it('gives a class the three methods, bound to the instance', async () => {
@@ -176,10 +192,18 @@ describe('AsyncEvents guarantees', () => {
         attached(widget);
 
         const listener = widget.asyncOn('save', async (e) => `saved ${e.detail}`);
-        assert.deepStrictEqual(await widget.fireAsync(new CustomEvent('save', { detail: 'a' })), ['saved a']);
+        assert.deepStrictEqual(
+            await widget.fireAsync(new CustomEvent('save', { detail: 'a' })),
+            ['saved a'],
+            'the mixed in asyncOn and fireAsync use the instance as the element',
+        );
 
         widget.asyncOff('save', listener);
-        assert.deepStrictEqual(await widget.fireAsync(new CustomEvent('save')), []);
+        assert.deepStrictEqual(
+            await widget.fireAsync(new CustomEvent('save')),
+            [],
+            'the mixed in asyncOff removes the listener from the instance',
+        );
         widget.remove();
     });
 });

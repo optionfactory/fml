@@ -6,35 +6,51 @@ describe('dom.mjs', () => {
     describe('Fragments', () => {
         it('creates a DocumentFragment from HTML strings', () => {
             const frag = Fragments.fromHtml('<div>', '<span>Test</span>', '</div>');
-            expect(frag).to.be.instanceOf(DocumentFragment);
-            expect(frag.querySelector('span').textContent).to.equal('Test');
+            expect(frag, 'fromHtml answers a DocumentFragment adopted by the document').to.be.instanceOf(
+                DocumentFragment,
+            );
+            expect(
+                frag.querySelector('span').textContent,
+                'the pieces are joined and parsed as one markup string',
+            ).to.equal('Test');
         });
 
         it('converts a DocumentFragment back to HTML', () => {
             const frag = Fragments.fromHtml('<span>Test</span>');
             const html = Fragments.toHtml(frag);
-            expect(html).to.equal('<span>Test</span>');
+            expect(html, 'toHtml serializes the fragment back to the markup it was parsed from').to.equal(
+                '<span>Test</span>',
+            );
         });
 
         it('reads whitespace as blank, an element or text as not', () => {
-            expect(Fragments.isBlank(Fragments.fromHtml('   \n  '))).to.be.true;
-            expect(Fragments.isBlank(Fragments.fromHtml('<span></span>'))).to.be.false;
-            expect(Fragments.isBlank(Fragments.fromHtml(' text '))).to.be.false;
+            expect(Fragments.isBlank(Fragments.fromHtml('   \n  ')), 'a fragment holding only whitespace is blank').to
+                .be.true;
+            expect(
+                Fragments.isBlank(Fragments.fromHtml('<span></span>')),
+                'an element makes a fragment not blank, even an empty one',
+            ).to.be.false;
+            expect(
+                Fragments.isBlank(Fragments.fromHtml(' text ')),
+                'text other than whitespace makes a fragment not blank',
+            ).to.be.false;
         });
 
         it('creates a fragment from a list of nodes', () => {
             const span1 = document.createElement('span');
             const span2 = document.createElement('span');
             const frag = Fragments.from(span1, span2);
-            expect(frag.childNodes.length).to.equal(2);
+            expect(frag.childNodes.length, 'every node passed to from is moved into the fragment').to.equal(2);
         });
 
         it('creates a fragment from the childNodes of an element', () => {
             const div = document.createElement('div');
             div.innerHTML = '<p>1</p><p>2</p>';
             const frag = Fragments.fromChildNodes(div);
-            expect(frag.childNodes.length).to.equal(2);
-            expect(div.childNodes.length, 'Nodes are moved out of div').to.equal(0);
+            expect(frag.childNodes.length, 'every child of the element ends up in the fragment').to.equal(2);
+            expect(div.childNodes.length, 'the children are moved, not copied, so the element is left empty').to.equal(
+                0,
+            );
         });
     });
 
@@ -42,17 +58,23 @@ describe('dom.mjs', () => {
         it('generates a unique id', () => {
             const id1 = Attributes.uid('test');
             const id2 = Attributes.uid('test');
-            expect(id1).to.not.equal(id2);
-            expect(id1).to.match(/^test-\d+$/);
+            expect(id1, 'two calls under the same prefix never answer the same id').to.not.equal(id2);
+            expect(id1, 'the id is the prefix followed by a dash and a counter').to.match(/^test-\d+$/);
         });
 
         it('sets a default value only if attribute is missing', () => {
             const div = document.createElement('div');
             div.setAttribute('existing', 'A');
 
-            expect(Attributes.defaultValue(div, 'existing', 'B')).to.equal('A');
-            expect(Attributes.defaultValue(div, 'missing', 'C')).to.equal('C');
-            expect(div.getAttribute('missing')).to.equal('C');
+            expect(
+                Attributes.defaultValue(div, 'existing', 'B'),
+                'an attribute the element already carries keeps its value',
+            ).to.equal('A');
+            expect(
+                Attributes.defaultValue(div, 'missing', 'C'),
+                'defaultValue answers the value the attribute has afterwards',
+            ).to.equal('C');
+            expect(div.getAttribute('missing'), 'a missing attribute is written with the default').to.equal('C');
         });
 
         it('forwards prefixed attributes, handling classes specially', () => {
@@ -64,19 +86,27 @@ describe('dom.mjs', () => {
             const to = document.createElement('div');
             Attributes.forward('data-f-', from, to);
 
-            expect(to.getAttribute('id')).to.equal('123');
-            expect(to.classList.contains('class1')).to.be.true;
-            expect(to.classList.contains('class2')).to.be.true;
-            expect(to.hasAttribute('other')).to.be.false;
+            expect(to.getAttribute('id'), 'a prefixed attribute is copied under its name without the prefix').to.equal(
+                '123',
+            );
+            expect(
+                to.classList.contains('class1'),
+                'the prefixed class attribute adds each of its classes to the target',
+            ).to.be.true;
+            expect(
+                to.classList.contains('class2'),
+                'every class in the prefixed class list is added, not only the first',
+            ).to.be.true;
+            expect(to.hasAttribute('other'), 'an attribute without the prefix is not forwarded').to.be.false;
         });
 
         it('sets attributes or removes them if nullish', () => {
             const div = document.createElement('div');
             Attributes.set(div, 'test', 'value');
-            expect(div.getAttribute('test')).to.equal('value');
+            expect(div.getAttribute('test'), 'a non nullish value is written as the attribute').to.equal('value');
 
             Attributes.set(div, 'test', null);
-            expect(div.hasAttribute('test')).to.be.false;
+            expect(div.hasAttribute('test'), 'a nullish value removes the attribute').to.be.false;
         });
     });
 
@@ -92,16 +122,33 @@ describe('dom.mjs', () => {
 
             const slots = LightSlots.from(el);
 
-            expect(slots.header).to.be.instanceOf(DocumentFragment);
-            expect(slots.header.querySelector('div').textContent).to.equal('Header');
+            expect(slots.header, 'each named slot is collected as a DocumentFragment under its name').to.be.instanceOf(
+                DocumentFragment,
+            );
+            expect(
+                slots.header.querySelector('div').textContent,
+                'a named slot holds the child that claimed it',
+            ).to.equal('Header');
 
-            expect(slots.footer).to.be.instanceOf(DocumentFragment);
-            expect(slots.footer.querySelector('span').textContent).to.equal('Footer');
+            expect(slots.footer, 'every slot name found among the children gets its own fragment').to.be.instanceOf(
+                DocumentFragment,
+            );
+            expect(
+                slots.footer.querySelector('span').textContent,
+                'the footer slot holds the child that claimed footer',
+            ).to.equal('Footer');
 
-            expect(slots.default).to.be.instanceOf(DocumentFragment);
-            expect(slots.default.querySelectorAll('p').length).to.equal(2);
+            expect(slots.default, 'the default slot is always present as a DocumentFragment').to.be.instanceOf(
+                DocumentFragment,
+            );
+            expect(
+                slots.default.querySelectorAll('p').length,
+                'the children that claim no slot all go to the default slot',
+            ).to.equal(2);
 
-            expect(el.childNodes.length, 'The original element should be empty after extraction').to.equal(0);
+            expect(el.childNodes.length, 'the children are moved into the slots, leaving the element empty').to.equal(
+                0,
+            );
         });
 
         it('reads slot="" as the default slot, keeping the document order', () => {
@@ -115,11 +162,19 @@ describe('dom.mjs', () => {
             const slots = LightSlots.from(el);
 
             expect(slots.unnamed, 'no phantom slot is born from the empty claim').to.be.undefined;
-            expect(slots.named).to.be.instanceOf(DocumentFragment);
+            expect(slots.named, 'a named slot next to an empty claim is still collected').to.be.instanceOf(
+                DocumentFragment,
+            );
             const children = Array.from(slots.default.childNodes).filter((n) => n.nodeType === n.ELEMENT_NODE);
-            expect(children.length).to.equal(2);
-            expect(children[0].textContent).to.equal('first');
-            expect(children[1].textContent).to.equal('an empty claim');
+            expect(children.length, 'the empty claim joins the unslotted child in the default slot').to.equal(2);
+            expect(
+                children[0].textContent,
+                'the default slot keeps the document order, the unslotted child first',
+            ).to.equal('first');
+            expect(
+                children[1].textContent,
+                'the empty claim stays at its document position after the child before it',
+            ).to.equal('an empty claim');
             expect(children[1].hasAttribute('slot'), 'the empty claim is stripped like any named one').to.be.false;
         });
 
@@ -129,8 +184,13 @@ describe('dom.mjs', () => {
 
             const slots = LightSlots.from(el);
 
-            expect(slots.tpl).to.be.instanceOf(DocumentFragment);
-            expect(slots.tpl.querySelector('u').textContent).to.equal('up');
+            expect(slots.tpl, 'a text/html script slot contributes a parsed fragment').to.be.instanceOf(
+                DocumentFragment,
+            );
+            expect(
+                slots.tpl.querySelector('u').textContent,
+                'the script body is parsed as markup, nested elements included',
+            ).to.equal('up');
         });
 
         it('never parses a module script as markup, it slots as the plain node', () => {
@@ -140,9 +200,12 @@ describe('dom.mjs', () => {
             const slots = LightSlots.from(el);
 
             const slotted = slots.code.querySelector('script');
-            expect(slotted).to.be.instanceOf(HTMLScriptElement);
-            expect(slotted.textContent).to.contain('const tpl');
-            expect(slots.code.querySelector('b')).to.be.null;
+            expect(slotted, 'a script that is not text/html slots as the script element itself').to.be.instanceOf(
+                HTMLScriptElement,
+            );
+            expect(slotted.textContent, 'the module script keeps its source text untouched').to.contain('const tpl');
+            expect(slots.code.querySelector('b'), 'markup inside a module script source is never parsed into elements')
+                .to.be.null;
         });
 
         it('extracts slot content directly from template elements', () => {
@@ -150,7 +213,10 @@ describe('dom.mjs', () => {
             el.innerHTML = '<template slot="my-slot"><b>Bold</b></template>';
             const slots = LightSlots.from(el);
 
-            expect(slots['my-slot'].querySelector('b').textContent).to.equal('Bold');
+            expect(
+                slots['my-slot'].querySelector('b').textContent,
+                'a template slot contributes its content, not the template element',
+            ).to.equal('Bold');
         });
     });
 
@@ -164,14 +230,16 @@ describe('dom.mjs', () => {
             `;
 
             const first = Nodes.queryChildren(div, '.find-me');
-            expect(first.textContent).to.equal('1');
+            expect(first.textContent, 'queryChildren answers the first matching child').to.equal('1');
 
             const all = Nodes.queryChildrenAll(div, '.find-me');
-            expect(all.length).to.equal(2);
-            expect(all[1].textContent).to.equal('2');
+            expect(all.length, 'queryChildrenAll excludes a matching descendant that is not a child').to.equal(2);
+            expect(all[1].textContent, 'queryChildrenAll answers the matching children in document order').to.equal(
+                '2',
+            );
 
             const none = Nodes.queryChildren(div, '.missing');
-            expect(none).to.be.null;
+            expect(none, 'queryChildren answers null when no child matches').to.be.null;
         });
 
         it('reads a node as parsed once something follows it', () => {
@@ -180,10 +248,11 @@ describe('dom.mjs', () => {
             const child2 = document.createElement('div');
 
             parent.appendChild(child1);
-            expect(Nodes.isParsed(child1), 'child1 has no nextSibling, so it evaluates to false').to.be.false;
+            expect(Nodes.isParsed(child1), 'a node with no next sibling on itself or any ancestor is not parsed yet').to
+                .be.false;
 
             parent.appendChild(child2);
-            expect(Nodes.isParsed(child1), 'child1 now has a nextSibling, so it evaluates to true').to.be.true;
+            expect(Nodes.isParsed(child1), 'a next sibling means the parser has moved past the node').to.be.true;
         });
 
         it('resolves waitParsed immediately if node is already parsed', async () => {
@@ -195,9 +264,10 @@ describe('dom.mjs', () => {
             parent.appendChild(child2);
 
             const resolved = await Nodes.waitParsed(child1);
-            expect(resolved, 'waitParsed should resolve immediately without MutationObserver triggering').to.equal(
-                child1,
-            );
+            expect(
+                resolved,
+                'an already parsed node resolves at once with the node, with no mutation to wait for',
+            ).to.equal(child1);
         });
         it('waits for parsing to complete via DOMContentLoaded event', async () => {
             const parent = document.createElement('div');
@@ -218,7 +288,10 @@ describe('dom.mjs', () => {
             loadHandler();
 
             const resolved = await promise;
-            expect(resolved).to.equal(el);
+            expect(
+                resolved,
+                'DOMContentLoaded is the deadline, resolving with the element even with no sibling',
+            ).to.equal(el);
         });
 
         it('waits for parsing to complete via MutationObserver', async () => {
@@ -240,7 +313,7 @@ describe('dom.mjs', () => {
             parent.appendChild(sibling);
 
             const resolved = await promise;
-            expect(resolved).to.equal(el);
+            expect(resolved, 'a sibling appended after the element resolves the wait with the element').to.equal(el);
 
             parent.remove();
         });
@@ -260,7 +333,7 @@ describe('dom.mjs', () => {
             section.appendChild(document.createElement('p'));
 
             const resolved = await promise;
-            expect(resolved).to.equal(el);
+            expect(resolved, 'a sibling of an ancestor also means the parser moved past the element').to.equal(el);
 
             section.remove();
         });
@@ -288,7 +361,10 @@ describe('dom.mjs', () => {
             parent.appendChild(document.createElement('span'));
 
             const resolved = await promise;
-            expect(resolved).to.equal(el);
+            expect(
+                resolved,
+                'a node inserted before the element is ignored and the wait resolves only once a next sibling arrives',
+            ).to.equal(el);
         });
     });
 
@@ -312,10 +388,10 @@ describe('dom.mjs', () => {
             await new Promise((resolve) => {
                 setTimeout(resolve);
             });
-            expect(settled).to.be.false;
+            expect(settled, 'a loading document does not resolve before its DOMContentLoaded').to.be.false;
             fire();
             await promise;
-            expect(settled).to.be.true;
+            expect(settled, 'the DOMContentLoaded event resolves the wait').to.be.true;
         });
 
         it('resolves at once for a document with no window to hear the event', async () => {
@@ -348,7 +424,7 @@ describe('dom.mjs', () => {
             await new Promise((resolve) => {
                 setTimeout(resolve);
             });
-            expect(settled).to.be.true;
+            expect(settled, 'in the interactive state the load event also resolves the wait').to.be.true;
             expect(detached, 'the losing listener is detached too').to.include.members(['DOMContentLoaded', 'load']);
         });
 

@@ -61,11 +61,19 @@ describe('Theme contrast', () => {
             after(() => host.remove());
             for (const [ink, surface] of TEXT) {
                 it(`${ink} on ${surface} holds AA`, () => {
-                    assert.isAtLeast(pair(host, ink, surface), 4.5);
+                    assert.isAtLeast(
+                        pair(host, ink, surface),
+                        4.5,
+                        `text in ${ink} on ${surface} reaches the WCAG AA contrast ratio for normal text`,
+                    );
                 });
             }
             it('the focus indicator holds the non-text 3:1', () => {
-                assert.isAtLeast(pair(host, '--ful-focus-border-color', '--ful-bg'), 3);
+                assert.isAtLeast(
+                    pair(host, '--ful-focus-border-color', '--ful-bg'),
+                    3,
+                    'the focus indicator reaches the WCAG contrast ratio for non-text elements against the background',
+                );
             });
         });
     }

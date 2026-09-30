@@ -32,10 +32,22 @@ describe('Drawer', () => {
     it('renders the title, the localized close button and the slotted body', async () => {
         const [drawer] = await mount('<ful-drawer header="the title">the body</ful-drawer>');
 
-        assert.strictEqual(drawer.querySelector('[data-ref=title]').textContent, 'the title');
-        assert.strictEqual(drawer.querySelector('[data-ref=close]').getAttribute('aria-label'), 'Close');
-        assert.include(drawer.querySelector('[data-ref=content]').textContent, 'the body');
-        assert.isFalse(drawer.querySelector('dialog').open);
+        assert.strictEqual(
+            drawer.querySelector('[data-ref=title]').textContent,
+            'the title',
+            'the header attribute is rendered as the initial title',
+        );
+        assert.strictEqual(
+            drawer.querySelector('[data-ref=close]').getAttribute('aria-label'),
+            'Close',
+            'the close button is named for assistive technology with the localized Close',
+        );
+        assert.include(
+            drawer.querySelector('[data-ref=content]').textContent,
+            'the body',
+            'the default slot is rendered as the content',
+        );
+        assert.isFalse(drawer.querySelector('dialog').open, 'a drawer is not shown until it is opened');
         assert.strictEqual(
             getComputedStyle(drawer.querySelector('dialog')).display,
             'none',
@@ -53,7 +65,6 @@ describe('Drawer', () => {
             'the drawer is named by its heading',
         );
     });
-
 
     it('closes at once where motion is not wanted', async () => {
         const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
@@ -115,7 +126,11 @@ describe('Drawer', () => {
                 const dialog = drawer.querySelector('dialog');
                 const style = getComputedStyle(dialog);
 
-                assert.strictEqual(dialog.getBoundingClientRect().width, 400, placement);
+                assert.strictEqual(
+                    dialog.getBoundingClientRect().width,
+                    400,
+                    `on a phone the ${placement} drawer spans the whole screen width`,
+                );
                 assert.deepStrictEqual(
                     [
                         style.borderStartStartRadius,
@@ -124,7 +139,7 @@ describe('Drawer', () => {
                         style.borderEndEndRadius,
                     ],
                     ['0px', '0px', '0px', '0px'],
-                    placement,
+                    `on a phone the ${placement} drawer, touching both edges, has square corners`,
                 );
                 drawer.close();
             }
@@ -142,7 +157,11 @@ describe('Drawer', () => {
         drawer.open();
         drawer.close();
         await closed;
-        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }]);
+        assert.deepStrictEqual(
+            closes,
+            [{ dismissed: true, response: null }],
+            'a close from code is a dismissal carrying no response',
+        );
     });
 
     it('slides in from the inline end side, mirrored in rtl', async () => {
@@ -152,7 +171,7 @@ describe('Drawer', () => {
         assert.strictEqual(
             getComputedStyle(rtlDrawer.querySelector('dialog')).animationName,
             'ful-drawer-slide-in-start',
-            'rtl end is ltr start',
+            'under rtl the inline end is the physical left, so the drawer slides in with the start side animation',
         );
         rtlDrawer.close();
         rtlContainer.remove();
@@ -161,7 +180,7 @@ describe('Drawer', () => {
         assert.strictEqual(
             getComputedStyle(drawer.querySelector('dialog')).animationName,
             'ful-drawer-slide-in',
-            'ltr end',
+            'under ltr the drawer slides in from the inline end, its default placement',
         );
         drawer.close();
     });
@@ -176,14 +195,18 @@ describe('Drawer', () => {
         const done = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
         drawer.close();
         assert.isTrue(dialog.open, 'the panel is still on screen while it slides out');
-        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+        assert.strictEqual(
+            getComputedStyle(dialog).animationName,
+            'ful-drawer-slide-out',
+            'the closing drawer runs the slide out animation',
+        );
         assert.deepStrictEqual(closes, [], 'nothing is announced before the panel has left');
 
         drawer.close();
         await done;
         await settle();
 
-        assert.isFalse(dialog.open);
+        assert.isFalse(dialog.open, 'the native dialog closes once the slide out has ended');
         assert.isFalse(dialog.hasAttribute('closing'), 'the closing state leaves with the close');
         assert.deepStrictEqual(closes, [{ dismissed: true, response: null }], 'one close, not one per call');
     });
@@ -198,11 +221,19 @@ describe('Drawer', () => {
         const done = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
         dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
         assert.isTrue(dialog.open, 'the platform close is refused so the drawer can animate its own');
-        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+        assert.strictEqual(
+            getComputedStyle(dialog).animationName,
+            'ful-drawer-slide-out',
+            'the cancel starts the slide out animation instead of the platform close',
+        );
 
         await done;
-        assert.isFalse(dialog.open);
-        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }]);
+        assert.isFalse(dialog.open, 'the native dialog closes once the slide out has ended');
+        assert.deepStrictEqual(
+            closes,
+            [{ dismissed: true, response: null }],
+            'Escape is a dismissal, announced by one close event',
+        );
     });
 
     it('slides out on a backdrop dismissal and on its own form succeeding', async () => {
@@ -218,7 +249,11 @@ describe('Drawer', () => {
         const dismissed = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
         dialog.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
         dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+        assert.strictEqual(
+            getComputedStyle(dialog).animationName,
+            'ful-drawer-slide-out',
+            'a backdrop dismissal slides the drawer out rather than closing at once',
+        );
         await dismissed;
 
         drawer.open();
@@ -226,9 +261,17 @@ describe('Drawer', () => {
         const saved = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
         form.querySelector('button[type=submit]').click();
         await new Promise((r) => setTimeout(r, 0));
-        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-out');
+        assert.strictEqual(
+            getComputedStyle(dialog).animationName,
+            'ful-drawer-slide-out',
+            'a successful submit under close-on-submit slides the drawer out rather than closing at once',
+        );
         const { detail } = await saved;
-        assert.deepStrictEqual(detail, { dismissed: false, response: { id: 7 } });
+        assert.deepStrictEqual(
+            detail,
+            { dismissed: false, response: { id: 7 } },
+            "the submit closes as an answer carrying the form's response",
+        );
     });
 
     it('is put back by a reopen during the slide out, rather than closing under it', async () => {
@@ -240,14 +283,18 @@ describe('Drawer', () => {
 
         drawer.close();
         drawer.open();
-        assert.isFalse(dialog.hasAttribute('closing'));
-        assert.strictEqual(getComputedStyle(dialog).animationName, 'ful-drawer-slide-in');
+        assert.isFalse(dialog.hasAttribute('closing'), 'a reopen during the slide out removes the closing state');
+        assert.strictEqual(
+            getComputedStyle(dialog).animationName,
+            'ful-drawer-slide-in',
+            'the reopened drawer slides in again',
+        );
 
         await Promise.all(dialog.getAnimations().map((a) => a.finished));
         await settle();
 
         assert.isTrue(dialog.open, 'the abandoned slide out does not take the reopened drawer with it');
-        assert.deepStrictEqual(closes, []);
+        assert.deepStrictEqual(closes, [], 'a reopened drawer announces no close for the slide out it abandoned');
         await closed(drawer);
     });
 });
@@ -268,12 +315,31 @@ describe('Drawer subclass reuse', () => {
         const [panel] = await mount('<x-side-panel header="t" placement="start">body</x-side-panel>');
 
         const dialog = panel.querySelector('dialog');
-        assert.isTrue(dialog.classList.contains('ful-drawer'));
-        assert.strictEqual(dialog.getAttribute('placement'), 'start');
-        assert.strictEqual(panel.querySelector('[data-ref=title]').textContent, 't');
+        assert.isTrue(
+            dialog.classList.contains('ful-drawer'),
+            "the class written on the subclass's native dialog is kept, and the side chrome is styled by that class",
+        );
+        assert.strictEqual(
+            dialog.getAttribute('placement'),
+            'start',
+            "the placement attribute is copied onto the subclass's native dialog",
+        );
+        assert.strictEqual(
+            panel.querySelector('[data-ref=title]').textContent,
+            't',
+            "the header attribute is rendered in the subclass's title",
+        );
         const content = await panel.update('the panel', () => document.createElement('p'));
-        assert.strictEqual(content.querySelector('p').localName, 'p');
-        assert.strictEqual(panel.querySelector('[data-ref=title]').textContent, 'the panel');
+        assert.strictEqual(
+            content.querySelector('p').localName,
+            'p',
+            'update() on a subclass fills its content section with the delivery',
+        );
+        assert.strictEqual(
+            panel.querySelector('[data-ref=title]').textContent,
+            'the panel',
+            "update() sets the subclass's title from its header argument",
+        );
         panel.close();
     });
 });
@@ -292,7 +358,7 @@ describe('Drawer, the declarative content against update()', () => {
                 throw new Failure('invalid', [{ type: 'GENERIC', context: null, reason: 'nope' }]);
             })
             .then(
-                () => assert.fail('update rejects'),
+                () => assert.fail('an update whose callback throws rejects its caller'),
                 () => undefined,
             );
         await closed(drawer);
@@ -315,7 +381,11 @@ describe('Drawer, the declarative content against update()', () => {
         delivery.resolve();
         await settle();
 
-        assert.include(content.textContent, 'delivered');
+        assert.include(
+            content.textContent,
+            'delivered',
+            'the declarative delivery is painted into the content section',
+        );
         assert.isFalse(content.hasAttribute('loading'), 'the ring leaves with the delivery');
         drawer.close();
     });
@@ -335,20 +405,27 @@ describe('Drawer, the declarative content against update()', () => {
         drawer.close();
         void waiting;
     });
-
 });
 
 describe('Drawer header slot', () => {
     it('keeps it when the title changes, the title being set as text', async () => {
         const [el] = await mount('<ful-drawer header="a"><i slot="header"></i>body</ful-drawer>');
         await el.update('Dati Nave', async () => document.createElement('p'));
-        assert.strictEqual(el.querySelector('header > h2').textContent, 'Dati Nave');
+        assert.strictEqual(
+            el.querySelector('header > h2').textContent,
+            'Dati Nave',
+            "update() sets the title as the heading's text",
+        );
         assert.strictEqual(el.header, 'Dati Nave', 'the property reads the heading');
         assert.strictEqual(el.querySelectorAll('header > i').length, 1, 'the slot survives the title');
     });
 
     it('renders no stray node when nothing is slotted', async () => {
         const [el] = await mount('<ful-drawer header="a">body</ful-drawer>');
-        assert.strictEqual(el.querySelector('header').firstElementChild.tagName, 'H2');
+        assert.strictEqual(
+            el.querySelector('header').firstElementChild.tagName,
+            'H2',
+            'without a header slot the heading is the first element of the header, no empty placeholder before it',
+        );
     });
 });

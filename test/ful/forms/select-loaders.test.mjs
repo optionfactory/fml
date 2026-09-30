@@ -67,7 +67,11 @@ describe('SelectLoader', () => {
 
         const dropdown = await open(selectEl);
 
-        assert.deepStrictEqual(options(dropdown), ['One', 'Two', 'Three']);
+        assert.deepStrictEqual(
+            options(dropdown),
+            ['One', 'Two', 'Three'],
+            'without src the vocabulary is the slotted option elements, listed in their order',
+        );
     });
 
     it('filters the slotted options on the typed needle, ignoring case', async () => {
@@ -79,7 +83,11 @@ describe('SelectLoader', () => {
         input.dispatchEvent(new Event('input', { bubbles: true }));
         await opened();
 
-        assert.deepStrictEqual(options(selectEl.querySelector('ful-dropdown')), ['Two']);
+        assert.deepStrictEqual(
+            options(selectEl.querySelector('ful-dropdown')),
+            ['Two'],
+            'the in-memory loader keeps the entries whose label contains the needle, ignoring case',
+        );
     });
 
     it('treats a needleless load as no filter, not as the string "undefined"', async () => {
@@ -90,13 +98,18 @@ describe('SelectLoader', () => {
         assert.deepStrictEqual(
             all.map(({ label }) => label),
             ['One', 'Two', 'Three'],
+            'a nullish needle matches every entry',
         );
     });
 
     it('labels an assigned value by looking it up in the slotted options', async () => {
         const [selectEl] = await mount('value="k2"', INLINE_OPTIONS);
 
-        assert.strictEqual(selectEl.querySelector('input').value, 'Two');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'Two',
+            'an assigned key is shown by the label of the slotted option carrying it',
+        );
     });
 
     it('fetches the remote options once and serves every later open from memory', async () => {
@@ -109,7 +122,7 @@ describe('SelectLoader', () => {
         const [selectEl] = await mount('src="/all-opts"');
 
         const dropdown = await open(selectEl);
-        assert.deepStrictEqual(options(dropdown), ['One', 'Two']);
+        assert.deepStrictEqual(options(dropdown), ['One', 'Two'], 'the first open lists the fetched vocabulary');
 
         keydown(selectEl.querySelector('input'), 'ArrowUp', { altKey: true });
         await open(selectEl);
@@ -120,7 +133,11 @@ describe('SelectLoader', () => {
         );
 
         assert.lengthOf(calls, 1, 'the second open must not hit the network again');
-        assert.deepStrictEqual(calls[0], { method: 'POST', url: '/all-opts', params: {} });
+        assert.deepStrictEqual(
+            calls[0],
+            { method: 'POST', url: '/all-opts', params: {} },
+            'the remote loader asks with POST when no method is declared, and sends no parameters',
+        );
     });
 
     it('prefetches on upgrade when declared, so opening adds no request', async () => {
@@ -130,8 +147,12 @@ describe('SelectLoader', () => {
         assert.lengthOf(calls, 1, 'the options were fetched while upgrading');
 
         await open(selectEl);
-        assert.lengthOf(calls, 1);
-        assert.deepStrictEqual(options(selectEl.querySelector('ful-dropdown')), ['One']);
+        assert.lengthOf(calls, 1, 'opening a preloaded select is served from the prefetched vocabulary');
+        assert.deepStrictEqual(
+            options(selectEl.querySelector('ful-dropdown')),
+            ['One'],
+            'the dropdown lists the prefetched options',
+        );
     });
 
     it('paints its own chrome without waiting on the prefetch', async () => {
@@ -162,12 +183,16 @@ describe('SelectLoader', () => {
 
         const [first, firstContainer] = await mount('src="/rev-opts" revision="r1"');
         await open(first);
-        assert.lengthOf(calls, 1);
+        assert.lengthOf(calls, 1, 'the first mount fetches the vocabulary once');
         firstContainer.remove();
 
         const [second] = await mount('src="/rev-opts" revision="r1"');
         const dropdown = await open(second);
-        assert.deepStrictEqual(options(dropdown), ['One']);
+        assert.deepStrictEqual(
+            options(dropdown),
+            ['One'],
+            'the second mount lists the options stored under the same revision',
+        );
         assert.lengthOf(calls, 1, 'the revisioned data came from local storage, not the network');
 
         localStorage.removeItem('POST@/rev-opts');
@@ -187,8 +212,12 @@ describe('SelectLoader', () => {
 
         const dropdown = await open(filter);
 
-        assert.deepEqual(options(dropdown), ['Alpha', 'Beta']);
-        assert.lengthOf(calls, 1);
+        assert.deepEqual(
+            options(dropdown),
+            ['Alpha', 'Beta'],
+            'ful-filter-in lists the remote vocabulary the same way a select does',
+        );
+        assert.lengthOf(calls, 1, 'ful-filter-in fetches its remote vocabulary once');
     });
 
     it('labels a filter preselected by key, so the criterion reads in words', async () => {
@@ -205,8 +234,12 @@ describe('SelectLoader', () => {
         await Rendering.waitFor(filter);
         await opened();
 
-        assert.deepEqual(filter.value, ['A', 'B']);
-        assert.deepEqual(filter.criterion.operands, ['Alpha', 'Beta']);
+        assert.deepEqual(filter.value, ['A', 'B'], 'the filter keeps the preselected keys as its value');
+        assert.deepEqual(
+            filter.criterion.operands,
+            ['Alpha', 'Beta'],
+            'the criterion names the preselected keys by their labels from the vocabulary',
+        );
     });
 
     it('caches a revisioned filter vocabulary across mounts, as a select does', async () => {
@@ -217,7 +250,7 @@ describe('SelectLoader', () => {
         await Rendering.waitFor(first.querySelector('ful-filter-in'));
         await opened();
         await open(first.querySelector('ful-filter-in'));
-        assert.lengthOf(calls, 1);
+        assert.lengthOf(calls, 1, 'the first mount fetches the filter vocabulary once');
         first.remove();
 
         const second = appended('<ful-filter-in src="/rev-kinds" revision="r1" name="k">K</ful-filter-in>');
@@ -237,7 +270,7 @@ describe('SelectLoader', () => {
 
         const first = await mount('src="/reg-rev" revision');
         await open(first[0]);
-        assert.lengthOf(calls, 1);
+        assert.lengthOf(calls, 1, 'the first mount fetches the vocabulary once');
         first[1].remove();
 
         const second = await mount('src="/reg-rev" revision');
@@ -245,7 +278,10 @@ describe('SelectLoader', () => {
 
         assert.lengthOf(calls, 1, 'the second mount read the registry revision out of local storage');
         second[1].remove();
-        assert.isNotNull(localStorage.getItem('POST@/reg-rev'));
+        assert.isNotNull(
+            localStorage.getItem('POST@/reg-rev'),
+            'the response is cached in local storage under method@url with the registry revision',
+        );
         localStorage.removeItem('POST@/reg-rev');
         registry.defineComponent('revision', undefined);
     });
@@ -258,7 +294,11 @@ describe('SelectLoader', () => {
         const [el, container] = await mount('src="/fn-rev" revision');
         await open(el);
 
-        assert.include(localStorage.getItem('POST@/fn-rev') ?? '', 'built-42');
+        assert.include(
+            localStorage.getItem('POST@/fn-rev') ?? '',
+            'built-42',
+            'a revision component that is a function is called and its answer is the stored revision',
+        );
         container.remove();
         localStorage.removeItem('POST@/fn-rev');
         registry.defineComponent('revision', undefined);
@@ -272,7 +312,11 @@ describe('SelectLoader', () => {
         const [el, container] = await mount('src="/won-rev" revision="written"');
         await open(el);
 
-        assert.include(localStorage.getItem('POST@/won-rev') ?? '', 'written');
+        assert.include(
+            localStorage.getItem('POST@/won-rev') ?? '',
+            'written',
+            'a declared revision value is used in place of the registry revision',
+        );
         container.remove();
         localStorage.removeItem('POST@/won-rev');
         registry.defineComponent('revision', undefined);
@@ -290,7 +334,10 @@ describe('SelectLoader', () => {
         await open(second[0]);
 
         assert.lengthOf(calls, 2, 'nothing was cached');
-        assert.isNull(localStorage.getItem('POST@/no-rev'));
+        assert.isNull(
+            localStorage.getItem('POST@/no-rev'),
+            'without a revision to resolve nothing is written to local storage',
+        );
         second[1].remove();
     });
 
@@ -304,7 +351,11 @@ describe('SelectLoader', () => {
             { k: ['k1'] },
             'the assignment looked its key up',
         );
-        assert.strictEqual(selectEl.querySelector('input').value, 'One');
+        assert.strictEqual(
+            selectEl.querySelector('input').value,
+            'One',
+            'the chunked key lookup labels the assigned key',
+        );
 
         await open(selectEl);
         assert.deepStrictEqual(
@@ -327,7 +378,11 @@ describe('SelectLoader', () => {
         const [selectEl] = await mount('src="/shaped" d-expr="rows" k-expr="id" l-expr="name" value="2"');
 
         assert.strictEqual(selectEl.querySelector('input').value, 'Two', 'the assignment resolved through the mapper');
-        assert.deepStrictEqual(options(await open(selectEl)), ['One', 'Two']);
+        assert.deepStrictEqual(
+            options(await open(selectEl)),
+            ['One', 'Two'],
+            'the dropdown lists the labels the declared expressions extract from the response',
+        );
     });
 
     it('resolves a named response-mapper component', async () => {
@@ -338,7 +393,11 @@ describe('SelectLoader', () => {
 
         const [selectEl] = await mount('src="/mapped" response-mapper="mappers:demo"');
 
-        assert.deepStrictEqual(options(await open(selectEl)), ['One']);
+        assert.deepStrictEqual(
+            options(await open(selectEl)),
+            ['One'],
+            'the named response-mapper component turns the response into the entries listed',
+        );
     });
 });
 
@@ -362,7 +421,11 @@ describe('Dropdown contract', () => {
     it('rejects null data with a contract error', async () => {
         const [, dropdown] = await mount(INLINE_OPTIONS);
 
-        assert.throws(() => dropdown.update(undefined), 'null data');
+        assert.throws(
+            () => dropdown.update(undefined),
+            'null data',
+            'the dropdown refuses undefined data instead of rendering nothing',
+        );
     });
 });
 
@@ -390,7 +453,11 @@ describe('SelectLoader runtime updates', () => {
         const [selectEl] = await mount('', INLINE_OPTIONS);
 
         await selectEl.withLoader((loader) => loader.update([{ key: 'k9', label: 'Nine', metadata: undefined }]));
-        assert.deepStrictEqual(options(await open(selectEl)), ['Nine']);
+        assert.deepStrictEqual(
+            options(await open(selectEl)),
+            ['Nine'],
+            'the dropdown serves the vocabulary the loader was updated with, not the slotted options',
+        );
     });
 });
 
@@ -428,8 +495,16 @@ describe('SelectLoader fetch discipline', () => {
         pending[0].resolve([['k1', 'One']]);
         await Promise.all(concurrent);
 
-        assert.deepStrictEqual(await loader.load('one'), [{ key: 'k1', label: 'One', metadata: undefined }]);
-        assert.deepStrictEqual(await loader.exact('k1'), [{ key: 'k1', label: 'One', metadata: undefined }]);
+        assert.deepStrictEqual(
+            await loader.load('one'),
+            [{ key: 'k1', label: 'One', metadata: undefined }],
+            'a search after the shared fetch is answered from the vocabulary it stored',
+        );
+        assert.deepStrictEqual(
+            await loader.exact('k1'),
+            [{ key: 'k1', label: 'One', metadata: undefined }],
+            'a key lookup after the shared fetch is answered from the vocabulary it stored',
+        );
         assert.lengthOf(calls, 1, 'the served answers never hit the network again');
     });
 
@@ -443,15 +518,23 @@ describe('SelectLoader fetch discipline', () => {
         );
         loader.invalidate();
         pending[0].resolve([['k1', 'Old']]);
-        assert.match(await stale, /superseded/);
+        assert.match(
+            await stale,
+            /superseded/,
+            'a caller waiting on a fetch that an invalidation detached rejects as superseded',
+        );
 
         const fresh = loader.load('x');
-        assert.lengthOf(calls, 2);
+        assert.lengthOf(calls, 2, 'after the invalidation the next question starts a new fetch');
         pending[1].resolve([['k2', 'New']]);
         await fresh;
-        assert.deepStrictEqual(await loader.load('new'), [{ key: 'k2', label: 'New', metadata: undefined }]);
+        assert.deepStrictEqual(
+            await loader.load('new'),
+            [{ key: 'k2', label: 'New', metadata: undefined }],
+            'the loader serves the vocabulary of the fetch that followed the invalidation',
+        );
         assert.deepStrictEqual(await loader.exact('k1'), [], 'the superseded answer was never stored');
-        assert.lengthOf(calls, 2);
+        assert.lengthOf(calls, 2, 'the stored vocabulary answers later questions without another fetch');
     });
 
     it('rejects a caller whose fetch an invalidation superseded, instead of crashing', async () => {
@@ -464,7 +547,11 @@ describe('SelectLoader fetch discipline', () => {
         );
         loader.invalidate();
         pending[0].resolve([['k1', 'Old']]);
-        assert.match(await superseded, /superseded/);
+        assert.match(
+            await superseded,
+            /superseded/,
+            'a lookup waiting on a fetch that an invalidation detached rejects as superseded',
+        );
 
         const next = loader.exact('k1');
         pending[1].resolve([['k1', 'New']]);
@@ -473,7 +560,7 @@ describe('SelectLoader fetch discipline', () => {
             [{ key: 'k1', label: 'New', metadata: undefined }],
             'the next caller is served by a fresh fetch',
         );
-        assert.lengthOf(calls, 2);
+        assert.lengthOf(calls, 2, 'only the invalidation made the loader fetch a second time');
     });
 
     it('serves the fetched options when the cache write hits a full quota', async () => {
@@ -510,6 +597,7 @@ describe('SelectLoader fetch discipline', () => {
             assert.deepStrictEqual(
                 Array.from(items).map((li) => li.textContent.trim()),
                 ['One'],
+                'the fetched options are listed even though caching them in local storage failed',
             );
             assert.isTrue(
                 warns.some((args) => String(args[0]).includes('cache')),
@@ -548,8 +636,9 @@ describe('SelectLoader fetch discipline', () => {
             assert.deepStrictEqual(
                 Array.from(items).map((li) => li.textContent.trim()),
                 ['One'],
+                'an entry that is not a valid cached vocabulary is ignored and the fetched options are listed',
             );
-            assert.lengthOf(calls, 1);
+            assert.lengthOf(calls, 1, 'the tampered entry counts as a miss, so the vocabulary is fetched');
         } finally {
             localStorage.removeItem('POST@/tampered');
             container.remove();
@@ -600,14 +689,18 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         const calls = stub(bodies);
         const selectEl = await mount('src="/v" value="k1"');
         await settle();
-        assert.strictEqual(selectEl.entry.label, 'First label');
+        assert.strictEqual(
+            selectEl.entry.label,
+            'First label',
+            'the key is first labelled from the vocabulary fetched at mount',
+        );
 
         bodies['/v'] = [['k1', 'Second label']];
         await selectEl.reload();
         await settle();
 
         assert.strictEqual(selectEl.entry.label, 'Second label', 'the cache was dropped, not served again');
-        assert.isAbove(calls.length, 0);
+        assert.isAbove(calls.length, 0, 'reload asks the endpoint again');
     });
 
     it('drops a selected key the new vocabulary no longer knows', async () => {
@@ -620,13 +713,21 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         stub(bodies);
         const selectEl = await mount('src="/v" multiple value="k1,k2"');
         await settle();
-        assert.deepStrictEqual(selectEl.value, ['k1', 'k2']);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k1', 'k2'],
+            'both declared keys are known to the first vocabulary and stay selected',
+        );
 
         bodies['/v'] = [['k2', 'Two']];
         await selectEl.reload();
         await settle();
 
-        assert.deepStrictEqual(selectEl.value, ['k2']);
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k2'],
+            'reload drops the selected key the new vocabulary no longer knows and keeps the other',
+        );
         assert.lengthOf(selectEl.querySelectorAll('ful-badge'), 1, 'the chips follow the selection');
     });
 
@@ -653,7 +754,7 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         await selectEl.reload();
         await settle();
 
-        assert.strictEqual(selectEl.value, null);
+        assert.strictEqual(selectEl.value, null, 'reload leaves an empty selection empty');
         assert.strictEqual(calls.length, before, 'an empty selection asks the endpoint nothing');
     });
 
@@ -662,7 +763,11 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         await mount('src="/v"');
         await settle();
 
-        assert.deepStrictEqual(calls, []);
+        assert.deepStrictEqual(
+            calls,
+            [],
+            'applying the declared src at the upgrade asks nothing while no key is selected and nothing is preloaded',
+        );
     });
 
     it('asks the new url when src changes, relabelling the selection without a change event', async () => {
@@ -675,9 +780,13 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         selectEl.setAttribute('src', '/b');
         await settle();
 
-        assert.strictEqual(selectEl.entry.label, 'From b');
-        assert.strictEqual(calls.at(-1), '/b');
-        assert.strictEqual(changes, 0);
+        assert.strictEqual(
+            selectEl.entry.label,
+            'From b',
+            'the selected key is labelled from the vocabulary at the new src',
+        );
+        assert.strictEqual(calls.at(-1), '/b', 'the loader built for the new src asks the new url');
+        assert.strictEqual(changes, 0, 'a selection relabelled by a src change dispatches no change event');
     });
 
     it('drops a selected key the vocabulary at the new src does not know', async () => {
@@ -694,9 +803,17 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         selectEl.src = '/b';
         await settle();
 
-        assert.deepStrictEqual(selectEl.value, ['k2']);
-        assert.strictEqual(selectEl.getAttribute('src'), '/b');
-        assert.strictEqual(selectEl.src, '/b');
+        assert.deepStrictEqual(
+            selectEl.value,
+            ['k2'],
+            'the key the vocabulary at the new src does not know is dropped from the selection',
+        );
+        assert.strictEqual(
+            selectEl.getAttribute('src'),
+            '/b',
+            'writing the src property reflects it as the src attribute',
+        );
+        assert.strictEqual(selectEl.src, '/b', 'the src property reads back the written url');
     });
 
     it('points a chunked loader at the new src', async () => {
@@ -707,8 +824,12 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         selectEl.src = '/b';
         await settle();
 
-        assert.strictEqual(selectEl.entry.label, 'From b');
-        assert.include(calls, '/b');
+        assert.strictEqual(
+            selectEl.entry.label,
+            'From b',
+            'the chunked key lookup at the new src labels the selection',
+        );
+        assert.include(calls, '/b', 'the rebuilt chunked loader asks the new url');
     });
 
     it('asks with the new method when method changes', async () => {
@@ -732,9 +853,17 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         selectEl.method = 'GET';
         await settle();
 
-        assert.strictEqual(methods.at(-1), 'GET');
-        assert.strictEqual(selectEl.getAttribute('method'), 'GET');
-        assert.strictEqual(selectEl.method, 'GET');
+        assert.strictEqual(
+            methods.at(-1),
+            'GET',
+            'the loader rebuilt after the method change asks with the new method',
+        );
+        assert.strictEqual(
+            selectEl.getAttribute('method'),
+            'GET',
+            'writing the method property reflects it as the method attribute',
+        );
+        assert.strictEqual(selectEl.method, 'GET', 'the method property reads back the written method');
     });
 
     it('closes an open dropdown when src changes, so it lists no stale options', async () => {
@@ -742,12 +871,15 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         const selectEl = await mount('src="/a"');
         keydown(selectEl.querySelector('input'), 'ArrowDown', { altKey: true });
         await settle();
-        assert.isTrue(selectEl.querySelector('ful-dropdown').shown);
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'Alt+ArrowDown opens the dropdown');
 
         selectEl.src = '/b';
         await settle();
 
-        assert.isFalse(selectEl.querySelector('ful-dropdown').shown);
+        assert.isFalse(
+            selectEl.querySelector('ful-dropdown').shown,
+            'a src change closes the open dropdown so it does not list options from the old url',
+        );
     });
 
     it('ignores a write that does not change the url', async () => {
@@ -759,7 +891,7 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         selectEl.src = '/v';
         await settle();
 
-        assert.strictEqual(calls.length, before);
+        assert.strictEqual(calls.length, before, 'writing the same url does not rebuild the loader or reload');
     });
 
     it('builds the loader once and asks once when reconfigure changes src and method together', async () => {
@@ -783,10 +915,18 @@ describe('Select reload, for a vocabulary that depends on another control', () =
 
         await selectEl.reconfigure({ src: '/b', method: 'GET' });
 
-        assert.deepStrictEqual(requests, ['GET /b']);
-        assert.strictEqual(selectEl.entry.label, '/b');
-        assert.strictEqual(selectEl.getAttribute('src'), '/b');
-        assert.strictEqual(selectEl.getAttribute('method'), 'GET');
+        assert.deepStrictEqual(
+            requests,
+            ['GET /b'],
+            'reconfigure rebuilds the loader for the new pair once and asks with both changes in one request',
+        );
+        assert.strictEqual(selectEl.entry.label, '/b', 'the selection is relabelled from the reconfigured endpoint');
+        assert.strictEqual(selectEl.getAttribute('src'), '/b', 'reconfigure reflects the new src as the attribute');
+        assert.strictEqual(
+            selectEl.getAttribute('method'),
+            'GET',
+            'reconfigure reflects the new method as the attribute',
+        );
     });
 
     it('keeps the attribute reconfigure leaves out, and removes the one it passes as null', async () => {
@@ -795,11 +935,19 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         await settle();
 
         await selectEl.reconfigure({ src: '/b' });
-        assert.strictEqual(selectEl.getAttribute('method'), 'GET');
+        assert.strictEqual(
+            selectEl.getAttribute('method'),
+            'GET',
+            'an attribute left out of reconfigure keeps its value',
+        );
 
         await selectEl.reconfigure({ method: null });
-        assert.isFalse(selectEl.hasAttribute('method'));
-        assert.strictEqual(selectEl.getAttribute('src'), '/b');
+        assert.isFalse(selectEl.hasAttribute('method'), 'an attribute passed as null is removed');
+        assert.strictEqual(
+            selectEl.getAttribute('src'),
+            '/b',
+            'the src written by the earlier reconfigure stays when only the method is passed',
+        );
     });
 
     it('dispatches change under notify when the reconfigured vocabulary drops a selected key', async () => {
@@ -817,7 +965,11 @@ describe('Select reload, for a vocabulary that depends on another control', () =
 
         await selectEl.reconfigure({ src: '/b' }, { notify: true });
 
-        assert.deepStrictEqual(details, [['k2']]);
+        assert.deepStrictEqual(
+            details,
+            [['k2']],
+            'notify dispatches one change carrying the selection that remains after the dropped key',
+        );
     });
 
     it('dispatches nothing under notify when every selected key survives', async () => {
@@ -829,8 +981,8 @@ describe('Select reload, for a vocabulary that depends on another control', () =
 
         await selectEl.reconfigure({ src: '/b' }, { notify: true });
 
-        assert.strictEqual(changes, 0);
-        assert.strictEqual(selectEl.entry.label, 'Uno');
+        assert.strictEqual(changes, 0, 'notify dispatches nothing when the reload drops no selected key');
+        assert.strictEqual(selectEl.entry.label, 'Uno', 'a surviving key is relabelled from the new vocabulary');
     });
 
     it('dispatches nothing without notify, even when a selected key is dropped', async () => {
@@ -842,8 +994,8 @@ describe('Select reload, for a vocabulary that depends on another control', () =
 
         await selectEl.reconfigure({ src: '/b' });
 
-        assert.strictEqual(selectEl.value, null);
-        assert.strictEqual(changes, 0);
+        assert.strictEqual(selectEl.value, null, 'the key the new vocabulary does not know is dropped');
+        assert.strictEqual(changes, 0, 'without notify a reconfigure dispatches no change even when it drops a key');
     });
 
     it('rejects reconfigure with what the lookup at the new src throws', async () => {
@@ -870,7 +1022,7 @@ describe('Select reload, for a vocabulary that depends on another control', () =
             (e) => e.message,
         );
 
-        assert.strictEqual(outcome, 'down');
+        assert.strictEqual(outcome, 'down', 'reconfigure rejects with the error the key lookup at the new src threw');
     });
 
     it('gives ful-filter-in the same live src', async () => {
@@ -884,6 +1036,10 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         filterEl.src = '/b';
         await settle();
 
-        assert.deepStrictEqual(filterEl.criterion.operands, ['From b']);
+        assert.deepStrictEqual(
+            filterEl.criterion.operands,
+            ['From b'],
+            'ful-filter-in labels its criterion from the vocabulary at the new src',
+        );
     });
 });

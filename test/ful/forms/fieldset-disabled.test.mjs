@@ -54,10 +54,17 @@ describe('Disabled fields and fieldsets', () => {
         it(`${tag} stays enabled inside a fieldset without the disabled attribute`, async () => {
             const [, field] = await mount('', markup);
 
-            assert.isFalse(field.disabled);
-            assert.isFalse(field.hasAttribute('disabled'));
-            assert.isFalse(field.matches(':disabled'));
-            assert.strictEqual(disabledControls(field), 'none');
+            assert.isFalse(field.disabled, 'a field inside an enabled fieldset reads back no disabled claim');
+            assert.isFalse(
+                field.hasAttribute('disabled'),
+                'a field inside an enabled fieldset carries no disabled attribute',
+            );
+            assert.isFalse(field.matches(':disabled'), 'a field inside an enabled fieldset does not match :disabled');
+            assert.strictEqual(
+                disabledControls(field),
+                'none',
+                'no control of a field inside an enabled fieldset is disabled',
+            );
         });
 
         it(`${tag} mirrors the disabled attribute and property onto its controls, and takes them back off`, async () => {
@@ -70,17 +77,25 @@ describe('Disabled fields and fieldsets', () => {
             assert.strictEqual(claimedControls(field), 'all', 'the controls carry the attribute');
 
             field.removeAttribute('disabled');
-            assert.isFalse(field.disabled);
-            assert.isFalse(field.matches(':disabled'));
-            assert.strictEqual(disabledControls(field), 'none');
-            assert.strictEqual(claimedControls(field), 'none');
+            assert.isFalse(field.disabled, 'removing the attribute lifts the claim');
+            assert.isFalse(field.matches(':disabled'), 'removing the attribute stops the host matching :disabled');
+            assert.strictEqual(disabledControls(field), 'none', 'removing the attribute enables every control again');
+            assert.strictEqual(claimedControls(field), 'none', 'removing the attribute takes it off every control');
 
             field.disabled = true;
             assert.isTrue(field.hasAttribute('disabled'), 'the property reflects onto the attribute');
-            assert.strictEqual(disabledControls(field), 'all');
+            assert.strictEqual(
+                disabledControls(field),
+                'all',
+                'the property disables every control, as the attribute does',
+            );
             field.disabled = false;
-            assert.isFalse(field.hasAttribute('disabled'));
-            assert.strictEqual(disabledControls(field), 'none');
+            assert.isFalse(field.hasAttribute('disabled'), 'setting the property to false removes the attribute');
+            assert.strictEqual(
+                disabledControls(field),
+                'none',
+                'setting the property to false enables every control again',
+            );
         });
 
         it(`${tag} leaves the submitted values while disabled, and comes back once re-enabled`, async () => {
@@ -89,12 +104,16 @@ describe('Disabled fields and fieldsets', () => {
 
             field.disabled = true;
 
-            assert.notProperty(form.values, 'a');
+            assert.notProperty(
+                form.values,
+                'a',
+                'a disabled field is left out of the submitted values, like a disabled native control',
+            );
             assert.strictEqual(form.values.keep, 'kept', 'the other fields still contribute');
 
             field.disabled = false;
 
-            assert.property(form.values, 'a');
+            assert.property(form.values, 'a', 'a re-enabled field contributes to the submitted values again');
         });
 
         it(`${tag} follows a disabled fieldset without claiming it, and follows it back`, async () => {
@@ -107,8 +126,11 @@ describe('Disabled fields and fieldsets', () => {
 
             fieldset.removeAttribute('disabled');
 
-            assert.isFalse(field.disabled);
-            assert.isFalse(field.matches(':disabled'));
+            assert.isFalse(field.disabled, 'the property still reads no claim once the fieldset is enabled');
+            assert.isFalse(
+                field.matches(':disabled'),
+                'the host stops matching :disabled once the fieldset is enabled',
+            );
             assert.strictEqual(disabledControls(field), 'none', 'the controls follow the fieldset back');
         });
 
@@ -125,8 +147,11 @@ describe('Disabled fields and fieldsets', () => {
             fieldset.removeAttribute('disabled');
 
             assert.isTrue(field.disabled, 'the claim made before the fieldset survived the re-enable');
-            assert.isTrue(field.hasAttribute('disabled'));
-            assert.isTrue(field.matches(':disabled'));
+            assert.isTrue(
+                field.hasAttribute('disabled'),
+                'the attribute stays on the element after the fieldset is enabled',
+            );
+            assert.isTrue(field.matches(':disabled'), 'the host still matches :disabled through its own claim');
             assert.strictEqual(disabledControls(field), 'all', 'the claim alone holds the controls');
 
             field.disabled = false;
@@ -140,7 +165,7 @@ describe('Disabled fields and fieldsets', () => {
             fieldset.removeAttribute('disabled');
 
             assert.isTrue(field.disabled, 'the element stays on its own disabled state');
-            assert.isTrue(field.matches(':disabled'));
+            assert.isTrue(field.matches(':disabled'), 'the host still matches :disabled through its own claim');
         });
 
         it(`${tag} declared disabled in markup under a disabled fieldset keeps its claim`, async () => {
@@ -152,8 +177,11 @@ describe('Disabled fields and fieldsets', () => {
             fieldset.removeAttribute('disabled');
 
             assert.isTrue(field.disabled, 'the element stays on its declared claim');
-            assert.isTrue(field.hasAttribute('disabled'));
-            assert.isTrue(field.matches(':disabled'));
+            assert.isTrue(
+                field.hasAttribute('disabled'),
+                'the declared attribute stays on the element after the fieldset is enabled',
+            );
+            assert.isTrue(field.matches(':disabled'), 'the host still matches :disabled through its declared claim');
             assert.strictEqual(disabledControls(field), 'all', 'the controls carry the declared claim');
         });
 

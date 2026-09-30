@@ -16,45 +16,55 @@ describe('InputFile', () => {
     it('mounts without accessing not yet initialized internals', async () => {
         const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
 
-        assert.isNotNull(el.querySelector('input[type=file]'));
-        assert.isNotNull(el.querySelector('ful-item-list'));
-        assert.isNotNull(el.querySelector('ful-field-error'));
-        assert.deepStrictEqual(el.value, null);
-
+        assert.isNotNull(el.querySelector('input[type=file]'), 'the field renders its native file input');
+        assert.isNotNull(el.querySelector('ful-item-list'), 'the field renders its item list');
+        assert.isNotNull(el.querySelector('ful-field-error'), 'the field renders its error slot');
+        assert.deepStrictEqual(el.value, null, 'a single-file field with no selection has a null value');
     });
 
     it('applies inherited observed attributes', async () => {
         const [el] = await mount(`<ful-input-file required readonly>files</ful-input-file>`);
 
         const input = el.querySelector('input[type=file]');
-        assert.strictEqual(input.getAttribute('aria-required'), 'true');
-        assert.isTrue(el.readonly);
+        assert.strictEqual(
+            input.getAttribute('aria-required'),
+            'true',
+            'the required claim is announced on the native input',
+        );
+        assert.isTrue(el.readonly, 'the readonly attribute is applied at render');
         assert.isFalse(el.querySelector('ful-control-group').inert, 'inert would hide the list from a reader');
-        assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the claim is announced instead');
-
+        assert.strictEqual(
+            input.getAttribute('aria-readonly'),
+            'true',
+            'the readonly claim is announced on the native input instead',
+        );
     });
 
     it('applies its own observed attributes', async () => {
-        const [el] = await mount(
-            `<ful-input-file multiple accept=".pdf,.png" max-files="3">files</ful-input-file>`,
-        );
+        const [el] = await mount(`<ful-input-file multiple accept=".pdf,.png" max-files="3">files</ful-input-file>`);
 
         const input = el.querySelector('input[type=file]');
-        assert.strictEqual(input.multiple, true);
-        assert.strictEqual(input.accept, '.pdf,.png');
-        assert.deepStrictEqual(el.accept, ['.pdf', '.png']);
-        assert.strictEqual(el.maxFiles, 3);
-
+        assert.strictEqual(input.multiple, true, 'the multiple attribute reaches the native input');
+        assert.strictEqual(input.accept, '.pdf,.png', 'the accept list reaches the native input for its picker');
+        assert.deepStrictEqual(el.accept, ['.pdf', '.png'], 'the accept attribute is parsed as a comma separated list');
+        assert.strictEqual(el.maxFiles, 3, 'the max-files attribute is parsed as a number');
     });
 
     it('reports custom validity via the field error', async () => {
         const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
 
         el.setCustomValidity('nope');
-        assert.strictEqual(el.querySelector('ful-field-error').innerText, 'nope');
+        assert.strictEqual(
+            el.querySelector('ful-field-error').innerText,
+            'nope',
+            'a custom validity message is shown in the field error',
+        );
         el.setCustomValidity();
-        assert.strictEqual(el.querySelector('ful-field-error').innerText, '');
-
+        assert.strictEqual(
+            el.querySelector('ful-field-error').innerText,
+            '',
+            'clearing the custom validity empties the field error',
+        );
     });
 });
 
@@ -97,11 +107,10 @@ describe('InputFile selection', () => {
 
         drop(el, file('a.txt', 3), file('b.txt', 2048));
 
-        assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt']);
-        assert.deepStrictEqual(listed(el), ['a.txt', 'b.txt']);
+        assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], 'a drop selects every file it carries');
+        assert.deepStrictEqual(listed(el), ['a.txt', 'b.txt'], 'the item list holds one item per selected file');
         const sizes = Array.from(el.querySelectorAll('ful-item')).map((i) => i.querySelectorAll('span')[1].innerText);
-        assert.deepStrictEqual(sizes, ['3B', '2KiB']);
-
+        assert.deepStrictEqual(sizes, ['3B', '2KiB'], 'each item shows its file size in localized bytes');
     });
 
     it('removes only the file whose item was dismissed', async () => {
@@ -113,8 +122,11 @@ describe('InputFile selection', () => {
         );
 
         assert.deepStrictEqual(selected(el), ['a.txt', 'c.txt'], 'the other files must survive');
-        assert.deepStrictEqual(listed(el), ['a.txt', 'c.txt']);
-
+        assert.deepStrictEqual(
+            listed(el),
+            ['a.txt', 'c.txt'],
+            "the dismissed file's item leaves the list while the others stay",
+        );
     });
 
     it('reports the drop and removal gestures through change, keeping the setters silent', async () => {
@@ -132,7 +144,6 @@ describe('InputFile selection', () => {
 
         el.value = null;
         assert.strictEqual(seen.length, 2, 'a programmatic write stays silent, like a native input');
-
     });
 
     it('removes only the clicked item when two files share a name', async () => {
@@ -144,7 +155,6 @@ describe('InputFile selection', () => {
 
         assert.strictEqual(el.files.length, 1, 'only the clicked one is removed');
         assert.strictEqual(el.file.size, 2, 'the survivor is the one that was not clicked');
-
     });
 
     it('reports the selected names as an array when multiple', async () => {
@@ -153,8 +163,11 @@ describe('InputFile selection', () => {
         assert.deepStrictEqual(el.value, [], 'a multiple input has no scalar empty value');
         pick(el, file('a.txt'), file('b.txt'));
 
-        assert.deepStrictEqual(el.value, ['a.txt', 'b.txt']);
-
+        assert.deepStrictEqual(
+            el.value,
+            ['a.txt', 'b.txt'],
+            'a multiple field reports the selected names as an array, in order',
+        );
     });
 
     it('reports a single name, not an array, when not multiple', async () => {
@@ -162,23 +175,21 @@ describe('InputFile selection', () => {
 
         pick(el, file('a.txt'));
 
-        assert.strictEqual(el.value, 'a.txt');
-
+        assert.strictEqual(el.value, 'a.txt', 'a single-file field reports its one name as a string');
     });
 
     it('exposes the first file, or null, and the total size of the selection', async () => {
         const [el] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
 
-        assert.isNull(el.file);
-        assert.strictEqual(el.totalsize, 0);
+        assert.isNull(el.file, 'file is null while nothing is selected');
+        assert.strictEqual(el.totalsize, 0, 'the total size of an empty selection is zero');
         pick(el, file('a.txt', 10), file('b.txt', 20));
 
-        assert.strictEqual(el.file.name, 'a.txt');
-        assert.strictEqual(el.totalsize, 30);
+        assert.strictEqual(el.file.name, 'a.txt', 'file answers the first selected file');
+        assert.strictEqual(el.totalsize, 30, 'totalsize adds the sizes of every selected file');
 
         el.file = file('c.txt', 5);
         assert.deepStrictEqual(selected(el), ['c.txt'], 'assigning a file replaces the selection');
-
     });
 
     it('clears the selection and the item list when the value is reset to null', async () => {
@@ -187,9 +198,8 @@ describe('InputFile selection', () => {
 
         el.value = null;
 
-        assert.deepStrictEqual(selected(el), []);
-        assert.deepStrictEqual(listed(el), []);
-
+        assert.deepStrictEqual(selected(el), [], 'a null value empties the selection');
+        assert.deepStrictEqual(listed(el), [], 'a null value empties the item list with the selection');
     });
 
     it('ignores a non empty value, as file names cannot select files', async () => {
@@ -199,7 +209,6 @@ describe('InputFile selection', () => {
         el.value = ['b.txt'];
 
         assert.deepStrictEqual(selected(el), ['a.txt'], 'the picked file must not be dropped');
-
     });
 });
 
@@ -209,9 +218,12 @@ describe('InputFile constraints', () => {
 
         pick(el, file('a.pdf'), file('b.txt'), file('c.png'));
 
-        assert.deepStrictEqual(selected(el), ['a.pdf', 'c.png']);
+        assert.deepStrictEqual(
+            selected(el),
+            ['a.pdf', 'c.png'],
+            'a file whose extension matches no accepted token is dropped, the others kept',
+        );
         assert.deepStrictEqual(listed(el), ['a.pdf', 'c.png'], 'the rejected file must not be listed');
-
     });
 
     it('warns with the localized list of accepted extensions', async () => {
@@ -219,8 +231,11 @@ describe('InputFile constraints', () => {
 
         pick(el, file('b.txt'));
 
-        assert.strictEqual(warning(el), 'Only files of type .pdf, .png are supported');
-
+        assert.strictEqual(
+            warning(el),
+            'Only files of type .pdf, .png are supported',
+            'the warning names the accepted tokens, joined by a comma',
+        );
     });
 
     it('matches accepted extensions ignoring case', async () => {
@@ -228,9 +243,8 @@ describe('InputFile constraints', () => {
 
         pick(el, file('a.pdf'));
 
-        assert.deepStrictEqual(selected(el), ['a.pdf']);
-        assert.isNull(warning(el));
-
+        assert.deepStrictEqual(selected(el), ['a.pdf'], 'an extension token matches the file name ignoring case');
+        assert.isNull(warning(el), 'a file that matches shows no warning');
     });
 
     it('accepts mime types, not only extensions', async () => {
@@ -238,9 +252,8 @@ describe('InputFile constraints', () => {
 
         pick(el, file('a.png', 4, 'image/png'), file('b.txt', 4, 'text/plain'));
 
-        assert.deepStrictEqual(selected(el), ['a.png']);
-        assert.deepStrictEqual(listed(el), ['a.png']);
-
+        assert.deepStrictEqual(selected(el), ['a.png'], 'a mime type token keeps a file of that type');
+        assert.deepStrictEqual(listed(el), ['a.png'], 'a file of another type is dropped from the list too');
     });
 
     it('mixes extensions and mime types in one list, matching each its own way', async () => {
@@ -248,9 +261,16 @@ describe('InputFile constraints', () => {
 
         pick(el, file('a.pdf'), file('b.png', 4, 'image/png'), file('c.txt', 4, 'text/plain'));
 
-        assert.deepStrictEqual(selected(el), ['a.pdf', 'b.png']);
-        assert.strictEqual(warning(el), 'Only files of type .pdf, image/png are supported');
-
+        assert.deepStrictEqual(
+            selected(el),
+            ['a.pdf', 'b.png'],
+            'each token matches its own way: the extension by name, the mime type by type',
+        );
+        assert.strictEqual(
+            warning(el),
+            'Only files of type .pdf, image/png are supported',
+            'the warning lists every accepted token, extensions and mime types alike',
+        );
     });
 
     it('accepts a whole mime family through the wildcard', async () => {
@@ -258,21 +278,29 @@ describe('InputFile constraints', () => {
 
         pick(el, file('a.png', 4, 'image/png'), file('b.jpg', 4, 'image/jpeg'), file('c.pdf'));
 
-        assert.deepStrictEqual(selected(el), ['a.png', 'b.jpg']);
-        assert.strictEqual(warning(el), 'Only files of type image/* are supported');
-
+        assert.deepStrictEqual(
+            selected(el),
+            ['a.png', 'b.jpg'],
+            'a family token such as image/* keeps every file of that family',
+        );
+        assert.strictEqual(
+            warning(el),
+            'Only files of type image/* are supported',
+            'the warning names the family token',
+        );
     });
 
     it('matches a mime type carrying parameters, ignoring them', async () => {
-        const [el] = await mount(
-            `<ful-input-file multiple accept="text/plain; charset=utf-8">files</ful-input-file>`,
-        );
+        const [el] = await mount(`<ful-input-file multiple accept="text/plain; charset=utf-8">files</ful-input-file>`);
 
         pick(el, file('a.txt', 4, 'text/plain'));
 
-        assert.deepStrictEqual(selected(el), ['a.txt']);
-        assert.isNull(warning(el));
-
+        assert.deepStrictEqual(
+            selected(el),
+            ['a.txt'],
+            'the parameters of a mime type token are ignored when matching',
+        );
+        assert.isNull(warning(el), 'a file matching a token with parameters shows no warning');
     });
 
     it('drops the files above max-file-size and warns with the readable limit', async () => {
@@ -281,8 +309,11 @@ describe('InputFile constraints', () => {
         pick(el, file('small.txt', 2048), file('big.txt', 2049));
 
         assert.deepStrictEqual(selected(el), ['small.txt'], 'the limit is inclusive');
-        assert.strictEqual(warning(el), 'Maximum supported file size is 2KiB');
-
+        assert.strictEqual(
+            warning(el),
+            'Maximum supported file size is 2KiB',
+            'the warning states the size limit in localized bytes',
+        );
     });
 
     it('clears the whole selection when the files together exceed max-total-size', async () => {
@@ -294,9 +325,12 @@ describe('InputFile constraints', () => {
         pick(el, file('a.txt', 50), file('b.txt', 51));
 
         assert.deepStrictEqual(selected(el), [], 'no file is kept: the caller must pick again');
-        assert.deepStrictEqual(listed(el), []);
-        assert.strictEqual(warning(el), 'Maximum supported total file size is 100B');
-
+        assert.deepStrictEqual(listed(el), [], 'a cleared selection leaves the item list empty too');
+        assert.strictEqual(
+            warning(el),
+            'Maximum supported total file size is 100B',
+            'the warning states the total size limit in localized bytes',
+        );
     });
 
     it('clears the whole selection when more files than max-files are picked', async () => {
@@ -307,9 +341,8 @@ describe('InputFile constraints', () => {
 
         pick(el, file('a.txt'), file('b.txt'), file('c.txt'));
 
-        assert.deepStrictEqual(selected(el), []);
-        assert.strictEqual(warning(el), 'Maximum of 2 files exceeded');
-
+        assert.deepStrictEqual(selected(el), [], 'a selection holding more files than max-files is cleared entirely');
+        assert.strictEqual(warning(el), 'Maximum of 2 files exceeded', 'the warning states the most files allowed');
     });
 
     it('applies the constraints to dropped files too, not just to picked ones', async () => {
@@ -317,9 +350,12 @@ describe('InputFile constraints', () => {
 
         drop(el, file('a.pdf'), file('b.txt'));
 
-        assert.deepStrictEqual(selected(el), ['a.pdf']);
-        assert.strictEqual(warning(el), 'Only files of type .pdf are supported');
-
+        assert.deepStrictEqual(selected(el), ['a.pdf'], 'a drop goes through the accept constraint like a pick');
+        assert.strictEqual(
+            warning(el),
+            'Only files of type .pdf are supported',
+            'a drop that breaks a constraint shows its warning like a pick',
+        );
     });
 });
 
@@ -331,7 +367,6 @@ describe('InputFile dropzone', () => {
         el.querySelector('[data-ref=dropzone]').dispatchEvent(dragover);
 
         assert.isTrue(dragover.defaultPrevented, 'a dragover left alone means "no drop here"');
-
     });
 
     it('keeps the current selection when the drop carries no file', async () => {
@@ -341,35 +376,35 @@ describe('InputFile dropzone', () => {
         dropText(el, 'https://example.com/not-a-file');
 
         assert.deepStrictEqual(selected(el), ['a.txt'], 'dragging a link must not wipe the pick');
-        assert.deepStrictEqual(listed(el), ['a.txt']);
-
+        assert.deepStrictEqual(listed(el), ['a.txt'], 'a drop with no file leaves the item list as it was');
     });
 });
 
 describe('InputFile warnings', () => {
     it('shows one warning per violated constraint, not just the last one', async () => {
-        const [el] = await mount(
-            `<ful-input-file multiple accept=".pdf" max-file-size="10">files</ful-input-file>`,
-        );
+        const [el] = await mount(`<ful-input-file multiple accept=".pdf" max-file-size="10">files</ful-input-file>`);
 
         pick(el, file('a.txt', 4), file('big.pdf', 20));
 
-        assert.deepStrictEqual(warnings(el), [
-            'Only files of type .pdf are supported',
-            'Maximum supported file size is 10B',
-        ]);
-
+        assert.deepStrictEqual(
+            warnings(el),
+            ['Only files of type .pdf are supported', 'Maximum supported file size is 10B'],
+            'each violated constraint shows its own warning, in the order the constraints run',
+        );
     });
 
     it('stops complaining as soon as the next selection is clean', async () => {
         const [el] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
         pick(el, file('a.txt'));
-        assert.strictEqual(warning(el), 'Only files of type .pdf are supported');
+        assert.strictEqual(
+            warning(el),
+            'Only files of type .pdf are supported',
+            'the first selection breaks the accept constraint and shows its warning',
+        );
 
         pick(el, file('b.pdf'));
 
         assert.deepStrictEqual(warnings(el), [], 'a fixed selection must not keep the stale complaint on screen');
-
     });
 });
 
@@ -379,10 +414,17 @@ describe('InputFile programmatic selection', () => {
 
         el.files = transfer(file('a.pdf'), file('b.txt')).files;
 
-        assert.deepStrictEqual(selected(el), ['a.pdf']);
+        assert.deepStrictEqual(
+            selected(el),
+            ['a.pdf'],
+            'a files assignment goes through the accept constraint like a pick',
+        );
         assert.deepStrictEqual(listed(el), ['a.pdf'], 'the item list must not go stale');
-        assert.strictEqual(warning(el), 'Only files of type .pdf are supported');
-
+        assert.strictEqual(
+            warning(el),
+            'Only files of type .pdf are supported',
+            'a files assignment that breaks a constraint shows its warning',
+        );
     });
 
     it('refreshes the item list when a single file is assigned programmatically', async () => {
@@ -390,8 +432,7 @@ describe('InputFile programmatic selection', () => {
 
         el.file = file('a.txt');
 
-        assert.deepStrictEqual(listed(el), ['a.txt']);
-
+        assert.deepStrictEqual(listed(el), ['a.txt'], 'assigning file refreshes the item list');
     });
 });
 
@@ -413,6 +454,7 @@ describe('InputFile items template', () => {
         assert.deepStrictEqual(
             Array.from(el.querySelectorAll('ful-item [data-ref=kind]')).map((s) => s.textContent),
             ['text/plain', 'image/png'],
+            'the slotted template reads the File objects through the same files overlay as the stock item',
         );
         assert.strictEqual(
             el.querySelector('ful-item button').getAttribute('aria-label'),
@@ -435,15 +477,21 @@ describe('InputFile items template', () => {
         el.querySelector('ful-item button').click();
 
         assert.deepStrictEqual(selected(el), ['b.txt'], 'the click removed the first file');
-        assert.deepStrictEqual(listed(el), ['b.txt']);
+        assert.deepStrictEqual(listed(el), ['b.txt'], "the removed file's authored item leaves the list");
     });
 
     it('falls back to the stock item when the slot is blank', async () => {
-        const [el] = await mount(`<ful-input-file multiple>files<template slot="items">   </template></ful-input-file>`);
+        const [el] = await mount(
+            `<ful-input-file multiple>files<template slot="items">   </template></ful-input-file>`,
+        );
 
         el.files = transfer(file('a.txt')).files;
 
-        assert.deepStrictEqual(listed(el), ['a.txt']);
+        assert.deepStrictEqual(
+            listed(el),
+            ['a.txt'],
+            'a blank items slot falls back to the stock item, which still lists the file',
+        );
         assert.isNotNull(el.querySelector('ful-item ful-icon'), 'the stock item carries the remove glyph');
     });
 });
@@ -506,7 +554,11 @@ describe('InputFile list and dropzone interactions', () => {
 
         el.querySelector('[data-ref=dropzone]').dispatchEvent(new Event('click', { bubbles: true }));
 
-        assert.deepStrictEqual(clicked, ['field']);
+        assert.deepStrictEqual(
+            clicked,
+            ['field'],
+            "a dropzone click opens the field's own file input, not an input the page slotted before it",
+        );
     });
 
     it('carries the dragover state while a drag hovers the dropzone', async () => {
@@ -514,10 +566,13 @@ describe('InputFile list and dropzone interactions', () => {
         const dropzone = el.querySelector('[data-ref=dropzone]');
 
         dropzone.dispatchEvent(new DragEvent('dragover', { cancelable: true }));
-        assert.isTrue(el.hasAttribute('dragover'), 'the hover state is on');
+        assert.isTrue(
+            el.hasAttribute('dragover'),
+            'a dragover on the dropzone sets the dragover attribute on the host',
+        );
 
         dropzone.dispatchEvent(new DragEvent('dragleave'));
-        assert.isFalse(el.hasAttribute('dragover'), 'and it leaves with the drag');
+        assert.isFalse(el.hasAttribute('dragover'), 'a dragleave removes the dragover attribute');
     });
 });
 
@@ -527,7 +582,7 @@ describe('InputFile warning dismissal', () => {
         pick(el, file('b.txt'));
 
         const warningEl = el.querySelector('ful-field-warning');
-        assert.isNotNull(warningEl);
+        assert.isNotNull(warningEl, 'a pick that breaks the accept constraint shows a warning');
 
         warningEl.dispatchEvent(new AnimationEvent('animationend', { bubbles: true }));
 
@@ -542,11 +597,15 @@ describe('InputFile warning dismissal', () => {
         try {
             const [el] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
             pick(el, file('b.txt'));
-            assert.lengthOf(warnings(el), 1);
+            assert.lengthOf(warnings(el), 1, 'a pick that breaks the accept constraint shows one warning');
 
             await new Promise((resolve) => setTimeout(resolve, 100));
 
-            assert.deepStrictEqual(warnings(el), []);
+            assert.deepStrictEqual(
+                warnings(el),
+                [],
+                'the warning is removed once WARNING_TIMEOUT has elapsed, with no animationend',
+            );
         } finally {
             InputFile.WARNING_TIMEOUT = timeout;
         }
@@ -560,7 +619,11 @@ describe('InputFile stray clicks', () => {
 
         el.querySelector('ful-item div').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt']);
+        assert.deepStrictEqual(
+            selected(el),
+            ['a.txt', 'b.txt'],
+            'a click on an item away from its button removes no file',
+        );
     });
 
     it('removes nothing when a button outside any item is clicked', async () => {
@@ -573,7 +636,7 @@ describe('InputFile stray clicks', () => {
 
         stray.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        assert.deepStrictEqual(selected(el), ['a.txt']);
+        assert.deepStrictEqual(selected(el), ['a.txt'], 'a button that is not inside an item removes no file');
     });
 });
 
@@ -613,20 +676,32 @@ describe('InputFile disabled and readonly claims', () => {
             const [el] = await mount(`<ful-input-file multiple dropzone item-list>files</ful-input-file>`);
             pick(el, file('a.txt'));
             const dropzone = el.querySelector('[data-ref=dropzone]');
-            assert.notStrictEqual(getComputedStyle(dropzone).display, 'none', 'it is there to begin with');
+            assert.notStrictEqual(
+                getComputedStyle(dropzone).display,
+                'none',
+                'the dropzone is shown before the claim is set',
+            );
 
             el.setAttribute(attribute, '');
 
-            assert.strictEqual(getComputedStyle(dropzone).display, 'none');
+            assert.strictEqual(
+                getComputedStyle(dropzone).display,
+                'none',
+                'the dropzone is hidden while the field is disabled or readonly, since it does nothing then',
+            );
             assert.notStrictEqual(
                 getComputedStyle(el.querySelector('ful-item-list')).display,
                 'none',
                 'the files already chosen stay visible',
             );
-            assert.deepStrictEqual(selected(el), ['a.txt']);
+            assert.deepStrictEqual(selected(el), ['a.txt'], 'hiding the dropzone leaves the selection as it was');
 
             el.removeAttribute(attribute);
-            assert.notStrictEqual(getComputedStyle(dropzone).display, 'none', 'and it comes back');
+            assert.notStrictEqual(
+                getComputedStyle(dropzone).display,
+                'none',
+                'the dropzone is shown again once the claim is removed',
+            );
         });
 
         it(`keeps the input while ${claim} without an item list, it being the only place the name shows`, async () => {
@@ -635,19 +710,35 @@ describe('InputFile disabled and readonly claims', () => {
 
             el.setAttribute(attribute, '');
 
-            assert.notStrictEqual(getComputedStyle(el.querySelector('ful-control-group')).display, 'none');
+            assert.notStrictEqual(
+                getComputedStyle(el.querySelector('ful-control-group')).display,
+                'none',
+                'without an item list the input stays shown while disabled or readonly, since it is the only place the file name shows',
+            );
         });
 
         it(`hides the remove button on each chosen file while ${claim}`, async () => {
             const [el] = await mount(`<ful-input-file multiple item-list>files</ful-input-file>`);
             pick(el, file('a.txt'));
             const remove = el.querySelector('ful-item[data-name="a.txt"] button');
-            assert.notStrictEqual(getComputedStyle(remove).display, 'none', 'it is there to begin with');
+            assert.notStrictEqual(
+                getComputedStyle(remove).display,
+                'none',
+                'the remove button is shown before the claim is set',
+            );
 
             el.setAttribute(attribute, '');
 
-            assert.strictEqual(getComputedStyle(remove).display, 'none');
-            assert.include(el.querySelector('ful-item[data-name="a.txt"]').textContent, 'a.txt');
+            assert.strictEqual(
+                getComputedStyle(remove).display,
+                'none',
+                'the remove button is hidden while the field is disabled or readonly, since a removal does nothing then',
+            );
+            assert.include(
+                el.querySelector('ful-item[data-name="a.txt"]').textContent,
+                'a.txt',
+                'the item keeps showing the file name while its remove button is hidden',
+            );
         });
 
         it(`keeps a drop from reaching the browser's default handling while ${claim}`, async () => {
@@ -656,13 +747,20 @@ describe('InputFile disabled and readonly claims', () => {
 
             el.querySelector('[data-ref=dropzone]').dispatchEvent(dropped);
 
-            assert.isTrue(dropped.defaultPrevented);
+            assert.isTrue(
+                dropped.defaultPrevented,
+                "a drop on a disabled or readonly field is still kept from the browser's default handling, which would open the file",
+            );
         });
     }
     it('mirrors the readonly from markup', async () => {
         const [el] = await mount(`<ful-input-file readonly>files</ful-input-file>`);
 
-        assert.strictEqual(el.querySelector('input[type=file]').getAttribute('aria-readonly'), 'true');
+        assert.strictEqual(
+            el.querySelector('input[type=file]').getAttribute('aria-readonly'),
+            'true',
+            'a readonly attribute in the markup is announced on the native input',
+        );
     });
 
     it('drops the picker button while readonly, the input taking back its padding', async () => {
@@ -672,8 +770,16 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('readonly', '');
 
-        assert.strictEqual(button().display, 'none');
-        assert.notStrictEqual(getComputedStyle(input).paddingLeft, '0px');
+        assert.strictEqual(
+            button().display,
+            'none',
+            'a readonly field hides the picker button, since the picker does nothing then',
+        );
+        assert.notStrictEqual(
+            getComputedStyle(input).paddingLeft,
+            '0px',
+            'without the picker button the readonly input takes back its left padding',
+        );
         assert.notStrictEqual(getComputedStyle(input).display, 'none', 'the input keeps showing the file name');
     });
 
@@ -684,8 +790,8 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('disabled', '');
 
-        assert.notStrictEqual(button().display, 'none');
-        assert.strictEqual(button().opacity, '0.5');
+        assert.notStrictEqual(button().display, 'none', 'a disabled field keeps its picker button');
+        assert.strictEqual(button().opacity, '0.5', 'a disabled field dims its picker button');
         assert.strictEqual(getComputedStyle(input).paddingLeft, '0px', 'the button still sits flush');
     });
 
@@ -696,8 +802,16 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('readonly', '');
 
-        assert.strictEqual(getComputedStyle(group).display, 'none');
-        assert.notStrictEqual(getComputedStyle(el.querySelector('ful-item-list')).display, 'none');
+        assert.strictEqual(
+            getComputedStyle(group).display,
+            'none',
+            'a readonly field with an item list hides its input, the list showing the files instead',
+        );
+        assert.notStrictEqual(
+            getComputedStyle(el.querySelector('ful-item-list')).display,
+            'none',
+            'a readonly field keeps its item list shown',
+        );
     });
 
     it('lines a readonly item list up with an ordinary input beside it', async () => {
@@ -721,7 +835,7 @@ describe('InputFile disabled and readonly claims', () => {
             claimed.getBoundingClientRect().height,
             plain.getBoundingClientRect().height,
             1,
-            'so the two fields are the same height',
+            'a readonly file field with an item list is as tall as an ordinary input beside it',
         );
     });
 
@@ -732,8 +846,16 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.setAttribute('disabled', '');
 
-        assert.notStrictEqual(getComputedStyle(group).display, 'none');
-        assert.notStrictEqual(getComputedStyle(el.querySelector('ful-item-list')).display, 'none');
+        assert.notStrictEqual(
+            getComputedStyle(group).display,
+            'none',
+            'a disabled field keeps its input shown, marking the control unavailable rather than absent',
+        );
+        assert.notStrictEqual(
+            getComputedStyle(el.querySelector('ful-item-list')).display,
+            'none',
+            'a disabled field keeps its item list shown',
+        );
     });
 
     it('rejects a multi-file drop on a single-file field, as the native input does', async () => {
@@ -760,6 +882,10 @@ describe('InputFile disabled and readonly claims', () => {
 
         el.querySelector('[data-ref=dropzone]').dispatchEvent(ev);
 
-        assert.deepStrictEqual(selected(el), ['real.pdf']);
+        assert.deepStrictEqual(
+            selected(el),
+            ['real.pdf'],
+            'a drop keeps only the entries that are files and turn into a File, ignoring directories and strings',
+        );
     });
 });

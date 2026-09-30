@@ -25,6 +25,7 @@ describe('Associativity', () => {
             assert.deepStrictEqual(
                 JSON.stringify(Expressions.parse(expression, Expressions.MODE_EXPRESSION), json_replacer),
                 expected,
+                `${expression} parses into the tree that the associativity of its operator defines`,
             );
         });
     };
@@ -67,7 +68,11 @@ describe('Associativity', () => {
 
 const verify = (description, expr, data, expected) => {
     it(description || `${expr} == ${expected}`, () => {
-        assert.deepStrictEqual(Expressions.interpret(modules, data, expr), expected);
+        assert.deepStrictEqual(
+            Expressions.interpret(modules, data, expr),
+            expected,
+            `${expr} evaluates against the data stack to the value the expression language defines`,
+        );
     });
 };
 
@@ -136,59 +141,112 @@ describe('Expression', () => {
 
     it('can use overlays', () => {
         const result = Expressions.interpret(modules, [{}, { a: true }], 'a');
-        assert.strictEqual(result, true);
+        assert.strictEqual(result, true, 'a name missing from the innermost overlay resolves in an outer one');
     });
 
     it('latest overlay data wins', () => {
         const result = Expressions.interpret({}, [{ a: false }, { a: true }], 'a');
-        assert.strictEqual(result, true);
+        assert.strictEqual(result, true, 'the innermost overlay carrying the name wins, and the innermost is the last');
     });
 
     it('can report error on method calls', () => {
-        const caught = assert.throws(() => Expressions.interpret({}, [{ a: false }], 'a.boom()'));
-        assert.strictEqual(caught.message, 'Method missing "boom"');
+        const caught = assert.throws(
+            () => Expressions.interpret({}, [{ a: false }], 'a.boom()'),
+            Error,
+            undefined,
+            'calling a method on a falsy value throws',
+        );
+        assert.strictEqual(
+            caught.message,
+            'Method missing "boom"',
+            'the error names the member called on a dotted access',
+        );
     });
 
     it('reports a bare call on a missing value by name', () => {
-        const caught = assert.throws(() => Expressions.interpret({}, [{}], 'boom()'));
-        assert.strictEqual(caught.message, 'Method missing "boom"');
+        const caught = assert.throws(
+            () => Expressions.interpret({}, [{}], 'boom()'),
+            Error,
+            undefined,
+            'calling a name that resolves to nothing throws',
+        );
+        assert.strictEqual(caught.message, 'Method missing "boom"', 'the error names the symbol of a bare call');
     });
 
     it('reports a call following a subscript without interpolating the node', () => {
-        const caught = assert.throws(() => Expressions.interpret({}, [{ a: { b: null } }], "a['b']()"));
-        assert.strictEqual(caught.message, 'Method missing');
+        const caught = assert.throws(
+            () => Expressions.interpret({}, [{ a: { b: null } }], "a['b']()"),
+            Error,
+            undefined,
+            'calling a subscript that resolves to null throws',
+        );
+        assert.strictEqual(
+            caught.message,
+            'Method missing',
+            'a subscript has no static name, so the error names nothing',
+        );
     });
 
     it('can report error on missing module', () => {
-        const caught = assert.throws(() => Expressions.interpret({}, [], '#waldo:boom()'));
-        assert.strictEqual(caught.message, 'Module "waldo" not found');
+        const caught = assert.throws(
+            () => Expressions.interpret({}, [], '#waldo:boom()'),
+            Error,
+            undefined,
+            'calling into a module that was never defined throws',
+        );
+        assert.strictEqual(caught.message, 'Module "waldo" not found', 'the error names the missing module');
     });
     it('can report error on a function the module does not carry', () => {
-        const caught = assert.throws(() => Expressions.interpret({ waldo: {} }, [], '#waldo:isHidden()'));
-        assert.strictEqual(caught.message, 'Function "#waldo:isHidden" not found');
+        const caught = assert.throws(
+            () => Expressions.interpret({ waldo: {} }, [], '#waldo:isHidden()'),
+            Error,
+            undefined,
+            'calling a function the module does not carry throws',
+        );
+        assert.strictEqual(
+            caught.message,
+            'Function "#waldo:isHidden" not found',
+            'the error names the function with its module, as written in the expression',
+        );
     });
 });
 
 describe('Templated mode evaluation', () => {
     it('evaluates literal text', () => {
         const res = Expressions.interpret({}, [], 'Just some text', Expressions.MODE_TEMPLATED);
-        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: 'Just some text' }]);
+        assert.deepStrictEqual(
+            res,
+            [{ type: nodes.dom.t, value: 'Just some text' }],
+            'text without interpolations evaluates to a single text part',
+        );
     });
 
     it('evaluates text expressions', () => {
         const res = Expressions.interpret({}, [{ a: 'Dynamic Text' }], '{{ a }}', Expressions.MODE_TEMPLATED);
-        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: 'Dynamic Text' }]);
+        assert.deepStrictEqual(
+            res,
+            [{ type: nodes.dom.t, value: 'Dynamic Text' }],
+            'a double brace interpolation evaluates to a text part carrying the value',
+        );
     });
 
     it('evaluates html expressions', () => {
         const res = Expressions.interpret({}, [{ a: '<b>HTML</b>' }], '{{{ a }}}', Expressions.MODE_TEMPLATED);
-        assert.deepStrictEqual(res, [{ type: nodes.dom.h, value: '<b>HTML</b>' }]);
+        assert.deepStrictEqual(
+            res,
+            [{ type: nodes.dom.h, value: '<b>HTML</b>' }],
+            'a triple brace interpolation evaluates to an html part carrying the value',
+        );
     });
 
     it('evaluates node expressions', () => {
         const div = document.createElement('div');
         const res = Expressions.interpret({}, [{ a: div }], '{{{{ a }}}}', Expressions.MODE_TEMPLATED);
-        assert.deepStrictEqual(res, [{ type: nodes.dom.n, value: div }]);
+        assert.deepStrictEqual(
+            res,
+            [{ type: nodes.dom.n, value: div }],
+            'a quadruple brace interpolation evaluates to a node part carrying the node itself',
+        );
     });
 
     it('answers one part per literal and interpolation, escaped and raw alike', () => {
@@ -198,35 +256,61 @@ describe('Templated mode evaluation', () => {
             'Text {{ a }} more {{{ b }}}',
             Expressions.MODE_TEMPLATED,
         );
-        assert.strictEqual(res.length, 4);
-        assert.strictEqual(res[0].value, 'Text ');
-        assert.strictEqual(res[1].value, 'A');
-        assert.strictEqual(res[2].value, ' more ');
-        assert.strictEqual(res[3].value, 'B');
+        assert.strictEqual(res.length, 4, 'two literal runs and two interpolations make four parts');
+        assert.strictEqual(res[0].value, 'Text ', 'the first part is the leading literal run');
+        assert.strictEqual(
+            res[1].value,
+            'A',
+            'the second part is the escaped interpolation, resolved in an outer overlay',
+        );
+        assert.strictEqual(res[2].value, ' more ', 'the third part is the literal run between the interpolations');
+        assert.strictEqual(res[3].value, 'B', 'the fourth part is the raw interpolation');
     });
 
     it('writes a literal brace where a backslash escapes it in templated text', () => {
         const res = Expressions.interpret({}, [{ a: 'A' }], '\\{{ a }}', Expressions.MODE_TEMPLATED);
-        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: '{{ a }}' }]);
+        assert.deepStrictEqual(
+            res,
+            [{ type: nodes.dom.t, value: '{{ a }}' }],
+            'an escaped opening brace starts no interpolation, so the braces stay literal text',
+        );
     });
 
     it('drops the backslash and keeps whatever character follows it in templated text', () => {
         const res = Expressions.interpret({}, [], 'a\\b\\\\c', Expressions.MODE_TEMPLATED);
-        assert.deepStrictEqual(res, [{ type: nodes.dom.t, value: 'ab\\c' }]);
+        assert.deepStrictEqual(
+            res,
+            [{ type: nodes.dom.t, value: 'ab\\c' }],
+            'each backslash is dropped and the character after it kept, a second backslash included',
+        );
     });
 
     it('refuses templated text ending in a lone backslash', () => {
-        assert.throws(() => Expressions.interpret({}, [], 'a\\', Expressions.MODE_TEMPLATED));
+        assert.throws(
+            () => Expressions.interpret({}, [], 'a\\', Expressions.MODE_TEMPLATED),
+            Error,
+            undefined,
+            'a trailing backslash escapes nothing, so the text does not parse',
+        );
     });
 
     it('keeps a backslash inside a quoted literal, which has no escapes', () => {
-        assert.strictEqual(Expressions.interpret({}, [], "'a\\b'", Expressions.MODE_EXPRESSION), 'a\\b');
+        assert.strictEqual(
+            Expressions.interpret({}, [], "'a\\b'", Expressions.MODE_EXPRESSION),
+            'a\\b',
+            'a quoted string literal keeps its backslash as written',
+        );
     });
 
     it('throws on unknown templated node type (simulated AST corruption)', () => {
         const badAst = [{ type: Symbol('unknown-fake-type') }];
-        const ex = assert.throws(() => Expressions.evaluate({}, [], badAst, Expressions.MODE_TEMPLATED));
-        assert.match(ex.message, /unknown node type/);
+        const ex = assert.throws(
+            () => Expressions.evaluate({}, [], badAst, Expressions.MODE_TEMPLATED),
+            Error,
+            undefined,
+            'evaluating a templated part of an unknown type throws rather than rendering nothing',
+        );
+        assert.match(ex.message, /unknown node type/, 'the error says the node type is unknown');
     });
 });
 
@@ -235,34 +319,50 @@ describe('ExpressionEvaluator', () => {
         const baseEvaluator = new ExpressionEvaluator({ base: { fn: () => 1 } }, [{ a: 10 }]);
 
         const withMod = baseEvaluator.withModule('extra', { fn: () => 2 });
-        assert.strictEqual(withMod.evaluateExpression('#base:fn()'), 1);
-        assert.strictEqual(withMod.evaluateExpression('#extra:fn()'), 2);
+        assert.strictEqual(
+            withMod.evaluateExpression('#base:fn()'),
+            1,
+            'adding a module keeps the modules already there',
+        );
+        assert.strictEqual(withMod.evaluateExpression('#extra:fn()'), 2, 'a named module resolves as #name:fn()');
 
         const withGlobalMod = baseEvaluator.withModule(null, { globalFn: () => 3 });
-        assert.strictEqual(withGlobalMod.evaluateExpression('#globalFn()'), 3);
+        assert.strictEqual(
+            withGlobalMod.evaluateExpression('#globalFn()'),
+            3,
+            'a module added with no name merges its functions so they resolve bare',
+        );
 
         const withData = baseEvaluator.withOverlay({ b: 20 }, { c: 30 });
-        assert.strictEqual(withData.evaluateExpression('a'), 10);
-        assert.strictEqual(withData.evaluateExpression('b'), 20);
-        assert.strictEqual(withData.evaluateExpression('c'), 30);
+        assert.strictEqual(withData.evaluateExpression('a'), 10, 'adding overlays keeps the data stack already there');
+        assert.strictEqual(withData.evaluateExpression('b'), 20, 'the first added overlay is part of the stack');
+        assert.strictEqual(
+            withData.evaluateExpression('c'),
+            30,
+            'every added overlay is part of the stack, not only the first',
+        );
 
         const sameData = withData.withOverlay();
-        assert.strictEqual(sameData.evaluateExpression('b'), 20);
+        assert.strictEqual(sameData.evaluateExpression('b'), 20, 'adding no overlays keeps the same data stack');
 
         const tplRes = withData.evaluateTemplated('{{ b }}');
-        assert.deepStrictEqual(tplRes, [{ type: nodes.dom.t, value: 20 }]);
+        assert.deepStrictEqual(
+            tplRes,
+            [{ type: nodes.dom.t, value: 20 }],
+            'templated evaluation resolves against the same modules and overlays',
+        );
     });
 });
 
 describe('AST execution edge cases', () => {
     it('answers undefined for a call on a null, rather than throwing', () => {
         const result = Expressions.interpret({}, [{ a: null }], 'a?.foo()');
-        assert.isUndefined(result);
+        assert.isUndefined(result, 'a nullsafe access stops at the null and answers undefined without calling');
     });
 
     it('stops at the first null in a nested member access', () => {
         const result = Expressions.interpret({}, [{ a: { b: null } }], 'a.b?.c');
-        assert.isUndefined(result);
+        assert.isUndefined(result, 'a nullsafe member access on a null answers undefined');
     });
 
     it('throws on unknown comparison operator (simulated AST corruption)', () => {
@@ -272,26 +372,35 @@ describe('AST execution edge cases', () => {
             lhs: { type: nodes.literal, value: 1 },
             rhs: { type: nodes.literal, value: 2 },
         };
-        const ex = assert.throws(() => Expressions.evaluate({}, [], badAst));
-        assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP');
+        const ex = assert.throws(
+            () => Expressions.evaluate({}, [], badAst),
+            Error,
+            undefined,
+            'evaluating a comparison with an unknown operator throws rather than answering a value',
+        );
+        assert.strictEqual(ex.message, 'unknown cmp op INVALID_OP', 'the error names the unknown operator');
     });
     it('resolves through a function overlay, and past null and primitive ones', () => {
         const fnOverlay = () => {};
         fnOverlay.secretKey = 'activated';
         const resFn = Expressions.interpret({}, [fnOverlay], 'secretKey');
-        assert.strictEqual(resFn, 'activated');
+        assert.strictEqual(resFn, 'activated', 'a function overlay is searched for names like an object overlay');
 
         const resNull = Expressions.interpret(
             {},
             [{ targetValue: 42 }, null, undefined, 'raw string primitive', 7],
             'targetValue',
         );
-        assert.strictEqual(resNull, 42);
+        assert.strictEqual(
+            resNull,
+            42,
+            'null, undefined and primitive overlays are skipped, not searched and not fatal',
+        );
     });
     it('parses one expression once, answering the same ast', () => {
         const a = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
         const b = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
-        assert.strictEqual(a, b);
+        assert.strictEqual(a, b, 'the parse cache answers the same ast for the same mode and text');
     });
 
     it('evicts the oldest parse once the cache is full', () => {
@@ -300,6 +409,10 @@ describe('AST execution edge cases', () => {
             Expressions.parse(`true == ${i}`, Expressions.MODE_EXPRESSION);
         }
         const b = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
-        assert.notStrictEqual(a, b);
+        assert.notStrictEqual(
+            a,
+            b,
+            'the parse cache holds 1000 entries, so the oldest parse is evicted and parsed anew',
+        );
     });
 });

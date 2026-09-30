@@ -98,8 +98,16 @@ describe('Built-in translations', () => {
     it('says the file limit of one in the singular in spanish', () => {
         const t = (count) => Localization.t.call({ l10n: es, locale: 'es' }, 'files.max-files-exceeded', { count });
 
-        assert.strictEqual(t(1), 'Se ha superado el número máximo de 1 archivo');
-        assert.strictEqual(t(3), 'Se ha superado el número máximo de 3 archivos');
+        assert.strictEqual(
+            t(1),
+            'Se ha superado el número máximo de 1 archivo',
+            'a count of one takes the singular plural form in spanish',
+        );
+        assert.strictEqual(
+            t(3),
+            'Se ha superado el número máximo de 3 archivos',
+            'a count above one takes the plural form in spanish',
+        );
     });
 
     it('uses every key its templates reference', async () => {
@@ -147,6 +155,7 @@ describe('Plugin translations', () => {
         assert.strictEqual(
             el.querySelector('ful-field-warnings ful-field-warning').innerText,
             'we only take .pdf around here',
+            'the warning uses the message the plugin translations override, with its placeholder filled',
         );
     });
 
@@ -158,6 +167,7 @@ describe('Plugin translations', () => {
         assert.strictEqual(
             el.querySelector('ful-field-warnings ful-field-warning').innerText,
             'Maximum of 2 files exceeded',
+            'a message the plugin does not override keeps its built-in english text',
         );
     });
 });
@@ -173,7 +183,11 @@ describe('Built-in messages are data, not markup', () => {
         await Rendering.waitFor(el);
 
         const cell = el.querySelector('tbody[data-ref=initial]');
-        assert.include(cell.textContent, '<b id="l10n-escape">start searching</b>');
+        assert.include(
+            cell.textContent,
+            '<b id="l10n-escape">start searching</b>',
+            'the overridden message shows its markup as literal text',
+        );
         assert.isNull(document.getElementById('l10n-escape'), 'the markup must not have become an element');
     });
 });

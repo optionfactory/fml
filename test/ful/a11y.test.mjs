@@ -129,7 +129,11 @@ describe('Accessibility audit', () => {
             const summary = results.violations.map(
                 (v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.html).join(' | ')}`,
             );
-            assert.deepStrictEqual(results.violations.map((v) => v.id).sort(), [], `\n${summary.join('\n')}`);
+            assert.deepStrictEqual(
+                results.violations.map((v) => v.id).sort(),
+                [],
+                `the rendered component passes every axe rule, the violations found being:\n${summary.join('\n')}`,
+            );
             container.remove();
         });
     }

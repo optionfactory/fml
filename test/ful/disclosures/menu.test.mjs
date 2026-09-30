@@ -34,11 +34,23 @@ describe('ful-menu', () => {
     it('marks itself and its items with the menu roles, and the invoker with what it opens', async () => {
         const { invoker, menu } = await build();
 
-        assert.strictEqual(menu.getAttribute('role'), 'menu');
+        assert.strictEqual(
+            menu.getAttribute('role'),
+            'menu',
+            'the element carries the menu role, as the ARIA menu protocol asks',
+        );
         assert.isTrue(menu.hasAttribute('popover'), 'the menu is the popover itself');
-        assert.strictEqual(invoker.getAttribute('aria-haspopup'), 'menu');
-        assert.strictEqual(invoker.getAttribute('aria-expanded'), 'false');
-        assert.strictEqual(invoker.getAttribute('popovertarget'), menu.id);
+        assert.strictEqual(invoker.getAttribute('aria-haspopup'), 'menu', 'the invoker announces that it opens a menu');
+        assert.strictEqual(
+            invoker.getAttribute('aria-expanded'),
+            'false',
+            'the invoker says aria-expanded false while the menu is closed',
+        );
+        assert.strictEqual(
+            invoker.getAttribute('popovertarget'),
+            menu.id,
+            "the invoker's popovertarget names the menu, so the platform toggles it",
+        );
         assert.deepStrictEqual(
             [...menu.querySelectorAll('button')].map((b) => [b.getAttribute('role'), b.tabIndex]),
             [
@@ -55,17 +67,21 @@ describe('ful-menu', () => {
 
         await opened(invoker, menu);
 
-        assert.strictEqual(focused(), 'History');
-        assert.strictEqual(invoker.getAttribute('aria-expanded'), 'true');
+        assert.strictEqual(focused(), 'History', 'opening the menu moves the focus to its first item');
+        assert.strictEqual(
+            invoker.getAttribute('aria-expanded'),
+            'true',
+            "the invoker's aria-expanded follows the menu to open",
+        );
     });
 
     it('walks the items with the arrows, wrapping at both ends', async () => {
         const { invoker, menu } = await build();
         await opened(invoker, menu);
         press('ArrowDown');
-        assert.strictEqual(focused(), 'Shortcuts');
+        assert.strictEqual(focused(), 'Shortcuts', 'ArrowDown moves the focus to the next item');
         press('ArrowDown');
-        assert.strictEqual(focused(), 'Export');
+        assert.strictEqual(focused(), 'Export', 'ArrowDown again moves the focus to the item after that');
         press('ArrowDown');
         assert.strictEqual(focused(), 'History', 'the last item wraps to the first');
         press('ArrowUp');
@@ -76,9 +92,9 @@ describe('ful-menu', () => {
         const { invoker, menu } = await build();
         await opened(invoker, menu);
         press('End');
-        assert.strictEqual(focused(), 'Export');
+        assert.strictEqual(focused(), 'Export', 'End moves the focus to the last item');
         press('Home');
-        assert.strictEqual(focused(), 'History');
+        assert.strictEqual(focused(), 'History', 'Home moves the focus to the first item');
     });
 
     const threeWords = '<button>History</button><button>Shortcuts</button><button>Statistics</button>';
@@ -88,7 +104,11 @@ describe('ful-menu', () => {
 
         await opened(invoker, menu);
         press('KeyS', 's');
-        assert.strictEqual(focused(), 'Shortcuts');
+        assert.strictEqual(
+            focused(),
+            'Shortcuts',
+            'a typed letter moves the focus to the next item after the focused one starting with it',
+        );
         press('KeyS', 's');
         assert.strictEqual(focused(), 'Statistics', 'the same letter again takes the next of the two');
         press('KeyS', 's');
@@ -102,7 +122,11 @@ describe('ful-menu', () => {
         press('KeyS', 's');
         press('KeyT', 't');
 
-        assert.strictEqual(focused(), 'Statistics');
+        assert.strictEqual(
+            focused(),
+            'Statistics',
+            'a search longer than one character moves the focus to the first item starting with the whole search',
+        );
     });
 
     it('leaves a disabled item out of the walk', async () => {
@@ -145,8 +169,8 @@ describe('ful-menu', () => {
         await opened(invoker, menu);
         press('NumpadEnter', 'Enter');
 
-        assert.deepStrictEqual(picked, ['History']);
-        assert.isFalse(menu.matches(':popover-open'));
+        assert.deepStrictEqual(picked, ['History'], 'the numpad Enter clicks the focused item, as Enter does');
+        assert.isFalse(menu.matches(':popover-open'), "the item's click closes the menu");
     });
 
     it("closes on an item's click, the invoker taking the focus back", async () => {
@@ -158,8 +182,8 @@ describe('ful-menu', () => {
         assert.strictEqual(focused(), 'More', 'handed back as the menu hides, before the hidden item can drop it');
         await closed;
 
-        assert.isFalse(menu.matches(':popover-open'));
-        assert.strictEqual(focused(), 'More');
+        assert.isFalse(menu.matches(':popover-open'), 'a click on an item hides the menu');
+        assert.strictEqual(focused(), 'More', 'the focus is still on the invoker once the menu has closed');
     });
 
     it('hands the focus back to the invoker on Escape, before the platform closes it', async () => {
@@ -168,7 +192,11 @@ describe('ful-menu', () => {
         await opened(invoker, menu);
         press('Escape', 'Escape');
 
-        assert.strictEqual(focused(), 'More');
+        assert.strictEqual(
+            focused(),
+            'More',
+            'Escape moves the focus to the invoker, the close being left to the platform',
+        );
     });
 
     it('leaves the focus where a close it did not hold came from', async () => {
@@ -194,8 +222,16 @@ describe('ful-menu', () => {
         await opened(invoker, menu);
         press('ArrowDown');
 
-        assert.strictEqual(focused(), 'Export');
-        assert.strictEqual(added.getAttribute('role'), 'menuitem');
+        assert.strictEqual(
+            focused(),
+            'Export',
+            'an item appended after the render is part of the arrow walk, the items being read on every gesture',
+        );
+        assert.strictEqual(
+            added.getAttribute('role'),
+            'menuitem',
+            'an item appended after the render is given the menuitem role when the items are read',
+        );
     });
 
     it('refuses a for that names nothing, rather than opening a menu with no invoker', async () => {
@@ -206,7 +242,11 @@ describe('ful-menu', () => {
             (e) => e,
         );
 
-        assert.match(failure?.message ?? '', /ful-menu names no invoker/);
+        assert.match(
+            failure?.message ?? '',
+            /ful-menu names no invoker/,
+            'the render throws naming the missing invoker when for names no element in the page',
+        );
     });
 
     it('focuses its first item as it opens where the popover is placed by hand', async () => {
@@ -221,7 +261,11 @@ describe('ful-menu', () => {
 
         await opened(built.invoker, built.menu);
 
-        assert.strictEqual(focused(), 'History');
+        assert.strictEqual(
+            focused(),
+            'History',
+            'the first item takes the focus on opening under the script placement as well',
+        );
         assert.notStrictEqual(built.menu.style.left, '', 'and the fallback did place it');
     });
 });

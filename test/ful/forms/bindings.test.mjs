@@ -7,52 +7,72 @@ describe('Bindings', () => {
     describe('flatten', () => {
         it('can flatten an empty object', () => {
             const got = Bindings.flatten({}, '', new Set());
-            assert.deepEqual(got, {});
+            assert.deepEqual(got, {}, 'an object with no keys flattens to an empty object');
         });
         it('can flatten a flat object', () => {
             const got = Bindings.flatten({ a: 1, b: 2 }, '', new Set());
-            assert.deepEqual(got, { a: 1, b: 2 });
+            assert.deepEqual(got, { a: 1, b: 2 }, 'top level keys are kept as they are, with no prefix');
         });
         it('can flatten a nested object', () => {
             const got = Bindings.flatten({ a: 1, b: { c: 2 } }, '', new Set());
-            assert.deepEqual(got, { a: 1, 'b.c': 2 });
+            assert.deepEqual(got, { a: 1, 'b.c': 2 }, 'a nested key is flattened into a dotted path');
         });
         it('can flatten an array', () => {
             const got = Bindings.flatten({ a: [1, 2] }, '', new Set());
-            assert.deepEqual(got, { 'a.0': 1, 'a.1': 2 });
+            assert.deepEqual(got, { 'a.0': 1, 'a.1': 2 }, 'array indexes become numeric segments of the dotted path');
         });
         it('objects are not flattened over stops', () => {
             const got = Bindings.flatten({ a: { b: { c: 1 } } }, '', new Set(['a.b']));
-            assert.deepEqual(got, { 'a.b': { c: 1 } });
+            assert.deepEqual(
+                got,
+                { 'a.b': { c: 1 } },
+                'flatten does not descend below a key named in stops, keeping that object whole',
+            );
         });
     });
 
     describe('providePath', () => {
         it('assigns null if value is undefined and property does not exist', () => {
             const result = Bindings.providePath({}, 'a.b', undefined);
-            expect(result.a.b).to.be.null;
+            expect(result.a.b, 'an undefined value declares a missing path by setting it to null').to.be.null;
         });
 
         it('retains existing value if value is undefined but property already exists', () => {
             const result = Bindings.providePath({ a: { b: 'keep-me' } }, 'a.b', undefined);
-            expect(result.a.b).to.equal('keep-me');
+            expect(result.a.b, 'an undefined value keeps an entry already on the path').to.equal('keep-me');
         });
 
         it('rebuilds a scalar left by an overlapping shorter name', () => {
             const result = Bindings.providePath({ a: 'scalar' }, 'a.b', 'v');
-            assert.deepEqual(result, { a: { b: 'v' } });
+            assert.deepEqual(
+                result,
+                { a: { b: 'v' } },
+                'a scalar left by a shorter name is replaced by a container so the longer name wins',
+            );
         });
 
         it('rebuilds a null left by an empty overlapping shorter name', () => {
             const result = Bindings.providePath({ a: null }, 'a.b', 'v');
-            assert.deepEqual(result, { a: { b: 'v' } });
+            assert.deepEqual(
+                result,
+                { a: { b: 'v' } },
+                'a null left by a shorter name is replaced by a container so the longer name wins',
+            );
         });
 
         it('keeps an array container, the reverse order replaces the container with the scalar', () => {
             const array = Bindings.providePath({ a: ['x'] }, 'a.1', 'v');
-            assert.deepEqual(array, { a: ['x', 'v'] });
+            assert.deepEqual(
+                array,
+                { a: ['x', 'v'] },
+                'a numeric segment writes into an existing array, keeping its entries',
+            );
             const scalar = Bindings.providePath({ a: { b: 'x' } }, 'a', 'v');
-            assert.deepEqual(scalar, { a: 'v' });
+            assert.deepEqual(
+                scalar,
+                { a: 'v' },
+                'the last segment is written as given, replacing the container it held',
+            );
         });
     });
 
@@ -65,7 +85,11 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: { b: 'v' } });
+            assert.deepEqual(
+                got,
+                { a: { b: 'v' } },
+                'controls are read in document order, so the later longer name replaces the earlier scalar',
+            );
         });
 
         it('can extract value from a select', () => {
@@ -78,7 +102,7 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: '1' });
+            assert.deepEqual(got, { a: '1' }, 'a single select answers the value of its selected option');
         });
         it('extracts every selected option of a multiple select', () => {
             const el = Fragments.fromHtml(`
@@ -91,7 +115,7 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { tags: ['a', 'c'] });
+            assert.deepEqual(got, { tags: ['a', 'c'] }, 'a multiple select answers the array of its selected values');
         });
         it('can extract value from an unchecked checkbox', () => {
             const el = Fragments.fromHtml(`
@@ -100,7 +124,11 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: false });
+            assert.deepEqual(
+                got,
+                { a: false },
+                'a checkbox answers its checked state, so an unchecked one gives false',
+            );
         });
         it('can extract value from an checked radio button', () => {
             const el = Fragments.fromHtml(`
@@ -111,7 +139,11 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: '2' });
+            assert.deepEqual(
+                got,
+                { a: '2' },
+                'only the checked radio contributes its value, the unchecked ones answer undefined',
+            );
         });
         it('can extract deeply nested values', () => {
             const el = Fragments.fromHtml(`
@@ -120,7 +152,7 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: { b: { c: true } } });
+            assert.deepEqual(got, { a: { b: { c: true } } }, 'a dotted name builds one nested object per segment');
         });
         it('can extract all values from a container', () => {
             const el = Fragments.fromHtml(`
@@ -131,7 +163,11 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, { a: { a: true, b: true, c: 'lorem ipsum' } });
+            assert.deepEqual(
+                got,
+                { a: { a: true, b: true, c: 'lorem ipsum' } },
+                'names sharing a prefix are gathered under one nested object',
+            );
         });
         it('tags children of a disabled fieldset are ignored', () => {
             const el = Fragments.fromHtml(`
@@ -142,7 +178,7 @@ describe('Bindings', () => {
             </form>
         `);
             const got = Bindings.extractFrom(el.querySelector('form'));
-            assert.deepEqual(got, {});
+            assert.deepEqual(got, {}, 'a control inside a disabled fieldset matches :disabled and is skipped');
         });
         it('skips elements without names and disabled elements unless it is the submitter', () => {
             const form = document.createElement('form');
@@ -170,7 +206,10 @@ describe('Bindings', () => {
 
             const result = Bindings.extractFrom(form, submitter);
 
-            expect(result).to.deep.equal({
+            expect(
+                result,
+                'a control without a name and a disabled control are skipped, the submitter counts even while disabled',
+            ).to.deep.equal({
                 submitAction: 'save',
                 active: 'included',
             });
@@ -191,11 +230,11 @@ describe('Bindings', () => {
             const selected = () => Array.from(form.querySelector('select').selectedOptions).map((o) => o.value);
 
             Bindings.mutateIn(form, { tags: ['a', 'c'] });
-            assert.deepEqual(selected(), ['a', 'c']);
+            assert.deepEqual(selected(), ['a', 'c'], 'an array selects each option whose value it lists');
             Bindings.mutateIn(form, { tags: 'b' });
-            assert.deepEqual(selected(), ['b']);
+            assert.deepEqual(selected(), ['b'], 'a scalar selects its one option and deselects the rest');
             Bindings.mutateIn(form, { tags: null });
-            assert.deepEqual(selected(), []);
+            assert.deepEqual(selected(), [], 'null deselects every option');
         });
 
         it('checks the radio whose value matches, and reads it back', () => {
@@ -204,7 +243,11 @@ describe('Bindings', () => {
                 <input type="radio" name="a" value="2">
             `);
             Bindings.mutateIn(form, { a: '2' });
-            assert.deepEqual(Bindings.extractFrom(form), { a: '2' });
+            assert.deepEqual(
+                Bindings.extractFrom(form),
+                { a: '2' },
+                'the radio whose value equals the written one is checked',
+            );
         });
 
         it('round trips boolean radios', () => {
@@ -213,10 +256,18 @@ describe('Bindings', () => {
                 <input type="radio" name="a" value="false" data-ful-bind-type="boolean">
             `);
             Bindings.mutateIn(form, { a: true });
-            assert.deepEqual(Bindings.extractFrom(form), { a: true });
+            assert.deepEqual(
+                Bindings.extractFrom(form),
+                { a: true },
+                'true checks the radio valued true and reads back as a boolean',
+            );
 
             Bindings.mutateIn(form, { a: false });
-            assert.deepEqual(Bindings.extractFrom(form), { a: false });
+            assert.deepEqual(
+                Bindings.extractFrom(form),
+                { a: false },
+                'false checks the radio valued false and reads back as a boolean',
+            );
         });
 
         it('matches radios whose value is not a string', () => {
@@ -225,7 +276,11 @@ describe('Bindings', () => {
                 <input type="radio" name="a" value="2">
             `);
             Bindings.mutateIn(form, { a: 2 });
-            assert.deepEqual(Bindings.extractFrom(form), { a: '2' });
+            assert.deepEqual(
+                Bindings.extractFrom(form),
+                { a: '2' },
+                'a number matches the radio whose value is its text',
+            );
         });
 
         it('leaves boolean radios unchecked for a null value', () => {
@@ -234,7 +289,11 @@ describe('Bindings', () => {
                 <input type="radio" name="a" value="false" data-ful-bind-type="boolean">
             `);
             Bindings.mutateIn(form, { a: null });
-            assert.deepEqual(Bindings.extractFrom(form), { a: null });
+            assert.deepEqual(
+                Bindings.extractFrom(form),
+                { a: null },
+                'null unchecks every radio, so none contributes and the name reads as null',
+            );
         });
 
         it('round trips checkboxes and text inputs', () => {
@@ -243,7 +302,11 @@ describe('Bindings', () => {
                 <input type="text" name="b">
             `);
             Bindings.mutateIn(form, { a: true, b: 'x' });
-            assert.deepEqual(Bindings.extractFrom(form), { a: true, b: 'x' });
+            assert.deepEqual(
+                Bindings.extractFrom(form),
+                { a: true, b: 'x' },
+                'a checkbox takes the value as its checked state and a text input as its value',
+            );
         });
     });
 
@@ -284,9 +347,11 @@ describe('Bindings', () => {
 
             Bindings.errors(form, [], true);
 
-            expect(inputName.validationMessage).to.equal('');
-            expect(fulErrors.hasAttribute('hidden')).to.be.true;
-            expect(fulErrors.innerText).to.equal('');
+            expect(inputName.validationMessage, 'every named control has its custom validity cleared first').to.equal(
+                '',
+            );
+            expect(fulErrors.hasAttribute('hidden'), 'with no banner problem the banner is hidden').to.be.true;
+            expect(fulErrors.innerText, 'with no banner problem the banner is emptied').to.equal('');
         });
 
         it('maps field errors and bracket notations, sorts :invalid elements, and focuses the highest one', () => {
@@ -298,14 +363,23 @@ describe('Bindings', () => {
 
             Bindings.errors(form, errs, true);
 
-            expect(inputName.validationMessage).to.equal('Invalid name');
-            expect(inputAge.validationMessage).to.equal('Must be a number');
+            expect(
+                inputName.validationMessage,
+                'a bracket context is turned into dots and pinned on the control of that name',
+            ).to.equal('Invalid name');
+            expect(
+                inputAge.validationMessage,
+                'an INVALID_FORMAT problem is pinned on its control like a FIELD_ERROR',
+            ).to.equal('Must be a number');
 
-            expect(document.activeElement === inputAge).to.equal(true);
-            expect(fieldError.getAttribute('aria-live')).to.equal(
-                'off',
+            expect(
+                document.activeElement === inputAge,
+                'with scrollOnError the topmost invalid control is focused',
+            ).to.equal(true);
+            expect(
+                fieldError.getAttribute('aria-live'),
                 'the focus announces the error, a live region would repeat it',
-            );
+            ).to.equal('off');
         });
 
         it('maps global errors to ful-errors container and shows it', () => {
@@ -316,9 +390,14 @@ describe('Bindings', () => {
 
             Bindings.errors(form, errs, false);
 
-            expect(fulErrors.hasAttribute('hidden')).to.be.false;
-            expect(fulErrors.innerText).to.include('Something went terribly wrong');
-            expect(fulErrors.innerText).to.include('Server unavailable');
+            expect(fulErrors.hasAttribute('hidden'), 'a problem that is not pinned to a field reveals the banner').to.be
+                .false;
+            expect(fulErrors.innerText, 'the banner shows the reason of a problem with an empty context').to.include(
+                'Something went terribly wrong',
+            );
+            expect(fulErrors.innerText, 'the banner shows every global reason, not only the first').to.include(
+                'Server unavailable',
+            );
         });
 
         it('announces politely when nothing takes the focus, loudly for global errors', () => {
@@ -329,8 +408,8 @@ describe('Bindings', () => {
 
             Bindings.errors(form, errs, false);
 
-            expect(fieldError.getAttribute('aria-live')).to.equal('polite', 'field errors are announced without focus');
-            expect(fulErrors.getAttribute('role')).to.equal('alert', 'the global banner announces on its own');
+            expect(fieldError.getAttribute('aria-live'), 'field errors are announced without focus').to.equal('polite');
+            expect(fulErrors.getAttribute('role'), 'the global banner announces on its own').to.equal('alert');
         });
 
         it('keeps the alert role while clearing', () => {
@@ -339,8 +418,14 @@ describe('Bindings', () => {
 
             Bindings.errors(form, [], false);
 
-            expect(fulErrors.getAttribute('role')).to.equal('alert');
-            expect(fieldError.getAttribute('aria-live')).to.equal('polite');
+            expect(
+                fulErrors.getAttribute('role'),
+                'the banner keeps role alert even when cleared, ready for the next problem',
+            ).to.equal('alert');
+            expect(
+                fieldError.getAttribute('aria-live'),
+                'without scrollOnError field errors stay politely announced while clearing',
+            ).to.equal('polite');
         });
 
         it('pins a deep context on the most specific field alone', () => {
@@ -350,8 +435,10 @@ describe('Bindings', () => {
 
             Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Invalid name' }], false);
 
-            expect(inputName.validationMessage).to.equal('Invalid name');
-            expect(composite.validationMessage).to.equal('', 'the outer field must not double the exact one');
+            expect(inputName.validationMessage, 'the longest name matching the context takes the problem').to.equal(
+                'Invalid name',
+            );
+            expect(composite.validationMessage, 'the outer field must not double the exact one').to.equal('');
         });
 
         it('falls back onto the composite owning the subtree when no exact field exists', () => {
@@ -361,7 +448,10 @@ describe('Bindings', () => {
 
             Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'owner.firstName', reason: 'Required' }], false);
 
-            expect(composite.validationMessage).to.equal('Required');
+            expect(
+                composite.validationMessage,
+                'with no exact field the composite named for a prefix of the context catches the problem',
+            ).to.equal('Required');
             expect(fulErrors.hasAttribute('hidden'), 'a caught error stays off the banner').to.be.true;
         });
 
@@ -381,11 +471,14 @@ describe('Bindings', () => {
                 false,
             );
 
-            expect(calls).to.deep.equal([
+            expect(
+                calls,
+                'the composite is cleared first, then gets the reason with the rest of the path below its name',
+            ).to.deep.equal([
                 ['', undefined],
                 ['Required', 'name.first'],
             ]);
-            expect(inputName.validationMessage).to.equal('Invalid name', 'the exact match routes nowhere deeper');
+            expect(inputName.validationMessage, 'the exact match routes nowhere deeper').to.equal('Invalid name');
         });
 
         it('reveals the banner before filling it, so a screen reader announces the text', () => {
@@ -399,16 +492,23 @@ describe('Bindings', () => {
             observer.disconnect();
             const revealed = records.findIndex((r) => r.type === 'attributes' && r.attributeName === 'hidden');
             const filled = records.findIndex((r) => r.type === 'childList' || r.type === 'characterData');
-            expect(revealed).to.not.equal(-1);
-            expect(filled).to.not.equal(-1);
-            expect(revealed).to.be.lessThan(filled);
+            expect(revealed, 'the banner loses its hidden attribute').to.not.equal(-1);
+            expect(filled, 'the banner receives the reason text').to.not.equal(-1);
+            expect(
+                revealed,
+                'the banner is revealed before its text is written, so a screen reader announces the text',
+            ).to.be.lessThan(filled);
         });
 
         it('shows a field error naming no field in the banner instead of dropping it', () => {
             Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'ghost.field', reason: 'Nowhere to pin' }], false);
 
-            expect(fulErrors.hasAttribute('hidden')).to.be.false;
-            expect(fulErrors.innerText).to.include('Nowhere to pin');
+            expect(fulErrors.hasAttribute('hidden'), 'a field problem naming no control reveals the banner').to.be
+                .false;
+            expect(
+                fulErrors.innerText,
+                'a field problem naming no control is shown in the banner rather than dropped',
+            ).to.include('Nowhere to pin');
         });
 
         it('does not focus anything if scrollOnError is false', () => {
@@ -419,28 +519,55 @@ describe('Bindings', () => {
 
             Bindings.errors(form, errs, false);
 
-            expect(inputName.validationMessage).to.equal('Invalid name');
-            expect(document.activeElement === activeBefore).to.equal(true);
+            expect(
+                inputName.validationMessage,
+                'the problem is still pinned on its field without scrollOnError',
+            ).to.equal('Invalid name');
+            expect(
+                document.activeElement === activeBefore,
+                'without scrollOnError the focus is left where it was',
+            ).to.equal(true);
         });
     });
 });
 describe('Bindings.providePath prototype safety', () => {
     it('refuses a segment that would reach the prototype chain', () => {
-        for (const path of ['__proto__.polluted', 'a.__proto__.polluted', 'constructor.prototype.polluted', 'prototype.polluted']) {
-            assert.throws(() => Bindings.providePath({}, path, 'yes'), /unsupported name segment/, path);
+        for (const path of [
+            '__proto__.polluted',
+            'a.__proto__.polluted',
+            'constructor.prototype.polluted',
+            'prototype.polluted',
+        ]) {
+            assert.throws(
+                () => Bindings.providePath({}, path, 'yes'),
+                /unsupported name segment/,
+                `${path} is refused because one of its segments reaches the prototype chain`,
+            );
         }
         assert.isUndefined(/** @type any */ ({}).polluted, 'nothing reached Object.prototype');
     });
 
     it('refuses before writing anything, leaving the result untouched', () => {
         const result = { kept: 'value' };
-        assert.throws(() => Bindings.providePath(result, 'a.__proto__.x', 'boom'), /unsupported name segment/);
-        assert.deepEqual(result, { kept: 'value' });
+        assert.throws(
+            () => Bindings.providePath(result, 'a.__proto__.x', 'boom'),
+            /unsupported name segment/,
+            'a forbidden segment deeper in the path is refused too',
+        );
+        assert.deepEqual(
+            result,
+            { kept: 'value' },
+            'the segments are checked before anything is written, so the result is untouched',
+        );
     });
 
     it('does not refuse a name that merely contains a forbidden word', () => {
         const result = Bindings.providePath({}, 'prototypes.my__proto__key', 'fine');
-        assert.deepEqual(result, { prototypes: { my__proto__key: 'fine' } });
+        assert.deepEqual(
+            result,
+            { prototypes: { my__proto__key: 'fine' } },
+            'only a whole segment equal to a forbidden word is refused',
+        );
     });
 
     it('refuses through the form extraction too', () => {
@@ -449,7 +576,11 @@ describe('Bindings.providePath prototype safety', () => {
         input.setAttribute('name', '__proto__.polluted');
         input.value = 'yes';
         form.appendChild(input);
-        assert.throws(() => Bindings.extractFrom(form), /unsupported name segment/);
+        assert.throws(
+            () => Bindings.extractFrom(form),
+            /unsupported name segment/,
+            'extractFrom writes through providePath, so a control named with a forbidden segment is refused',
+        );
         assert.isUndefined(/** @type any */ ({}).polluted, 'nothing reached Object.prototype');
     });
 });
@@ -457,18 +588,26 @@ describe('Bindings.providePath prototype safety', () => {
 describe('Bindings.providePath array segments', () => {
     it('builds arrays out of numeric segments', () => {
         const result = Bindings.providePath({}, 'rows.0.name', 'first');
-        assert.deepEqual(result, { rows: [{ name: 'first' }] });
+        assert.deepEqual(result, { rows: [{ name: 'first' }] }, 'a numeric segment makes its container an array');
     });
 
     it('builds an array at the root of a null result', () => {
         const result = Bindings.providePath(null, '0.name', 'root');
-        assert.deepEqual(result, [{ name: 'root' }]);
+        assert.deepEqual(
+            result,
+            [{ name: 'root' }],
+            'a numeric first segment on a null result answers a new root array',
+        );
     });
 
     it('appends to an array path without touching earlier entries', () => {
         const result = Bindings.providePath({}, 'rows.0.name', 'first');
         Bindings.providePath(result, 'rows.1.name', 'second');
-        assert.deepEqual(result.rows, [{ name: 'first' }, { name: 'second' }]);
+        assert.deepEqual(
+            result.rows,
+            [{ name: 'first' }, { name: 'second' }],
+            'a later index is added to the existing array, the earlier entry kept',
+        );
     });
 });
 
@@ -478,10 +617,14 @@ describe('Bindings.extract boolean type', () => {
             `<form><input type="text" value="true" data-ful-bind-type="boolean"></form>`,
         );
         const el = fragment.querySelector('input');
-        assert.strictEqual(Bindings.extract(el), true);
+        assert.strictEqual(Bindings.extract(el), true, 'the boolean bind type decodes the text true as true');
 
         el.value = 'false';
-        assert.strictEqual(Bindings.extract(el), false);
+        assert.strictEqual(
+            Bindings.extract(el),
+            false,
+            'the boolean bind type decodes any other non blank text as false',
+        );
 
         el.value = '';
         assert.isNull(Bindings.extract(el), 'an empty value carries no boolean');

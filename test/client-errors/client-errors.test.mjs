@@ -53,12 +53,15 @@ describe('Client errors reporting', () => {
         reject(new Error('nope'));
         await settle();
 
-        expect(calls.length).to.equal(1);
-        expect(calls[0].url).to.equal('/report');
+        expect(calls.length, 'one unhandled rejection posts exactly one report').to.equal(1);
+        expect(
+            calls[0].url,
+            'the report goes to the uri named by the data-report-client-errors-uri script attribute',
+        ).to.equal('/report');
         const body = JSON.parse(calls[0].init.body);
-        expect(body.message).to.equal('nope');
-        expect(body.page).to.equal(window.location.href);
-        expect(body.stack).to.be.an('array');
+        expect(body.message, 'the report carries the error message').to.equal('nope');
+        expect(body.page, 'the report carries the url of the page that failed').to.equal(window.location.href);
+        expect(body.stack, 'the report carries the error stack split into lines').to.be.an('array');
     });
 
     it('reports the cause chain, which neither the message nor the stack carries', async () => {
@@ -69,7 +72,10 @@ describe('Client errors reporting', () => {
         await settle();
 
         const body = JSON.parse(calls[0].init.body);
-        expect(body.message.split('\n')).to.deep.equal([
+        expect(
+            body.message.split('\n'),
+            'each cause is appended as a Caused by line, since neither the message nor the stack carries it',
+        ).to.deep.equal([
             'Error evaluating data-tpl-each="rows" in `<ul>`',
             'Caused by: Error evaluating data-tpl-if="self.boom()" in `<li>`',
             'Caused by: Method missing "boom"',
@@ -84,9 +90,11 @@ describe('Client errors reporting', () => {
         await settle();
 
         const body = JSON.parse(calls[0].init.body);
-        expect(body.message).to.equal('the frame that surfaced');
-        expect(body.message).to.not.contain('Caused by:');
-        expect(body.message).to.not.contain('the one nobody will read');
+        expect(body.message, 'the message stops at a cause with no message').to.equal('the frame that surfaced');
+        expect(body.message, 'no Caused by line is added for a cause with no message').to.not.contain('Caused by:');
+        expect(body.message, 'a cause behind one with no message is not reached').to.not.contain(
+            'the one nobody will read',
+        );
     });
 
     it('says so when a chain dropped its outer frames', async () => {
@@ -96,7 +104,9 @@ describe('Client errors reporting', () => {
         await settle();
 
         const body = JSON.parse(calls[0].init.body);
-        expect(body.message).to.contain('outer frames omitted');
+        expect(body.message, 'a truncated chain ends with a line saying the outer frames were omitted').to.contain(
+            'outer frames omitted',
+        );
     });
 
     it('stops at a cause cycle instead of looping', async () => {
@@ -107,15 +117,21 @@ describe('Client errors reporting', () => {
         await settle();
 
         const body = JSON.parse(calls[0].init.body);
-        expect(body.message.split('\n').length).to.be.at.most(6);
+        expect(
+            body.message.split('\n').length,
+            'a cause cycle stops the walk, leaving at most the message and five Caused by lines',
+        ).to.be.at.most(6);
     });
 
     it('does not report the failure of its own report', async () => {
         reject(new Error('nope'));
         await settle();
 
-        expect(calls.length).to.equal(1);
-        expect(rejections.map((r) => r.message)).to.deep.equal(['nope']);
+        expect(calls.length, 'the rejected report fetch is not reported again').to.equal(1);
+        expect(
+            rejections.map((r) => r.message),
+            'the rejection of the report fetch never reaches the page as an unhandled rejection',
+        ).to.deep.equal(['nope']);
     });
 
     it('does nothing when no reporting uri is configured', async () => {
@@ -126,8 +142,8 @@ describe('Client errors reporting', () => {
         reject(new Error('nope'));
         await settle();
 
-        expect(calls).to.deep.equal([]);
-        expect(errors.length).to.equal(1);
+        expect(calls, 'nothing is posted without a reporting uri').to.deep.equal([]);
+        expect(errors.length, 'the missing uri is logged to the console').to.equal(1);
     });
 });
 
@@ -170,10 +186,10 @@ describe('Client errors reporting shapes', () => {
         reject('a plain failure');
         await settle();
 
-        expect(calls.length).to.equal(1, 'the report is still posted');
+        expect(calls.length, 'the report is still posted').to.equal(1);
         const body = JSON.parse(calls[0].init.body);
-        expect(body).to.not.have.property('stack');
-        expect(body).to.not.have.property('message', 'a string reason carries no message to extract');
+        expect(body, 'a string reason has no stack to split').to.not.have.property('stack');
+        expect(body, 'a string reason has no message to extract').to.not.have.property('message');
     });
 
     it('sends the csrf header when the metas are present', async () => {
@@ -188,8 +204,11 @@ describe('Client errors reporting shapes', () => {
             reject(new Error('nope'));
             await settle();
 
-            expect(calls.length).to.equal(1);
-            expect(calls[0].init.headers['X-CSRF-TOKEN']).to.equal('token-123');
+            expect(calls.length, 'one unhandled rejection posts exactly one report').to.equal(1);
+            expect(
+                calls[0].init.headers['X-CSRF-TOKEN'],
+                'the header named by the _csrf_header meta carries the _csrf token',
+            ).to.equal('token-123');
         } finally {
             headerMeta.remove();
             tokenMeta.remove();
@@ -205,8 +224,11 @@ describe('Client errors reporting shapes', () => {
             reject(new Error('nope'));
             await settle();
 
-            expect(calls.length).to.equal(1);
-            expect(calls[0].init.headers['X-CSRF-TOKEN']).to.equal(undefined);
+            expect(calls.length, 'the report is still posted without the csrf pair').to.equal(1);
+            expect(
+                calls[0].init.headers['X-CSRF-TOKEN'],
+                'the csrf header is sent only when both metas are present',
+            ).to.equal(undefined);
         } finally {
             headerMeta.remove();
         }
@@ -221,7 +243,7 @@ describe('Client errors reporting shapes', () => {
         reject(new Error('nope'));
         await settle();
 
-        expect(calls.length).to.equal(1, 'the report was attempted');
-        expect(rejections).to.have.lengthOf(1, 'the synchronous throw did not re-enter the handler');
+        expect(calls.length, 'the report was attempted').to.equal(1);
+        expect(rejections, 'the synchronous throw did not re-enter the handler').to.have.lengthOf(1);
     });
 });

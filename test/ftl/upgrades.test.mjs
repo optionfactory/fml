@@ -58,8 +58,14 @@ describe('Upgrade ordering and readiness', () => {
         );
         await fresh.ready();
 
-        expect(atReady).to.deep.equal(['parent', 'child'], 'the nested child is covered too');
-        expect(order).to.deep.equal(['parent', 'child']);
+        expect(
+            atReady,
+            'ftl:ready is dispatched only after the child enqueued by the parent render has rendered',
+        ).to.deep.equal(['parent', 'child']);
+        expect(order, 'ready() resolves after both the parent and the child it enqueued have rendered').to.deep.equal([
+            'parent',
+            'child',
+        ]);
     });
 
     it("waitFor covers what the element's own upgrade enqueues", async () => {
@@ -71,7 +77,10 @@ describe('Upgrade ordering and readiness', () => {
 
         await Rendering.waitFor(el);
 
-        expect(order).to.deep.equal(['parent', 'child'], 'the child is queued while waiting, and covered');
+        expect(order, 'waitFor also waits for the child enqueued while it was waiting').to.deep.equal([
+            'parent',
+            'child',
+        ]);
     });
 
     it('waitForChildren does not cover the element itself', async () => {
@@ -82,9 +91,9 @@ describe('Upgrade ordering and readiness', () => {
 
         await Rendering.waitForChildren(el);
 
-        expect(order).to.deep.equal([], 'the element itself is excluded');
+        expect(order, 'waitForChildren resolves without waiting for the element itself to render').to.deep.equal([]);
         await Rendering.waitFor(el);
-        expect(order).to.deep.equal(['self']);
+        expect(order, 'waitFor does wait for the element itself to render').to.deep.equal(['self']);
     });
 
     it('waitForChildren covers children connected earlier in the same render', async () => {
@@ -103,7 +112,10 @@ describe('Upgrade ordering and readiness', () => {
 
         await Rendering.waitFor(el);
 
-        expect(order).to.deep.equal(['child', 'host'], 'this is what ful-table relies on');
+        expect(
+            order,
+            'waitForChildren inside a render waits for the children that render connected, which ful-table relies on',
+        ).to.deep.equal(['child', 'host']);
     });
 
     it('a failing upgrade rejects waitFor', async () => {
@@ -124,7 +136,7 @@ describe('Upgrade ordering and readiness', () => {
             caught = e;
         }
 
-        expect(caught?.message).to.equal('boom');
+        expect(caught?.message, 'waitFor rejects with the error the failed render threw').to.equal('boom');
     });
 });
 
@@ -167,7 +179,10 @@ describe('Readiness when a component fails', () => {
         await settle();
 
         expect(fired, 'one broken component must not hold the page back').to.be.true;
-        expect(container.querySelector('healthy-el').textContent).to.equal('rendered');
+        expect(
+            container.querySelector('healthy-el').textContent,
+            'a broken sibling does not stop the healthy element from rendering',
+        ).to.equal('rendered');
         expect(caught?.message, 'the failure is still there to be reported').to.equal('boom');
 
         container.remove();

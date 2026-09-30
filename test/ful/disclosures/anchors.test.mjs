@@ -43,7 +43,11 @@ describe('The anchored popover fallback', () => {
 
         document.dispatchEvent(new Event('scroll'));
         await frames();
-        assert.equal(popover.style.left, '', 'and it is not held for the next pass either');
+        assert.equal(
+            popover.style.left,
+            '',
+            'a scroll after the removal finds the popover already dropped from the open set and still does not place it',
+        );
     });
 });
 
@@ -72,8 +76,17 @@ describe('The placing of a popover as it opens', () => {
             assert.notStrictEqual(getComputedStyle(note).visibility, 'hidden', 'and it is shown a frame later');
             const here = note.getBoundingClientRect();
             const there = invoker.getBoundingClientRect();
-            assert.closeTo(here.left + here.width / 2, there.left + there.width / 2, 1, 'centred on its invoker');
-            assert.isBelow(here.bottom, there.top + 1, 'and above it, by its own height');
+            assert.closeTo(
+                here.left + here.width / 2,
+                there.left + there.width / 2,
+                1,
+                'a popover with placement top is centred on its invoker along the horizontal axis',
+            );
+            assert.isBelow(
+                here.bottom,
+                there.top + 1,
+                'a popover with placement top sits above its invoker, offset by its own height',
+            );
         } finally {
             invoker.remove();
             note.remove();
@@ -102,11 +115,13 @@ describe('The placing of a popover as it opens', () => {
                 parseFloat(note.style.getPropertyValue('--ful-note-callout-inline')),
                 there.left + there.width / 2 - here.left - 20,
                 1,
+                "the inline callout offset is the invoker's horizontal centre measured from the popover's padding box, excluding the border",
             );
             assert.closeTo(
                 parseFloat(note.style.getPropertyValue('--ful-note-callout-block')),
                 there.top + there.height / 2 - here.top - 20,
                 1,
+                "the block callout offset is the invoker's vertical centre measured from the popover's padding box, excluding the border",
             );
         } finally {
             note.hidePopover();
@@ -153,7 +168,6 @@ describe('Anchors.wire invoke and expanded', () => {
         }
     });
 
-
     it('points popovertarget at the popover and keeps aria-expanded in step', async () => {
         const invoker = document.createElement('button');
         const menu = document.createElement('ul');
@@ -164,20 +178,40 @@ describe('Anchors.wire invoke and expanded', () => {
             Anchors.wire(invoker, menu, { prefix: 'app-menu', invoke: true, expanded: true });
 
             assert.isNotEmpty(menu.id, 'the popover is given an id to be targeted by');
-            assert.strictEqual(invoker.getAttribute('popovertarget'), menu.id);
-            assert.strictEqual(invoker.getAttribute('aria-expanded'), 'false');
+            assert.strictEqual(
+                invoker.getAttribute('popovertarget'),
+                menu.id,
+                'a button invoker gets a popovertarget naming the popover so the platform toggles it',
+            );
+            assert.strictEqual(
+                invoker.getAttribute('aria-expanded'),
+                'false',
+                'with expanded the invoker says aria-expanded false at once, before any toggle',
+            );
             assert.match(invoker.style.anchorName, /^--app-menu/, 'the prefix names the anchor');
-            assert.strictEqual(menu.style.positionAnchor, invoker.style.anchorName);
+            assert.strictEqual(
+                menu.style.positionAnchor,
+                invoker.style.anchorName,
+                "the popover's position-anchor names the anchor the invoker carries",
+            );
 
             const opened = new Promise((resolve) => menu.addEventListener('toggle', resolve, { once: true }));
             menu.showPopover();
             await opened;
-            assert.strictEqual(invoker.getAttribute('aria-expanded'), 'true');
+            assert.strictEqual(
+                invoker.getAttribute('aria-expanded'),
+                'true',
+                'aria-expanded follows the popover to true when it opens',
+            );
 
             const closed = new Promise((resolve) => menu.addEventListener('toggle', resolve, { once: true }));
             menu.hidePopover();
             await closed;
-            assert.strictEqual(invoker.getAttribute('aria-expanded'), 'false');
+            assert.strictEqual(
+                invoker.getAttribute('aria-expanded'),
+                'false',
+                'aria-expanded follows the popover back to false when it closes',
+            );
         } finally {
             invoker.remove();
             menu.remove();
@@ -192,8 +226,12 @@ describe('Anchors.wire invoke and expanded', () => {
         attached(invoker, menu);
         try {
             Anchors.wire(invoker, menu, { invoke: true });
-            assert.strictEqual(menu.id, 'mine');
-            assert.strictEqual(invoker.getAttribute('popovertarget'), 'mine');
+            assert.strictEqual(menu.id, 'mine', 'invoke gives the popover a generated id only when it has none');
+            assert.strictEqual(
+                invoker.getAttribute('popovertarget'),
+                'mine',
+                "the popovertarget names the caller's own id",
+            );
         } finally {
             invoker.remove();
             menu.remove();
@@ -214,10 +252,16 @@ describe('Anchors.wire invoke and expanded', () => {
             assert.isFalse(menu.matches(':popover-open'), 'a key that is not Enter or Space is left alone');
 
             invoker.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-            assert.isTrue(menu.matches(':popover-open'), 'Enter opens');
+            assert.isTrue(
+                menu.matches(':popover-open'),
+                'Enter on a non-button invoker toggles the popover open, as a button would',
+            );
 
             invoker.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
-            assert.isFalse(menu.matches(':popover-open'), 'Space toggles it back');
+            assert.isFalse(
+                menu.matches(':popover-open'),
+                'Space on a non-button invoker toggles the open popover closed again',
+            );
         } finally {
             if (menu.matches(':popover-open')) {
                 menu.hidePopover();
@@ -300,8 +344,12 @@ describe('The stretch placement of a dropdown', () => {
             await showStretched(invoker, dropdown);
             const here = dropdown.getBoundingClientRect();
             const there = invoker.getBoundingClientRect();
-            assert.isAtLeast(here.top, there.bottom - 1, 'below the invoker');
-            assert.closeTo(here.left, there.left, 1, 'start aligned with the invoker');
+            assert.isAtLeast(
+                here.top,
+                there.bottom - 1,
+                'with room below, the stretched dropdown opens below its invoker',
+            );
+            assert.closeTo(here.left, there.left, 1, 'the stretched dropdown is start aligned with its invoker');
         } finally {
             cleanup(invoker, dropdown, document.createElement('style'));
         }
@@ -361,9 +409,9 @@ describe('Anchors.show, the one-shot placement', () => {
         try {
             const here = await placed(popover, invoker);
             const there = invoker.getBoundingClientRect();
-            assert.isTrue(popover.matches(':popover-open'), 'the popover is shown');
-            assert.closeTo(here.left, there.left, 1, 'start aligned');
-            assert.isAtLeast(here.top, there.bottom - 1, 'below the anchor');
+            assert.isTrue(popover.matches(':popover-open'), 'show opens a popover that was not already open');
+            assert.closeTo(here.left, there.left, 1, 'show places the popover start aligned with the anchor element');
+            assert.isAtLeast(here.top, there.bottom - 1, 'show places the popover below the anchor element');
         } finally {
             cleanup(invoker, popover);
         }
@@ -375,8 +423,13 @@ describe('Anchors.show, the one-shot placement', () => {
         attached(popover);
         try {
             const here = await placed(popover, new DOMRect(200, 150, 60, 30));
-            assert.closeTo(here.left, 200, 1);
-            assert.closeTo(here.top, 180, 1, 'below the rectangle');
+            assert.closeTo(
+                here.left,
+                200,
+                1,
+                'a rectangle anchor is read in viewport coordinates, so the popover starts at its left edge',
+            );
+            assert.closeTo(here.top, 180, 1, 'the popover goes below the rectangle, at its bottom edge');
         } finally {
             cleanup(null, popover);
         }
@@ -398,7 +451,11 @@ describe('Anchors.show, the one-shot placement', () => {
 
             const clamped = await placed(popover, invoker, { gap: 6 });
             assert.isAbove(clamped.bottom, there.top, 'without flip it never moves above the anchor');
-            assert.isAtMost(clamped.bottom, document.documentElement.clientHeight + 1, 'it stays in the viewport');
+            assert.isAtMost(
+                clamped.bottom,
+                document.documentElement.clientHeight + 1,
+                'without flip the popover is clamped inside the viewport rather than overflowing it',
+            );
         } finally {
             cleanup(invoker, popover);
         }
@@ -442,7 +499,7 @@ describe('Anchors.show, the one-shot placement', () => {
         try {
             popover.showPopover();
             const first = await placed(popover, invoker);
-            assert.closeTo(first.left, 10, 1);
+            assert.closeTo(first.left, 10, 1, "an already open popover is placed at its anchor's left edge");
             invoker.style.left = '300px';
             const second = await placed(popover, invoker);
             assert.closeTo(second.left, 300, 1, 'a shared popover follows whoever opened it last');

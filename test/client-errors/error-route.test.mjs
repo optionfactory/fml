@@ -39,23 +39,29 @@ describe('Client errors reporting: the error event route', () => {
         });
         await settle();
 
-        expect(calls.length).to.equal(1);
+        expect(calls.length, 'one error event posts exactly one report').to.equal(1);
         const body = JSON.parse(calls[0].init.body);
-        expect(body.message).to.equal('boom');
-        expect(body.filename).to.equal('https://cdn.example.org/app.mjs');
-        expect(body.line).to.equal(42);
-        expect(body.col).to.equal(7);
-        expect(body.stack).to.be.an('array').with.lengthOf.at.least(1);
+        expect(body.message, 'the report carries the message of the error event').to.equal('boom');
+        expect(body.filename, 'the report carries the file the error event names').to.equal(
+            'https://cdn.example.org/app.mjs',
+        );
+        expect(body.line, 'the report carries the line number of the error event').to.equal(42);
+        expect(body.col, 'the report carries the column number of the error event').to.equal(7);
+        expect(body.stack, 'the report carries the stack of the error the event carries, split into lines')
+            .to.be.an('array')
+            .with.lengthOf.at.least(1);
     });
 
     it('falls back to the error message when the event carries none', async () => {
         onError({ error: new Error('only on the error') });
         await settle();
 
-        expect(calls.length).to.equal(1);
+        expect(calls.length, 'one error event posts exactly one report').to.equal(1);
         const body = JSON.parse(calls[0].init.body);
-        expect(body.message).to.equal('only on the error');
-        expect(body.stack).to.be.an('array');
+        expect(body.message, 'without a message on the event the report takes the message of its error').to.equal(
+            'only on the error',
+        );
+        expect(body.stack, 'the stack still comes from the error the event carries').to.be.an('array');
     });
 
     it('complains about the missing uri once, not once per failure', async () => {
@@ -71,7 +77,7 @@ describe('Client errors reporting: the error event route', () => {
             console.error = originalError;
         }
 
-        expect(calls).to.deep.equal([], 'nothing is reported without a uri');
-        expect(errors.length).to.equal(1, 'the configuration complaint is logged once');
+        expect(calls, 'nothing is reported without a uri').to.deep.equal([]);
+        expect(errors.length, 'the configuration complaint is logged once').to.equal(1);
     });
 });

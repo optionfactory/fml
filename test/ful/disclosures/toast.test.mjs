@@ -22,12 +22,24 @@ describe('Toasts', () => {
     it('takes no space until its first toast, so nothing reflows on it', async () => {
         const [region] = await mount('<ful-toasts></ful-toasts>');
 
-        assert.strictEqual(getComputedStyle(region).display, 'none');
+        assert.strictEqual(
+            getComputedStyle(region).display,
+            'none',
+            'an empty region is not displayed, so it takes no space before its first toast',
+        );
 
         region.show('a toast');
 
-        assert.strictEqual(getComputedStyle(region).display, 'flex');
-        assert.strictEqual(getComputedStyle(region).position, 'fixed');
+        assert.strictEqual(
+            getComputedStyle(region).display,
+            'flex',
+            'a region holding a toast lays its toasts out as a stack',
+        );
+        assert.strictEqual(
+            getComputedStyle(region).position,
+            'fixed',
+            'a region holding a toast is fixed, so showing it does not reflow the page',
+        );
     });
 
     it('appears without sliding in where motion is not wanted', async function () {
@@ -37,7 +49,11 @@ describe('Toasts', () => {
         try {
             const item = region.show('a toast');
 
-            assert.strictEqual(item.getAnimations().length, 0);
+            assert.strictEqual(
+                item.getAnimations().length,
+                0,
+                'where the user prefers reduced motion the toast runs no slide in animation',
+            );
         } finally {
             await emulateMedia({ reducedMotion: 'no-preference' });
         }
@@ -46,8 +62,12 @@ describe('Toasts', () => {
     it('announces itself as the notifications region', async () => {
         const [toasts] = await mount('<ful-toasts></ful-toasts>');
 
-        assert.strictEqual(toasts.getAttribute('role'), 'region');
-        assert.strictEqual(toasts.getAttribute('aria-label'), 'Notifications');
+        assert.strictEqual(toasts.getAttribute('role'), 'region', 'the region carries the region role');
+        assert.strictEqual(
+            toasts.getAttribute('aria-label'),
+            'Notifications',
+            'the region is named with the localized Notifications label',
+        );
         assert.strictEqual(getComputedStyle(toasts).display, 'none', 'an empty region draws nothing');
         toasts.show('saved');
         assert.strictEqual(getComputedStyle(toasts).position, 'fixed', 'the region chrome is the structure it renders');
@@ -58,11 +78,19 @@ describe('Toasts', () => {
 
         const item = toasts.show('saved', { severity: 'success' });
 
-        assert.strictEqual(item.localName, 'ful-toast');
-        assert.isTrue(item.classList.contains('success'));
-        assert.strictEqual(item.getAttribute('role'), 'status');
-        assert.strictEqual(item.querySelector('div').textContent, 'saved');
-        assert.strictEqual(item.querySelector('button').getAttribute('aria-label'), 'Dismiss');
+        assert.strictEqual(item.localName, 'ful-toast', 'show() appends a ful-toast element');
+        assert.isTrue(item.classList.contains('success'), "the severity is carried as the toast's theme class");
+        assert.strictEqual(
+            item.getAttribute('role'),
+            'status',
+            'a success toast is announced politely with the status role',
+        );
+        assert.strictEqual(item.querySelector('div').textContent, 'saved', "the message is shown as the toast's text");
+        assert.strictEqual(
+            item.querySelector('button').getAttribute('aria-label'),
+            'Dismiss',
+            'the dismiss button is named with the localized Dismiss',
+        );
 
         item.querySelector('button').click();
         assert.isTrue(item.classList.contains('ful-toast-out'), 'the dismiss button retires the toast');
@@ -98,9 +126,21 @@ describe('Toasts', () => {
             { severity: 'error' },
         );
 
-        assert.strictEqual(item.getAttribute('role'), 'alert');
-        assert.include(item.textContent, 'must not be blank');
-        assert.include(item.textContent, 'start is after end');
+        assert.strictEqual(
+            item.getAttribute('role'),
+            'alert',
+            'an error toast is announced assertively with the alert role',
+        );
+        assert.include(
+            item.textContent,
+            'must not be blank',
+            "a failure is shown as its problems' reasons, the field problem included",
+        );
+        assert.include(
+            item.textContent,
+            'start is after end',
+            "a failure is shown as its problems' reasons, the generic problem included",
+        );
     });
 
     it('stacks concurrent toasts, each retiring on its own timer', async () => {
@@ -119,7 +159,7 @@ describe('Toasts', () => {
 
         const item = toasts.show('x', { severity: 'loud' });
 
-        assert.isTrue(item.classList.contains('info'));
+        assert.isTrue(item.classList.contains('info'), 'an unknown severity falls back to the info theme class');
     });
 
     it('answers the show-toast document event, wired by nobody', async () => {
@@ -130,8 +170,11 @@ describe('Toasts', () => {
         );
 
         const item = toasts.querySelector('ful-toast');
-        assert.isTrue(item.classList.contains('warning'));
-        assert.include(item.textContent, 'from anywhere');
+        assert.isTrue(
+            item.classList.contains('warning'),
+            "the show-toast event's severity is carried as the toast's theme class",
+        );
+        assert.include(item.textContent, 'from anywhere', "the show-toast event's message is shown in the toast");
     });
 
     it('answers a show-toast event carrying no detail with silence, not a throw', async () => {
@@ -139,7 +182,11 @@ describe('Toasts', () => {
 
         document.dispatchEvent(new CustomEvent('show-toast'));
 
-        assert.strictEqual(toasts.querySelectorAll('ful-toast').length, 0);
+        assert.strictEqual(
+            toasts.querySelectorAll('ful-toast').length,
+            0,
+            'a show-toast event with no detail is ignored rather than shown or thrown on',
+        );
     });
 
     it('carries an action, whose click answers and retires the toast', async () => {
@@ -160,7 +207,7 @@ describe('Toasts', () => {
             [byEvent, clicks],
         ]) {
             const action = item.querySelector('button.ful-toast-action');
-            assert.strictEqual(action.textContent, 'Undo');
+            assert.strictEqual(action.textContent, 'Undo', "the action button is labelled with the action's label");
             action.click();
             assert.lengthOf(log, 1, 'the action answered');
             assert.isTrue(item.classList.contains('ful-toast-out'), 'and the toast retired');
@@ -195,7 +242,11 @@ describe('Toasts', () => {
         document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'back again' } }));
 
         assert.lengthOf(toasts.querySelectorAll('ful-toast'), 1, 'the re-attached region answers');
-        assert.include(toasts.textContent, 'back again');
+        assert.include(
+            toasts.textContent,
+            'back again',
+            "the toast shown after the re-attach carries the event's message",
+        );
     });
 
     it('hands its focus back to the region, and retires at once where motion is not wanted', async () => {
@@ -224,7 +275,7 @@ describe('Toasts', () => {
         const [toasts] = await mount('<x-my-toasts></x-my-toasts>');
 
         const item = toasts.show('reused');
-        assert.strictEqual(item.localName, 'ful-toast');
+        assert.strictEqual(item.localName, 'ful-toast', 'a subclass region still appends ful-toast elements');
         assert.strictEqual(getComputedStyle(item).display, 'flex', 'the item chrome follows the tag');
         assert.strictEqual(getComputedStyle(toasts).position, 'fixed', 'the region chrome follows the hosted toasts');
     });
@@ -241,7 +292,10 @@ describe('Toasts', () => {
         const item = toasts.show('second', { timeout: 60000 });
         const box = item.getBoundingClientRect();
 
-        assert.isTrue(item.contains(document.elementFromPoint(box.left + box.width / 2, box.bottom - 4)));
+        assert.isTrue(
+            item.contains(document.elementFromPoint(box.left + box.width / 2, box.bottom - 4)),
+            'a toast shown after a top layer popover opened is drawn above it, since each show shows the region again',
+        );
         cover.hidePopover();
     });
 
@@ -252,7 +306,11 @@ describe('Toasts', () => {
 
         toasts.show('second');
 
-        assert.strictEqual(document.activeElement, dismiss);
+        assert.strictEqual(
+            document.activeElement,
+            dismiss,
+            'a new toast arriving leaves the focus where it was inside the region',
+        );
     });
 
     it('stays open when an auto popover opens, whatever popover the page declared', async () => {
@@ -264,7 +322,10 @@ describe('Toasts', () => {
 
         menu.showPopover();
 
-        assert.isTrue(toasts.matches(':popover-open'));
+        assert.isTrue(
+            toasts.matches(':popover-open'),
+            'the region is a manual popover whatever the page declared, so an auto popover opening does not light dismiss it',
+        );
         menu.hidePopover();
     });
 
@@ -274,8 +335,8 @@ describe('Toasts', () => {
 
         const item = toasts.show('away');
 
-        assert.isTrue(toasts.contains(item));
-        assert.isFalse(toasts.matches(':popover-open'));
+        assert.isTrue(toasts.contains(item), 'a region out of the document still appends the toast');
+        assert.isFalse(toasts.matches(':popover-open'), 'a region out of the document is not shown as a popover');
     });
 });
 
@@ -305,7 +366,10 @@ describe('Toast timer holds', () => {
 
         item.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
         await clock.advance(200);
-        assert.isTrue(item.classList.contains('ful-toast-out'));
+        assert.isTrue(
+            item.classList.contains('ful-toast-out'),
+            'the timer runs again once the focus leaves, and the toast retires',
+        );
     });
 
     it('holds through overlapping pointer and focus, the last one leaving to re-arm', async () => {

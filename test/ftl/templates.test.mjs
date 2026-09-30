@@ -20,7 +20,10 @@ describe('Templates factory', () => {
         const template = Templates.fromHtml('<span>{{ #testMod:transform(value) }}</span>');
         const fragment = template.render();
 
-        expect(fragment.querySelector('span').textContent).to.equal('HTML_VAL');
+        expect(
+            fragment.querySelector('span').textContent,
+            'fromHtml evaluates with the modules and data defined on the page registry',
+        ).to.equal('HTML_VAL');
     });
 
     it('creates a Template from a selector using registry context', () => {
@@ -34,7 +37,10 @@ describe('Templates factory', () => {
         const template = Templates.fromSelector('#tpl-selector-test');
         const fragment = template.render();
 
-        expect(fragment.querySelector('div').textContent).to.equal('SELECTOR_VAL');
+        expect(
+            fragment.querySelector('div').textContent,
+            'fromSelector evaluates with the modules and data defined on the page registry',
+        ).to.equal('SELECTOR_VAL');
         templateEl.remove();
     });
 
@@ -47,7 +53,10 @@ describe('Templates factory', () => {
         const template = Templates.fromTemplate(templateEl);
         const fragment = template.render();
 
-        expect(fragment.querySelector('p').textContent).to.equal('ELEMENT_VAL');
+        expect(
+            fragment.querySelector('p').textContent,
+            'fromTemplate evaluates with the modules and data defined on the page registry',
+        ).to.equal('ELEMENT_VAL');
     });
 
     it('creates a Template from a DocumentFragment using registry context', () => {
@@ -60,6 +69,9 @@ describe('Templates factory', () => {
         const template = Templates.fromFragment(frag);
         const renderedFrag = template.render();
 
-        expect(renderedFrag.textContent).to.equal('FRAGMENT_VAL');
+        expect(
+            renderedFrag.textContent,
+            'fromFragment evaluates with the modules and data defined on the page registry',
+        ).to.equal('FRAGMENT_VAL');
     });
 });

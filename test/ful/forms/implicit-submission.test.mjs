@@ -43,7 +43,9 @@ describe('Field implicit submission', () => {
         return form;
     };
     const enter = (el) => {
-        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }));
+        el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }),
+        );
     };
 
     const submitting = [
@@ -62,11 +64,7 @@ describe('Field implicit submission', () => {
         ['ful-filter-text first operand', `<ful-filter-text name="a">label</ful-filter-text>`, '[data-ref=value1]'],
         ['ful-filter-text second operand', `<ful-filter-text name="a">label</ful-filter-text>`, '[data-ref=value2]'],
         ['ful-filter-number', `<ful-filter-number name="a">label</ful-filter-number>`, '[data-ref=value1]'],
-        [
-            'ful-filter-local-date',
-            `<ful-filter-local-date name="a">label</ful-filter-local-date>`,
-            '[data-ref=value1]',
-        ],
+        ['ful-filter-local-date', `<ful-filter-local-date name="a">label</ful-filter-local-date>`, '[data-ref=value1]'],
     ];
     for (const [name, markup, selector] of submitting) {
         it(`submits from ${name}, as the native control it wraps does`, async () => {
@@ -77,7 +75,11 @@ describe('Field implicit submission', () => {
             enter(control);
             await settle();
 
-            assert.strictEqual(submits.length, 1);
+            assert.strictEqual(
+                submits.length,
+                1,
+                'Enter submits the form once, standing in for the implicit submission the detached control cannot trigger',
+            );
         });
     }
 
@@ -90,7 +92,7 @@ describe('Field implicit submission', () => {
             '[data-ref=operator]',
         ],
         [
-            "ful-filter-boolean, whose control is a button and whose Enter opens its menu",
+            'ful-filter-boolean, whose control is a button and whose Enter opens its menu',
             `<ful-filter-boolean name="a">l</ful-filter-boolean>`,
             '[data-ref=value]',
         ],
@@ -102,7 +104,11 @@ describe('Field implicit submission', () => {
             enter(form.querySelector(selector));
             await settle();
 
-            assert.deepStrictEqual(submits, []);
+            assert.deepStrictEqual(
+                submits,
+                [],
+                'Enter is left to the control, as the platform leaves it in a plain form',
+            );
         });
     }
 
@@ -114,7 +120,7 @@ describe('Field implicit submission', () => {
         );
         await settle();
 
-        assert.deepStrictEqual(submits, []);
+        assert.deepStrictEqual(submits, [], 'only Enter submits, other keys are left to the control');
     });
 
     it('submits nothing, and says nothing, from a field no form owns', async () => {
@@ -133,7 +139,7 @@ describe('Field implicit submission', () => {
             await settle();
 
             assert.deepStrictEqual(errors, [], 'a field outside any form does not reach for one');
-            assert.deepStrictEqual(submits, [], 'and nothing was submitted');
+            assert.deepStrictEqual(submits, [], 'a field outside any form submits nothing');
         } finally {
             window.removeEventListener('error', onError);
         }
@@ -189,8 +195,8 @@ describe('Field implicit submission', () => {
             enter(form.querySelector('ful-input input'));
             await settle();
 
-            assert.strictEqual(submits.length, 1);
-            assert.lengthOf(submitters, 1);
+            assert.strictEqual(submits.length, 1, 'Enter in the field submits the form once');
+            assert.lengthOf(submitters, 1, 'the submit event fires once, carrying one submitter');
             return submitters[0];
         };
 
@@ -201,13 +207,17 @@ describe('Field implicit submission', () => {
                 <button type="submit" id="the-submitter">go</button>
                 <button type="submit" id="later-submitter">also go</button>`);
 
-            assert.strictEqual(submitter.id, 'the-submitter');
+            assert.strictEqual(
+                submitter.id,
+                'the-submitter',
+                'the submitter is the first submit control that is enabled, as the platform picks it',
+            );
         });
 
         it('is absent when the form has no submit control', async () => {
             const submitter = await submitterOf('');
 
-            assert.isUndefined(submitter);
+            assert.isUndefined(submitter, 'a form with no submit control submits without a submitter');
         });
 
         it('is absent when the only candidate belongs to another form', async () => {
@@ -221,7 +231,11 @@ describe('Field implicit submission', () => {
                 <button type="submit" form="">foreign</button>
                 <button type="submit" id="the-submitter">go</button>`);
 
-            assert.strictEqual(submitter.id, 'the-submitter');
+            assert.strictEqual(
+                submitter.id,
+                'the-submitter',
+                'a submit control owned by another form is skipped in favour of the owned one',
+            );
         });
     });
 });

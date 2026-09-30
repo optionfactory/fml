@@ -106,7 +106,11 @@ describe('Field', () => {
         const field = container.querySelector('x-slow-field');
 
         assert.isTrue(field.rendered, 'the upgrade waited for the promise');
-        assert.strictEqual(String(field.querySelector('input').value), 'late');
+        assert.strictEqual(
+            String(field.querySelector('input').value),
+            'late',
+            'the value attribute reaches the control that the async build delivered',
+        );
     });
 
     it('a focus() asked before the render lands once the control exists', async () => {
@@ -150,9 +154,9 @@ describe('Field', () => {
         registry.defineElement('x-no-build-field', NoBuildField);
 
         const el = document.createElement('x-no-build-field');
-        assert.isUndefined(el.value);
+        assert.isUndefined(el.value, 'a subclass without its own value pair reads the base value, undefined');
         el.value = 'ignored';
-        assert.isUndefined(el.value);
+        assert.isUndefined(el.value, 'the base value pair ignores writes');
 
         appended('').appendChild(el);
         let complaint = null;
@@ -161,7 +165,11 @@ describe('Field', () => {
         } catch (ex) {
             complaint = String(/** @type any */ (ex).message);
         }
-        assert.strictEqual(complaint, 'NoBuildField must implement _build');
+        assert.strictEqual(
+            complaint,
+            'NoBuildField must implement _build',
+            'the upgrade fails with an error naming the subclass that lacks _build',
+        );
     });
 
     it('reaches custom Field subclasses that never list it', async () => {
@@ -192,7 +200,7 @@ describe('Field', () => {
         assert.isTrue(field.disabled, 'the base-observed claim reaches the subclass');
         assert.isTrue(input.matches(':disabled'), 'the subclass mirror ran');
         field.removeAttribute('disabled');
-        assert.isFalse(input.matches(':disabled'));
+        assert.isFalse(input.matches(':disabled'), 'lifting the disabled claim reaches the subclass control as well');
 
         field.setAttribute('readonly', '');
         assert.isTrue(input.readOnly, 'the readonly claim reaches the subclass mirror');
@@ -204,8 +212,11 @@ describe('Field', () => {
         );
         field.removeAttribute('readonly');
         field.removeAttribute('required');
-        assert.isFalse(input.readOnly);
-        assert.isNull(input.getAttribute('aria-required'));
+        assert.isFalse(input.readOnly, 'lifting the readonly claim reaches the subclass control as well');
+        assert.isNull(
+            input.getAttribute('aria-required'),
+            'lifting the required claim removes aria-required from the subclass control',
+        );
         assert.strictEqual(field.value, 'x', 'the base-delivered value mapper feeds the subclass');
     });
 

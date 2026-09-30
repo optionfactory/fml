@@ -329,9 +329,13 @@ describe('Registered elements', () => {
             it('mounts and renders without errors', async () => {
                 const [el] = await mount(spec.html);
 
-                assert.deepStrictEqual(uncaught, [], `${spec.tag} reported errors while mounting`);
+                assert.deepStrictEqual(
+                    uncaught,
+                    [],
+                    `${spec.tag} mounts standalone without reporting an uncaught error or rejection`,
+                );
                 if (!spec.empty) {
-                    assert.isAbove(el.childNodes.length, 0, `${spec.tag} rendered no content`);
+                    assert.isAbove(el.childNodes.length, 0, `${spec.tag} renders some content when mounted standalone`);
                 }
             });
 
@@ -340,7 +344,7 @@ describe('Registered elements', () => {
                 assert.deepStrictEqual(
                     Object.keys(spec.observed).sort(),
                     [...observed].sort(),
-                    `${spec.tag}: the sampled attributes must match the observed ones`,
+                    `${spec.tag}: the sampled attributes match the observed ones, so no observed attribute goes untested at render`,
                 );
             });
 
@@ -348,12 +352,16 @@ describe('Registered elements', () => {
                 it(`applies ${attribute} at render`, async () => {
                     const [el] = await mount(withAttribute(spec.html, attribute, value));
 
-                    assert.deepStrictEqual(uncaught, [], `${spec.tag}[${attribute}] reported errors`);
+                    assert.deepStrictEqual(
+                        uncaught,
+                        [],
+                        `${spec.tag} applies ${attribute} at render without reporting an uncaught error or rejection`,
+                    );
                     if (expected !== ANY) {
                         assert.deepStrictEqual(
                             el[Registry.propertyOf(attribute)],
                             expected,
-                            `${spec.tag}: the ${attribute} attribute is not reflected by the property`,
+                            `${spec.tag}: the ${attribute} attribute set in markup is exposed by its property once rendered`,
                         );
                     }
                 });

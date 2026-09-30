@@ -38,11 +38,15 @@ describe('SectionRequests', () => {
 
         await requests.request(host, section, 'two', 1);
 
-        assert.deepStrictEqual(seen, [
-            'section:requested|two|1|true|true|true',
-            'section:requested:#1|two|1|true|true|true',
-            'section:requested:two|two|1|true|true|true',
-        ]);
+        assert.deepStrictEqual(
+            seen,
+            [
+                'section:requested|two|1|true|true|true',
+                'section:requested:#1|two|1|true|true|true',
+                'section:requested:two|two|1|true|true|true',
+            ],
+            'the generic, index and name events fire in that order from the host, each with the same detail',
+        );
     });
 
     it('bubbles, a listener above the host answering it', async () => {
@@ -50,7 +54,11 @@ describe('SectionRequests', () => {
 
         const answers = await requests.request(host, section, null, null);
 
-        assert.strictEqual(answers.join(','), 'from above');
+        assert.strictEqual(
+            answers.join(','),
+            'from above',
+            'the events bubble, so a listener on an ancestor of the host answers',
+        );
     });
 
     it('fires the index event for index 0 and skips the families it has no key for', async () => {
@@ -62,16 +70,20 @@ describe('SectionRequests', () => {
         await requests.request(host, section, null, 0);
         await requests.request(host, section, null, null);
 
-        assert.strictEqual(types.join(','), 'section:requested,section:requested:#0,section:requested');
+        assert.strictEqual(
+            types.join(','),
+            'section:requested,section:requested:#0,section:requested',
+            'index 0 fires its index event, and a null index or name fires no event of that family',
+        );
     });
 
     it('answers undefined when nobody listened, painting nothing', async () => {
         const answered = await requests.request(host, section, 'two', 1);
 
-        assert.isUndefined(answered);
-        assert.isFalse(section.hasAttribute('loading'));
-        assert.isNull(section.querySelector('.ful-section-error'));
-        assert.strictEqual(section.textContent, 'the content');
+        assert.isUndefined(answered, 'a request nobody listened to resolves undefined');
+        assert.isFalse(section.hasAttribute('loading'), 'with no answer to wait for the section is not marked loading');
+        assert.isNull(section.querySelector('.ful-section-error'), 'with no answer there is no failure to paint');
+        assert.strictEqual(section.textContent, 'the content', 'the section content is left untouched');
     });
 
     it('keeps first true until a request is answered, per section', async () => {
@@ -97,7 +109,11 @@ describe('SectionRequests', () => {
 
         const answers = await requests.request(host, section, 'two', 1);
 
-        assert.strictEqual(answers.join(','), 'generic,generic again,index,named');
+        assert.strictEqual(
+            answers.join(','),
+            'generic,generic again,index,named',
+            'answers come in the order they were attached, not the order they settle in',
+        );
     });
 
     it('marks the section loading and busy from the next frame while an answer pends', async () => {
@@ -106,13 +122,20 @@ describe('SectionRequests', () => {
 
         const requested = requests.request(host, section, null, null);
         await frames();
-        assert.isTrue(section.hasAttribute('loading'));
-        assert.strictEqual(section.getAttribute('aria-busy'), 'true');
+        assert.isTrue(
+            section.hasAttribute('loading'),
+            'from the next frame a pending answer marks the section loading',
+        );
+        assert.strictEqual(
+            section.getAttribute('aria-busy'),
+            'true',
+            'a pending answer marks the section busy for assistive technology',
+        );
 
         resolve();
         await requested;
-        assert.isFalse(section.hasAttribute('loading'));
-        assert.isFalse(section.hasAttribute('aria-busy'));
+        assert.isFalse(section.hasAttribute('loading'), 'the loading attribute is removed once the answer settles');
+        assert.isFalse(section.hasAttribute('aria-busy'), 'aria-busy is removed once the answer settles');
     });
 
     it('shows no loading state for an answer settling before the frame', async () => {
@@ -125,7 +148,7 @@ describe('SectionRequests', () => {
         await frames();
         observer.disconnect();
 
-        assert.strictEqual(marked, 0);
+        assert.strictEqual(marked, 0, 'an answer settling before the next frame never writes loading or aria-busy');
     });
 
     it('paints a failure as an alert holding its reasons one per line, and rethrows it', async () => {
@@ -139,8 +162,12 @@ describe('SectionRequests', () => {
         assert.isTrue(thrown === failure, 'the failure travels to the caller');
         const error = section.firstElementChild;
         assert.isTrue(error.classList.contains('ful-section-error'), 'the error leads the section');
-        assert.strictEqual(error.getAttribute('role'), 'alert');
-        assert.strictEqual(error.textContent, 'must not be blank\nstart is after end');
+        assert.strictEqual(error.getAttribute('role'), 'alert', 'the error has the alert role so it is announced');
+        assert.strictEqual(
+            error.textContent,
+            'must not be blank\nstart is after end',
+            'the error holds the reasons of the failure problems, one per line',
+        );
         assert.include(section.textContent, 'the content', 'the content stays beside the error');
     });
 
@@ -153,8 +180,8 @@ describe('SectionRequests', () => {
         await rejection(requests.request(host, section, null, null));
 
         const errors = section.querySelectorAll('.ful-section-error');
-        assert.strictEqual(errors.length, 1);
-        assert.strictEqual(errors[0].textContent, 'boom');
+        assert.strictEqual(errors.length, 1, 'a new failure removes the previous error before painting its own');
+        assert.strictEqual(errors[0].textContent, 'boom', 'a failure with no problems is painted with its message');
     });
 
     it('removes the previous error when an answered request starts, and not otherwise', async () => {
@@ -191,6 +218,9 @@ describe('SectionRequests', () => {
 
         answers[1].resolve();
         await fresh;
-        assert.isFalse(section.hasAttribute('loading'));
+        assert.isFalse(
+            section.hasAttribute('loading'),
+            'the newer request clears the loading state when its answer settles',
+        );
     });
 });

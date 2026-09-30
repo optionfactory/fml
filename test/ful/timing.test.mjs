@@ -11,9 +11,9 @@ describe('Timing.sleep', () => {
             done = true;
         });
         await clock.advance(49);
-        assert.isFalse(done);
+        assert.isFalse(done, 'sleep does not resolve before its time has passed');
         await clock.advance(1);
-        assert.isTrue(done);
+        assert.isTrue(done, 'sleep resolves as soon as its time has passed');
     });
 });
 
@@ -25,7 +25,11 @@ describe('Timing.debounce', () => {
         debounced('b');
         debounced('c');
         await clock.advance(100);
-        assert.deepStrictEqual(calls, ['c']);
+        assert.deepStrictEqual(
+            calls,
+            ['c'],
+            'a burst of calls fires once after the quiet period, with the last arguments',
+        );
     });
 
     it('abort cancels the pending call', async () => {
@@ -34,7 +38,7 @@ describe('Timing.debounce', () => {
         debounced('a');
         abort();
         await clock.advance(100);
-        assert.deepStrictEqual(calls, []);
+        assert.deepStrictEqual(calls, [], 'abort cancels the pending call, so nothing fires');
     });
 
     it('keeps working after abort', async () => {
@@ -45,7 +49,7 @@ describe('Timing.debounce', () => {
         await clock.advance(100);
         debounced('b');
         await clock.advance(100);
-        assert.deepStrictEqual(calls, ['b']);
+        assert.deepStrictEqual(calls, ['b'], 'a call after abort is scheduled and fires as usual');
     });
 });
 
@@ -54,7 +58,7 @@ describe('Timing.throttle', () => {
         const calls = [];
         const [throttled] = Timing.throttle(50, (v) => calls.push(v));
         throttled('a');
-        assert.deepStrictEqual(calls, ['a']);
+        assert.deepStrictEqual(calls, ['a'], 'the first call fires at once on the leading edge');
     });
 
     it('schedules a trailing call within the window', async () => {
@@ -63,7 +67,7 @@ describe('Timing.throttle', () => {
         throttled('a');
         throttled('b');
         await clock.advance(200);
-        assert.deepStrictEqual(calls, ['a', 'b']);
+        assert.deepStrictEqual(calls, ['a', 'b'], 'a call inside the window fires on the trailing edge');
     });
 
     it('keeps scheduling trailing calls after abort', async () => {
@@ -77,7 +81,7 @@ describe('Timing.throttle', () => {
 
         throttled('c');
         await clock.advance(200);
-        assert.deepStrictEqual(calls, ['a', 'c']);
+        assert.deepStrictEqual(calls, ['a', 'c'], 'after abort the throttle still fires later calls');
     });
 
     it('a call arriving past the window, the trailing edge still armed because the thread was busy, fires at once and cancels the stale one', async () => {
@@ -148,7 +152,7 @@ describe('Timing.throttle modes', () => {
         throttled('leading');
         await clock.advance(20);
         throttled('dropped');
-        assert.deepEqual(calls, ['leading']);
+        assert.deepEqual(calls, ['leading'], 'a call inside the window does not fire at once');
 
         await clock.advance(80);
         assert.deepEqual(calls, ['leading'], 'no trailing call was ever scheduled');
@@ -168,6 +172,10 @@ describe('Timing.debounce re-entry', () => {
         debounced('first');
         await clock.advance(100);
 
-        assert.strictEqual(calls.join(','), 'first,again');
+        assert.strictEqual(
+            calls.join(','),
+            'first,again',
+            'a call made while the function runs is debounced again and fires later with its own arguments',
+        );
     });
 });

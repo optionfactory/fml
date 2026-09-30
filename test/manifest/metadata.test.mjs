@@ -59,7 +59,11 @@ describe('Element metadata', function () {
     });
 
     it('documents exactly the elements the plugin registers', () => {
-        assert.deepStrictEqual(Object.keys(metadata.elements).sort(), elements.map((e) => e.tag).sort());
+        assert.deepStrictEqual(
+            Object.keys(metadata.elements).sort(),
+            elements.map((e) => e.tag).sort(),
+            'the metadata lists every element the plugin registers and no element it does not',
+        );
     });
 
     it('gives every element a description', () => {
@@ -72,8 +76,7 @@ describe('Element metadata', function () {
     for (const kind of ['attributes', 'slots']) {
         it(`documents exactly the ${kind} each element has`, () => {
             for (const { tag, klass } of registered()) {
-                const actual =
-                    kind === 'attributes' ? attributesOf(klass).map((d) => d.split(':')[0]) : slotsOf(klass);
+                const actual = kind === 'attributes' ? attributesOf(klass).map((d) => d.split(':')[0]) : slotsOf(klass);
                 const inherited = Object.keys(metadata.inherited[kind] ?? {});
                 const own = Object.keys(metadata.elements[tag]?.[kind] ?? {});
                 assert.deepStrictEqual(

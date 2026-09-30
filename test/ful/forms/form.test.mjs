@@ -20,11 +20,11 @@ describe('Form busy state', () => {
     it('declares itself busy while a spin holds, like the table and the sections do', async () => {
         const form = await mountForm(`<ful-form><button type="submit">go</button></ful-form>`);
 
-        assert.isFalse(form.hasAttribute('aria-busy'));
+        assert.isFalse(form.hasAttribute('aria-busy'), 'an idle form carries no aria-busy');
         form.spinner(true);
-        assert.strictEqual(form.getAttribute('aria-busy'), 'true');
+        assert.strictEqual(form.getAttribute('aria-busy'), 'true', 'a spin marks the form busy with aria-busy');
         form.spinner(false);
-        assert.isFalse(form.hasAttribute('aria-busy'));
+        assert.isFalse(form.hasAttribute('aria-busy'), 'releasing the spin removes aria-busy');
     });
 
     it('gives a spinner with no text of its own something to announce', async () => {
@@ -33,12 +33,20 @@ describe('Form busy state', () => {
 
         form.spinner(true);
 
-        assert.strictEqual(spinner.getAttribute('role'), 'status', 'a live region, or it reads to no one');
-        assert.strictEqual(spinner.textContent.trim(), 'Loading…');
-        assert.isFalse(spinner.hidden);
+        assert.strictEqual(
+            spinner.getAttribute('role'),
+            'status',
+            'the spinner is given the status role, so that its label is announced',
+        );
+        assert.strictEqual(
+            spinner.textContent.trim(),
+            'Loading…',
+            'a spinner with no text of its own is given the localized loading label',
+        );
+        assert.isFalse(spinner.hidden, 'a spin reveals the spinner');
 
         form.spinner(false);
-        assert.isTrue(spinner.hidden);
+        assert.isTrue(spinner.hidden, 'the release hides the spinner again');
         assert.strictEqual(spinner.textContent.trim(), '', 'the label does not linger in a hidden region');
     });
 
@@ -55,9 +63,13 @@ describe('Form busy state', () => {
         form.spinner(false);
         const revealed = records.findIndex((r) => r.type === 'attributes' && r.attributeName === 'hidden');
         const written = records.findIndex((r) => r.type === 'childList' || r.type === 'characterData');
-        assert.notStrictEqual(revealed, -1);
-        assert.notStrictEqual(written, -1);
-        assert.isBelow(revealed, written);
+        assert.notStrictEqual(revealed, -1, 'the spin reveals the hidden spinner');
+        assert.notStrictEqual(written, -1, 'the spin writes a label into the spinner');
+        assert.isBelow(
+            revealed,
+            written,
+            'the spinner is revealed before its label is written, so the label is announced as it appears',
+        );
     });
 
     it('leaves an authored spinner label and role alone', async () => {
@@ -68,8 +80,12 @@ describe('Form busy state', () => {
 
         form.spinner(true);
 
-        assert.strictEqual(spinner.getAttribute('role'), 'alert');
-        assert.strictEqual(spinner.textContent.trim(), 'Saving the policy');
+        assert.strictEqual(spinner.getAttribute('role'), 'alert', 'a spinner that already has a role keeps it');
+        assert.strictEqual(
+            spinner.textContent.trim(),
+            'Saving the policy',
+            'a spinner with text of its own is given no generated label',
+        );
     });
 
     it('keeps the submitter focused while it is held off', async () => {
@@ -79,9 +95,13 @@ describe('Form busy state', () => {
 
         form.spinner(true);
 
-        assert.strictEqual(document.activeElement, go);
-        assert.isFalse(go.disabled, 'held off, not disabled');
-        assert.strictEqual(go.getAttribute('aria-disabled'), 'true');
+        assert.strictEqual(document.activeElement, go, 'holding the submitter off with aria-disabled keeps its focus');
+        assert.isFalse(go.disabled, 'the submitter is held off, not disabled, since disabling it would drop its focus');
+        assert.strictEqual(
+            go.getAttribute('aria-disabled'),
+            'true',
+            'the submitter is held off with aria-disabled while the form is busy',
+        );
         form.spinner(false);
     });
 
@@ -97,7 +117,7 @@ describe('Form busy state', () => {
 
         form.spinner(false);
         go.click();
-        assert.strictEqual(clicks, 1, 'and releases with the spin');
+        assert.strictEqual(clicks, 1, 'releasing the spin lets a click reach the button again');
     });
 });
 
@@ -119,15 +139,14 @@ describe('Form spinner button states', () => {
         const btnDisabled = fulForm.querySelector('#btn-disabled');
 
         fulForm.spinner(true);
-        assert.isTrue(heldOff(btnEnabled));
-        assert.isTrue(heldOff(btnDisabled));
+        assert.isTrue(heldOff(btnEnabled), 'a spin holds off an enabled submit button');
+        assert.isTrue(heldOff(btnDisabled), 'a spin holds off a submit button that is already disabled too');
         assert.strictEqual(btnDisabled.disabled, true, 'the authored disabled property is never touched');
 
         fulForm.spinner(false);
-        assert.isFalse(heldOff(btnEnabled));
+        assert.isFalse(heldOff(btnEnabled), 'the release lets go of the enabled submit button');
         assert.isFalse(heldOff(btnDisabled), 'the hold is released whatever the authored state was');
-        assert.strictEqual(btnDisabled.disabled, true, 'and the authored one still stands');
-
+        assert.strictEqual(btnDisabled.disabled, true, 'the authored disabled property still holds after the release');
     });
 
     it('only the outermost spin saves and restores the buttons', async () => {
@@ -144,7 +163,7 @@ describe('Form spinner button states', () => {
 
         fulForm.spinner(true);
         fulForm.spinner(true);
-        assert.isTrue(heldOff(enabled));
+        assert.isTrue(heldOff(enabled), 'nested spins hold off the buttons');
 
         fulForm.spinner(false);
         assert.isTrue(heldOff(enabled), 'the inner release leaves the outer spin alone');
@@ -153,7 +172,7 @@ describe('Form spinner button states', () => {
         assert.isFalse(heldOff(enabled), 'the outer release restores them');
 
         fulForm.spinner(false);
-        assert.isFalse(heldOff(enabled));
+        assert.isFalse(heldOff(enabled), 'a release with no spin left leaves the buttons as they were');
     });
 
     it('leaves a button that joined mid-spin on its authored state', async () => {
@@ -176,9 +195,11 @@ describe('Form spinner button states', () => {
 
         fulForm.spinner(false);
 
-        assert.isFalse(heldOff(fulForm.querySelector('#btn-enabled')), 'the saved one restores');
+        assert.isFalse(
+            heldOff(fulForm.querySelector('#btn-enabled')),
+            'the button held off at the spin gets its state back on release',
+        );
         assert.isTrue(latecomer.disabled, 'the latecomer keeps its authored state');
-
     });
 });
 describe('Form spinner button states across overlapping submits', () => {
@@ -210,23 +231,29 @@ describe('Form spinner button states across overlapping submits', () => {
         const first = fulForm.submit();
         const second = fulForm.submit();
         assert.strictEqual(spinner.hidden, false, 'the spinner is shown while submitting');
-        assert.isTrue(heldOff(btnEnabled));
-        assert.isTrue(heldOff(btnDisabled));
+        assert.isTrue(heldOff(btnEnabled), 'an in-flight submit holds off the enabled submit button');
+        assert.isTrue(heldOff(btnDisabled), 'an in-flight submit holds off the disabled submit button too');
 
         for (let i = 0; i !== 20; ++i) {
             await tick();
         }
-        assert.strictEqual(releases.length, 1, 'one exchange at a time');
+        assert.strictEqual(releases.length, 1, 'a submit called while one is in flight sends nothing');
         await second;
-        assert.strictEqual(spinner.hidden, false, 'the dropped submit owns no chrome');
+        assert.strictEqual(spinner.hidden, false, 'the dropped submit does not hide the spinner of the one in flight');
 
         releases[0]();
         await first;
-        assert.strictEqual(spinner.hidden, true);
-        assert.isFalse(heldOff(btnEnabled));
+        assert.strictEqual(spinner.hidden, true, 'the spinner is hidden once the submit settles');
+        assert.isFalse(heldOff(btnEnabled), 'the enabled submit button is released once the submit settles');
         assert.strictEqual(btnDisabled.disabled, true, 'an intentionally disabled button stays disabled');
-        assert.isUndefined(btnEnabled.dataset.wd);
-        assert.isUndefined(btnDisabled.dataset.wd);
+        assert.isUndefined(
+            btnEnabled.dataset.wd,
+            "the release removes the record of the enabled button's authored aria-disabled",
+        );
+        assert.isUndefined(
+            btnDisabled.dataset.wd,
+            "the release removes the record of the disabled button's authored aria-disabled",
+        );
 
         fulForm.submit();
         for (let i = 0; i !== 20; ++i) {
@@ -281,9 +308,18 @@ describe('Form submit outcome events', () => {
         assert.deepStrictEqual(
             events.map((e) => e.type),
             ['submit:success'],
+            'a successful submit fires submit:success and no submit:failure',
         );
-        assert.deepStrictEqual(events[0].detail.values, { name: 'ann' });
-        assert.deepStrictEqual(events[0].detail.response, { id: 7, transformed: true });
+        assert.deepStrictEqual(
+            events[0].detail.values,
+            { name: 'ann' },
+            'submit:success carries the values extracted from the fields',
+        );
+        assert.deepStrictEqual(
+            events[0].detail.response,
+            { id: 7, transformed: true },
+            'submit:success carries the response the loader transformed',
+        );
     });
 
     it('reports a failed submit as an event instead of rejecting the caller', async () => {
@@ -303,10 +339,18 @@ describe('Form submit outcome events', () => {
         assert.deepStrictEqual(
             events.map((e) => e.type),
             ['submit:failure'],
+            'a rejecting loader fires submit:failure and no submit:success',
         );
-        assert.strictEqual(events[0].detail.exception, boom);
-        assert.deepStrictEqual(events[0].detail.values, { name: 'ann' });
-        assert.isTrue(warns.some((args) => String(args[0]).includes('failed to submit form')));
+        assert.strictEqual(events[0].detail.exception, boom, 'submit:failure carries what the loader threw');
+        assert.deepStrictEqual(
+            events[0].detail.values,
+            { name: 'ann' },
+            'submit:failure carries the values extracted from the fields',
+        );
+        assert.isTrue(
+            warns.some((args) => String(args[0]).includes('failed to submit form')),
+            'an exception that is not a Failure is logged with console.warn',
+        );
     });
 
     it('shows a Failure problem on the field it names and the rest in ful-errors', async () => {
@@ -330,10 +374,21 @@ describe('Form submit outcome events', () => {
 
         const input = form.querySelector('input[name=name]');
         const errors = form.querySelector('ful-errors');
-        assert.strictEqual(input.validationMessage, 'must not be blank');
-        assert.strictEqual(errors.textContent, 'the whole thing is wrong');
-        assert.isFalse(errors.hasAttribute('hidden'));
-        assert.isFalse(warns.some((args) => String(args[0]).includes('failed to submit form')), 'a Failure is the reported outcome, not a warning on top of it');
+        assert.strictEqual(
+            input.validationMessage,
+            'must not be blank',
+            "a problem naming a field is set as that field's custom validity",
+        );
+        assert.strictEqual(
+            errors.textContent,
+            'the whole thing is wrong',
+            'a problem naming no field is shown in the ful-errors banner',
+        );
+        assert.isFalse(errors.hasAttribute('hidden'), 'a banner with a problem to show is revealed');
+        assert.isFalse(
+            warns.some((args) => String(args[0]).includes('failed to submit form')),
+            'a Failure is the reported outcome, not a warning on top of it',
+        );
     });
 
     it('leaves the fields of another form alone, both their validity and their values', async () => {
@@ -348,11 +403,19 @@ describe('Form submit outcome events', () => {
         const [outerStatus, innerStatus] = container.querySelectorAll('ful-input');
 
         inner.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'the inner one is wrong' }];
-        assert.strictEqual(innerStatus.querySelector('ful-field-error').innerText, 'the inner one is wrong');
+        assert.strictEqual(
+            innerStatus.querySelector('ful-field-error').innerText,
+            'the inner one is wrong',
+            'the inner form pins its problem on its own field',
+        );
 
         outer.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'the outer one is wrong' }];
 
-        assert.strictEqual(outerStatus.querySelector('ful-field-error').innerText, 'the outer one is wrong');
+        assert.strictEqual(
+            outerStatus.querySelector('ful-field-error').innerText,
+            'the outer one is wrong',
+            'the outer form pins its problem on its own field',
+        );
         assert.strictEqual(
             innerStatus.querySelector('ful-field-error').innerText,
             'the inner one is wrong',
@@ -360,8 +423,12 @@ describe('Form submit outcome events', () => {
         );
 
         outer.values = { status: 'settled' };
-        assert.strictEqual(String(outerStatus.value), 'settled');
-        assert.strictEqual(innerStatus.value, null, 'and it does not write values into them either');
+        assert.strictEqual(String(outerStatus.value), 'settled', 'the outer form writes values into its own field');
+        assert.strictEqual(
+            innerStatus.value,
+            null,
+            'the outer form does not write values into a field the inner form owns',
+        );
     });
 
     it('leaves another form its banner, its pinned problems and its buttons', async () => {
@@ -386,8 +453,16 @@ describe('Form submit outcome events', () => {
         inner.errors = [{ type: 'GENERIC_ERROR', reason: 'the inner one is wrong' }];
         outer.errors = [{ type: 'GENERIC_ERROR', reason: 'the outer one is wrong' }];
 
-        assert.strictEqual(outerBanner.innerText, 'the outer one is wrong');
-        assert.strictEqual(innerBanner.innerText, 'the inner one is wrong', 'the outer form does not fill or wipe the inner banner');
+        assert.strictEqual(
+            outerBanner.innerText,
+            'the outer one is wrong',
+            'the outer form shows its problem in its own banner',
+        );
+        assert.strictEqual(
+            innerBanner.innerText,
+            'the inner one is wrong',
+            'the outer form does not fill or wipe the inner banner',
+        );
 
         inner.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'inner problem' }];
         outer.errors = [{ type: 'FIELD_ERROR', context: 'status', reason: 'outer problem' }];
@@ -398,17 +473,24 @@ describe('Form submit outcome events', () => {
             'a change in the inner form is not the outer form clearing anything',
         );
         outerStatus.dispatchEvent(new Event('change', { bubbles: true }));
-        assert.strictEqual(outerStatus.querySelector('ful-field-error').innerText, '', 'the outer form still clears its own');
+        assert.strictEqual(
+            outerStatus.querySelector('ful-field-error').innerText,
+            '',
+            'the outer form still clears its own',
+        );
 
         outer.spinner(true);
         assert.strictEqual(outerGo.getAttribute('aria-disabled'), 'true', 'its own button is held off');
-        assert.isNull(innerGo.getAttribute('aria-disabled'), 'the inner form\'s button is not');
+        assert.isNull(innerGo.getAttribute('aria-disabled'), "the inner form's button is not");
         const [outerSpinner, innerSpinner] = outer.querySelectorAll('ful-spinner');
         assert.isFalse(outerSpinner.hidden, 'its own spinner is up');
-        assert.isTrue(innerSpinner.hidden, 'the inner form\'s spinner is left alone');
+        assert.isTrue(innerSpinner.hidden, "the inner form's spinner is left alone");
         outer.spinner(false);
-        assert.isNull(outerGo.getAttribute('aria-disabled'), 'and its own is restored');
-        assert.isTrue(outerSpinner.hidden, 'and its own spinner goes back down');
+        assert.isNull(
+            outerGo.getAttribute('aria-disabled'),
+            'the release restores the aria-disabled of its own button',
+        );
+        assert.isTrue(outerSpinner.hidden, 'the release hides its own spinner again');
     });
 
     it('answers a field owning form, as a native control does', async () => {
@@ -421,7 +503,7 @@ describe('Form submit outcome events', () => {
         const lonely = container.querySelector('ful-input[name=lonely]');
 
         assert.strictEqual(inForm.form, outer.form, 'the associated form, the native one the field sits in');
-        assert.strictEqual(lonely.form, null, 'null outside any form');
+        assert.strictEqual(lonely.form, null, 'a field outside any form answers a null form');
     });
 
     it('shows a field problem carrying no context in the banner instead of crashing', async () => {
@@ -449,8 +531,12 @@ describe('Form submit outcome events', () => {
             'the named problem still reaches its field',
         );
         const errors = form.querySelector('ful-errors');
-        assert.strictEqual(errors.textContent, 'an unnamed problem');
-        assert.isFalse(errors.hasAttribute('hidden'));
+        assert.strictEqual(
+            errors.textContent,
+            'an unnamed problem',
+            'a field problem with a null context is shown in the banner',
+        );
+        assert.isFalse(errors.hasAttribute('hidden'), 'the banner is revealed to show the problem with no context');
     });
 
     it('shows a field problem with an empty context in the banner, as a null one', async () => {
@@ -470,8 +556,15 @@ describe('Form submit outcome events', () => {
         await form.submit();
 
         const errors = form.querySelector('ful-errors');
-        assert.strictEqual(errors.textContent, 'an unnamed problem');
-        assert.isFalse(errors.hasAttribute('hidden'));
+        assert.strictEqual(
+            errors.textContent,
+            'an unnamed problem',
+            'a field problem with an empty context is shown in the banner, as a null one is',
+        );
+        assert.isFalse(
+            errors.hasAttribute('hidden'),
+            'the banner is revealed to show the problem with an empty context',
+        );
     });
 
     it('clears the problems of the previous attempt when submitting again', async () => {
@@ -495,14 +588,29 @@ describe('Form submit outcome events', () => {
                 <input name="name">
             </ful-form>`);
         await form.submit();
-        assert.strictEqual(form.querySelector('input[name=name]').validationMessage, 'must not be blank');
+        assert.strictEqual(
+            form.querySelector('input[name=name]').validationMessage,
+            'must not be blank',
+            'the failed attempt pins its problem on the field',
+        );
 
         fail = false;
         await form.submit();
 
-        assert.strictEqual(form.querySelector('input[name=name]').validationMessage, '');
-        assert.strictEqual(form.querySelector('ful-errors').textContent, '');
-        assert.isTrue(form.querySelector('ful-errors').hasAttribute('hidden'));
+        assert.strictEqual(
+            form.querySelector('input[name=name]').validationMessage,
+            '',
+            'a new submit clears the field problem of the previous attempt',
+        );
+        assert.strictEqual(
+            form.querySelector('ful-errors').textContent,
+            '',
+            'a new submit clears the banner of the previous attempt',
+        );
+        assert.isTrue(
+            form.querySelector('ful-errors').hasAttribute('hidden'),
+            'a banner left with no problem is hidden again',
+        );
     });
 
     it('does not reach the loader nor announce an outcome when the submit event is cancelled', async () => {
@@ -521,8 +629,16 @@ describe('Form submit outcome events', () => {
 
         await form.submit();
 
-        assert.deepStrictEqual(submitted, []);
-        assert.deepStrictEqual(events, []);
+        assert.deepStrictEqual(
+            submitted,
+            [],
+            'a cancelled submit event ends the submit before the loader sends anything',
+        );
+        assert.deepStrictEqual(
+            events,
+            [],
+            'a cancelled submit event fires neither submit:requested nor an outcome event',
+        );
     });
 });
 
@@ -548,7 +664,11 @@ describe('Form submitted values', () => {
         form.querySelector('#save').click();
         await done;
 
-        assert.deepStrictEqual(submitted, [{ name: 'ann', action: 'save' }]);
+        assert.deepStrictEqual(
+            submitted,
+            [{ name: 'ann', action: 'save' }],
+            'only the clicked submitter contributes its name and value, the other buttons none',
+        );
     });
 
     it('submits from a button while a field is still marked invalid', async () => {
@@ -581,7 +701,11 @@ describe('Form submitted values', () => {
 
         form.values = { user: { name: 'ann', age: '7' } };
 
-        assert.deepStrictEqual(form.values, { user: { name: 'ann', age: '7' }, note: null });
+        assert.deepStrictEqual(
+            form.values,
+            { user: { name: 'ann', age: '7' }, note: null },
+            'values reads back the nested object it wrote, a field it did not name reading as null',
+        );
     });
 });
 
@@ -623,8 +747,13 @@ describe('Form loader selection', () => {
         assert.deepStrictEqual(
             events.map((e) => e.type),
             ['submit:success'],
+            'a local form fires submit:success and no submit:failure',
         );
-        assert.deepStrictEqual(events[0].detail.response, { mapped: { echoed: { wrapped: { name: 'ann' } } } });
+        assert.deepStrictEqual(
+            events[0].detail.response,
+            { mapped: { echoed: { wrapped: { name: 'ann' } } } },
+            "the response is the listener's answer to the mapped request, passed through the response mapper",
+        );
     });
 
     it('posts the mapped request to the action and maps the response back', async () => {
@@ -636,12 +765,21 @@ describe('Form loader selection', () => {
 
         await form.submit();
 
-        assert.deepStrictEqual(http, [{ method: 'POST', url: '/api/save', body: { wrapped: { name: 'ann' } } }]);
+        assert.deepStrictEqual(
+            http,
+            [{ method: 'POST', url: '/api/save', body: { wrapped: { name: 'ann' } } }],
+            'a remote form posts the mapped request as json to its action, with POST by default',
+        );
         assert.deepStrictEqual(
             events.map((e) => e.type),
             ['submit:success'],
+            'a remote form fires submit:success and no submit:failure',
         );
-        assert.deepStrictEqual(events[0].detail.response, { mapped: { id: 7 } });
+        assert.deepStrictEqual(
+            events[0].detail.response,
+            { mapped: { id: 7 } },
+            'the http response is passed through the response mapper',
+        );
     });
 
     it('honours the method attribute of a remote form', async () => {
@@ -649,7 +787,11 @@ describe('Form loader selection', () => {
 
         await form.submit();
 
-        assert.deepStrictEqual(http, [{ method: 'PUT', url: '/api/save', body: {} }]);
+        assert.deepStrictEqual(
+            http,
+            [{ method: 'PUT', url: '/api/save', body: {} }],
+            'a remote form sends with the method attribute instead of POST',
+        );
     });
 });
 
@@ -657,11 +799,15 @@ describe('Form reset and validity', () => {
     it('restores the fields to the values they were rendered with', async () => {
         const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         form.values = { name: 'bob' };
-        assert.deepStrictEqual(form.values, { name: 'bob' });
+        assert.deepStrictEqual(form.values, { name: 'bob' }, 'writing values changes the field');
 
         form.reset();
 
-        assert.deepStrictEqual(form.values, { name: 'ann' });
+        assert.deepStrictEqual(
+            form.values,
+            { name: 'ann' },
+            'reset returns the field to the value it was rendered with',
+        );
     });
 
     describe('Restores every field kind through its own value semantics', () => {
@@ -721,18 +867,26 @@ describe('Form reset and validity', () => {
                 const [form] = await mountFields(markup);
                 const field = form.querySelector('[name=a]');
                 field.value = changed;
-                assert.deepStrictEqual(field.value, changed, 'the change took');
+                assert.deepStrictEqual(field.value, changed, 'the field takes the changed value before the reset');
 
                 form.reset();
 
-                assert.deepStrictEqual(field.value, initial);
+                assert.deepStrictEqual(
+                    field.value,
+                    initial,
+                    'reset returns the field to the value it was rendered with, through its own value semantics',
+                );
             });
         }
         it('restores a ful-filter-text without a declared value to empty operands and the default operator', async () => {
             const [form] = await mountFields(`<ful-filter-text name="a">l</ful-filter-text>`);
             const field = form.querySelector('[name=a]');
             field.value = ['GTE', 'CASE_SENSITIVE', '5'];
-            assert.deepStrictEqual(field.value, ['GTE', 'CASE_SENSITIVE', '5']);
+            assert.deepStrictEqual(
+                field.value,
+                ['GTE', 'CASE_SENSITIVE', '5'],
+                'the operands and the operator were changed before the reset',
+            );
 
             form.reset();
 
@@ -754,11 +908,15 @@ describe('Form reset and validity', () => {
             const dt = new DataTransfer();
             dt.items.add(new File(['x'], 'picked.txt'));
             field.files = dt.files;
-            assert.strictEqual(field.value, 'picked.txt');
+            assert.strictEqual(field.value, 'picked.txt', 'the picked file is selected before the reset');
 
             form.reset();
 
-            assert.strictEqual(field.value, null);
+            assert.strictEqual(
+                field.value,
+                null,
+                "reset empties a file selection, as a native file input's reset does",
+            );
         });
     });
 
@@ -770,7 +928,11 @@ describe('Form reset and validity', () => {
 
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        assert.strictEqual(input.validationMessage, '');
+        assert.strictEqual(
+            input.validationMessage,
+            '',
+            'with clear-invalid-on-change a change clears the custom validity of the field it bubbles from',
+        );
     });
 
     it('clears on change a form-associated element that has no form property of its own', async () => {
@@ -796,7 +958,11 @@ describe('Form reset and validity', () => {
 
         bare.dispatchEvent(new Event('change', { bubbles: true }));
 
-        assert.strictEqual(bare.validity, '');
+        assert.strictEqual(
+            bare.validity,
+            '',
+            'a form-associated element with no form property of its own is matched to the form through internals.form',
+        );
     });
 
     it('keeps a field custom validity on change when clear-invalid-on-change is absent', async () => {
@@ -806,7 +972,11 @@ describe('Form reset and validity', () => {
 
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        assert.strictEqual(input.validationMessage, 'must not be blank');
+        assert.strictEqual(
+            input.validationMessage,
+            'must not be blank',
+            'without clear-invalid-on-change a change leaves the custom validity in place',
+        );
     });
 });
 
@@ -842,9 +1012,16 @@ describe('Form submit failures before the request is sent', () => {
 
         await form.submit();
 
-        assert.strictEqual(failures.length, 1, 'the failure is announced');
-        assert.strictEqual(failures[0].message, 'values are not acceptable');
-        assert.isTrue(warns.some((args) => String(args[0]).includes('failed to submit form')));
+        assert.strictEqual(failures.length, 1, 'a throwing request mapper fires one submit:failure');
+        assert.strictEqual(
+            failures[0].message,
+            'values are not acceptable',
+            'the failure carries the exception the request mapper threw',
+        );
+        assert.isTrue(
+            warns.some((args) => String(args[0]).includes('failed to submit form')),
+            'an exception that is not a Failure is logged with console.warn',
+        );
     });
 
     it('reports a missing loader component the same way', async () => {
@@ -857,6 +1034,10 @@ describe('Form submit failures before the request is sent', () => {
 
         await form.submit();
 
-        assert.strictEqual(failures.length, 1);
+        assert.strictEqual(
+            failures.length,
+            1,
+            'a loader component that is not registered is reported as one submit:failure, not as a rejection',
+        );
     });
 });
