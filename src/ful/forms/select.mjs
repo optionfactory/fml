@@ -1171,6 +1171,15 @@ class Select extends Field {
     #query() {
         return this.#editing ? this.#input.value : '';
     }
+    /**
+     * The text typed to search the vocabulary: what the dropdown was last
+     * asked to match. `''` while the field is not being searched, its control
+     * then showing the selection's label rather than a query.
+     * @returns {string}
+     */
+    get query() {
+        return this.#query();
+    }
     #display() {
         const entry = this.#values.values().next().value;
         this.#input.value = this.#multiple ? '' : (entry?.label ?? '');

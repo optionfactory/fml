@@ -172,6 +172,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] an entry whose `metadata.disabled` is truthy is shown with `aria-disabled="true"` and `metadata.reason` as its title, and cannot be highlighted or picked
 - [NEW] `select.reload()` asks the loader again for the vocabulary and the current selection, dropping keys it no longer knows; every loader answers `invalidate()`
 - [NEW] `SelectLoader.from(conf)` builds a loader from plain configuration without an element
+- [NEW] `select.query` answers the text typed to search, `''` while the field shows its selection
 - [NEW] a valueless `revision` takes the page's build identifier from a `revision` registry component, and warns when none is defined
 - [NEW] a `<template slot="items">` shapes each item-list entry over the `entries` overlay
 - [ENH] the dropdown is a popover in the top layer, so overflow containers no longer clip it; it opens above the control where there is no room below and grows past the control for a long option, up to `--ful-dropdown-max-width` (30rem)

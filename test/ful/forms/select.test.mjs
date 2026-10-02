@@ -1684,6 +1684,23 @@ describe('Select pointer picking', () => {
     });
 });
 
+describe('Select query', () => {
+    it('answers the text typed to search, and nothing once a row is picked', async () => {
+        const [selectEl] = await mountSelect(`<ful-select value="k1">pick</ful-select>`, labelling(ONE_OPTION));
+        const input = selectEl.querySelector('input');
+        assert.strictEqual(selectEl.query, '', 'a field showing its selection is not being searched');
+
+        input.value = 'Lab';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        await opened();
+        assert.strictEqual(selectEl.query, 'Lab', 'the typed text is the query the dropdown was asked to match');
+
+        selectEl.querySelector('menu li').click();
+        await opened();
+        assert.strictEqual(selectEl.query, '', 'picking a row ends the search, the control showing its label again');
+    });
+});
+
 describe('Select dropdown opening', () => {
     const mount = (html) => mountSelect(html, labelling(ONE_OPTION));
     const keydown = (input, code) => {
