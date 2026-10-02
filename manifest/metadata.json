@@ -408,7 +408,7 @@
             "events": {}
         },
         "ful-wizard": {
-            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section, so the chrome, including which section is shown, follows the claim alone. Each move answers with a change event.",
+            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section, so the chrome, including which section is shown, follows the claim alone. Each move answers with a wizard:change event.",
             "attributes": {
                 "progress": "picks the progress chrome's shape over the same claims: the default shows the current step alone (any counter or dressing is the page's own), timeline the full timeline, dots a done/current/future strip, none leaves the chrome to the page."
             },
@@ -417,7 +417,7 @@
                 "default": "The sections, one per declared step: only the current one is shown, and each may carry a data-step name for move()."
             },
             "events": {
-                "change": "Fired with the index and the data-step name after next(), prev() or move() land on a different step.",
+                "wizard:change": "Fired with the index and the data-step name after next(), prev() or move() land on a different step. Named apart from change so the bubbling change of a field inside a step never reaches its listeners.",
                 "section:requested": "Fired by the component when one of its sections is entered (bubbling): the generic type of the family, joined by section:requested:#index and by section:requested:name when the section carries a data-step. Answer through AsyncEvents.asyncOn with the section's delivery; the component awaits the answers under its loading chrome, and a failed delivery paints the section's problems."
             }
         }

@@ -116,11 +116,9 @@ class Wizard extends ParsedElement {
     }
     /**
      * Moves to the section carrying `data-step="<ref>"`. A move makes that step
-     * and section current, moves the focus to the section, dispatches `change`
-     * on the host (not bubbling) with detail `{ index, step }`, then fires the
-     * section requests for it. A native `change` of a control inside a section
-     * bubbles through the host under the same name, so a listener tells the
-     * two apart by `e.target`.
+     * and section current, moves the focus to the section, dispatches
+     * `wizard:change` on the host (not bubbling) with detail `{ index, step }`,
+     * then fires the section requests for it.
      * @param {string} ref the section's `data-step`
      * @returns {Promise<any[] | undefined> | undefined} a promise resolving to
      * the answers once they are delivered, or to undefined when nobody
@@ -177,7 +175,7 @@ class Wizard extends ParsedElement {
         this.#apply(clamped);
         this.#sections[this.#index].focus();
         if (this.rendered) {
-            this.dispatchEvent(new CustomEvent('change', { detail: { index: this.#index, step: this.step } }));
+            this.dispatchEvent(new CustomEvent('wizard:change', { detail: { index: this.#index, step: this.step } }));
         }
         return this.#enter(clamped);
     }

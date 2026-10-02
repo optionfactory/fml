@@ -232,7 +232,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 - [NEW] `ful-tabs`: `<tab>` elements in the `tabs` slot paired with the panels in order, arrow-key navigation, the `active` attribute or property picking the panel, and a `tabs:change` event carrying `{ active, previous }`
 - [NEW] `ful-accordion`: styling over native `details`/`summary`, `exclusive` keeping one panel open
-- [NEW] `ful-wizard`: `<step>` declarations over `data-step` sections, `next()`/`prev()`/`move(name)`, the focus moving to the entered section and a `change` event carrying `{ index, step }`; `progress` picks the chrome (the current step by default, `timeline`, `dots` or `none`)
+- [NEW] `ful-wizard`: `<step>` declarations over `data-step` sections, `next()`/`prev()`/`move(name)`, the focus moving to the entered section and a `wizard:change` event carrying `{ index, step }`; `progress` picks the chrome (the current step by default, `timeline`, `dots` or `none`)
 - [NEW] async sections: entering a tab panel or a wizard section, or opening a dialog or drawer, fires `section:requested`, then `section:requested:#<index>` and, where the section has a name, `section:requested:<name>`, on the component. A listener registered through `AsyncEvents.asyncOn` delivers the section's content; the component shows a loading state and paints a failure, the wizard's `move()` rejecting on one, and `refresh()` fires the request again. Without a listener nothing changes
 
 #### ful: theme, chrome and accessibility

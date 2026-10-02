@@ -281,8 +281,8 @@
         for (const button of wizard.querySelectorAll('[data-prev]')) {
             button.addEventListener('click', () => wizard.prev());
         }
-        wizard.addEventListener('change', (e) => {
-            byId('wizard-output').textContent = `change: index ${e.detail.index}, step "${e.detail.step}"`;
+        wizard.addEventListener('wizard:change', (e) => {
+            byId('wizard-output').textContent = `wizard:change: index ${e.detail.index}, step "${e.detail.step}"`;
         });
         byId('wizard-done').addEventListener('click', () => {
             byId('wizard-output').textContent = 'confirmed (demo): move("verify") restarts';
@@ -363,8 +363,8 @@
             button.addEventListener('click', () => formWizard.prev());
         }
         byId('form-wizard-restart').addEventListener('click', () => formWizard.move('verify'));
-        formWizard.addEventListener('change', (e) => {
-            byId('form-wizard-output').textContent = `change: index ${e.detail.index}, step "${e.detail.step}"`;
+        formWizard.addEventListener('wizard:change', (e) => {
+            byId('form-wizard-output').textContent = `wizard:change: index ${e.detail.index}, step "${e.detail.step}"`;
         });
     </script>
 </body>

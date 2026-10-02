@@ -59,10 +59,10 @@ describe('Wizard', () => {
         );
     });
 
-    it('next, prev and move walk the steps, answering with change', async () => {
+    it('next, prev and move walk the steps, answering with wizard:change', async () => {
         const [wizard] = await mount(markup);
         const changes = [];
-        wizard.addEventListener('change', (e) => changes.push(e.detail));
+        wizard.addEventListener('wizard:change', (e) => changes.push(e.detail));
 
         wizard.next();
         assert.strictEqual(wizard.index, 1, 'next moves to the following step');
@@ -92,7 +92,29 @@ describe('Wizard', () => {
                 { index: 1, step: 'modifica' },
                 { index: 0, step: 'verifica' },
             ],
-            'every move that changes the current step dispatches change with its index and step, and a move that stays dispatches nothing',
+            'every move that changes the current step dispatches wizard:change with its index and step, and a move that stays dispatches nothing',
+        );
+    });
+
+    it('does not hand a wizard:change listener the change of a field inside a step', async () => {
+        const [wizard] = await mount(`
+            <ful-wizard>
+                <template slot="steps"><step>Uno</step><step>Due</step></template>
+                <section data-step="uno"><ful-input name="a">A</ful-input></section>
+                <section data-step="due"><p>due</p></section>
+            </ful-wizard>`);
+        const heard = [];
+        wizard.addEventListener('wizard:change', (e) => heard.push(e.detail));
+        const input = wizard.querySelector('ful-input input');
+
+        input.value = 'typed';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+        assert.deepStrictEqual(
+            heard,
+            [],
+            'a field change bubbling out of a step is not a move, so it never arrives as one',
         );
     });
 
