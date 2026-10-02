@@ -55,8 +55,19 @@
                 flex: 1 1 auto;
                 min-height: 0;
 
-                & > footer:last-child {
-                    margin-block-start: auto;
+                & > ful-form:has(> form > footer:last-child) {
+                    display: flex;
+                    flex-direction: column;
+                    flex: 1 1 auto;
+                }
+
+                & > footer:last-child,
+                & > ful-form > form > footer:last-child {
+                    position: sticky;
+                    inset-block-end: -1rem;
+                    margin-block: auto -1rem;
+                    padding-block-end: 1rem;
+                    background-color: var(--ful-bg);
                 }
             }
 

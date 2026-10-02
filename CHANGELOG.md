@@ -232,6 +232,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] the anchored popovers (the select's dropdown, the filter menus, the tooltip's note) are placed on every platform, by the stylesheet where css anchor positioning exists and by the library elsewhere, before they are first shown
 - [BUG] a tooltip slotted in a field's `before` or `after` affix wraps its note instead of running it off the screen on one line
 - [BUG] `ful-menu` and the filters' operator, sensitivity and value menus open above their invoker where there is no room below, instead of running off the viewport
+- [ENH] a dialog taller than the viewport scrolls its body between a header and a footer that stay in view, a footer closing a form in the body included, and a drawer keeps the last footer of its content, or of the form it holds, at the bottom of the panel
 - [ENH] the geometry and the backdrop are themed through `--ful-dialog-width`, `--ful-drawer-width`, `--ful-toasts-max-width` and `--ful-backdrop-color`; the dialog's sections also answer to the `ful-dialog-header`, `ful-dialog-body` and `ful-dialog-footer` classes at any depth
 
 #### ful: navigation (tabs, accordion, wizard) and async sections

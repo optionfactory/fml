@@ -285,6 +285,73 @@ describe('Dialog close-on-submit', () => {
     });
 });
 
+describe('Dialog scrolling', () => {
+    const inView = (el, native) => {
+        const r = el.getBoundingClientRect();
+        const box = native.getBoundingClientRect();
+        return r.top >= box.top - 1 && r.bottom <= box.bottom + 1;
+    };
+    const scrolled = async (native, body) => {
+        body.scrollTop = body.scrollHeight;
+        await new Promise((r) => requestAnimationFrame(r));
+    };
+
+    it('scrolls a long body between a header and a footer that stay in view', async () => {
+        const [dialog] = await mount(
+            `<ful-dialog header="Long">${Array.from({ length: 60 }, (x, i) => `<p>line ${i}</p>`).join('')}</ful-dialog>`,
+        );
+        dialog.open();
+        const native = dialog.querySelector('dialog');
+        const body = dialog.querySelector('[data-ref=body]');
+        await scrolled(native, body);
+
+        assert.isAbove(body.scrollHeight, body.clientHeight, 'the body is the part that scrolls');
+        assert.isAtMost(native.scrollHeight, native.clientHeight + 1, 'the dialog itself does not scroll');
+        assert.isTrue(inView(native.querySelector('header'), native), 'the header stays at the top of the dialog');
+        assert.isTrue(inView(native.querySelector('footer'), native), 'the footer stays at the bottom of the dialog');
+        dialog.close();
+    });
+
+    it('keeps the footer of a form in its body in view, under close-on-submit', async () => {
+        const [dialog] = await mount(`
+            <ful-dialog header="Edit" close-on-submit>
+                <ful-form>${Array.from({ length: 60 }, (x, i) => `<p>line ${i}</p>`).join('')}<footer class="ful-dialog-footer"><button type="submit">Save</button></footer></ful-form>
+            </ful-dialog>`);
+        dialog.open();
+        const native = dialog.querySelector('dialog');
+        const footer = native.querySelector('ful-form footer');
+        assert.isTrue(inView(footer, native), 'the save button is in view before any scroll');
+        await scrolled(native, dialog.querySelector('[data-ref=body]'));
+
+        assert.isTrue(inView(footer, native), 'and after scrolling to the end');
+        dialog.close();
+    });
+
+    it('scrolls the body of a plain dialog whose sections a form wraps', async () => {
+        const container = appended(`
+            <dialog class="ful-dialog"><form method="dialog">
+                <header class="ful-dialog-header"><h2>Plain</h2></header>
+                <div class="ful-dialog-body">${Array.from({ length: 60 }, (x, i) => `<p>line ${i}</p>`).join('')}</div>
+                <footer class="ful-dialog-footer"><button>OK</button></footer>
+            </form></dialog>`);
+        const native = container.querySelector('dialog');
+        native.showModal();
+        const body = native.querySelector('.ful-dialog-body');
+        await scrolled(native, body);
+
+        assert.isAbove(
+            body.scrollHeight,
+            body.clientHeight,
+            'the body scrolls through the form between it and the dialog',
+        );
+        assert.isTrue(
+            inView(native.querySelector('footer'), native),
+            'the footer after the form-wrapped body stays in view',
+        );
+        native.close();
+    });
+});
+
 describe('Dialog subclass reuse', () => {
     it('a custom dialog keeps the card chrome through the class on the native dialog', async () => {
         class ConfirmDialog extends Dialog {

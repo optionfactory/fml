@@ -392,6 +392,45 @@ describe('Drawer dismissal', () => {
     });
 });
 
+describe('Drawer form footer', () => {
+    const footerAtTheBottom = (drawer) => {
+        const native = drawer.querySelector('dialog');
+        const footer = native.querySelector('ful-form footer');
+        const gap = native.getBoundingClientRect().bottom - footer.getBoundingClientRect().bottom;
+        return gap >= -1 && gap < 20;
+    };
+
+    it('keeps the footer of a long form in view while the rest scrolls', async () => {
+        const [drawer] = await mount(
+            `<ful-drawer header="Edit"><ful-form>${Array.from({ length: 60 }, (x, i) => `<p>line ${i}</p>`).join('')}<footer><button type="submit">Save</button></footer></ful-form></ful-drawer>`,
+        );
+        drawer.open();
+        await new Promise((r) => setTimeout(r, 50));
+        const content = drawer.querySelector('[data-ref=content]');
+
+        assert.isAbove(content.scrollHeight, content.clientHeight, 'the content scrolls');
+        assert.isTrue(footerAtTheBottom(drawer), 'the save button sits at the bottom of the panel before any scroll');
+        content.scrollTop = content.scrollHeight;
+        await new Promise((r) => requestAnimationFrame(r));
+        assert.isTrue(footerAtTheBottom(drawer), 'and stays there after scrolling to the end');
+        await closed(drawer);
+    });
+
+    it('puts the footer of a short form at the bottom of the panel', async () => {
+        const [drawer] = await mount(
+            `<ful-drawer header="Edit"><ful-form><ful-input name="a">A</ful-input><footer><button type="submit">Save</button></footer></ful-form></ful-drawer>`,
+        );
+        drawer.open();
+        await new Promise((r) => setTimeout(r, 50));
+
+        assert.isTrue(
+            footerAtTheBottom(drawer),
+            'the form grows to the panel so its footer sits at the bottom, not under the last field',
+        );
+        await closed(drawer);
+    });
+});
+
 describe('Drawer subclass reuse', () => {
     it('a custom drawer keeps the side chrome through the class on the native dialog', async () => {
         class SidePanel extends Drawer {
