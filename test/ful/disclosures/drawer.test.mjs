@@ -4,6 +4,7 @@ import { Failure } from '../../../src/httpc/index.mjs';
 import { AsyncEvents, Plugin, Drawer } from '../../../src/ful/index.mjs';
 import { setViewport } from '@web/test-runner-commands';
 import { appended, settle as drain } from '../../harness.mjs';
+import { sendKeys } from '@web/test-runner-commands';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -296,6 +297,98 @@ describe('Drawer', () => {
         assert.isTrue(dialog.open, 'the abandoned slide out does not take the reopened drawer with it');
         assert.deepStrictEqual(closes, [], 'a reopened drawer announces no close for the slide out it abandoned');
         await closed(drawer);
+    });
+});
+
+const gestures = {
+    button: (el) => el.querySelector('[data-ref=close]').click(),
+    backdrop: (el) => {
+        const native = el.querySelector('dialog');
+        native.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        native.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    },
+    escape: (el) => el.querySelector('dialog').dispatchEvent(new Event('cancel', { cancelable: true })),
+};
+
+describe('Drawer dismissal', () => {
+    it('lets the platform close on a second Escape with no interaction between, telling the listener it could not refuse', async () => {
+        const [el] = await mount('<ful-drawer header="Edit"><input></ful-drawer>');
+        const native = el.querySelector('dialog');
+        const asked = [];
+        el.addEventListener('drawer:dismiss', (e) => {
+            asked.push(e.cancelable);
+            e.preventDefault();
+        });
+        el.open();
+        await settle();
+        el.querySelector('input').focus();
+        await sendKeys({ type: 'a' });
+
+        await sendKeys({ press: 'Escape' });
+        assert.isTrue(native.open, 'an Escape after the user typed can be refused');
+        await sendKeys({ press: 'Escape' });
+        await new Promise((r) => setTimeout(r, 50));
+
+        assert.isFalse(native.open, 'the platform closes on a second Escape whatever the page does');
+        assert.deepStrictEqual(
+            asked,
+            [true, false],
+            'the second dismissal is announced as one the listener cannot refuse',
+        );
+        assert.isFalse(
+            native.hasAttribute('closing'),
+            'nothing is left sliding out of a dialog the platform already closed',
+        );
+    });
+
+    for (const [reason, gesture] of Object.entries(gestures)) {
+        it(`asks before a ${reason} dismissal closes it, and closes when nobody refuses`, async () => {
+            const [drawer] = await mount('<ful-drawer header="Edit">the body</ful-drawer>');
+            const asked = [];
+            drawer.addEventListener('drawer:dismiss', (e) =>
+                asked.push({ reason: e.detail.reason, cancelable: e.cancelable }),
+            );
+            drawer.open();
+            const closing = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+
+            gesture(drawer);
+
+            assert.deepStrictEqual(
+                asked,
+                [{ reason, cancelable: true }],
+                'the gesture is announced with its reason, as a request a listener may refuse',
+            );
+            const { detail } = await closing;
+            assert.deepStrictEqual(
+                detail,
+                { dismissed: true, response: null },
+                'an unrefused dismissal closes the drawer as a dismissal',
+            );
+        });
+
+        it(`stays open when a listener refuses a ${reason} dismissal`, async () => {
+            const [drawer] = await mount('<ful-drawer header="Edit">the body</ful-drawer>');
+            drawer.addEventListener('drawer:dismiss', (e) => e.preventDefault());
+            drawer.open();
+
+            gesture(drawer);
+            await new Promise((r) => setTimeout(r, 50));
+
+            const native = drawer.querySelector('dialog');
+            assert.isTrue(native.open, 'preventDefault on drawer:dismiss keeps unsaved edits on screen');
+            assert.isFalse(native.hasAttribute('closing'), 'a refused dismissal does not start the slide out');
+        });
+    }
+
+    it('asks nothing before close() closes it', async () => {
+        const [drawer] = await mount('<ful-drawer header="Edit">the body</ful-drawer>');
+        let asked = 0;
+        drawer.addEventListener('drawer:dismiss', () => ++asked);
+        drawer.open();
+
+        await closed(drawer);
+
+        assert.strictEqual(asked, 0, 'close() from code is the page deciding, so there is nothing to refuse');
     });
 });
 

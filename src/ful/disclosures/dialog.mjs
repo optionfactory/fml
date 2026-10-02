@@ -28,6 +28,18 @@ import { wireTargets } from './targets.mjs';
  * and a press and release both on the backdrop close the dialog, each as a
  * dismissal, as Escape does.
  *
+ * Before any of those three gestures closes it, the element dispatches a
+ * cancelable, non-bubbling `dialog:dismiss` with `detail: { reason }`, the
+ * reason being `button`, `backdrop` or `escape`; a listener calling
+ * `preventDefault()` keeps it open, to guard unsaved edits. A `data-result`
+ * button, `close-on-submit` and `close()` answer rather than dismiss, and
+ * dispatch none.
+ *
+ * The platform lets a page refuse Escape once per user interaction: a second
+ * Escape with no click or keystroke in between closes the dialog whatever the
+ * page does, `requires-answer` included. That close is still announced by a
+ * `dialog:dismiss`, which is then not cancelable.
+ *
  * `requires-answer` withholds the close button and refuses Escape and the
  * backdrop, so the dialog is closed only by a button carrying `data-result`
  * or from code through `close()`.
@@ -100,21 +112,32 @@ class Dialog extends ParsedElement {
                 this.#dialog.close(result);
             }
         });
+        const dismiss = (/** @type {'button'|'backdrop'|'escape'} */ reason, platformCloses = false) =>
+            this.#sections.dismiss(
+                new CustomEvent('dialog:dismiss', { cancelable: !platformCloses, detail: { reason } }),
+                () => this.#dialog.close(''),
+            );
         if (!requiresAnswer) {
-            this.#sections.onBackdrop(() => this.#dialog.close(''));
+            this.#sections.onBackdrop(() => dismiss('backdrop'));
         }
-        fragment
-            .querySelector('[data-ref=close]')
-            ?.addEventListener('click', () => this.#dialog.close(''));
+        fragment.querySelector('[data-ref=close]')?.addEventListener('click', () => dismiss('button'));
         if (closeOnSubmit) {
             this.#sections.onSubmitted((response) => {
                 this.#answer = { dismissed: false, result: null, response };
                 this.#dialog.close('submitted');
             });
         }
-        if (requiresAnswer) {
-            this.#dialog.addEventListener('cancel', (/** @type any */ e) => e.preventDefault());
-        }
+        this.#dialog.addEventListener('cancel', (/** @type any */ e) => {
+            if (!e.cancelable) {
+                this.#dialog.returnValue = '';
+                dismiss('escape', true);
+                return;
+            }
+            e.preventDefault();
+            if (!requiresAnswer) {
+                dismiss('escape');
+            }
+        });
         this.replaceChildren(fragment);
         wireTargets();
     }

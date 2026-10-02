@@ -14,7 +14,14 @@ import { wireTargets } from './targets.mjs';
  * default, when absent) or `start`, following the writing direction.
  *
  * The close button, Escape, and a press and release both on the backdrop all
- * go through `close()`. Every close dispatches a non-bubbling `close` event on
+ * go through `close()`, once a cancelable, non-bubbling `drawer:dismiss` with
+ * `detail: { reason }` (`button`, `backdrop` or `escape`) has been dispatched
+ * on the element and no listener prevented it: `preventDefault()` keeps the
+ * drawer open, to guard unsaved edits. `close()` and `close-on-submit`
+ * dispatch none. The platform lets a page refuse Escape once per user
+ * interaction: a second Escape with no click or keystroke in between closes
+ * the drawer at once, without the slide, and its `drawer:dismiss` is then not
+ * cancelable. Every close dispatches a non-bubbling `close` event on
  * the element with `detail: { dismissed, response }`: `{ dismissed: false,
  * response }` when a form closed it under `close-on-submit`, and
  * `{ dismissed: true, response: null }` for any other close.
@@ -70,13 +77,23 @@ class Drawer extends ParsedElement {
         if (placement) {
             this.#dialog.setAttribute('placement', placement);
         }
+        const dismiss = (/** @type {'button'|'backdrop'|'escape'} */ reason, platformCloses = false) =>
+            this.#sections.dismiss(
+                new CustomEvent('drawer:dismiss', { cancelable: !platformCloses, detail: { reason } }),
+                () => this.close(),
+            );
         /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=close]')).addEventListener('click', () =>
-            this.close(),
+            dismiss('button'),
         );
-        this.#sections.onBackdrop(() => this.close());
+        this.#sections.onBackdrop(() => dismiss('backdrop'));
         this.#dialog.addEventListener('cancel', (e) => {
+            if (!e.cancelable) {
+                this.#stopSlidingOut();
+                dismiss('escape', true);
+                return;
+            }
             e.preventDefault();
-            this.close();
+            dismiss('escape');
         });
         this.#dialog.addEventListener('close', () => {
             this.dispatchEvent(

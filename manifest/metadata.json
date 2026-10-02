@@ -59,7 +59,8 @@
             },
             "events": {
                 "close": "Fired when the dialog closes, carrying how it ended: dismissed tells a cancel from an answer, result the data-result of the button that closed it, response what a submit answered with. ask() and open() resolve with the same object, and a dialog leaving the document while open answers its waiters with a dismissal.",
-                "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems."
+                "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems.",
+                "dialog:dismiss": "Fired before the close button, Escape or a backdrop click closes the dialog, with detail.reason (button, escape or backdrop): cancelable, so preventDefault() keeps it open, to guard unsaved edits. Not fired for a data-result button, close-on-submit or close(). A second Escape with no interaction in between closes the dialog whatever the page does, and its dialog:dismiss is then not cancelable."
             }
         },
         "ful-drawer": {
@@ -75,7 +76,8 @@
             },
             "events": {
                 "close": "Fired when the drawer closes, carrying how it ended: dismissed tells the close button and Escape from a form that closed it under close-on-submit, and response what that submit answered with, a save answering with no body at all being a save all the same.",
-                "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems."
+                "section:requested": "Fired by the disclosure when it opens (bubbling): answer through AsyncEvents.asyncOn with the body's delivery; the open awaits the answers under the loading chrome, and a failed delivery paints the body's problems.",
+                "drawer:dismiss": "Fired before the close button, Escape or a backdrop click closes the drawer, with detail.reason (button, escape or backdrop): cancelable, so preventDefault() keeps it open, to guard unsaved edits. Not fired for close() or close-on-submit. A second Escape with no interaction in between closes the drawer at once, and its drawer:dismiss is then not cancelable."
             }
         },
         "ful-menu": {

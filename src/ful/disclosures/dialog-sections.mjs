@@ -44,6 +44,18 @@ class DialogSections {
         return this.#section;
     }
     /**
+     * Dispatches the dismissal on the host and calls `close` unless a listener
+     * prevented it. A dismissal that is not cancelable announces a close the
+     * platform makes whatever the page does, so `close` is not called for it.
+     * @param {CustomEvent} asked
+     * @param {() => void} close
+     */
+    dismiss(asked, close) {
+        if (this.#host.dispatchEvent(asked) && asked.cancelable) {
+            close();
+        }
+    }
+    /**
      * Calls `dismiss` when a press and its release both land on the backdrop,
      * so a selection dragged out of the panel and released outside does not.
      * @param {() => void} dismiss
