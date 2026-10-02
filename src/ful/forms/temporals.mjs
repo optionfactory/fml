@@ -249,7 +249,7 @@ class InputInstant extends Input {
     }
     /** @param {string|null|undefined} v an ISO instant; a falsy value empties the input */
     set value(v) {
-        this._input.value = v ? Instant.isoToLocal(v) : '';
+        super.value = v ? Instant.isoToLocal(v) : '';
     }
     /**
      * The lower bound as a UTC ISO instant.
@@ -282,7 +282,6 @@ class InputInstant extends Input {
     }
     /** @param {string|null} v */
     set step(v) {
-
         this._input.step = v ?? '';
     }
 }

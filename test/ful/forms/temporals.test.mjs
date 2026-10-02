@@ -1,7 +1,8 @@
 import { assert } from 'chai';
+import { sendKeys } from '@web/test-runner-commands';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin, Instant } from '../../../src/ful/index.mjs';
-import { appended } from '../../harness.mjs';
+import { appended, settle } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -342,5 +343,36 @@ describe('InputLocalDate min and max', () => {
         } finally {
             globalThis.Date = RealDate;
         }
+    });
+});
+
+describe('InputLocalDate typing', () => {
+    const typesIntoDates = async () => {
+        const probe = appended('<input type="date">').querySelector('input');
+        probe.focus();
+        await sendKeys({ type: '03152026' });
+        return probe.value !== '';
+    };
+
+    it('keeps the segments being typed when the page writes back the value it reads', async function () {
+        if (!(await typesIntoDates())) {
+            this.skip();
+        }
+        const container = appended('<ful-input-local-date name="d">date</ful-input-local-date>');
+        const el = container.querySelector('ful-input-local-date');
+        await Rendering.waitFor(el);
+        await settle();
+        el.querySelector('input').focus();
+
+        await sendKeys({ type: '0315' });
+        assert.isNull(el.value, 'a date missing its year reads as no value');
+        el.value = el.value;
+        await sendKeys({ type: '2026' });
+
+        assert.strictEqual(
+            el.value,
+            '2026-03-15',
+            'writing the value it already holds leaves the typed month and day in place',
+        );
     });
 });

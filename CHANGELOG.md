@@ -155,6 +155,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] `unsigned` refuses the minus on a `numeric` or `decimal` field
 - [NEW] `keep` and `reject` filter keystrokes, keeping the caret; `keep` matches what survives, so it takes any pattern (`keep="[0-9]{2}"`). A declared `keep` or `reject` overrides a type's own filter, and declaring both warns and applies `keep`
 - [NEW] `v-type="number"` decodes the value to a number (blank stays null), in the change detail and the form values alike; an undeclared `type` then defaults to `number`
+- [BUG] writing the value a field already holds leaves its control untouched, so a page writing back what it read no longer wipes the month and day being typed in a date field
 
 #### ful-input-file
 
