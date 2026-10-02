@@ -84,7 +84,9 @@ const filterOf = (el) => {
  *   datetime-local, month or week control fires its native `change` while its
  *   segments are typed, as soon as they make a valid value; for those the field
  *   reports when the control is left or Enter is pressed, at once for a value
- *   picked from the browser's picker, and never a half-typed value.
+ *   picked from the browser's picker, never with the dates a year passes
+ *   through while it is typed. A control left incomplete reads as `null`, as
+ *   the native one does.
  *
  * A subclass template may render more than one control, as the compare filters
  * render the two bounds of a range: the first is `_input`, the one the field is
