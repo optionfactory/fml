@@ -67,6 +67,21 @@ describe('Tooltip', () => {
         assert.isTrue(note.matches(':popover-open'), 'a refused field still explains itself');
         note.hidePopover();
     });
+    it('wraps its note inside an affix, whose own text never wraps', async () => {
+        const [field] = await mount(
+            `<ful-input name="q">Search<ful-tooltip slot="before">${'a long explanation of the search syntax '.repeat(4)}</ful-tooltip></ful-input>`,
+        );
+        const note = field.querySelector('ful-affix ful-tooltip [popover]');
+        note.showPopover();
+
+        const lineHeight = parseFloat(getComputedStyle(note).lineHeight);
+        assert.isAbove(
+            note.getBoundingClientRect().height,
+            2 * lineHeight,
+            'a note longer than its max-width breaks into lines instead of running off on one',
+        );
+        note.hidePopover();
+    });
     it('opens the note from the keyboard', async () => {
         const [tooltip] = await mount('<ful-tooltip>eleven digits</ful-tooltip>');
         const note = tooltip.querySelector('[popover]');

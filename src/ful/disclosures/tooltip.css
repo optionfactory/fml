@@ -51,6 +51,7 @@
         font-weight: 400;
         font-style: normal;
         text-align: start;
+        white-space: normal;
         margin: var(--ful-note-gap) 0 0;
 
         & > :first-child {
