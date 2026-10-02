@@ -16,6 +16,8 @@ const inheritedAutocomplete = (el) => el.closest('form')?.getAttribute('autocomp
 
 const INPUT_MODES = { numeric: 'numeric', decimal: 'decimal' };
 
+const SEGMENTED = new Set(['date', 'time', 'datetime-local', 'month', 'week']);
+
 const signed = (v, digits) => (v.startsWith('-') ? '-' : '') + digits(v);
 
 const NUMERIC_DIGITS = {
@@ -77,14 +79,18 @@ const filterOf = (el) => {
  *   `autocomplete` attribute of the nearest enclosing `<form>`, which the
  *   platform does not pass on because the control carries `form=""`.
  * - `uppercase`, `trim` and `v-type` shape the value as it is read; see `value`.
- *
- * The control's native `change` is stopped and republished as the field's own.
+ * - The control's native `change` is stopped and the field dispatches its own
+ *   once the user commits a new value, as a text input does. A date, time,
+ *   datetime-local, month or week control fires its native `change` while its
+ *   segments are typed, as soon as they make a valid value; for those the field
+ *   reports when the control is left or Enter is pressed, at once for a value
+ *   picked from the browser's picker, and never a half-typed value.
  *
  * A subclass template may render more than one control, as the compare filters
  * render the two bounds of a range: the first is `_input`, the one the field is
- * named by and whose `change` it republishes, and every one of them gets the
- * inputmode, `autocomplete`, the `input-` passthrough, the keystroke filter and
- * the placeholder. The passthrough leaves `input-id` to the first alone, so no
+ * named by, and every one of them gets the inputmode, `autocomplete`, the
+ * `input-` passthrough, the keystroke filter, the placeholder and the `change`
+ * reporting. The passthrough leaves `input-id` to the first alone, so no
  * two controls share an id.
  */
 class Input extends Field {
@@ -151,10 +157,6 @@ class Input extends Field {
         for (const control of this.#controls) {
             this.#configure(control, mode, autocomplete, strip);
         }
-        this._input.addEventListener('change', (evt) => {
-            evt.stopPropagation();
-            this._notifyChange();
-        });
         return {
             fragment,
             control: this._input,
@@ -178,6 +180,7 @@ class Input extends Field {
         if (control !== this._input) {
             Attributes.set(control, 'id', id || null);
         }
+        this.#reportChanges(control);
         control.addEventListener('input', () => {
             if (!strip) {
                 return;
@@ -194,6 +197,45 @@ class Input extends Field {
             }
             const caret = strip(before.slice(0, start)).length;
             control.setSelectionRange(caret, caret);
+        });
+    }
+    /** @param {HTMLInputElement|HTMLTextAreaElement} control */
+    #reportChanges(control) {
+        if (!SEGMENTED.has(control.type)) {
+            control.addEventListener('change', (evt) => {
+                evt.stopPropagation();
+                this._notifyChange();
+            });
+            return;
+        }
+        /** @type {string|null} */
+        let committed = null;
+        let typed = false;
+        const commit = () => {
+            typed = false;
+            const now = JSON.stringify(this.value);
+            if (now === committed) {
+                return;
+            }
+            committed = now;
+            this._notifyChange();
+        };
+        control.addEventListener('focus', () => {
+            committed = JSON.stringify(this.value);
+        });
+        control.addEventListener('keydown', (/** @type any */ evt) => {
+            if (evt.key === 'Enter' && !evt.isComposing) {
+                commit();
+                return;
+            }
+            typed = true;
+        });
+        control.addEventListener('blur', commit);
+        control.addEventListener('change', (evt) => {
+            evt.stopPropagation();
+            if (!typed) {
+                commit();
+            }
         });
     }
     /**

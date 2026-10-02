@@ -128,10 +128,6 @@ class CompareFilter extends Input {
             },
         });
         this.operators = this.declared('operators');
-        this._value2.addEventListener('change', (evt) => {
-            evt.stopPropagation();
-            this._notifyChange();
-        });
         if (this._operator.value === null) {
             this._showDefaultOperator();
         }
@@ -609,9 +605,7 @@ class BooleanFilter extends Field {
      */
     get criterion() {
         const token = this._value.value;
-        return asCriterion(labelTextOf(this), this._operator.value, [
-            token === '' ? '' : booleanValueLabel(token),
-        ]);
+        return asCriterion(labelTextOf(this), this._operator.value, [token === '' ? '' : booleanValueLabel(token)]);
     }
     /**
      * The field's own disabled claim. Setting it disables the value button and
@@ -694,12 +688,4 @@ class InFilter extends Select {
     }
 }
 
-export {
-    BooleanFilter,
-    CompareFilter,
-    InFilter,
-    InstantFilter,
-    LocalDateFilter,
-    NumberFilter,
-    TextFilter,
-};
+export { BooleanFilter, CompareFilter, InFilter, InstantFilter, LocalDateFilter, NumberFilter, TextFilter };

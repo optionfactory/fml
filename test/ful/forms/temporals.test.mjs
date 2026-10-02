@@ -353,6 +353,15 @@ describe('InputLocalDate typing', () => {
         await sendKeys({ type: '03152026' });
         return probe.value !== '';
     };
+    const mount = async (html = '<ful-input-local-date name="d">date</ful-input-local-date>') => {
+        const container = appended(html);
+        const el = container.firstElementChild;
+        await Rendering.waitFor(el);
+        await settle();
+        const changes = [];
+        el.addEventListener('change', (e) => changes.push(e.detail.value));
+        return [el, changes];
+    };
 
     it('keeps the segments being typed when the page writes back the value it reads', async function () {
         if (!(await typesIntoDates())) {
@@ -373,6 +382,84 @@ describe('InputLocalDate typing', () => {
             el.value,
             '2026-03-15',
             'writing the value it already holds leaves the typed month and day in place',
+        );
+    });
+
+    it('reports a typed date once, when the field is left, not at every segment', async function () {
+        if (!(await typesIntoDates())) {
+            this.skip();
+        }
+        const [el, changes] = await mount();
+        const input = el.querySelector('input');
+        input.focus();
+
+        await sendKeys({ type: '03152026' });
+        assert.deepStrictEqual(
+            changes,
+            [],
+            'the segments typed so far are not a committed value, whatever the browser fires',
+        );
+        input.blur();
+
+        assert.deepStrictEqual(changes, ['2026-03-15'], 'leaving the field commits the date it holds');
+    });
+
+    it('reports a typed date on Enter, and not again when the field is then left', async function () {
+        if (!(await typesIntoDates())) {
+            this.skip();
+        }
+        const [el, changes] = await mount();
+        const input = el.querySelector('input');
+        input.focus();
+
+        await sendKeys({ type: '03152026' });
+        await sendKeys({ press: 'Enter' });
+        input.blur();
+
+        assert.deepStrictEqual(changes, ['2026-03-15'], 'Enter commits the date and leaving the field adds nothing');
+    });
+
+    it('reports nothing when the field is left half typed', async function () {
+        if (!(await typesIntoDates())) {
+            this.skip();
+        }
+        const [el, changes] = await mount();
+        const input = el.querySelector('input');
+        input.focus();
+
+        await sendKeys({ type: '0315' });
+        input.blur();
+
+        assert.deepStrictEqual(changes, [], 'a date missing its year is no value, so nothing changed');
+    });
+
+    it('reports a date picked without typing at once, and once', async () => {
+        const [el, changes] = await mount();
+        const input = el.querySelector('input');
+        input.focus();
+
+        input.value = '2026-03-15';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        assert.deepStrictEqual(changes, ['2026-03-15'], 'a pick from the browser picker is already a committed value');
+        input.blur();
+
+        assert.deepStrictEqual(changes, ['2026-03-15'], 'leaving the field after a pick reports nothing new');
+    });
+
+    it('reports the upper bound of a date range on its own commit', async () => {
+        const [el, changes] = await mount(
+            '<ful-filter-local-date value=\'["BETWEEN","2026-01-01","2026-02-01"]\'>d</ful-filter-local-date>',
+        );
+        const upper = el.querySelector('[data-ref=value2]');
+        upper.focus();
+
+        upper.value = '2026-03-01';
+        upper.dispatchEvent(new Event('change', { bubbles: true }));
+
+        assert.deepStrictEqual(
+            changes,
+            [['BETWEEN', '2026-01-01', '2026-03-01']],
+            'the second operand commits like the first, reporting the whole range',
         );
     });
 });

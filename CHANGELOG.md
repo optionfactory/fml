@@ -22,6 +22,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - `ful-form` submits one exchange at a time: a submit while one is in flight is dropped before the values are extracted
 - while a `ful-form` submits, the submit and reset buttons it holds off carry `aria-disabled="true"` instead of the `disabled` property, so they keep the focus: page css selecting `:disabled` on them selects `[aria-disabled="true"]`
 - an empty `ful-filter-*` reports `null` rather than `undefined`; the extracted form values are unchanged
+- a date, time or datetime-local field (`ful-input-local-date`, `ful-input-local-time`, `ful-input-instant`, a `ful-input` of those types, the date and instant filters) dispatches `change` once the value is committed, as a text field does: when the field is left or Enter is pressed, and at once for a value picked from the browser's picker. It used to forward the native `change`, which fires while the segments are typed (on every year digit in Chromium), so a page reacting to it reacted to a year of 0002
 
 **ful-select and ful-dropdown**
 
