@@ -219,7 +219,7 @@
                 display: block;
                 width: 1em;
                 height: 1em;
-                background-color: #fff;
+                background-color: var(--ful-active-color);
                 border-radius: 50%;
                 box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
                 transition: translate 0.15s ease-in-out;

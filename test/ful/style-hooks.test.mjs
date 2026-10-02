@@ -377,6 +377,18 @@ describe('Style hooks', () => {
         );
     });
 
+    it('paints the switch knob in the colour the theme puts on the accent', () => {
+        const container = attach(`
+            <ful-choice switch style="--ful-active-color: rgb(1, 2, 3)"><input type="checkbox"><label>s</label></ful-choice>`);
+        const knob = getComputedStyle(container.querySelector('input'), '::before').backgroundColor;
+
+        assert.strictEqual(
+            knob,
+            'rgb(1, 2, 3)',
+            'the knob follows --ful-active-color, so a theme with dark text on its accent gets a matching knob',
+        );
+    });
+
     it('keeps the table headers in view, opaque, while the rows scroll under them', () => {
         const rows = Array.from({ length: 40 }, (x, i) => `<tr><td>${i}</td></tr>`).join('');
         const container = attach(`

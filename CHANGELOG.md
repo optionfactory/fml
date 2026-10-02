@@ -254,6 +254,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] an invalid field is marked by its border and its message, without the warning glyph inside text inputs
 - [ENH] motion yields to `prefers-reduced-motion`
 - [BUG] the select's and the boolean filter's chevron follows the text colour, so it shows in dark mode
+- [ENH] the switch knob is painted with `--ful-active-color`, the colour on the accent, instead of a fixed white
 - [BUG] a live region is revealed before it is filled, so `ful-errors` and error sections are announced reliably
 
 #### Packaging
