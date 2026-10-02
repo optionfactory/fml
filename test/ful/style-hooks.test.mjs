@@ -377,6 +377,52 @@ describe('Style hooks', () => {
         );
     });
 
+    it('hides a ful-sr-only element visually wherever it stands, leaving it in the accessibility tree', () => {
+        const container = attach('<p>visible <span class="ful-sr-only">for screen readers</span></p>');
+        const span = container.querySelector('span');
+
+        assert.strictEqual(span.getBoundingClientRect().width, 1, 'the text is clipped to a single pixel, not removed');
+        assert.notStrictEqual(
+            getComputedStyle(span).display,
+            'none',
+            'display stays on, so the text is still read out',
+        );
+    });
+
+    it('hides the label of a ful-sr-label field visually while it still names the control', () => {
+        const container = attach(`
+            <div class="ful-sr-label"><label for="sr-control">Task</label><ful-control-group><ful-control><input id="sr-control"></ful-control></ful-control-group></div>
+            <div class="ful-sr-label"><ful-choice><input type="checkbox" id="sr-check"><label for="sr-check">Done</label></ful-choice></div>
+            <div class="ful-sr-label"><fieldset><legend>Kind</legend><ful-radio-list></ful-radio-list></fieldset></div>`);
+        const [field, choice, group] = container.children;
+        const input = field.querySelector('input');
+
+        assert.strictEqual(
+            field.querySelector('label').getBoundingClientRect().width,
+            1,
+            'the field label is clipped to a pixel',
+        );
+        assert.isTrue(
+            input.labels[0] === field.querySelector('label'),
+            'the hidden label is still the label of the control',
+        );
+        assert.isAtMost(
+            field.querySelector('ful-control-group').getBoundingClientRect().top - field.getBoundingClientRect().top,
+            1,
+            'the control moves up into the room the label leaves, with no gap above it',
+        );
+        assert.strictEqual(
+            choice.querySelector('label').getBoundingClientRect().width,
+            1,
+            'a checkbox label is hidden the same way',
+        );
+        assert.strictEqual(
+            group.querySelector('legend').getBoundingClientRect().width,
+            1,
+            'a radio group legend is hidden the same way',
+        );
+    });
+
     it('paints the switch knob in the colour the theme puts on the accent', () => {
         const container = attach(`
             <ful-choice switch style="--ful-active-color: rgb(1, 2, 3)"><input type="checkbox"><label>s</label></ful-choice>`);

@@ -247,6 +247,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 - [NEW] `.ful-button`, opt-in button styling with `.ghost`, `.soft` and `.small` variants, themed through `--ful-button-*`
 - [NEW] `ful-empty`, a style-only tag for empty states, used by the table and the dropdown
+- [NEW] `.ful-sr-only` hides any element visually while leaving it to assistive technology, and `ful-sr-label` on a field does the same to its label, which stays the control's accessible name
 - [NEW] the icons are mask-based `ful-icon` elements; a page adds its own with `ful-icon[name='...'] { mask-image: ... }`
 - [ENH] the theme holds WCAG AA contrast in light and dark schemes: `--ful-accent-ink` for accent text, a real `--ful-muted-color`, and error and warning tokens as `light-dark()` pairs
 - [ENH] the focus and invalid rings derive from `--ful-active-bg` and `--ful-invalid-color`; `--ful-controls-height` sizes every control alike
