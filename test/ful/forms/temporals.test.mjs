@@ -374,8 +374,9 @@ describe('InputLocalDate typing', () => {
         el.querySelector('input').focus();
 
         await sendKeys({ type: '0315' });
-        assert.isNull(el.value, 'a date missing its year reads as no value');
-        el.value = el.value;
+        const read = el.value;
+        assert.isNull(read, 'a date missing its year reads as no value');
+        el.value = read;
         await sendKeys({ type: '2026' });
 
         assert.strictEqual(
