@@ -75,6 +75,21 @@
     </fieldset>
 
     <fieldset>
+        <legend>ful-fill: the rows scroll inside the height the table is given</legend>
+        <div style="display: flex; flex-direction: column; height: 320px">
+            <ful-table class="ful-fill" loader="loaders:mock-data" autoload page-size="25">
+                <template slot="schema">
+                    <schema>
+                        <column title="Id" sorter="id" order="desc">{{ id }}</column>
+                        <column title="Utente" sorter="username">{{ username }}</column>
+                        <column title="Data" sorter="date">{{ date }}</column>
+                    </schema>
+                </template>
+            </ful-table>
+        </div>
+    </fieldset>
+
+    <fieldset>
         <legend>src stays live: the table follows the selected customer</legend>
         <ful-select id="customer" value="1">
             Cliente

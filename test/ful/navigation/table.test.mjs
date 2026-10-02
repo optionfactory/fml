@@ -1420,6 +1420,69 @@ describe('Remote table loader', () => {
     });
 });
 
+describe('Table filling its container', () => {
+    const mount = async (classes) => {
+        registry.defineComponent('loaders:many-rows', {
+            create: () => ({
+                load: async () => ({ data: Array.from({ length: 40 }, (x, i) => ({ a: i })), size: 80 }),
+            }),
+        });
+        const container = appended(`
+            <div style="display: flex; flex-direction: column; height: 300px">
+                <ful-table class="${classes}" loader="loaders:many-rows" autoload page-size="40">
+                    <template slot="schema"><schema><column title="A">{{ a }}</column></schema></template>
+                </ful-table>
+            </div>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        return [container.firstElementChild, tableEl];
+    };
+
+    it('scrolls its rows inside the height it is given, the header and the pagination staying in view', async () => {
+        const [box, tableEl] = await mount('ful-fill');
+        const wrapper = tableEl.querySelector('ful-table-wrapper');
+        const bar = tableEl.querySelector('ful-pagination-bar');
+
+        wrapper.scrollTop = 400;
+        await new Promise((r) => requestAnimationFrame(r));
+
+        assert.isAbove(wrapper.scrollHeight, wrapper.clientHeight, 'the rows scroll inside the wrapper');
+        assert.isAtMost(
+            tableEl.getBoundingClientRect().bottom,
+            box.getBoundingClientRect().bottom + 1,
+            'the table takes no more than the height of its container',
+        );
+        assert.isAtMost(
+            bar.getBoundingClientRect().bottom,
+            box.getBoundingClientRect().bottom + 1,
+            'the pagination stays in view at the bottom',
+        );
+        assert.closeTo(
+            tableEl.querySelector('thead th').getBoundingClientRect().top,
+            wrapper.getBoundingClientRect().top,
+            1,
+            'the sticky header stays at the top of the scrolled rows',
+        );
+    });
+
+    it('grows with its rows without the class, leaving the page to scroll it', async () => {
+        const [box, tableEl] = await mount('');
+        const wrapper = tableEl.querySelector('ful-table-wrapper');
+
+        assert.strictEqual(
+            getComputedStyle(wrapper).overflowY,
+            'visible',
+            'the wrapper is not a scroll container, so the header sticks to whatever scrolls the page',
+        );
+        assert.isAbove(
+            tableEl.getBoundingClientRect().height,
+            box.getBoundingClientRect().height,
+            'the table is as tall as its rows, overflowing the container',
+        );
+    });
+});
+
 describe('Table page-size', () => {
     let requests;
     let sorts;

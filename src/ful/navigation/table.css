@@ -29,6 +29,23 @@
         }
     }
 
+    *:has(> ful-table-wrapper).ful-fill {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+
+        & > ful-table-wrapper {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        & > :not(ful-table-wrapper) {
+            flex: none;
+        }
+    }
+
     ful-sorter {
         display: inline-flex;
         align-items: baseline;

@@ -210,6 +210,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] `src` and `method` stay live on `ful-table`: writing either, as an attribute or as a property, builds the loader again and reloads from the first page, keeping the size, the sort and the filters
 - [NEW] `table.reconfigure({ src, method })` writes both at once and loads once, from the first page
 - [ENH] the header cells are sticky, painted with `--ful-bg`, so they stay in view while the rows scroll; the table's borders are `separate` with no spacing, so the header's bottom border travels with it
+- [NEW] `ful-fill` on a `ful-table` makes it take the height its container gives it, scrolling its rows inside while the header, the filters and the pagination stay in view
 - [ENH] `ful-sorter` is focusable, sorts on `Enter`/`Space` and mirrors its order onto the header cell's `aria-sort`; its arrow stays on the heading's line
 - [ENH] the pagination controls are real buttons, the reload button has an accessible name, and the focus stays on the equivalent control across a page change
 - [DOC] `inHeaders` and `inRows` let a column's `data-tpl-*` apply to the header or the body cell alone
