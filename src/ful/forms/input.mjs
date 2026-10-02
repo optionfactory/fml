@@ -244,10 +244,9 @@ class Input extends Field {
      * `.` for `type="decimal"`, and decoded to a number under
      * `v-type="number"`, where text that does not decode is answered as it is.
      * Writing `null`, `undefined` or `''` empties the control; anything else is
-     * written as its string. Writing the text the control already holds leaves
-     * it untouched, so a date or time control keeps the segments being typed.
-     * Answers a `string`, a `number` or `null`; typed `any` because subclasses
-     * answer other values.
+     * written as its string, replacing whatever was being typed, as a native
+     * control's value does. Answers a `string`, a `number` or `null`; typed
+     * `any` because subclasses answer other values.
      * @type {any}
      */
     get value() {
@@ -267,11 +266,7 @@ class Input extends Field {
         return normalized;
     }
     set value(value) {
-        const text = value === '' || value === undefined || value === null ? '' : `${value}`;
-        if (this._input.value === text) {
-            return;
-        }
-        this._input.value = text;
+        this._input.value = value === '' || value === undefined || value === null ? '' : `${value}`;
     }
     /**
      * The control's placeholder, `null` when there is none. The control always

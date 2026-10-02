@@ -363,27 +363,18 @@ describe('InputLocalDate typing', () => {
         return [el, changes];
     };
 
-    it('keeps the segments being typed when the page writes back the value it reads', async function () {
+    it('empties a half-typed date when the page writes null, as a native control does', async function () {
         if (!(await typesIntoDates())) {
             this.skip();
         }
-        const container = appended('<ful-input-local-date name="d">date</ful-input-local-date>');
-        const el = container.querySelector('ful-input-local-date');
-        await Rendering.waitFor(el);
-        await settle();
+        const [el] = await mount();
         el.querySelector('input').focus();
 
         await sendKeys({ type: '0315' });
-        const read = el.value;
-        assert.isNull(read, 'a date missing its year reads as no value');
-        el.value = read;
+        el.value = null;
         await sendKeys({ type: '2026' });
 
-        assert.strictEqual(
-            el.value,
-            '2026-03-15',
-            'writing the value it already holds leaves the typed month and day in place',
-        );
+        assert.isNull(el.value, 'the write cleared the month and day, so the year typed after it makes no date');
     });
 
     it('reports a typed date once, when the field is left, not at every segment', async function () {
