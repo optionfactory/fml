@@ -2339,6 +2339,24 @@ describe('Select dropdown anchoring', () => {
         assertAnchored(selectEl);
     });
 
+    it('opens above the control, beside it, where there is no room below', async () => {
+        const container = appended(`<div style="height: calc(100vh - 50px)"></div><ful-select></ful-select>`);
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        await open(selectEl);
+
+        const dd = selectEl.querySelector('ful-dropdown').getBoundingClientRect();
+        const group = selectEl.querySelector('ful-control-group').getBoundingClientRect();
+        assert.isAtMost(dd.bottom, group.top + 1, 'the flipped dropdown ends where the control group starts');
+        assert.isAbove(
+            dd.bottom,
+            group.top - 10,
+            'the flipped dropdown stays against the control group, not at the top of the viewport',
+        );
+        container.remove();
+    });
+
     it('keeps the same geometry where the platform lacks the anchor css', async () => {
         const supports = CSS.supports;
         CSS.supports = () => false;

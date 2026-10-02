@@ -85,6 +85,7 @@
 
         &:popover-open {
             display: block;
+            inset: auto;
             top: anchor(bottom);
             left: anchor(left);
             position-try-fallbacks: flip-block;

@@ -186,6 +186,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] a claim landing while the dropdown is open closes it
 - [BUG] a click on another control inside a `ful-select` (a tooltip, an affix button) no longer opens the dropdown
 - [BUG] a readonly or disabled select gives back the room held for its chevron
+- [BUG] a dropdown with no room below opens just above the control instead of at the top of the viewport
 
 #### ful-filter-*
 
@@ -226,6 +227,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] the `ful-toasts` region is a manual popover shown again on every toast, so a toast raised while a dialog or drawer is open shows above it
 - [NEW] `Anchors.show(popover, anchor, options)` places a popover beside an element or a rectangle once, and `Anchors.wire(invoker, popover, options)` pairs a popover with its invoker, placing it by hand where the platform lacks css anchor positioning
 - [ENH] the anchored popovers (the select's dropdown, the filter menus, the tooltip's note) are placed on every platform, by the stylesheet where css anchor positioning exists and by the library elsewhere, before they are first shown
+- [BUG] `ful-menu` and the filters' operator, sensitivity and value menus open above their invoker where there is no room below, instead of running off the viewport
 - [ENH] the geometry and the backdrop are themed through `--ful-dialog-width`, `--ful-drawer-width`, `--ful-toasts-max-width` and `--ful-backdrop-color`; the dialog's sections also answer to the `ful-dialog-header`, `ful-dialog-body` and `ful-dialog-footer` classes at any depth
 
 #### ful: navigation (tabs, accordion, wizard) and async sections

@@ -2,8 +2,10 @@
     ful-menu[popover],
     ful-affix:has(> button[data-ref="operator"], > button[data-ref="sensitivity"]) > ul[popover],
     ful-control-group > button[data-ref="value"] + ul[popover] {
+        inset: auto;
         top: anchor(bottom);
         left: anchor(left);
+        position-try-fallbacks: flip-block;
         margin: 0.3rem 0 0;
         padding: 0.5rem 0;
         color: var(--ful-color);

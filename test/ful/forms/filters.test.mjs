@@ -493,6 +493,24 @@ describe('Filter operator keyboard access', () => {
         assert.isAtLeast(m.top, b.bottom, 'the menu sits below its anchor');
     });
 
+    it('opens the menu above its operator button where there is no room below', async () => {
+        const container = appended(
+            `<div style="height: calc(100vh - 50px)"></div><ful-filter-text>t</ful-filter-text>`,
+        );
+        const el = container.querySelector('ful-filter-text');
+        await Rendering.waitFor(el);
+        await settle();
+        const button = el.querySelector('[data-ref=operator]');
+        button.click();
+        await settle();
+
+        const m = el.querySelector('ul[popover]').getBoundingClientRect();
+        const b = button.getBoundingClientRect();
+        assert.isAtMost(m.bottom, b.top + 1, 'the flipped menu ends where its anchor starts');
+        assert.isAtMost(m.bottom, window.innerHeight, 'the flipped menu stays inside the viewport');
+        container.remove();
+    });
+
     it('carries menu semantics', async () => {
         const [el] = await mount(`<ful-filter-text>t</ful-filter-text>`);
         const menu = el.querySelector('ul');
