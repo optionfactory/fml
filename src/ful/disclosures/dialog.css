@@ -58,6 +58,7 @@
 
         & .ful-dialog-body .ful-dialog-footer:last-child {
             position: sticky;
+            z-index: 2;
             inset-block-end: -0.5rem;
             margin-block-end: -0.5rem;
             background-color: var(--ful-bg);

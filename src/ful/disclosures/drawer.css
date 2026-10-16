@@ -64,6 +64,7 @@
                 & > footer:last-child,
                 & > ful-form > form > footer:last-child {
                     position: sticky;
+                    z-index: 2;
                     inset-block-end: -1rem;
                     margin-block: auto -1rem;
                     padding-block-end: 1rem;

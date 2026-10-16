@@ -237,6 +237,32 @@ describe('Drawer', () => {
         );
     });
 
+    it("keeps its footer's buttons above content that scrolls under them, a table's sticky header included", async () => {
+        const [drawer] = await mount(`
+            <ful-drawer header="Edit">
+                <ful-form>
+                    <div style="height: 150vh"></div>
+                    <div data-ref="raised" style="position: sticky; z-index: 1; height: 100vh"></div>
+                    <footer><button type="submit">Save</button></footer>
+                </ful-form>
+            </ful-drawer>`);
+        drawer.open();
+        await settle();
+        const save = drawer.querySelector('button[type=submit]');
+        let scroller = save.parentElement;
+        while (getComputedStyle(scroller).overflowY !== 'auto') {
+            scroller = scroller.parentElement;
+        }
+        scroller.scrollTop = drawer.querySelector('[data-ref=raised]').offsetTop;
+        const box = save.getBoundingClientRect();
+
+        assert.isTrue(
+            document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === save,
+            'a click on the button reaches it, not the raised content scrolled under the footer',
+        );
+        await closed(drawer);
+    });
+
     it('slides out on a backdrop dismissal and on its own form succeeding', async () => {
         const [drawer] = await mount(`
             <ful-drawer header="Edit" close-on-submit>
