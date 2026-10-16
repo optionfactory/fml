@@ -198,14 +198,17 @@
                 "method": "The http method of the remote loader, POST by default.",
                 "request-mapper": "A registry component key, (values, form) => request, applied to the extracted values before they are sent.",
                 "response-mapper": "A registry component key, (response, form) => mapped, applied to a successful response before it reaches submit:success.",
-                "scroll-on-error": "Moves focus, and the viewport with it, to the topmost invalid field when errors land. The error live region is muted while focus moves, so each problem is announced once through the focused field rather than twice."
+                "scroll-on-error": "Moves focus, and the viewport with it, to the topmost invalid field when errors land. The error live region is muted while focus moves, so each problem is announced once through the focused field rather than twice.",
+                "track-changes": "Keeps track of the edits not saved yet: dirty answers whether a field the user edited since the last commit holds another value, the host matches :state(dirty) and the submit buttons carry a dot while it does. A successful submit commits, and so does the form once its fields have rendered; commit() is for a save of the page's own.",
+                "guard-leave": "Asks before the page is left while the form holds edits not saved yet, through the browser's own prompt. Implies track-changes."
             },
             "slots": {},
             "events": {
                 "submit": "Cancelable. Fired before anything is sent: preventDefault aborts the submit.",
                 "submit:requested": "Fired after the submit was accepted, to let a listener resolve the response itself.",
                 "submit:success": "Fired with the submitted values and the mapped response.",
-                "submit:failure": "Fired with the exception when the submit fails. The form does not rethrow."
+                "submit:failure": "Fired with the exception when the submit fails. The form does not rethrow.",
+                "dirty:change": "Fired under track-changes when the form starts or stops holding edits not saved yet, with dirty in the detail."
             }
         },
         "ful-input": {

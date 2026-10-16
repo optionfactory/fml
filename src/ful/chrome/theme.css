@@ -57,6 +57,7 @@
         --ful-warning-color: light-dark(#664d03, #ffda6a);
         --ful-warning-bg: light-dark(#fff3cd, #332701);
         --ful-warning-border-color: light-dark(#ffe69c, #997404);
+        --ful-dirty-mark-color: #ffc107;
 
         --ful-scrollbar-bg: var(--ful-disabled-bg);
         --ful-scrollbar-thumb-bg: var(--ful-active-bg);

@@ -1,5 +1,6 @@
 export { LocalStorage, SessionStorage, VersionedLocalStorage, VersionedSessionStorage } from './storage.mjs';
 export { AsyncEvents } from './events/async.mjs';
+export { PageLeave } from './events/leave.mjs';
 export { Claims } from './claims.mjs';
 export { describable } from './descriptions.mjs';
 export { Timing } from './timing.mjs';

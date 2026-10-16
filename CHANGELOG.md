@@ -126,6 +126,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] `ful-input` and `ful-form` take `autocomplete`, each field inheriting the form's token unless it names its own; `input-autocomplete` still has the last word
 - [NEW] `.ful-stacked` on a `ful-checkbox` puts its label above the control, lining it up with a column of inputs
 - [NEW] a field answers its owning form as `form`, `null` outside one
+- [NEW] `ful-form` takes `track-changes`: `dirty` answers whether a field the user edited since the last commit holds another value, the host matches `:state(dirty)`, its submit buttons carry `data-ful-dirty` (painted as a dot in their corner) and `dirty:change` reports each flip. A successful submit commits what it sent, the form commits once its fields have rendered, `commit()` is for a save of the page's own and `edited(el)` for a value the page writes on the user's behalf (see decision 0022)
+- [NEW] `ful-form` takes `guard-leave`, which implies `track-changes` and asks before the page is left while the form is dirty; `PageLeave.guard(isDirty, signal)` does the same for any other condition
 - [ENH] `disabled` is live on every field like `readonly`, `required` and `value`, and a claim written between upgrade and render is applied by the render
 - [ENH] a field's change detail always carries its own `value`
 - [ENH] a field's `focus()` called before the render is applied once the control exists

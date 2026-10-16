@@ -27,6 +27,7 @@ rationale about one piece of code belongs in a comment beside it.
 | 0019 | [Events: platform names for platform meanings, namespaced requests and outcomes](0019-event-vocabulary.md) |
 | 0020 | [Floating ui lives in the top layer](0020-top-layer.md) |
 | 0021 | [Superseded work is dropped through claims](0021-claims.md) |
+| 0022 | [Unsaved edits are the user's edits, not a difference from a snapshot](0022-unsaved-edits.md) |
 
 Status of all: accepted. Dates are enactment-agnostic; most decisions predate
 this record, which writes down what the code and the wiki already say.

@@ -13,6 +13,18 @@
         display: contents;
     }
 
+    /* the submit buttons of a form with unsaved edits carry a dot in their
+       corner, painted over their background rather than as a positioned
+       pseudo-element: the button keeps its size and its positioning, so
+       nothing shifts under the pointer as the first keystroke lands */
+    button[data-ful-dirty] {
+        background-image: radial-gradient(
+            circle at calc(100% - 0.525rem) 0.525rem,
+            var(--ful-dirty-mark-color) 0.225rem,
+            transparent calc(0.225rem + 0.5px)
+        );
+    }
+
     *:has(> ful-control-group) {
         display: block;
     }

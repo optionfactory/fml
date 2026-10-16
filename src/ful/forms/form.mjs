@@ -1,7 +1,8 @@
-import { Attributes, Localization, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes, Localization, ParsedElement, Rendering } from '../../ftl/index.mjs';
 import { Failure } from '../../httpc/index.mjs';
 import { Bindings } from './bindings.mjs';
 import { AsyncEvents } from '../events/async.mjs';
+import { PageLeave } from '../events/leave.mjs';
 
 /** Sends a form's request as a json body to a url, mapping the request and the response through the configured mappers. */
 class RemoteJsonFormLoader {
@@ -148,6 +149,10 @@ class FormLoader {
  *
  * A native submit, by a button or by Enter in a field, is stopped and runs
  * `submit` instead.
+ *
+ * `track-changes` keeps track of the edits not saved yet (see `dirty`), and
+ * `guard-leave`, which implies it, asks before the page is left while there
+ * are any.
  */
 class Form extends ParsedElement {
     /** Read once at the upgrade: changing one afterwards has no effect. */
@@ -160,6 +165,8 @@ class Form extends ParsedElement {
         'clear-invalid-on-change:presence',
         'scroll-on-error:presence',
         'autocomplete',
+        'track-changes:presence',
+        'guard-leave:presence',
     ];
     /** The native form holding the fields, created by the render. */
     form;
@@ -197,6 +204,27 @@ class Form extends ParsedElement {
             });
         }
         this.replaceChildren(form);
+        this.#tracking = this.declared('track-changes') || this.declared('guard-leave');
+        if (!this.#tracking) {
+            return;
+        }
+        this.addEventListener('input', (evt) => this.#touch(evt.target));
+        this.addEventListener('change', (evt) => this.#touch(evt.target));
+        this.addEventListener('focusin', (evt) => this.#focus(evt.target));
+        Rendering.waitForChildren(this)
+            .catch(() => undefined)
+            .then(() => this.commit());
+        this.#guard();
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        if (this.#tracking) {
+            this.#guard();
+        }
+    }
+    disconnectedCallback() {
+        this.#leave?.abort();
+        this.#leave = null;
     }
     #submitting = false;
     /**
@@ -215,7 +243,9 @@ class Form extends ParsedElement {
      *    loader's `submit` as its third argument. A listener may replace
      *    `request` on the detail
      * 6. has the loader `submit` the request and `transform` the response
-     * 7. fires `submit:success` with `{ submitter, values, request, response }`,
+     * 7. under `track-changes`, commits the values extracted at step 2 (see
+     *    `commit`): an edit made while the submit was in flight stays unsaved
+     * 8. fires `submit:success` with `{ submitter, values, request, response }`,
      *    `response` being the transformed one
      *
      * Anything thrown from step 1 on, a missing loader or a throwing mapper
@@ -241,6 +271,7 @@ class Form extends ParsedElement {
         try {
             const loader = this.component(this.declared('loader') ?? 'loaders:form').create(this);
             values = Bindings.extractFrom(this.form, submitter);
+            const submitted = this.#tracking ? { saved: this.#snapshot(), upTo: this.#sequence } : null;
             request = await loader.prepare(values, this);
             const se = new CustomEvent('submit', {
                 bubbles: true,
@@ -261,6 +292,9 @@ class Form extends ParsedElement {
 
             response = await loader.submit(request, this, response);
             const mapped = await loader.transform(response, this);
+            if (submitted) {
+                this.#commitFrom(submitted.saved, submitted.upTo);
+            }
             this.dispatchEvent(
                 new CustomEvent('submit:success', {
                     bubbles: true,
@@ -286,9 +320,208 @@ class Form extends ParsedElement {
             this.spinner(false);
         }
     }
-    /** Resets the native form, each field returning to its default value. */
+    /**
+     * Resets the native form, each field returning to its default value. Under
+     * `track-changes` every control counts as edited: the form is dirty if the
+     * defaults differ from what was last committed.
+     */
     reset() {
         this.form.reset();
+        if (!this.#tracking) {
+            return;
+        }
+        for (const name of new Set([...this.#saved.keys(), ...this.#snapshot().keys()])) {
+            this.#edits.set(name, ++this.#sequence);
+        }
+        this.#refresh();
+    }
+    /** name → the serialized values the last commit recorded */
+    #saved = new Map();
+    /** name → the serialized values when first focused, for a name the last commit did not see */
+    #focused = new Map();
+    /** name → the sequence number of its latest edit since the last commit */
+    #edits = new Map();
+    #sequence = 0;
+    #wasDirty = false;
+    #frame = 0;
+    /** @type {AbortController|null} */
+    #leave = null;
+    #tracking = false;
+    /**
+     * Whether, under `track-changes`, a control the user edited since the last
+     * commit holds a value other than the one committed. An edit is what the
+     * controls report as one: an `input` or a `change` bubbling from a control
+     * of this form (0019), so assigning `value`, a select's vocabulary dropping
+     * a key or a section delivering its fields is not one, and an edit undone
+     * is no longer dirty. A control the last commit did not see compares with
+     * its value when it was first focused. Always false without
+     * `track-changes`.
+     *
+     * While dirty, the host matches `:state(dirty)` and the submit buttons of
+     * this form carry `data-ful-dirty`; a change of the state dispatches
+     * `dirty:change` with `{ dirty }`. Both are refreshed at the next frame
+     * after an edit, while the property is exact at any time.
+     * @returns {boolean}
+     */
+    get dirty() {
+        if (!this.#tracking) {
+            return false;
+        }
+        for (const name of this.#edits.keys()) {
+            const now = this.#valuesOf(name);
+            if (!this.#saved.has(name) && now === '[]') {
+                continue;
+            }
+            const was = this.#saved.get(name) ?? this.#focused.get(name);
+            if (was !== now) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Records the values of the controls as saved, so that the form is no
+     * longer dirty. A submit commits by itself on success, and the form
+     * commits once its fields have rendered: a page calls this for a save of
+     * its own, or after writing the values it loaded. Does nothing without
+     * `track-changes`.
+     */
+    commit() {
+        if (this.#tracking) {
+            this.#commitFrom(this.#snapshot(), this.#sequence);
+        }
+    }
+    /**
+     * Counts a control as edited by the user, for a value the page writes on
+     * the user's behalf: assigning `value` reports nothing, as 0019 wants.
+     * @param {Element} el the control, or an element inside it
+     */
+    edited(el) {
+        this.#touch(el);
+    }
+    /**
+     * @param {Map<string, string>} saved
+     * @param {number} upTo the sequence number of the latest edit the values include
+     */
+    #commitFrom(saved, upTo) {
+        this.#saved = saved;
+        for (const [name, sequence] of this.#edits) {
+            if (sequence <= upTo) {
+                this.#edits.delete(name);
+            }
+        }
+        for (const name of this.#focused.keys()) {
+            if (saved.has(name)) {
+                this.#focused.delete(name);
+            }
+        }
+        this.#refresh();
+    }
+    /**
+     * The named control of this form `target` is or sits in, if any: a field's
+     * inner control is unnamed or carries `form=""`, a control of a form nested
+     * in this one, like a table's filters, belongs to that form, and a
+     * form-associated element with no `form` property answers its owner
+     * through `internals.form`.
+     * @param {any} target
+     * @returns {string|null} its name
+     */
+    #nameOf(target) {
+        for (let el = target; el && el !== this; el = el.parentElement) {
+            if ((el.form ?? el.internals?.form) === this.form && el.hasAttribute('name')) {
+                return el.getAttribute('name');
+            }
+        }
+        return null;
+    }
+    /** @param {EventTarget|null} target */
+    #touch(target) {
+        if (!this.#tracking) {
+            return;
+        }
+        const name = this.#nameOf(target);
+        if (name === null) {
+            return;
+        }
+        this.#edits.set(name, ++this.#sequence);
+        if (this.#frame === 0) {
+            this.#frame = requestAnimationFrame(() => this.#refresh());
+        }
+    }
+    /** @param {EventTarget|null} target */
+    #focus(target) {
+        const name = this.#nameOf(target);
+        if (name !== null && !this.#saved.has(name) && !this.#focused.has(name)) {
+            this.#focused.set(name, this.#valuesOf(name));
+        }
+    }
+    /**
+     * The controls that contribute to the values, as `Bindings.extractFrom`
+     * reads them, with no submitter.
+     * @returns {any[]}
+     */
+    #contributing() {
+        return Array.from(this.form.elements).filter(
+            (el) =>
+                el.hasAttribute('name') &&
+                !['submit', 'reset', 'button'].includes(/** @type {any} */ (el).type) &&
+                !el.matches(':disabled'),
+        );
+    }
+    /** @returns {Map<string, string>} each name to its serialized values */
+    #snapshot() {
+        /** @type {Map<string, any[]>} */
+        const values = new Map();
+        for (const el of this.#contributing()) {
+            const name = el.getAttribute('name');
+            values.set(name, [...(values.get(name) ?? []), Bindings.extract(el)]);
+        }
+        return new Map(Array.from(values, ([name, vs]) => [name, JSON.stringify(vs)]));
+    }
+    /**
+     * @param {string} name
+     * @returns {string} the serialized values of the controls carrying it
+     */
+    #valuesOf(name) {
+        return JSON.stringify(
+            this.#contributing()
+                .filter((el) => el.getAttribute('name') === name)
+                .map((el) => Bindings.extract(el)),
+        );
+    }
+    #refresh() {
+        cancelAnimationFrame(this.#frame);
+        this.#frame = 0;
+        const dirty = this.dirty;
+        this.querySelectorAll('button').forEach((el) => {
+            const button = /** @type HTMLButtonElement */ (el);
+            if (button.form === this.form && button.type === 'submit') {
+                button.toggleAttribute('data-ful-dirty', dirty);
+            }
+        });
+        if (dirty === this.#wasDirty) {
+            return;
+        }
+        this.#wasDirty = dirty;
+        if (dirty) {
+            this.internals.states.add('dirty');
+        } else {
+            this.internals.states.delete('dirty');
+        }
+        this.dispatchEvent(
+            new CustomEvent('dirty:change', {
+                bubbles: true,
+                cancelable: false,
+                detail: { dirty },
+            }),
+        );
+    }
+    #guard() {
+        if (!this.declared('guard-leave') || this.#leave) {
+            return;
+        }
+        this.#leave = new AbortController();
+        PageLeave.guard(() => this.dirty, this.#leave.signal);
     }
     #spinning = 0;
     /**

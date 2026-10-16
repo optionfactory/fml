@@ -101,6 +101,24 @@ const mount = async (html) => {
     const detail = await Promise.race([success, new Promise((r) => setTimeout(() => r(null), 1500))]);
     ok('10 custom form loader pipeline', !!detail && detail.response.echoed?.a === '1' && typeof detail.response.echoed?.ts === 'number', JSON.stringify(detail?.response));
 
+    // ===== 10: unsaved edits
+    d = await mount(`<ful-form track-changes guard-leave><ful-input name="description" value="Rent">Description</ful-input><button type="submit" class="ful-button">Save</button></ful-form>`);
+    const f3 = d.querySelector('ful-form');
+    const description = f3.querySelector('ful-input');
+    const typed = description.querySelector('input');
+    typed.value = 'Rent and bills';
+    typed.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => requestAnimationFrame(r));
+    ok('10 an edit makes the form dirty and marks its save button',
+        f3.dirty && f3.matches(':state(dirty)') && f3.querySelector('button').hasAttribute('data-ful-dirty'));
+    f3.values = { description: 'Loaded' };
+    f3.commit();
+    ok('10 commit() after writing the loaded values', !f3.dirty);
+    description.value = 'Copied';
+    ok('10 a written value is not an edit', !f3.dirty);
+    f3.edited(description);
+    ok('10 edited() counts it', f3.dirty);
+
     // ===== 11: keep / reject, and the info slot
     d = await mount(`<ful-input name="vat" keep="[0-9A-Z]" required>VAT number<template slot="info">as printed on the invoice</template></ful-input>`);
     const vat = d.querySelector('ful-input');

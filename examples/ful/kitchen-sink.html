@@ -468,6 +468,21 @@
         </ful-form>
     </fieldset>
 
+    <h2>unsaved edits</h2>
+    <p>Under <code>track-changes</code> an edit puts a dot on the save button, undoing it takes the dot away, and saving commits; <code>guard-leave</code> also asks before the page is left. Values written by the page are not edits: the button fills the description without marking anything.</p>
+    <fieldset>
+        <legend>a form keeping track of its unsaved edits</legend>
+        <ful-form id="dirty-demo" track-changes guard-leave>
+            <ful-input name="description" value="Rent">Description</ful-input>
+            <ful-input name="amount" type="decimal" value="1200">Amount</ful-input>
+            <div class="row">
+                <button type="button" class="ful-button ghost" data-ref="fill">Fill the description</button>
+                <button type="submit" class="ful-button">Save</button>
+                <output data-ref="dirty-state">saved</output>
+            </div>
+        </ful-form>
+    </fieldset>
+
     <h2>files</h2>
     <fieldset>
         <legend>configurations and states</legend>
@@ -679,6 +694,15 @@
             if (String(e.reason?.message ?? '').includes('(demo)')) {
                 e.preventDefault();
             }
+        });
+
+        const dirtyDemo = document.getElementById('dirty-demo');
+        ful.AsyncEvents.asyncOn(dirtyDemo, 'submit:requested', () => new Promise((resolve) => setTimeout(() => resolve({}), 600)));
+        dirtyDemo.addEventListener('dirty:change', (e) => {
+            dirtyDemo.querySelector('[data-ref=dirty-state]').textContent = e.detail.dirty ? 'unsaved edits' : 'saved';
+        });
+        dirtyDemo.querySelector('[data-ref=fill]').addEventListener('click', () => {
+            dirtyDemo.querySelector('ful-input[name=description]').value = 'Written by the page';
         });
 
         document.getElementById('errors-demo').addEventListener('submit:success', (e) => {

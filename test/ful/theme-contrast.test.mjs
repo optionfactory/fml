@@ -68,6 +68,13 @@ describe('Theme contrast', () => {
                     );
                 });
             }
+            it('the unsaved edits mark holds the non-text 3:1 on a button', () => {
+                assert.isAtLeast(
+                    pair(host, '--ful-dirty-mark-color', '--ful-active-bg'),
+                    3,
+                    'the dot on a submit button reaches the WCAG contrast ratio for non-text elements against the button',
+                );
+            });
             it('the focus indicator holds the non-text 3:1', () => {
                 assert.isAtLeast(
                     pair(host, '--ful-focus-border-color', '--ful-bg'),
