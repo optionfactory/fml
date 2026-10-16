@@ -20,6 +20,10 @@
             box-shadow: var(--ful-focus-box-shadow);
         }
 
+        #theme-builder {
+            --ful-drawer-width: min(96vw, 44rem);
+        }
+
         /*
          * the drawer's content section, laid out as a grid of rows. :not([hidden])
          * because the drawer's loading and error sections are sections too, and an
@@ -27,11 +31,6 @@
          * `#theme-builder section` showed the spinner and the error region
          * alongside the content
          */
-        /*the token is declared on the dialog, so that is where it is overridden*/
-        #theme-builder dialog.ful-drawer {
-            --ful-drawer-width: min(96vw, 44rem);
-        }
-
         #theme-builder section:not([hidden]) {
             display: grid;
             /*minmax(0, …) rather than the default auto: an auto track is floored at

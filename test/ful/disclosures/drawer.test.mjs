@@ -160,7 +160,7 @@ describe('Drawer', () => {
         await closed;
         assert.deepStrictEqual(
             closes,
-            [{ dismissed: true, response: null }],
+            [{ dismissed: true, result: null, response: null }],
             'a close from code is a dismissal carrying no response',
         );
     });
@@ -209,7 +209,11 @@ describe('Drawer', () => {
 
         assert.isFalse(dialog.open, 'the native dialog closes once the slide out has ended');
         assert.isFalse(dialog.hasAttribute('closing'), 'the closing state leaves with the close');
-        assert.deepStrictEqual(closes, [{ dismissed: true, response: null }], 'one close, not one per call');
+        assert.deepStrictEqual(
+            closes,
+            [{ dismissed: true, result: null, response: null }],
+            'one close, not one per call',
+        );
     });
 
     it('slides out on Escape, which the platform delivers as a cancel', async () => {
@@ -232,7 +236,7 @@ describe('Drawer', () => {
         assert.isFalse(dialog.open, 'the native dialog closes once the slide out has ended');
         assert.deepStrictEqual(
             closes,
-            [{ dismissed: true, response: null }],
+            [{ dismissed: true, result: null, response: null }],
             'Escape is a dismissal, announced by one close event',
         );
     });
@@ -296,7 +300,7 @@ describe('Drawer', () => {
         const { detail } = await saved;
         assert.deepStrictEqual(
             detail,
-            { dismissed: false, response: { id: 7 } },
+            { dismissed: false, result: null, response: { id: 7 } },
             "the submit closes as an answer carrying the form's response",
         );
     });
@@ -387,7 +391,7 @@ describe('Drawer dismissal', () => {
             const { detail } = await closing;
             assert.deepStrictEqual(
                 detail,
-                { dismissed: true, response: null },
+                { dismissed: true, result: null, response: null },
                 'an unrefused dismissal closes the drawer as a dismissal',
             );
         });

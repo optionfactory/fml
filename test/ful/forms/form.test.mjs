@@ -238,11 +238,11 @@ describe('Form spinner button states across overlapping submits', () => {
             await tick();
         }
         assert.strictEqual(releases.length, 1, 'a submit called while one is in flight sends nothing');
-        await second;
+        assert.isFalse(await second, 'the dropped submit answers that it did not save');
         assert.strictEqual(spinner.hidden, false, 'the dropped submit does not hide the spinner of the one in flight');
 
         releases[0]();
-        await first;
+        assert.isTrue(await first, 'the submit in flight answers its success');
         assert.strictEqual(spinner.hidden, true, 'the spinner is hidden once the submit settles');
         assert.isFalse(heldOff(btnEnabled), 'the enabled submit button is released once the submit settles');
         assert.strictEqual(btnDisabled.disabled, true, 'an intentionally disabled button stays disabled');
@@ -303,7 +303,7 @@ describe('Form submit outcome events', () => {
         const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         const events = recording(form, 'submit:success', 'submit:failure');
 
-        await form.submit();
+        assert.isTrue(await form.submit(), 'the caller learns the submit succeeded');
 
         assert.deepStrictEqual(
             events.map((e) => e.type),
@@ -334,7 +334,7 @@ describe('Form submit outcome events', () => {
         const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         const events = recording(form, 'submit:success', 'submit:failure');
 
-        await form.submit();
+        assert.isFalse(await form.submit(), 'the caller learns the submit failed, without a rejection');
 
         assert.deepStrictEqual(
             events.map((e) => e.type),
@@ -627,7 +627,7 @@ describe('Form submit outcome events', () => {
         const events = recording(form, 'submit:success', 'submit:failure', 'submit:requested');
         form.addEventListener('submit', (e) => e.preventDefault());
 
-        await form.submit();
+        assert.isFalse(await form.submit(), 'a cancelled submit saved nothing');
 
         assert.deepStrictEqual(
             submitted,

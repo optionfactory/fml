@@ -170,12 +170,49 @@ describe('Form unsaved edits', () => {
         form.commit();
         assert.isFalse(form.dirty, 'a commit records it as saved');
 
+        form.form.insertAdjacentHTML('beforeend', '<input name="other" value="o">');
+        const other = form.querySelector('[name=other]');
+        form.commit();
+        code.value = 'C3';
+        other.value = 'p';
+        form.edited(code, other);
+        code.value = 'B2';
+        assert.isTrue(form.dirty, 'edited() takes every control the page wrote');
+        form.commit();
+
         form.form.insertAdjacentHTML('beforeend', '<input name="late" value="x">');
         const late = form.querySelector('[name=late]');
         late.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
         form.commit();
         type(late, 'x');
         assert.isFalse(form.dirty, 'once committed, a late control compares with the commit');
+    });
+
+    it('saves only unsaved edits, answering whether none is left', async () => {
+        const form = await mountForm(`
+            <ful-form track-changes>
+                <input name="code" value="A1">
+                <input name="note" value="">
+            </ful-form>`);
+        let submits = 0;
+        let fail = false;
+        AsyncEvents.asyncOn(form, 'submit:requested', async () => {
+            ++submits;
+            if (fail) {
+                throw new Error('rejected upstream');
+            }
+            return {};
+        });
+
+        assert.isTrue(await form.save(), 'a clean form has nothing to save');
+        assert.strictEqual(submits, 0, 'and sends nothing');
+
+        type(form.querySelector('[name=code]'), 'B2');
+        fail = true;
+        assert.isFalse(await form.save(), 'a failed save leaves the edits unsaved');
+        fail = false;
+        assert.isTrue(await form.save(), 'a successful save leaves nothing unsaved');
+        assert.strictEqual(submits, 2, 'each save of a dirty form submits');
     });
 
     it('counts a reset as an edit, dirty only when the defaults differ from what was saved', async () => {

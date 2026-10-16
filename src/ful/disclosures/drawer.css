@@ -1,12 +1,10 @@
 @layer ful.components {
     dialog.ful-drawer {
-        --ful-drawer-width: min(90vw, 28rem);
-
         position: fixed;
         inset-block: 0;
         inset-inline-start: auto;
         inset-inline-end: 0;
-        width: var(--ful-drawer-width);
+        width: var(--ful-drawer-width, min(90vw, 28rem));
         max-width: 100vw;
         height: 100dvh;
         max-height: 100dvh;
@@ -117,7 +115,7 @@
         }
 
         @media (max-width: 30rem) {
-            --ful-drawer-width: 100vw;
+            width: var(--ful-drawer-width, 100vw);
 
             &,
             &[placement="start"] {

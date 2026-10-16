@@ -1,8 +1,6 @@
 @layer ful.components {
     dialog.ful-dialog {
-        --ful-dialog-width: min(90vw, 32rem);
-
-        width: var(--ful-dialog-width);
+        width: var(--ful-dialog-width, min(90vw, 32rem));
         padding: 0;
         border: var(--ful-border-width) solid var(--ful-border-color);
         border-radius: var(--ful-border-radius);

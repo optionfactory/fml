@@ -128,14 +128,6 @@ describe('Dialog', () => {
         assert.deepStrictEqual(results, [null], 'the close event agrees');
     });
 
-    it('a dialog leaving the document while open answers its waiters with a dismissal', async () => {
-        const [dialog, container] = await mount('<ful-dialog>body</ful-dialog>');
-        const asked = dialog.ask();
-        container.remove();
-
-        assert.isTrue((await asked).dismissed, 'the await does not hang on a destroyed element');
-    });
-
     it('a dialog whose render threw answers a dismissal on removal, raising nothing over it', async () => {
         const container = appended('<ful-dialog header="broken"><ful-table src="/x"></ful-table></ful-dialog>');
         await Rendering.waitFor(container).then(
@@ -1108,6 +1100,116 @@ for (const { tag, content, open, update } of elements) {
 
             assert.isTrue(el.querySelector('dialog').open, 'closing on submit is opt in');
             await closed(el);
+        });
+    });
+
+    describe(`${tag}, the outcome and the dismissal`, () => {
+        const question = () => document.body.querySelector(':scope > ful-dialog');
+        const dismissals = (el, refuse = () => false) => {
+            const reasons = [];
+            el.addEventListener(`${tag.slice(4)}:dismiss`, (e) => {
+                reasons.push(e.detail.reason);
+                if (refuse()) {
+                    e.preventDefault();
+                }
+            });
+            return reasons;
+        };
+
+        it('ask() answers with the result of a data-result button or of close(result)', async () => {
+            const [el] = await mount(
+                `<${tag} header="Pick">body<button type="button" data-result="kept">Keep</button></${tag}>`,
+            );
+
+            const picked = el.ask();
+            el.querySelector('[data-result=kept]').click();
+            assert.deepStrictEqual(
+                await picked,
+                { dismissed: false, result: 'kept', response: null },
+                'a data-result button answers with its result',
+            );
+
+            await update(el, async () => 'delivered');
+            const waiting = el.ask();
+            el.close('chosen');
+            assert.deepStrictEqual(
+                await waiting,
+                { dismissed: false, result: 'chosen', response: null },
+                'ask() on the opening update() made waits for its ending',
+            );
+        });
+
+        it('answers its waiters with a dismissal when it leaves the document while open', async () => {
+            const [el, container] = await mount(`<${tag} header="t">body</${tag}>`);
+            const asked = el.ask();
+            container.remove();
+
+            assert.deepStrictEqual(
+                await asked,
+                { dismissed: true, result: null, response: null },
+                'the await does not hang on a destroyed element',
+            );
+        });
+
+        it('dismiss() is the gestures made from code: refusable, carrying its reason', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            let refusing = true;
+            const reasons = dismissals(el, () => refusing);
+            open(el);
+
+            assert.isFalse(await el.dismiss('navigation'), 'a refused dismissal answers false');
+            assert.isTrue(el.querySelector('dialog').open, 'and stays open');
+            refusing = false;
+            const closing = new Promise((r) => el.addEventListener('close', (e) => r(e.detail), { once: true }));
+            assert.isTrue(await el.dismiss('navigation'), 'one nobody refused answers true');
+            assert.isTrue((await closing).dismissed, 'and closes it as a dismissal');
+            assert.isTrue(await el.dismiss('navigation'), 'a closed one has nothing left to dismiss');
+            assert.deepStrictEqual(reasons, ['navigation', 'navigation'], 'nobody is asked about a closed one');
+        });
+
+        it('asks before a dismissal drops unsaved edits under guard-dismiss, and only then', async () => {
+            const [el] = await mount(`
+                <${tag} guard-dismiss header="Edit">
+                    <ful-form track-changes><input name="label" value="a"></ful-form>
+                </${tag}>`);
+            const input = el.querySelector('input[name=label]');
+            const form = el.querySelector('ful-form');
+            open(el);
+            input.value = 'b';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+            const kept = el.dismiss('button');
+            const again = el.dismiss('escape');
+            await settle();
+            assert.strictEqual(
+                document.querySelectorAll('body > ful-dialog').length,
+                1,
+                'a dismissal while the user is asked waits for the same answer',
+            );
+            assert.strictEqual(
+                question()?.querySelector('h2')?.textContent,
+                'Unsaved changes',
+                'the user is asked, with the localized question',
+            );
+            question().querySelector('[data-result=cancel]').click();
+            assert.isFalse(await kept, 'keeping the edits refuses the dismissal');
+            assert.isFalse(await again, 'for both of them');
+            assert.isTrue(el.querySelector('dialog').open, 'and leaves the edits on screen');
+
+            const dropped = el.dismiss('button');
+            await settle();
+            question().querySelector('[data-result=confirm]').click();
+            assert.isTrue(await dropped, 'dropping them lets the dismissal close it');
+
+            open(el);
+            form.commit();
+            assert.isTrue(await el.dismiss('button'), 'nothing unsaved, nothing asked');
+            assert.isNull(question(), 'no question is shown');
+            open(el);
+            input.value = 'c';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            await closed(el);
+            assert.isNull(question(), 'close() is the page deciding, and asks nothing');
         });
     });
 }

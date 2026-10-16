@@ -36,6 +36,11 @@ reports a value it writes on the user's behalf with `edited(el)`.
 - A component that changes its value or its structure because of the user
   (rows added or removed in a composite field) must dispatch `change`, as 0019
   already asks; one that does not goes unnoticed rather than breaking anything.
+- The questions about unsaved edits ask about the user's gestures only:
+  `guard-leave` before the page is left, `guard-dismiss` on a drawer or a
+  dialog before the close button, Escape, the backdrop or `dismiss()` closes
+  it. `close()`, a `data-result` answer, `close-on-submit` and `update()` are
+  the page deciding, and ask nothing.
 - "Dirty" here means "edited by the user and not saved", deliberately not the
   platform's dirty value flag.
 - The values are compared through `Bindings.extract`, so a file field compares

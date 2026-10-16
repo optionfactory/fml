@@ -28,21 +28,24 @@ import { wireTargets } from './targets.mjs';
  * and a press and release both on the backdrop close the dialog, each as a
  * dismissal, as Escape does.
  *
- * Before any of those three gestures closes it, the element dispatches a
- * cancelable, non-bubbling `dialog:dismiss` with `detail: { reason }`, the
- * reason being `button`, `backdrop` or `escape`; a listener calling
- * `preventDefault()` keeps it open, to guard unsaved edits. A `data-result`
- * button, `close-on-submit` and `close()` answer rather than dismiss, and
- * dispatch none.
+ * Those three gestures go through `dismiss(reason)`, the reason being
+ * `button`, `backdrop` or `escape`: before it closes the dialog, the element
+ * dispatches a cancelable, non-bubbling `dialog:dismiss` with
+ * `detail: { reason }`, and a listener calling `preventDefault()` keeps it
+ * open. Under `guard-dismiss`, a dismissal nobody refused, while a `ful-form`
+ * of the dialog holds unsaved edits (see `Form.dirty`), first asks the user,
+ * through `Dialog.confirm`, whether to close and drop them. A `data-result`
+ * button, `close-on-submit`, `close()` and `update()` are answers or the page
+ * deciding: they dispatch nothing and ask nothing.
  *
  * The platform lets a page refuse Escape once per user interaction: a second
  * Escape with no click or keystroke in between closes the dialog whatever the
- * page does, `requires-answer` included. That close is still announced by a
- * `dialog:dismiss`, which is then not cancelable.
+ * page does, `requires-answer` and `guard-dismiss` included. That close is
+ * still announced by a `dialog:dismiss`, which is then not cancelable.
  *
  * `requires-answer` withholds the close button and refuses Escape and the
  * backdrop, so the dialog is closed only by a button carrying `data-result`
- * or from code through `close()`.
+ * or from code, through `close()` or `dismiss()`.
  *
  * `close-on-submit` closes the dialog when a `ful-form` that is a direct child
  * of the body dispatches `submit:success`, answering with its
@@ -62,7 +65,7 @@ import { wireTargets } from './targets.mjs';
  * in a form needs.
  */
 class Dialog extends ParsedElement {
-    static attributes = ['header', 'requires-answer:presence', 'close-on-submit:presence'];
+    static attributes = ['header', 'requires-answer:presence', 'close-on-submit:presence', 'guard-dismiss:presence'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-dialog">
@@ -112,15 +115,10 @@ class Dialog extends ParsedElement {
                 this.#dialog.close(result);
             }
         });
-        const dismiss = (/** @type {'button'|'backdrop'|'escape'} */ reason, platformCloses = false) =>
-            this.#sections.dismiss(
-                new CustomEvent('dialog:dismiss', { cancelable: !platformCloses, detail: { reason } }),
-                () => this.#dialog.close(''),
-            );
         if (!requiresAnswer) {
-            this.#sections.onBackdrop(() => dismiss('backdrop'));
+            this.#sections.onBackdrop(() => this.dismiss('backdrop'));
         }
-        fragment.querySelector('[data-ref=close]')?.addEventListener('click', () => dismiss('button'));
+        fragment.querySelector('[data-ref=close]')?.addEventListener('click', () => this.dismiss('button'));
         if (closeOnSubmit) {
             this.#sections.onSubmitted((response) => {
                 this.#answer = { dismissed: false, result: null, response };
@@ -130,12 +128,12 @@ class Dialog extends ParsedElement {
         this.#dialog.addEventListener('cancel', (/** @type any */ e) => {
             if (!e.cancelable) {
                 this.#dialog.returnValue = '';
-                dismiss('escape', true);
+                this.#dismiss('escape', false);
                 return;
             }
             e.preventDefault();
             if (!requiresAnswer) {
-                dismiss('escape');
+                this.dismiss('escape');
             }
         });
         this.replaceChildren(fragment);
@@ -226,6 +224,34 @@ class Dialog extends ParsedElement {
      */
     refresh() {
         return this.#sections.request();
+    }
+    /**
+     * Dismisses the dialog as the user would: dispatches the cancelable
+     * `dialog:dismiss` with `detail: { reason }` and, under `guard-dismiss`,
+     * asks before dropping unsaved edits, closing the dialog as a dismissal
+     * unless either refused. `requires-answer` does not refuse it, as it does
+     * not refuse `close()`. Does nothing on a closed dialog.
+     * @param {string} reason why it is dismissed, such as `navigation`
+     * @returns {Promise<boolean>} whether the dialog is closed, false when a
+     * listener or the user kept it open
+     */
+    dismiss(reason) {
+        if (!this.#dialog.open) {
+            return Promise.resolve(true);
+        }
+        return this.#dismiss(reason, true);
+    }
+    /**
+     * @param {string} reason
+     * @param {boolean} cancelable false for a close the platform makes anyway
+     * @returns {Promise<boolean>}
+     */
+    #dismiss(reason, cancelable) {
+        return this.#sections.dismiss(
+            new CustomEvent('dialog:dismiss', { cancelable, detail: { reason } }),
+            () => this.#dialog.close(''),
+            this.declared('guard-dismiss') ? discardEdits : null,
+        );
     }
     /**
      * Closes an open dialog, doing nothing on a closed one. A non-empty result
@@ -326,4 +352,17 @@ class Dialog extends ParsedElement {
     }
 }
 
-export { Dialog };
+/**
+ * Asks, through `Dialog.confirm`, whether to close and drop the unsaved edits,
+ * with the localized `dialog.discard.*` texts.
+ * @returns {Promise<boolean>} true to drop them
+ */
+const discardEdits = () => {
+    const l10n = Localization.of();
+    return Dialog.confirm(l10n.t('dialog.discard.header'), l10n.t('dialog.discard.body'), {
+        confirm: l10n.t('dialog.discard.confirm'),
+        cancel: l10n.t('dialog.discard.cancel'),
+    });
+};
+
+export { Dialog, discardEdits };

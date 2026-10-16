@@ -269,11 +269,13 @@ class Form extends ParsedElement {
      * A call while a submit is in flight returns at once, doing nothing.
      * @param {HTMLElement} [submitter] the button that submitted, if any; it is
      * the only button whose name and value are submitted
-     * @returns {Promise<void>} settling once the submit has finished, whatever its outcome
+     * @returns {Promise<boolean>} settling once the submit has finished: true
+     * after `submit:success`, false when it failed, was cancelled or was dropped
+     * for one in flight
      */
     async submit(submitter) {
         if (this.#submitting) {
-            return;
+            return false;
         }
         this.#submitting = true;
         this.spinner(true);
@@ -290,7 +292,7 @@ class Form extends ParsedElement {
                 detail: { submitter, values, request },
             });
             if (!this.dispatchEvent(se)) {
-                return;
+                return false;
             }
             this.errors = [];
             const sre = new CustomEvent('submit:requested', {
@@ -313,6 +315,7 @@ class Form extends ParsedElement {
                     detail: { submitter, values, request, response: mapped },
                 }),
             );
+            return true;
         } catch (e) {
             this.dispatchEvent(
                 new CustomEvent('submit:failure', {
@@ -326,10 +329,26 @@ class Form extends ParsedElement {
             } else {
                 console.warn('failed to submit form', this, 'reason:', e);
             }
+            return false;
         } finally {
             this.#submitting = false;
             this.spinner(false);
         }
+    }
+    /**
+     * Saves the unsaved edits, for a page action that would lose them, such as
+     * one reloading the page: under `track-changes` it submits only while the
+     * form is dirty, and without it always submits.
+     * @param {HTMLElement} [submitter] as `submit` takes it
+     * @returns {Promise<boolean>} whether no unsaved edit is left: false when
+     * the submit did not succeed, or when the user edited the form while it
+     * was in flight
+     */
+    async save(submitter) {
+        if (this.#tracking && !this.dirty) {
+            return true;
+        }
+        return (await this.submit(submitter)) && !this.dirty;
     }
     /**
      * Resets the native form, each field returning to its default value. Under
@@ -403,12 +422,14 @@ class Form extends ParsedElement {
         }
     }
     /**
-     * Counts a control as edited by the user, for a value the page writes on
+     * Counts controls as edited by the user, for values the page writes on
      * the user's behalf: assigning `value` reports nothing, as 0019 wants.
-     * @param {Element} el the control, or an element inside it
+     * @param {...Element} els each a control, or an element inside one
      */
-    edited(el) {
-        this.#touch(el);
+    edited(...els) {
+        for (const el of els) {
+            this.#touch(el);
+        }
     }
     /**
      * @param {Map<string, string>} saved

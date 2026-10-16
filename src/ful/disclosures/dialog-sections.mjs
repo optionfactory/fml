@@ -20,6 +20,8 @@ class DialogSections {
     #error;
     #requests = new SectionRequests();
     #updates = new Claims();
+    /** @type {Promise<boolean>|null} */
+    #confirming = null;
     /**
      * @param {HTMLElement} host the element the section requests are dispatched on
      * @param {DocumentFragment} fragment the rendered template, holding a
@@ -44,16 +46,52 @@ class DialogSections {
         return this.#section;
     }
     /**
+     * Whether a `ful-form` of this dialog, not one of a dialog nested in it,
+     * holds unsaved edits (see `Form.dirty`).
+     * @returns {boolean}
+     */
+    get dirty() {
+        return Array.from(this.#dialog.querySelectorAll('ful-form')).some(
+            (form) => form.closest('dialog') === this.#dialog && /** @type {any} */ (form).dirty,
+        );
+    }
+    /**
      * Dispatches the dismissal on the host and calls `close` unless a listener
-     * prevented it. A dismissal that is not cancelable announces a close the
-     * platform makes whatever the page does, so `close` is not called for it.
+     * prevented it or, with `confirm` given and the dialog `dirty`, `confirm`
+     * answers false. A dismissal that is not cancelable announces a close the
+     * platform makes whatever the page does, so nothing is asked and `close` is
+     * not called for it. While `confirm` is pending a further dismissal waits
+     * for the same answer, and a dialog closed meanwhile is not closed again.
      * @param {CustomEvent} asked
      * @param {() => void} close
+     * @param {(() => Promise<boolean>)|null} confirm asks whether to drop the unsaved edits
+     * @returns {Promise<boolean>} whether the dismissal closes the dialog
      */
-    dismiss(asked, close) {
-        if (this.#host.dispatchEvent(asked) && asked.cancelable) {
-            close();
+    dismiss(asked, close, confirm) {
+        if (this.#confirming) {
+            return this.#confirming;
         }
+        if (!this.#host.dispatchEvent(asked)) {
+            return Promise.resolve(false);
+        }
+        if (!asked.cancelable) {
+            return Promise.resolve(true);
+        }
+        if (!confirm || !this.dirty) {
+            close();
+            return Promise.resolve(true);
+        }
+        this.#confirming = confirm()
+            .then((drop) => {
+                if (drop && this.#dialog.open) {
+                    close();
+                }
+                return drop;
+            })
+            .finally(() => {
+                this.#confirming = null;
+            });
+        return this.#confirming;
     }
     /**
      * Calls `dismiss` when a press and its release both land on the backdrop,

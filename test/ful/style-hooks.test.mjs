@@ -121,6 +121,29 @@ describe('Style hooks', () => {
         drawer.close();
     });
 
+    it('reads the overlay geometry wherever the page sets it, the root and an ancestor included', () => {
+        const container = attach(`
+            <div style="--ful-drawer-width: 300px"><dialog class="ful-drawer"></dialog></div>
+            <dialog class="ful-dialog"></dialog>`);
+        const drawer = container.querySelector('.ful-drawer');
+        const dialog = container.querySelector('.ful-dialog');
+        document.documentElement.style.setProperty('--ful-dialog-width', '350px');
+        try {
+            drawer.showModal();
+            dialog.showModal();
+            assert.strictEqual(
+                getComputedStyle(drawer).width,
+                '300px',
+                'an ancestor, such as the ful-drawer host, sets it',
+            );
+            assert.strictEqual(getComputedStyle(dialog).width, '350px', 'the root sets it too');
+        } finally {
+            document.documentElement.style.removeProperty('--ful-dialog-width');
+            drawer.close();
+            dialog.close();
+        }
+    });
+
     it('the toasts region is whoever hosts the toasts, its width the custom property', () => {
         const container = attach('<div style="--ful-toasts-max-width: 333px"><ful-toast>a toast</ful-toast></div>');
         const region = container.firstElementChild;

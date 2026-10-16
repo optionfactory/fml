@@ -1,4 +1,5 @@
 import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { discardEdits } from './dialog.mjs';
 import { DialogSections } from './dialog-sections.mjs';
 import { wireTargets } from './targets.mjs';
 
@@ -14,17 +15,23 @@ import { wireTargets } from './targets.mjs';
  * default, when absent) or `start`, following the writing direction.
  *
  * The close button, Escape, and a press and release both on the backdrop all
- * go through `close()`, once a cancelable, non-bubbling `drawer:dismiss` with
- * `detail: { reason }` (`button`, `backdrop` or `escape`) has been dispatched
- * on the element and no listener prevented it: `preventDefault()` keeps the
- * drawer open, to guard unsaved edits. `close()` and `close-on-submit`
- * dispatch none. The platform lets a page refuse Escape once per user
+ * go through `dismiss(reason)`, the reason being `button`, `backdrop` or
+ * `escape`: before it closes the drawer, the element dispatches a cancelable,
+ * non-bubbling `drawer:dismiss` with `detail: { reason }`, and a listener
+ * calling `preventDefault()` keeps it open. Under `guard-dismiss`, a dismissal
+ * nobody refused, while a `ful-form` of the drawer holds unsaved edits (see
+ * `Form.dirty`), first asks the user, through `Dialog.confirm`, whether to
+ * close and drop them. A `data-result` button, `close-on-submit`, `close()`
+ * and `update()` are answers or the page deciding: they dispatch nothing and
+ * ask nothing. The platform lets a page refuse Escape once per user
  * interaction: a second Escape with no click or keystroke in between closes
- * the drawer at once, without the slide, and its `drawer:dismiss` is then not
- * cancelable. Every close dispatches a non-bubbling `close` event on
- * the element with `detail: { dismissed, response }`: `{ dismissed: false,
- * response }` when a form closed it under `close-on-submit`, and
- * `{ dismissed: true, response: null }` for any other close.
+ * the drawer at once, without the slide, `guard-dismiss` included, and its
+ * `drawer:dismiss` is then not cancelable.
+ *
+ * Any button inside the drawer carrying `data-result` closes it with that
+ * result, an empty one being a dismissal. Every close dispatches a
+ * non-bubbling `close` event on the element carrying the `DialogOutcome` as
+ * `detail`, before the pending `ask()` calls resolve.
  *
  * `close-on-submit` closes the drawer when a `ful-form` that is a direct child
  * of the content section dispatches `submit:success`, carrying its
@@ -36,7 +43,7 @@ import { wireTargets } from './targets.mjs';
  * element's id calls `open()` on click.
  */
 class Drawer extends ParsedElement {
-    static attributes = ['header', 'placement', 'close-on-submit:presence'];
+    static attributes = ['header', 'placement', 'close-on-submit:presence', 'guard-dismiss:presence'];
     static slots = true;
     static template = `
         <dialog data-ref="dialog" class="ful-drawer">
@@ -53,8 +60,9 @@ class Drawer extends ParsedElement {
     #dialog;
     #title;
     #sections;
-    /** @type {{ dismissed: boolean, response: any }|null} */
+    /** @type {{ dismissed: boolean, result: string|null, response: any }|null} */
     #answer = null;
+    #resolvers = [];
     #closing = false;
     #slideOutEnded = (/** @type AnimationEvent */ e) => {
         if (e.target === this.#dialog) {
@@ -77,32 +85,33 @@ class Drawer extends ParsedElement {
         if (placement) {
             this.#dialog.setAttribute('placement', placement);
         }
-        const dismiss = (/** @type {'button'|'backdrop'|'escape'} */ reason, platformCloses = false) =>
-            this.#sections.dismiss(
-                new CustomEvent('drawer:dismiss', { cancelable: !platformCloses, detail: { reason } }),
-                () => this.close(),
-            );
         /** @type {HTMLElement} */ (fragment.querySelector('[data-ref=close]')).addEventListener('click', () =>
-            dismiss('button'),
+            this.dismiss('button'),
         );
-        this.#sections.onBackdrop(() => dismiss('backdrop'));
+        this.#sections.onBackdrop(() => this.dismiss('backdrop'));
         this.#dialog.addEventListener('cancel', (e) => {
             if (!e.cancelable) {
                 this.#stopSlidingOut();
-                dismiss('escape', true);
+                this.#dismiss('escape', false);
                 return;
             }
             e.preventDefault();
-            dismiss('escape');
+            this.dismiss('escape');
+        });
+        this.#dialog.addEventListener('click', (/** @type any */ e) => {
+            const result = e.target.closest('button[data-result]')?.dataset.result;
+            if (result !== undefined) {
+                this.close(result);
+            }
         });
         this.#dialog.addEventListener('close', () => {
-            this.dispatchEvent(
-                new CustomEvent('close', { detail: this.#answer ?? { dismissed: true, response: null } }),
-            );
+            const outcome = this.#outcome();
+            this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
+            this.#settle(outcome);
         });
         if (this.declared('close-on-submit')) {
             this.#sections.onSubmitted((response) => {
-                this.#answer = { dismissed: false, response };
+                this.#answer = { dismissed: false, result: null, response };
                 this.close();
             });
         }
@@ -150,9 +159,36 @@ class Drawer extends ParsedElement {
     refresh() {
         return this.#sections.request();
     }
+    /** @returns {{ dismissed: boolean, result: string|null, response: any }} */
+    #outcome() {
+        return this.#answer ?? { dismissed: true, result: null, response: null };
+    }
+    /** @param {{ dismissed: boolean, result: string|null, response: any }} outcome */
+    #settle(outcome) {
+        const resolvers = this.#resolvers;
+        this.#resolvers = [];
+        for (const resolve of resolvers) {
+            resolve(outcome);
+        }
+    }
     /**
-     * Shows the drawer as a modal. On a drawer already open nothing happens,
-     * except that one sliding out stops and stays open.
+     * Resolves every pending `ask()` and `open()` with the outcome so far,
+     * a dismissal for a drawer still open, so that no caller waits on a drawer
+     * that left the document. The native dialog is not closed and no `close`
+     * event is dispatched.
+     */
+    disconnectedCallback() {
+        this.#settle(this.#outcome());
+    }
+    /**
+     * The same as `ask()`.
+     * @returns {Promise<{ dismissed: boolean, result: string|null, response: any }>}
+     */
+    open() {
+        return this.ask();
+    }
+    /**
+     * Shows the drawer as a modal and resolves with how it ends.
      *
      * The call that opens the drawer resets the outcome of the previous
      * opening, hides the error and loading sections, and dispatches
@@ -160,25 +196,66 @@ class Drawer extends ParsedElement {
      * `detail: { section, first, name: null, index: null }`, `section` being
      * the content section and `first` true only on the first answered request),
      * so a listener can fill the content. A failed request is painted into the
-     * content section.
+     * content section and does not reject. On a drawer already open nothing is
+     * shown or requested, except that one sliding out stops and stays open, and
+     * the call waits for the same ending as the calls before it, which is how
+     * a caller learns the outcome of the opening an `update()` made.
+     * @returns {Promise<{ dismissed: boolean, result: string|null, response: any }>} resolving on
+     * close, or on removal from the document with a dismissal
      */
-    open() {
-        if (!this.#show()) {
-            return;
+    ask() {
+        if (this.#show()) {
+            this.#sections.restChrome();
+            this.#sections.request();
         }
-        this.#sections.restChrome();
-        this.#sections.request();
+        return new Promise((resolve) => {
+            this.#resolvers.push(resolve);
+        });
+    }
+    /**
+     * Dismisses the drawer as the user would: dispatches the cancelable
+     * `drawer:dismiss` with `detail: { reason }` and, under `guard-dismiss`,
+     * asks before dropping unsaved edits, sliding the drawer out as a
+     * dismissal unless either refused. Does nothing on a drawer that is closed
+     * or already sliding out.
+     * @param {string} reason why it is dismissed, such as `navigation`
+     * @returns {Promise<boolean>} whether the drawer is closed or closing,
+     * false when a listener or the user kept it open
+     */
+    dismiss(reason) {
+        if (this.#closing || !this.#dialog.open) {
+            return Promise.resolve(true);
+        }
+        return this.#dismiss(reason, true);
+    }
+    /**
+     * @param {string} reason
+     * @param {boolean} cancelable false for a close the platform makes anyway
+     * @returns {Promise<boolean>}
+     */
+    #dismiss(reason, cancelable) {
+        return this.#sections.dismiss(
+            new CustomEvent('drawer:dismiss', { cancelable, detail: { reason } }),
+            () => this.close(),
+            this.declared('guard-dismiss') ? discardEdits : null,
+        );
     }
     /**
      * Slides the drawer out and closes it when the animation ends, setting the
      * `closing` attribute on the native dialog meanwhile; the `close` event is
      * dispatched then, after this call has returned. Where the user prefers
-     * reduced motion, or no animation runs, it closes at once. Does nothing on
-     * a drawer that is closed or already sliding out.
+     * reduced motion, or no animation runs, it closes at once. A non-empty
+     * result answers as the button carrying that `data-result` would; no
+     * result, or an empty one, is a dismissal. Does nothing on a drawer that is
+     * closed or already sliding out.
+     * @param {string} [result]
      */
-    close() {
+    close(result) {
         if (this.#closing || !this.#dialog.open) {
             return;
+        }
+        if (result) {
+            this.#answer = { dismissed: false, result, response: null };
         }
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
             this.#dialog.close();

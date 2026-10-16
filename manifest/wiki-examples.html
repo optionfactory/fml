@@ -119,6 +119,18 @@ const mount = async (html) => {
     f3.edited(description);
     ok('10 edited() counts it', f3.dirty);
 
+    // ===== 10: submit() and save() answer whether the edits are saved
+    d = await mount(`<ful-form track-changes><ful-input name="description" value="Rent">Description</ful-input></ful-form>`);
+    const f4 = d.querySelector('ful-form');
+    let saves = 0;
+    ful.AsyncEvents.asyncOn(f4, 'submit:requested', async () => (++saves, {}));
+    ok('10 save() of a clean form sends nothing', (await f4.save()) && saves === 0, `${saves}`);
+    const f4typed = f4.querySelector('ful-input input');
+    f4typed.value = 'Rent and bills';
+    f4typed.dispatchEvent(new Event('input', { bubbles: true }));
+    ok('10 save() submits the edits, answering that nothing is left unsaved', (await f4.save()) && saves === 1 && !f4.dirty, `${saves}`);
+    ok('10 submit() resolves true after submit:success', (await f4.submit()) === true);
+
     // ===== 11: keep / reject, and the info slot
     d = await mount(`<ful-input name="vat" keep="[0-9A-Z]" required>VAT number<template slot="info">as printed on the invoice</template></ful-input>`);
     const vat = d.querySelector('ful-input');
@@ -316,6 +328,32 @@ const mount = async (html) => {
     const res = await Promise.race([answer, new Promise((r) => setTimeout(() => r('TIMEOUT'), 1000))]);
     ok('16 dialog ask() resolves with data-result', res?.result === 'published' && res?.dismissed === false, JSON.stringify(res));
 
+    // ===== 16: guard-dismiss asks before a dismissal drops unsaved edits, dismiss() from code included
+    d = await mount(`<ful-dialog header="Edit the entry" guard-dismiss close-on-submit><ful-form track-changes><ful-input name="label" value="a">Label</ful-input></ful-form></ful-dialog>`);
+    const guarded = d.querySelector('ful-dialog');
+    guarded.ask();
+    await new Promise((r) => setTimeout(r, 80));
+    const guardedTyped = guarded.querySelector('ful-input input');
+    guardedTyped.value = 'b';
+    guardedTyped.dispatchEvent(new Event('input', { bubbles: true }));
+    const kept = guarded.dismiss('navigation');
+    await new Promise((r) => setTimeout(r, 120));
+    const discard = [...document.body.querySelectorAll(':scope > ful-dialog')].at(-1);
+    const discardTitle = discard?.querySelector('h2')?.textContent;
+    discard?.querySelector('[data-result=cancel]')?.click();
+    ok('16 guard-dismiss asks, and keeping the edits keeps the dialog open',
+       discardTitle === 'Unsaved changes' && (await kept) === false && guarded.querySelector('dialog').open, discardTitle);
+    guarded.close();
+
+    // ===== 16: a drawer's ask() after update() answers that opening
+    d = await mount(`<ful-drawer header="t"></ful-drawer>`);
+    const asked = d.querySelector('ful-drawer');
+    await asked.update('Edit the entry', () => 'the entry');
+    const ending = asked.ask();
+    asked.close('saved');
+    const ended = await Promise.race([ending, new Promise((r) => setTimeout(() => r('TIMEOUT'), 1000))]);
+    ok('16 drawer ask() after update() resolves with how it ended', ended?.result === 'saved' && ended?.dismissed === false, JSON.stringify(ended));
+
     // ===== 16: ful-menu, the roles and the keyboard
     d = await mount(`<button id="more">More</button><ful-menu for="more"><button data-action="history">History</button><button data-action="shortcuts">Keyboard shortcuts</button></ful-menu>`);
     const invoker = d.querySelector('#more');
@@ -457,30 +495,27 @@ const mount = async (html) => {
     for (const t of ['--ful-active-bg', '--ful-invalid-color', '--ful-border-radius', '--ful-controls-height', '--ful-bg', '--ful-color', '--ful-border-color', '--ful-accent-ink', '--ful-muted-color', '--ful-backdrop-color', '--ful-disabled-bg', '--ful-selected-bg', '--ful-active-color']) {
         ok(`20 root token ${t} defined`, cs.getPropertyValue(t).trim().length > 0, cs.getPropertyValue(t).trim());
     }
-    // the three component-scoped ones, and the selectors the page now names
-    d = await mount(`<ful-dialog header="h">x</ful-dialog><ful-drawer header="t">x</ful-drawer><ful-toasts timeout="60000"></ful-toasts>`);
-    // the toasts rule is *:has(> ful-toast): the token exists only while a toast does
-    d.querySelector('ful-toasts').show('x', { severity: 'info' });
-    await new Promise((r) => setTimeout(r, 100));
-    const scoped = [
+    // the overlay geometry: declared nowhere, read wherever the page sets it
+    d = await mount(`<ful-dialog header="h">x</ful-dialog><ful-drawer class="wide" header="t">x</ful-drawer>`);
+    const overlays = [
         ['--ful-dialog-width', d.querySelector('ful-dialog dialog')],
         ['--ful-drawer-width', d.querySelector('ful-drawer dialog')],
-        ['--ful-toasts-max-width', d.querySelector('ful-toasts')],
     ];
-    for (const [t, el] of scoped) {
-        ok(`20 ${t} is component-scoped, not :root`,
-           cs.getPropertyValue(t).trim() === '' && getComputedStyle(el).getPropertyValue(t).trim().length > 0,
-           `root="${cs.getPropertyValue(t).trim()}" component="${getComputedStyle(el).getPropertyValue(t).trim()}"`);
+    for (const [t, el] of overlays) {
+        ok(`20 ${t} is declared nowhere by the library`,
+           cs.getPropertyValue(t).trim() === '' && getComputedStyle(el).getPropertyValue(t).trim() === '',
+           getComputedStyle(el).getPropertyValue(t).trim());
     }
-    // the override selectors the page recommends
     const sheet = document.createElement('style');
-    sheet.textContent = `dialog.ful-dialog { --ful-dialog-width: 44rem; } dialog.ful-drawer { --ful-drawer-width: 40rem; } ful-toasts { --ful-toasts-max-width: 30rem; }`;
+    sheet.textContent = `:root { --ful-dialog-width: 44rem; } ful-drawer.wide { --ful-drawer-width: 40rem; }`;
     document.head.append(sheet);
-    ok('20 the documented override selectors take',
-       getComputedStyle(scoped[0][1]).getPropertyValue('--ful-dialog-width').trim() === '44rem' &&
-       getComputedStyle(scoped[1][1]).getPropertyValue('--ful-drawer-width').trim() === '40rem' &&
-       getComputedStyle(scoped[2][1]).getPropertyValue('--ful-toasts-max-width').trim() === '30rem',
-       [scoped[0][1], scoped[1][1], scoped[2][1]].map((el, i) => getComputedStyle(el).getPropertyValue(scoped[i][0]).trim()).join(' / '));
+    d.querySelector('ful-dialog').ask();
+    d.querySelector('ful-drawer').open();
+    ok('20 the documented selectors take, :root and a class on the host',
+       getComputedStyle(overlays[0][1]).width === '704px' && getComputedStyle(overlays[1][1]).width === '640px',
+       overlays.map(([, el]) => getComputedStyle(el).width).join(' / '));
+    d.querySelector('ful-dialog').close();
+    d.querySelector('ful-drawer').close();
     sheet.remove();
   } catch (e) {
     log.push(`THREW ${e?.stack ?? e}`);
