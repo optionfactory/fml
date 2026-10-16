@@ -19,6 +19,15 @@ class Composite extends HTMLElement {
 }
 customElements.define('test-composite', Composite);
 
+/** An element holding internals without being form-associated, as every ParsedElement does. */
+class Plain extends HTMLElement {
+    constructor() {
+        super();
+        this.internals = this.attachInternals();
+    }
+}
+customElements.define('test-plain', Plain);
+
 const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
 /** Types into a control as the user does: the value, then the bubbling input event. */
@@ -124,6 +133,31 @@ describe('Form unsaved edits', () => {
 
         type(form.querySelector('test-composite input'), '2');
         assert.isTrue(form.dirty, 'the inner control is not a control of the form, the composite owning it is');
+    });
+
+    it('walks past an element that is not form-associated without reading its owner', async () => {
+        const form = await mountForm(`
+            <ful-form track-changes clear-invalid-on-change>
+                <test-plain><button type="button">act</button></test-plain>
+                <input name="code" value="A1">
+            </ful-form>`);
+        const thrown = [];
+        const onError = (e) => {
+            thrown.push(e.message);
+            e.preventDefault();
+        };
+        window.addEventListener('error', onError);
+        try {
+            const button = form.querySelector('test-plain button');
+            button.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+            button.dispatchEvent(new Event('change', { bubbles: true }));
+            form.querySelector('test-plain').dispatchEvent(new Event('change', { bubbles: true }));
+        } finally {
+            window.removeEventListener('error', onError);
+        }
+
+        assert.deepEqual(thrown, [], 'focusing or changing inside a plain element throws nothing');
+        assert.isFalse(form.dirty, 'and edits nothing');
     });
 
     it('takes the page at its word: edited() and commit()', async () => {

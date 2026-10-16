@@ -133,6 +133,17 @@ class FormLoader {
 }
 
 /**
+ * The form owning an element: its `form` property, or `internals.form` for a
+ * form-associated element that has none. An element no form can own answers
+ * undefined, its internals, which every ParsedElement holds, throwing on a
+ * read of `form` unless the element is form-associated.
+ * @param {any} el
+ * @returns {HTMLFormElement|null|undefined}
+ */
+const ownerOf = (el) =>
+    el.form !== undefined ? el.form : el.constructor?.formAssociated ? el.internals?.form : undefined;
+
+/**
  * Moves its children into a native `<form novalidate>`, extracts their values
  * on submit and hands them to a loader, reporting problems through `errors`.
  * Being `novalidate`, the form submits whatever the validity of its fields:
@@ -197,7 +208,7 @@ class Form extends ParsedElement {
         );
         if (this.declared('clear-invalid-on-change')) {
             this.addEventListener('change', (/** @type any */ evt) => {
-                if ((evt.target.form ?? evt.target.internals?.form) !== this.form) {
+                if (ownerOf(evt.target) !== this.form) {
                     return;
                 }
                 evt.target.setCustomValidity?.('');
@@ -428,7 +439,7 @@ class Form extends ParsedElement {
      */
     #nameOf(target) {
         for (let el = target; el && el !== this; el = el.parentElement) {
-            if ((el.form ?? el.internals?.form) === this.form && el.hasAttribute('name')) {
+            if (ownerOf(el) === this.form && el.hasAttribute('name')) {
                 return el.getAttribute('name');
             }
         }
