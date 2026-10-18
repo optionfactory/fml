@@ -115,7 +115,7 @@
     </fieldset>
 
     <h2>menus</h2>
-    <p>A button and the commands it opens. <code>for</code> names the invoker; the items are the buttons written inside the menu, which the element marks and takes out of the tab order. Open it and walk it with the arrows, Home and End, type a letter to jump, Enter to activate, Escape to close with the focus back on the button. The second menu is the same element against an invoker further down the page.</p>
+    <p>A button and the commands it opens. <code>for</code> names the invoker; the items are the buttons written inside the menu, which the element marks and takes out of the tab order. Open it and walk it with the arrows, Home and End, type a letter to jump, Enter to activate, Escape to close with the focus back on the button. The second menu is the same element against an invoker further down the page. The third has no <code>for</code>: one menu serves every row, and the page opens it beside the row's button with <code>showFor(invoker)</code>.</p>
     <fieldset>
         <legend>a menu of commands, one of them refused, and a separator</legend>
         <div class="row">
@@ -138,6 +138,20 @@
             <button type="button" class="ful-button ghost" id="add-recent">Add one more</button>
         </div>
         <ful-menu for="recent"></ful-menu>
+    </fieldset>
+    <fieldset>
+        <legend>one menu shared by the rows of a list, opened with showFor</legend>
+        <ul class="shared-rows">
+            <li>invoice 2026/001 <button type="button" class="ful-button ghost" aria-label="Actions for invoice 2026/001" data-row="2026/001">⋯</button></li>
+            <li>invoice 2026/002 <button type="button" class="ful-button ghost" aria-label="Actions for invoice 2026/002" data-row="2026/002">⋯</button></li>
+            <li>invoice 2026/003 <button type="button" class="ful-button ghost" aria-label="Actions for invoice 2026/003" data-row="2026/003">⋯</button></li>
+        </ul>
+        <output id="shared-result">the row and the command you pick appear here</output>
+        <ful-menu id="row-menu">
+            <button data-action="open">Open</button>
+            <button data-action="duplicate">Duplicate</button>
+            <button data-action="delete">Delete</button>
+        </ful-menu>
     </fieldset>
 
     <h2>toasts</h2>
@@ -215,6 +229,22 @@
         addRecent();
         addRecent();
         byId('add-recent').addEventListener('click', addRecent);
+
+        const rowMenu = byId('row-menu');
+        let row = null;
+        document.querySelector('.shared-rows').addEventListener('click', (e) => {
+            const invoker = e.target.closest('[data-row]');
+            if (invoker) {
+                row = invoker.dataset.row;
+                rowMenu.showFor(invoker);
+            }
+        });
+        rowMenu.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (action) {
+                byId('shared-result').textContent = `picked: ${action} on ${row}`;
+            }
+        });
 
         byId('toast-from-event').addEventListener('click', () => {
             document.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'raised without any reference to the region', severity: 'success' } }));

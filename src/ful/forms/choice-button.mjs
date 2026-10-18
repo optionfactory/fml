@@ -203,7 +203,7 @@ class ChoiceButton {
     }
     #wire() {
         Anchors.wire(this.#button, this.#menu, { prefix: 'ful-filter-menu', invoke: true, expanded: true });
-        wireMenuKeys(this.#button, this.#menu, {
+        wireMenuKeys(() => this.#button, this.#menu, {
             items: () => this.#items(),
             current: () => this.#items().find((a) => a.getAttribute('value') === this.value),
         });

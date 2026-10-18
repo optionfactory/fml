@@ -269,3 +269,117 @@ describe('ful-menu', () => {
         assert.notStrictEqual(built.menu.style.left, '', 'and the fallback did place it');
     });
 });
+
+describe('ful-menu shared by several invokers', () => {
+    const buildShared = async () => {
+        const container = await mount(
+            `<button>Row one</button><button>Row two</button><ful-menu><button>Duplicate</button><button>Rename</button><button>Delete</button></ful-menu>`,
+            { children: true },
+        );
+        const [first, second] = /** @type HTMLElement[] */ ([...container.querySelectorAll(':scope > button')]);
+        const menu = /** @type any */ (container.querySelector('ful-menu'));
+        for (const invoker of [first, second]) {
+            invoker.addEventListener('click', () => menu.showFor(invoker));
+        }
+        return { first, second, menu };
+    };
+
+    const openedFor = async (invoker, menu) => {
+        const toggled = new Promise((resolve) => menu.addEventListener('toggle', resolve, { once: true }));
+        invoker.click();
+        await toggled;
+    };
+
+    it('opens from each invoker in turn, walks with the arrows and hands the focus back to the one that opened it', async () => {
+        const { first, second, menu } = await buildShared();
+
+        await openedFor(first, menu);
+        press('ArrowDown');
+        assert.strictEqual(focused(), 'Rename', 'the arrows walk the items of a menu opened by showFor');
+        press('Escape', 'Escape');
+        assert.strictEqual(focused(), 'Row one', 'Escape hands the focus back to the first invoker, which opened it');
+        menu.hidePopover();
+
+        await openedFor(second, menu);
+        assert.strictEqual(focused(), 'Duplicate', 'opening for the second invoker focuses the first item');
+        press('End');
+        assert.strictEqual(focused(), 'Delete', 'End reaches the last item');
+        press('Escape', 'Escape');
+        assert.strictEqual(
+            focused(),
+            'Row two',
+            'Escape hands the focus back to the second invoker, which opened it this time',
+        );
+    });
+
+    it('places itself beside the invoker it opens for', async () => {
+        const { second, menu } = await buildShared();
+
+        await openedFor(second, menu);
+        const anchor = second.getBoundingClientRect();
+        const box = menu.getBoundingClientRect();
+
+        assert.isAtLeast(box.top, anchor.bottom - 1, 'the menu opens below the invoker');
+        assert.isBelow(Math.abs(box.left - anchor.left), 1, 'the menu starts where the invoker starts');
+    });
+
+    it('keeps aria-expanded in step on the invoker it is open for', async () => {
+        const { first, second, menu } = await buildShared();
+
+        await openedFor(first, menu);
+        assert.strictEqual(first.getAttribute('aria-haspopup'), 'menu', 'showFor tells the invoker what it opens');
+        assert.strictEqual(
+            first.getAttribute('aria-expanded'),
+            'true',
+            'the invoker the menu is open for reads expanded',
+        );
+
+        menu.showFor(second);
+        assert.isTrue(menu.matches(':popover-open'), 'showFor while open moves the menu rather than closing it');
+        assert.strictEqual(
+            first.getAttribute('aria-expanded'),
+            'false',
+            'the invoker the menu moved away from reads collapsed',
+        );
+        assert.strictEqual(
+            second.getAttribute('aria-expanded'),
+            'true',
+            'the invoker the menu moved to reads expanded',
+        );
+        assert.strictEqual(focused(), 'Duplicate', 'moving the menu puts the focus on its first item again');
+
+        const closed = new Promise((resolve) => menu.addEventListener('toggle', resolve, { once: true }));
+        menu.hidePopover();
+        await closed;
+        assert.strictEqual(
+            second.getAttribute('aria-expanded'),
+            'false',
+            'closing the menu collapses the invoker it was open for',
+        );
+    });
+
+    it('closes on a second press of the same invoker instead of opening again', async () => {
+        const { first, menu } = await buildShared();
+
+        await openedFor(first, menu);
+        first.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+        menu.hidePopover();
+        first.click();
+        await tick();
+        assert.isFalse(menu.matches(':popover-open'), 'the press that light-dismissed the menu does not open it again');
+
+        await openedFor(first, menu);
+        assert.isTrue(menu.matches(':popover-open'), 'a later press opens it as usual');
+    });
+
+    it('refuses showFor on a menu that names its invoker through for', async () => {
+        const { menu } = await build();
+        const other = /** @type HTMLElement */ (appended('<button>other</button>').firstElementChild);
+
+        assert.throws(
+            () => menu.showFor(other),
+            /showFor serves a menu without for/,
+            'a menu owned by its for invoker is not shared',
+        );
+    });
+});

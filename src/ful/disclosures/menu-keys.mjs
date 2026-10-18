@@ -33,7 +33,9 @@ const TYPEAHEAD_WINDOW = 500;
  * `items` answers the items in the order they are walked, and is called on
  * every gesture, so a menu that fills itself later needs no rewiring.
  *
- * @param {HTMLElement} invoker the element the menu belongs to, and where the focus goes back
+ * @param {() => HTMLElement|null} invoker answers the element the menu belongs to
+ *   now, where the focus goes back; called on every gesture, so a menu shared
+ *   by several invokers hands the focus back to the one that opened it
  * @param {HTMLElement} menu the `[popover]` holding the items
  * @param {{items: () => HTMLElement[], current?: () => HTMLElement|null|undefined}} conf
  *   `items` answers the items; `current` answers the item an opening focuses
@@ -43,7 +45,7 @@ const wireMenuKeys = (invoker, menu, { items, current = () => null }) => {
     let typedAt = 0;
     menu.addEventListener('beforetoggle', (/** @type any */ evt) => {
         if (evt.newState === 'closed' && menu.contains(document.activeElement)) {
-            invoker.focus();
+            invoker()?.focus();
         }
     });
     menu.addEventListener('toggle', (/** @type any */ evt) => {
@@ -87,11 +89,11 @@ const wireMenuKeys = (invoker, menu, { items, current = () => null }) => {
             case 'Space': {
                 evt.preventDefault();
                 item.click();
-                invoker.focus();
+                invoker()?.focus();
                 return;
             }
             case 'Escape': {
-                invoker.focus();
+                invoker()?.focus();
                 return;
             }
         }
