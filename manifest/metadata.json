@@ -207,7 +207,7 @@
             "slots": {},
             "events": {
                 "submit": "Cancelable. Fired before anything is sent: preventDefault aborts the submit.",
-                "submit:requested": "Fired after the submit was accepted, to let a listener resolve the response itself.",
+                "submit:requested": "Fired after the submit was accepted, to let a listener resolve the response itself. Register it through AsyncEvents.asyncOn: the form awaits only such a listener, and one added with addEventListener is not waited for.",
                 "submit:success": "Fired with the submitted values and the mapped response.",
                 "submit:failure": "Fired with the exception when the submit fails. The form does not rethrow: submit() resolves false, as it resolves true after submit:success.",
                 "dirty:change": "Fired under track-changes when the form starts or stops holding edits not saved yet, with dirty in the detail."
