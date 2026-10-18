@@ -144,8 +144,16 @@ const css = (fileName) => {
 
 export class RollupTypeGenerator {
     name = 'rollup-plugin-type-generator';
-    constructor(ns) {
+    /**
+     * @param {string} ns the bundle whose declarations are generated
+     * @param {{ tags?: string }} [options] `tags` names the source whose
+     * `defineElement('tag', Class)` calls map the tags to their classes in
+     * `HTMLElementTagNameMap`, so `querySelector('ful-form')` and
+     * `createElement('ful-form')` are typed as the element's class
+     */
+    constructor(ns, { tags } = {}) {
         this.ns = ns;
+        this.tags = tags;
     }
     closeBundle = () => {
         console.log(`Post-processing: Extracting type definitions from dist/${this.ns}.mjs...`);
@@ -157,9 +165,25 @@ export class RollupTypeGenerator {
         if (!fs.existsSync(declarationPath)) {
             throw new Error(`dist/${this.ns}.d.mts was not generated`);
         }
+        if (this.tags) {
+            fs.appendFileSync(declarationPath, this.#tagNameMap(fs.readFileSync(declarationPath, 'utf8')));
+        }
         fs.appendFileSync(declarationPath, `\nexport as namespace ${this.ns};\n`);
         console.log(`Successfully injected global namespace "${this.ns}" into declarations.`);
     };
+    #tagNameMap(declarations) {
+        const pairs = [...fs.readFileSync(this.tags, 'utf8').matchAll(/defineElement\('([a-z0-9-]+)',\s*(\w+)\)/g)];
+        if (pairs.length === 0) {
+            throw new Error(`${this.tags} defines no element`);
+        }
+        for (const [, tag, klass] of pairs) {
+            if (!new RegExp(`^declare class ${klass}\\b`, 'm').test(declarations)) {
+                throw new Error(`${tag} maps to ${klass}, which dist/${this.ns}.d.mts does not declare`);
+            }
+        }
+        const entries = pairs.map(([, tag, klass]) => `        '${tag}': ${klass};`).join('\n');
+        return `\ndeclare global {\n    interface HTMLElementTagNameMap {\n${entries}\n    }\n}\n`;
+    }
 }
 
 /**
@@ -271,7 +295,7 @@ export default [
         plugins: [
             resolve(),
             css('ful.css'),
-            new RollupTypeGenerator('ful'),
+            new RollupTypeGenerator('ful', { tags: 'src/ful/plugin.mjs' }),
         ],
     },
     {

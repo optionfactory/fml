@@ -270,6 +270,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 #### Packaging
 
 - [ENH] `dist/fml.d.mts` re-exports the three declaration files, so a type reached through `@optionfactory/fml` and through `@optionfactory/fml/ftl` is the same type
+- [ENH] `dist/ful.d.mts` maps every element's tag to its class in `HTMLElementTagNameMap`, so `querySelector('ful-form')` and `createElement('ful-table')` are typed as `Form` and `Table` rather than as a bare `Element`
 - [ENH] a release candidate is published under the `rc` dist-tag; a bare `npm install @optionfactory/fml` resolves to the latest release
 - [REF] internal: the ful sources are grouped by family (`chrome/`, `disclosures/`, `forms/`, `navigation/`, `l10n/`); the entries and the published bundles are unchanged
 
