@@ -145,11 +145,12 @@ class DialogSections {
      * `show`, and fills the content with what the callback resolves to. A
      * rejection is shown, as the problems' reasons, in the error section, and
      * the content is hidden. When a newer `update()` starts before the callback
-     * settles, this call paints nothing: it resolves with the section regardless,
-     * and still rejects with the callback's error.
+     * settles, this call paints nothing and resolves `null`, the section being
+     * the newer call's; it still rejects with the callback's error.
      * @param {() => Node|string|Promise<Node|string>} cb producing the content
      * @param {() => void} show opens the dialog when it is closed
-     * @returns {Promise<HTMLElement>} the content section
+     * @returns {Promise<HTMLElement|null>} the content section, or `null` for a
+     * call a newer one overtook
      * @throws {any} what the callback threw or rejected with
      */
     async update(cb, show) {
@@ -162,7 +163,7 @@ class DialogSections {
         try {
             const delivered = await cb();
             if (claim.stale) {
-                return this.#section;
+                return null;
             }
             this.#section.replaceChildren(delivered);
             this.#loading?.setAttribute('hidden', '');

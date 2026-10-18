@@ -205,11 +205,12 @@ class Dialog extends ParsedElement {
      *
      * No `section:requested` is dispatched, and no `ask()` waiter is added:
      * listen for the `close` event to learn how the dialog ended. When a newer
-     * `update()` starts before the callback settles, this call paints nothing:
-     * it resolves with the body regardless, and still rejects with the
-     * callback's error.
+     * `update()` starts before the callback settles, this call paints nothing
+     * and resolves `null`, the body being the newer call's; it still rejects
+     * with the callback's error.
      * @param {() => Node|string|Promise<Node|string>} cb producing the body content
-     * @returns {Promise<Element>} the body section, in the document
+     * @returns {Promise<Element|null>} the body section, in the document, or
+     * `null` for a call a newer one overtook
      * @throws {any} what the callback threw or rejected with
      */
     async update(cb) {

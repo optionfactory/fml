@@ -137,12 +137,13 @@ class Drawer extends ParsedElement {
      * which has `role="alert"`, and the content is hidden.
      *
      * No `section:requested` is dispatched. When a newer `update()` starts
-     * before the callback settles, this call paints nothing: it resolves with
-     * the content section regardless, and still rejects with the callback's
-     * error.
+     * before the callback settles, this call paints nothing and resolves
+     * `null`, the content section being the newer call's; it still rejects with
+     * the callback's error.
      * @param {string} header the title, set as text
      * @param {() => Node|string|Promise<Node|string>} cb producing the content
-     * @returns {Promise<Element>} the content section, in the document
+     * @returns {Promise<Element|null>} the content section, in the document, or
+     * `null` for a call a newer one overtook
      * @throws {any} what the callback threw or rejected with
      */
     async update(header, cb) {

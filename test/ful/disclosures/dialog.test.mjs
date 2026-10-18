@@ -819,7 +819,7 @@ for (const { tag, content, open, update } of elements) {
             await closed(el);
         });
 
-        it('a superseded update() paints nothing, resolving with the section the newer one filled', async () => {
+        it("a superseded update() paints nothing and resolves null, the section being the newer one's", async () => {
             const [el] = await mount(`<${tag} header="t">body</${tag}>`);
             const first = Promise.withResolvers();
             const stale = update(el, () => first.promise);
@@ -832,7 +832,10 @@ for (const { tag, content, open, update } of elements) {
             first.resolve(abandoned);
             const staleSection = await stale;
 
-            assert.isTrue(staleSection === freshSection, 'there is one content section, shared by the openings');
+            assert.isTrue(
+                staleSection === null,
+                'the overtaken call is told so, rather than handed the section the newer call filled',
+            );
             assert.isFalse(abandoned.isConnected, 'the superseded delivery was never painted');
             assert.include(
                 freshSection.textContent,
