@@ -421,6 +421,14 @@ class Field extends ParsedElement {
      *   accessibility tree.
      * - `also` are further controls that mirror `disabled` and `readOnly`
      *   beside the claim target.
+     *
+     * The pieces are elements the field rendered itself, native controls or
+     * wrappers of its own. A ful field is not one: it has no `readOnly`, its
+     * host's role takes no aria, and a label's `for` names its host rather than
+     * its control. A composite built from ful fields answers the inner field as
+     * `control`, which forwards `focus()`, lets it render its own label with
+     * `label` and `announces` null, and forwards the claims in its setters,
+     * calling super first.
      * @param {{ slots: Record<string, DocumentFragment> | undefined }} conf
      * @returns {any} the pieces, or a promise of them
      * @throws {Error} when the subclass does not implement it
