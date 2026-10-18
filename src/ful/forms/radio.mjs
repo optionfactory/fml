@@ -112,7 +112,7 @@ class RadioGroup extends Field {
             return;
         }
         /** @type {HTMLInputElement|null} */
-        const el = this.querySelector(`input[type=radio][value=${CSS.escape(String(value))}]`);
+        const el = this.querySelector(`input[type=radio][value="${CSS.escape(String(value))}"]`);
         if (el === null) {
             clear();
             return;

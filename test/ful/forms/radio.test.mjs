@@ -95,6 +95,23 @@ describe('RadioGroup value', () => {
         assert.strictEqual(group.value, 'k2', "the group value answers the checked radio's value");
     });
 
+    it('selects the radio whose value is the empty string, and clears again on null', async () => {
+        const container = await mount(
+            `<ful-radio-group name="a">label<ful-radio value="">no preference</ful-radio><ful-radio value="k1">one</ful-radio></ful-radio-group>`,
+        );
+        const group = container.querySelector('ful-radio-group');
+
+        group.value = '';
+        assert.strictEqual(group.value, '', 'an option carrying an empty value is a value like any other');
+        assert.isTrue(
+            group.querySelectorAll('input[type=radio]')[0].checked,
+            'the empty-valued radio is the one checked',
+        );
+
+        group.value = null;
+        assert.isNull(group.value, 'null still clears the selection');
+    });
+
     it('reads a type=boolean group back as a real boolean instead of the attribute text', async () => {
         const container = await mount(
             `<ful-radio-group name="a" type="boolean"><ful-radio value="true">yes</ful-radio><ful-radio value="false">no</ful-radio></ful-radio-group>`,

@@ -152,6 +152,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] an invalid `ful-radio-group` outlines its labels in the invalid colour
 - [BUG] instants: a date-only value (`2024-03-15`) is local midnight, and a value that does not parse reports no value instead of throwing
 - [BUG] `ful-local-date` and `ful-instant` render the `default` text for content that does not parse
+- [BUG] assigning `''` to a `ful-radio-group` selects the radio whose value is empty instead of throwing on an invalid selector
 
 #### ful-input
 
