@@ -1,7 +1,7 @@
 import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { Failure } from '../../../src/httpc/index.mjs';
-import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { ParsedElement, registry, Rendering } from '../../../src/ftl/index.mjs';
 import { AsyncEvents, FormLoader, Plugin } from '../../../src/ful/index.mjs';
 import { appended, attached } from '../../harness.mjs';
 
@@ -537,6 +537,37 @@ describe('Form submit outcome events', () => {
             'a field problem with a null context is shown in the banner',
         );
         assert.isFalse(errors.hasAttribute('hidden'), 'the banner is revealed to show the problem with no context');
+    });
+
+    it('shows in the banner a problem for a form participant that cannot show it itself', async () => {
+        class BareParticipant extends ParsedElement {
+            static formAssociated = true;
+        }
+        registry.defineElement('x-bare-participant', BareParticipant);
+        stubLoader({
+            prepare: async (v) => v,
+            submit: async () => {
+                throw new Failure('invalid', [
+                    { type: 'FIELD_ERROR', context: 'conditions', reason: 'pick at least one' },
+                ]);
+            },
+            transform: async (r) => r,
+        });
+        const [form] = await mount(`
+            <ful-form>
+                <ful-errors hidden></ful-errors>
+                <x-bare-participant name="conditions"></x-bare-participant>
+            </ful-form>`);
+
+        await form.submit();
+
+        const errors = form.querySelector('ful-errors');
+        assert.strictEqual(
+            errors.textContent,
+            'pick at least one',
+            'a participant with no setCustomValidity cannot show the problem, so the banner does instead of nobody',
+        );
+        assert.isFalse(errors.hasAttribute('hidden'), 'the banner is revealed to show it');
     });
 
     it('shows a field problem with an empty context in the banner, as a null one', async () => {

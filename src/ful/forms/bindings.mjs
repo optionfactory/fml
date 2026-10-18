@@ -240,6 +240,11 @@ class Bindings {
      * `rest` being the remainder of the path (`''` on an exact match) that a
      * composite can use to route the problem to an inner control.
      *
+     * A control counts only when it can show a problem, through a
+     * `setCustomValidity` of its own: a form-associated element that has none is
+     * skipped, so its problems fall to a shorter prefix or to the banner instead
+     * of being dropped.
+     *
      * Every other problem, and a field problem naming no control, is shown in
      * each `ful-errors` banner of the form: the banner gets `role="alert"`, is
      * revealed and holds the reasons one per line. With no such problem the
@@ -278,7 +283,7 @@ class Bindings {
             const parts = name.split('.');
             for (let i = parts.length; i !== 0; --i) {
                 const prefix = parts.slice(0, i).join('.');
-                const targets = named.get(prefix) ?? [];
+                const targets = (named.get(prefix) ?? []).filter((el) => typeof el.setCustomValidity === 'function');
                 if (targets.length === 0) {
                     continue;
                 }
