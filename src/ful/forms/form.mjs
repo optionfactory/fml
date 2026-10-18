@@ -151,7 +151,8 @@ const ownerOf = (el) =>
  *
  * Attributes on the host starting with `form-` are forwarded, without the
  * prefix, to the native form. `autocomplete` is copied onto the native form as
- * well and stays on the host, the fields reading it from either.
+ * well and stays on the host, the fields reading it from either; a
+ * `form-autocomplete` has the last word on the native form.
  * `clear-invalid-on-change` clears the custom validity of a field of this form
  * when a `change` event bubbles from it; the field's form is read from its
  * `form` property, or from `internals.form` for a form-associated element
@@ -186,8 +187,8 @@ class Form extends ParsedElement {
         const form = document.createElement('form');
         this.form = form;
         form.setAttribute('novalidate', '');
-        Attributes.forward('form-', this, form);
         Attributes.set(form, 'autocomplete', this.declared('autocomplete'));
+        Attributes.forward('form-', this, form);
         form.replaceChildren(...this.childNodes);
         form.addEventListener('submit', async (e) => {
             e.preventDefault();

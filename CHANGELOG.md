@@ -154,6 +154,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `ful-local-date` and `ful-instant` render the `default` text for content that does not parse
 - [BUG] assigning `''` to a `ful-radio-group` selects the radio whose value is empty instead of throwing on an invalid selector
 - [BUG] a server problem naming a form-associated element with no `setCustomValidity` of its own is shown in the `ful-errors` banner instead of being dropped
+- [BUG] a `form-autocomplete` on a `ful-form` reaches the form it renders instead of being removed when the host declares no `autocomplete`, and has the last word over `autocomplete` there, as `input-autocomplete` has on a field
 
 #### ful-input
 

@@ -504,6 +504,29 @@ describe('Input autocomplete inherited from the form', () => {
             'the ful-form writes its token on the form element it renders',
         );
     });
+    it('keeps a form-autocomplete forwarded to the form it renders', async () => {
+        const el = await mountIn('<ful-form form-autocomplete="off"><ful-input name="a">l</ful-input></ful-form>');
+        assert.strictEqual(
+            el.closest('form').getAttribute('autocomplete'),
+            'off',
+            'a form-autocomplete reaches the rendered form when the host declares no autocomplete',
+        );
+        assert.strictEqual(
+            el.querySelector('input').getAttribute('autocomplete'),
+            'off',
+            'a field inherits the token forwarded through form-autocomplete',
+        );
+    });
+    it('lets the form- passthrough have the last word on the rendered form', async () => {
+        const el = await mountIn(
+            '<ful-form autocomplete="on" form-autocomplete="off"><ful-input name="a">l</ful-input></ful-form>',
+        );
+        assert.strictEqual(
+            el.closest('form').getAttribute('autocomplete'),
+            'off',
+            'the form-autocomplete passthrough wins over the autocomplete attribute, as input-autocomplete does on a field',
+        );
+    });
     it('lets a field keep its own token', async () => {
         const el = await mountIn(
             '<ful-form autocomplete="off"><ful-input name="a" autocomplete="street-address">l</ful-input></ful-form>',
