@@ -62,7 +62,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - a class's `static config` is read when the registry is configured: replace it before `configure()`
 - the `csvm` mapper is gone: an element declaring `value:csvm` moves to `csv` or to a mapper of its own
 - `registry.upgrades` is replaced by `pending()`, `whenUpgraded(el)` and `settle(accept)`
-- the evaluation scope is one `ExpressionEvaluator`: `Template.withContext`, `withContextFrom`, `withModules` and `withData` collapse into `withEvaluator(evaluator)`, the `Template` constructor takes `(fragment, evaluator)`, `Registry.context()` becomes `evaluator()`, and `Template.evaluate(expression, mode, ...data)` and `ExpressionEvaluator.evaluate(expression, mode)` become `evaluateExpression(...)` and `evaluateTemplated(...)`
+- the evaluation scope is one `ExpressionEvaluator`: `Template.withContext`, `withContextFrom`, `withModules` and `withData` collapse into `withEvaluator(evaluator)`, the `Template` constructor takes `(fragment, evaluator)`, `Registry.context()` becomes `evaluator()`, and `Template.evaluate(expression, mode, ...data)` and `ExpressionEvaluator.evaluate(expression, mode)` become `evaluateExpression(...)` and `evaluateTemplated(...)`. The usual call needs no evaluator: on a template carrying no data of its own, the way `Templates.fromSelector(...)` makes one, `withData([a, b])` becomes `withOverlay(a, b)` and `withModules(modules)` becomes `withModule(null, modules)`
 - a `RenderError` carries one frame per nesting level naming its node, so its message reads ``Error evaluating data-tpl-each="rows" in `<ul>` `` where it read `Error rendering template` followed by the template's markup
 
 **httpc**
