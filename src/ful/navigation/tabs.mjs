@@ -21,15 +21,25 @@ import { SectionRequests } from '../events/sections.mjs';
  * on the host, bubbling, with detail `{ name: null, section, index, first }`,
  * and awaits the answers registered through `AsyncEvents.asyncOn`, so a panel
  * can deliver itself asynchronously: see `SectionRequests`.
+ *
+ * The tablist stays on one line. When the tabs do not fit it scrolls sideways,
+ * and a previous and a next button appear at the side that has more tabs,
+ * each bringing the next hidden tab into view. They stay out of the tab order:
+ * the keyboard moves through the tabs with the arrow keys. The active tab is
+ * kept in view when it changes and when the tablist changes width.
  */
 class Tabs extends ParsedElement {
     static slots = true;
     static observed = ['active:number'];
     static template = `
+        <button type="button" class="ful-tabs-scroll" data-ref="scroll-start" tabindex="-1" hidden data-tpl-aria-label="#l10n:t('tabs.previous')"><ful-icon name="chevron-left" aria-hidden="true"></ful-icon></button>
         <ful-tablist role="tablist">{{{{ slots.tabs }}}}</ful-tablist>
+        <button type="button" class="ful-tabs-scroll" data-ref="scroll-end" tabindex="-1" hidden data-tpl-aria-label="#l10n:t('tabs.next')"><ful-icon name="chevron-right" aria-hidden="true"></ful-icon></button>
         {{{{ slots.default }}}}
     `;
     #tablist;
+    #scrollStart;
+    #scrollEnd;
     #tabs = [];
     #panels = [];
     #requests = new SectionRequests();
@@ -44,8 +54,11 @@ class Tabs extends ParsedElement {
     render({ slots }) {
         const fragment = this.template().withOverlay({ slots }).render();
         this.#tablist = fragment.querySelector('ful-tablist');
+        this.#scrollStart = fragment.querySelector('[data-ref="scroll-start"]');
+        this.#scrollEnd = fragment.querySelector('[data-ref="scroll-end"]');
+        const chrome = [this.#tablist, this.#scrollStart, this.#scrollEnd];
         const declared = [...this.#tablist.children];
-        this.#panels = [...fragment.children].filter((el) => el !== this.#tablist);
+        this.#panels = [...fragment.children].filter((el) => !chrome.includes(el));
         if (declared.length !== this.#panels.length) {
             console.warn(
                 `ful-tabs: ${declared.length} tabs declared for ${this.#panels.length} panels, the surplus is left alone`,
@@ -93,7 +106,74 @@ class Tabs extends ParsedElement {
             this.active = target;
             this.#tabs[target].focus();
         });
+        this.#scrollStart.addEventListener('click', () => this.#scrollByOneTab(-1));
+        this.#scrollEnd.addEventListener('click', () => this.#scrollByOneTab(1));
+        this.#tablist.addEventListener('scroll', () => this.#showScrollButtons(), { passive: true });
+        let width = -1;
+        const resizes = new ResizeObserver(() => {
+            this.#showScrollButtons();
+            if (this.#tablist.clientWidth !== width) {
+                width = this.#tablist.clientWidth;
+                this.#bringIntoView(this.#tabs[this.#active], 'auto');
+            }
+        });
+        resizes.observe(this.#tablist);
+        for (const tab of this.#tabs) {
+            resizes.observe(tab);
+        }
         this.replaceChildren(fragment);
+    }
+    /**
+     * Shows each scroll button only when there are tabs beyond its side, and
+     * sizes both to the height of the tablist above its border.
+     * @returns {void}
+     */
+    #showScrollButtons() {
+        const list = this.#tablist;
+        const overflow = list.scrollWidth - list.clientWidth;
+        this.#scrollStart.hidden = list.scrollLeft <= 1;
+        this.#scrollEnd.hidden = list.scrollLeft >= overflow - 1;
+        this.#scrollStart.style.blockSize = this.#scrollEnd.style.blockSize = `${list.clientHeight}px`;
+    }
+    /**
+     * The part of the tablist that no scroll button covers.
+     * @returns {{ start: number, end: number }}
+     */
+    #visibleRange() {
+        const view = this.#tablist.getBoundingClientRect();
+        return { start: view.left + this.#scrollStart.offsetWidth, end: view.right - this.#scrollEnd.offsetWidth };
+    }
+    /**
+     * Scrolls the tablist so that the first tab cut by the side the direction
+     * points to is wholly visible.
+     * @param {1 | -1} direction 1 towards the end, -1 towards the start
+     * @returns {void}
+     */
+    #scrollByOneTab(direction) {
+        const { start, end } = this.#visibleRange();
+        const target =
+            direction > 0
+                ? this.#tabs.find((tab) => tab.getBoundingClientRect().right > end + 1)
+                : this.#tabs.findLast((tab) => tab.getBoundingClientRect().left < start - 1);
+        this.#bringIntoView(target, matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+    }
+    /**
+     * Scrolls the tablist, and only the tablist, the least needed to show a tab
+     * wholly.
+     * @param {HTMLElement | undefined} tab
+     * @param {ScrollBehavior} behavior
+     * @returns {void}
+     */
+    #bringIntoView(tab, behavior) {
+        if (!tab) {
+            return;
+        }
+        const { start, end } = this.#visibleRange();
+        const box = tab.getBoundingClientRect();
+        const delta = box.right > end ? Math.ceil(box.right - end) : box.left < start ? Math.floor(box.left - start) : 0;
+        if (delta !== 0) {
+            this.#tablist.scrollBy({ left: delta, behavior });
+        }
     }
     /**
      * The index of the visible panel, reflected to the `active` attribute.
@@ -137,6 +217,7 @@ class Tabs extends ParsedElement {
         }
         this.#active = index;
         this.reflectTo('active', index);
+        this.#bringIntoView(this.#tabs[index], 'auto');
         if (this.rendered && index !== previous) {
             this.dispatchEvent(new CustomEvent('tabs:change', { detail: { active: index, previous } }));
         }

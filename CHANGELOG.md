@@ -75,6 +75,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 **Everything else**
 
+- `ful-tablist` no longer wraps its tabs onto more lines: it scrolls. `ful-tabs` renders two scroll buttons (`.ful-tabs-scroll`) beside it, so a query for the tabs selects `[role="tab"]` rather than every `button` of the host
 - `Timing.debounce(ms, fn, { immediate })` and `Timing.throttle(ms, fn, { leading, trailing })` take an options object; the six `DEBOUNCE_*`/`THROTTLE_*` constants are gone
 - the package declares `sideEffects: false`: a bundler importing through the root entry may drop the `window.ftl`/`window.httpc`/`window.ful` assignments. Script-tag users of `dist/fml.mjs` are unaffected; `import * as fml` keeps the namespaces explicit
 
@@ -248,6 +249,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 #### ful: navigation (tabs, accordion, wizard) and async sections
 
 - [NEW] `ful-tabs`: `<tab>` elements in the `tabs` slot paired with the panels in order, arrow-key navigation, the `active` attribute or property picking the panel, and a `tabs:change` event carrying `{ active, previous }`
+- [NEW] `ful-tabs` keeps its tablist on one line: tabs that do not fit scroll sideways, a previous and a next button (`tabs.previous`, `tabs.next`) appear at the side with more tabs and bring the next hidden tab into view, and the active tab is kept in view. The fade under the buttons reads `--ful-tabs-scroll-bg`, falling back to `--ful-bg`
 - [NEW] `ful-accordion`: styling over native `details`/`summary`, `exclusive` keeping one panel open
 - [NEW] `ful-wizard`: `<step>` declarations over `data-step` sections, `next()`/`prev()`/`move(name)`, the focus moving to the entered section and a `wizard:change` event carrying `{ index, step }`; `progress` picks the chrome (the current step by default, `timeline`, `dots` or `none`)
 - [NEW] async sections: entering a tab panel or a wizard section, or opening a dialog or drawer, fires `section:requested`, then `section:requested:#<index>` and, where the section has a name, `section:requested:<name>`, on the component. A listener registered through `AsyncEvents.asyncOn` delivers the section's content; the component shows a loading state and paints a failure, the wizard's `move()` rejecting on one, and `refresh()` fires the request again. Without a listener nothing changes

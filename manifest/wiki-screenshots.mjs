@@ -127,6 +127,8 @@ await p.waitForTimeout(300);
 await shot('#shot-files', 'files-items.png');
 
 await shot('#shot-tabs', 'tabs.png');
+await p.waitForTimeout(200);
+await shot('#shot-tabs-scroll', 'tabs-scroll.png');
 await shot('#shot-accordion', 'accordion.png');
 await shot('#shot-wizard', 'wizard.png');
 

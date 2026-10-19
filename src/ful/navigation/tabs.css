@@ -1,6 +1,7 @@
 @layer ful.components {
     *:has(> ful-tablist) {
         display: block;
+        position: relative;
 
         & > [role="tabpanel"] {
             padding-block-start: 1rem;
@@ -9,11 +10,19 @@
 
     ful-tablist {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 0.25rem;
+        overflow-x: auto;
+        scrollbar-width: none;
         border-block-end: var(--ful-border-width) solid var(--ful-border-color);
 
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
         & > button {
+            flex: 0 0 auto;
+            white-space: nowrap;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -36,7 +45,7 @@
 
             &:focus-visible {
                 outline: 0;
-                box-shadow: var(--ful-focus-box-shadow);
+                box-shadow: inset var(--ful-focus-box-shadow);
             }
 
             &[aria-selected="true"] {
@@ -45,6 +54,35 @@
                 border-color: var(--ful-border-color) var(--ful-border-color) transparent;
                 font-weight: 600;
             }
+        }
+    }
+
+    .ful-tabs-scroll {
+        position: absolute;
+        inset-block-start: 0;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        inline-size: 2.5rem;
+        padding: 0;
+        color: var(--ful-color);
+        border: 0;
+        cursor: pointer;
+
+        &[data-ref="scroll-start"] {
+            inset-inline-start: 0;
+            justify-content: start;
+            background: linear-gradient(to right, var(--ful-tabs-scroll-bg, var(--ful-bg)) 55%, transparent);
+        }
+
+        &[data-ref="scroll-end"] {
+            inset-inline-end: 0;
+            justify-content: end;
+            background: linear-gradient(to left, var(--ful-tabs-scroll-bg, var(--ful-bg)) 55%, transparent);
+        }
+
+        &:hover {
+            color: var(--ful-accent-ink);
         }
     }
 }

@@ -65,7 +65,7 @@ describe('Tabs', () => {
         const changes = [];
         tabs.addEventListener('tabs:change', (e) => changes.push(e.detail));
 
-        tabs.querySelectorAll('button')[1].click();
+        tabs.querySelectorAll('[role="tab"]')[1].click();
         assert.strictEqual(tabs.active, 1, 'clicking a tab activates it');
         assert.isTrue(tabs.querySelector('#s2').hidden === false, 'the second panel is the visible one');
         assert.deepStrictEqual(
@@ -85,7 +85,7 @@ describe('Tabs', () => {
 
     it('walks the tabs with the keyboard, wrapping around', async () => {
         const tabs = await mount(markup);
-        const buttons = tabs.querySelectorAll('button');
+        const buttons = tabs.querySelectorAll('[role="tab"]');
         buttons[0].focus();
 
         tabs.querySelector('ful-tablist').dispatchEvent(
@@ -229,5 +229,79 @@ describe('Tabs, async panels', () => {
         await settle();
 
         assert.deepStrictEqual(seen, [], 'a refresh naming no panel fires no request, not even for panel 0');
+    });
+
+    describe('when the tabs do not fit', () => {
+        const frames = (n = 2) =>
+            new Promise((resolve) => {
+                const next = (left) => (left === 0 ? resolve() : requestAnimationFrame(() => next(left - 1)));
+                next(n);
+            });
+        const scrolledAway = async (list, from) => {
+            for (let i = 0; i !== 120 && list.scrollLeft === from; ++i) {
+                await frames(1);
+            }
+            let last = -1;
+            while (last !== list.scrollLeft) {
+                last = list.scrollLeft;
+                await frames(3);
+            }
+        };
+        const crowded = async (width) => {
+            const names = Array.from({ length: 12 }, (_, i) => `<tab>Carrier number ${i + 1}</tab>`).join('');
+            const panels = Array.from({ length: 12 }, (_, i) => `<section>panel ${i + 1}</section>`).join('');
+            const tabs = await mount(
+                `<ful-tabs style="inline-size: ${width}px"><template slot="tabs">${names}</template>${panels}</ful-tabs>`,
+            );
+            await frames();
+            return {
+                tabs,
+                list: tabs.querySelector('ful-tablist'),
+                start: tabs.querySelector('[data-ref="scroll-start"]'),
+                end: tabs.querySelector('[data-ref="scroll-end"]'),
+            };
+        };
+        const visible = (tab, { start, end, list }) => {
+            const view = list.getBoundingClientRect();
+            const box = tab.getBoundingClientRect();
+            return box.left >= view.left + start.offsetWidth - 1 && box.right <= view.right - end.offsetWidth + 1;
+        };
+
+        it('keeps the tabs on one line and shows the scroll buttons only at the sides with more tabs', async () => {
+            const wide = await crowded(4000);
+            assert.isTrue(wide.start.hidden && wide.end.hidden, 'tabs that fit show no scroll button');
+
+            const narrow = await crowded(400);
+            const tops = new Set([...narrow.list.children].map((tab) => tab.offsetTop));
+            assert.strictEqual(tops.size, 1, 'the tabs stay on one line instead of wrapping');
+            assert.isTrue(narrow.start.hidden, 'at the start there is nothing before the first tab');
+            assert.isFalse(narrow.end.hidden, 'the tabs past the end show the next button');
+            assert.strictEqual(narrow.end.tabIndex, -1, 'the scroll buttons stay out of the tab order');
+        });
+
+        it('scrolls by one tab, bringing the first cut tab wholly into view', async () => {
+            const crowd = await crowded(400);
+            const cut = [...crowd.list.children].find((tab) => !visible(tab, crowd));
+
+            crowd.end.click();
+            await scrolledAway(crowd.list, 0);
+
+            assert.isTrue(visible(cut, crowd), 'the first tab cut at the end is now wholly visible');
+            assert.isFalse(crowd.start.hidden, 'once scrolled, the previous button appears');
+            const before = crowd.list.scrollLeft;
+            crowd.start.click();
+            await scrolledAway(crowd.list, before);
+            assert.isBelow(crowd.list.scrollLeft, before, 'the previous button scrolls back');
+        });
+
+        it('keeps the active tab in view', async () => {
+            const crowd = await crowded(400);
+
+            crowd.tabs.active = 11;
+            await frames();
+
+            assert.isTrue(visible(crowd.list.children[11], crowd), 'activating the last tab scrolls it into view');
+            assert.isTrue(crowd.end.hidden, 'with the last tab in view nothing is left past the end');
+        });
     });
 });

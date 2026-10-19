@@ -42,6 +42,8 @@ export default {
     'dialog.discard.cancel': 'Keep editing',
     'drawer.close': 'Close',
     'spinner.loading': 'Loading…',
+    'tabs.previous': 'Previous tabs',
+    'tabs.next': 'Next tabs',
     'toast.region': 'Notifications',
     'toast.dismiss': 'Dismiss',
     'wizard.progress': 'Progress',

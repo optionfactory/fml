@@ -42,6 +42,8 @@ export default {
     'dialog.discard.cancel': 'Continua a modificare',
     'drawer.close': 'Chiudi',
     'spinner.loading': 'Caricamento…',
+    'tabs.previous': 'Schede precedenti',
+    'tabs.next': 'Schede successive',
     'toast.region': 'Notifiche',
     'toast.dismiss': 'Chiudi',
     'wizard.progress': 'Avanzamento',

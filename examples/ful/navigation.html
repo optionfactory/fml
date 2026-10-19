@@ -40,6 +40,23 @@
         <output id="tabs-output">the tabs answer here</output>
     </fieldset>
 
+    <h2>tabs that do not fit</h2>
+    <p>The tablist stays on one line. The tabs that do not fit scroll sideways, the buttons at its sides bring the next hidden tab into view one at a time, and the active tab is kept in view, the keyboard included.</p>
+    <fieldset style="max-inline-size: 32rem">
+        <legend>eight carriers in a narrow column</legend>
+        <ful-tabs active="4">
+            <template slot="tabs"><tab>Lufthansa Cargo</tab><tab>Emirates SkyCargo</tab><tab>Cathay Cargo</tab><tab>Turkish Cargo</tab><tab>Qatar Airways Cargo</tab><tab>Air France KLM</tab><tab>Swiss WorldCargo</tab><tab>Etihad Cargo</tab></template>
+            <section><p>Lufthansa Cargo stock.</p></section>
+            <section><p>Emirates SkyCargo stock.</p></section>
+            <section><p>Cathay Cargo stock.</p></section>
+            <section><p>Turkish Cargo stock.</p></section>
+            <section><p>Qatar Airways Cargo stock.</p></section>
+            <section><p>Air France KLM stock.</p></section>
+            <section><p>Swiss WorldCargo stock.</p></section>
+            <section><p>Etihad Cargo stock.</p></section>
+        </ful-tabs>
+    </fieldset>
+
     <h2>tabs, async panel</h2>
     <p>Entering a panel fires the <code>section:requested</code> family on the tabs, in the generic type and the panel's <code>#index</code>, and the component awaits the answers, the loading chrome covering the wait: a panel can deliver itself. Nobody listening is a plain activation, panels rendered on the server never know the event exists. The event's target is the component, so a host's own panels are told from a nested component's by <code>e.target === e.currentTarget</code>.</p>
     <fieldset>
