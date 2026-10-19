@@ -294,6 +294,24 @@ describe('Tabs, async panels', () => {
             assert.isBelow(crowd.list.scrollLeft, before, 'the previous button scrolls back');
         });
 
+        it('keeps the tablist its full height inside a flex column of bounded height', async () => {
+            const host = await mount(`
+                <div style="display: flex; flex-direction: column; block-size: 120px">
+                    <ful-tabs style="display: flex; flex-direction: column; min-block-size: 0">
+                        <template slot="tabs"><tab>Shipping</tab><tab>Invoices</tab></template>
+                        <section style="block-size: 600px">a tall panel</section>
+                        <section>b</section>
+                    </ful-tabs>
+                </div>`);
+            const list = host.querySelector('ful-tablist');
+
+            assert.strictEqual(
+                list.clientHeight,
+                list.scrollHeight,
+                'a tall panel in a bounded flex column must not squeeze the scrolling tablist',
+            );
+        });
+
         it('keeps the active tab in view', async () => {
             const crowd = await crowded(400);
 
