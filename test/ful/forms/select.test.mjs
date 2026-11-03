@@ -2107,6 +2107,31 @@ describe('Select stale searches', () => {
         );
     });
 
+    it('ignores Enter and the arrows while a newer search loads, the previous rows being hidden', async () => {
+        const [selectEl] = await mount();
+        const input = selectEl.querySelector('input');
+        keydown(input, 'ArrowDown', { altKey: true });
+        pending[0].resolve([
+            { key: 'k1', label: 'one' },
+            { key: 'k2', label: 'two' },
+        ]);
+        await settle();
+        input.value = 'tw';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        const activeDescendant = input.getAttribute('aria-activedescendant');
+
+        keydown(input, 'ArrowDown');
+        keydown(input, 'End');
+        assert.strictEqual(
+            input.getAttribute('aria-activedescendant'),
+            activeDescendant,
+            'the hidden rows take no highlight',
+        );
+        keydown(input, 'Enter');
+
+        assert.isNull(selectEl.value, 'Enter picks none of the hidden rows');
+    });
+
     it('discards a search failing after a newer open, without hiding it nor reporting the failure', async () => {
         const [selectEl] = await mount();
         const input = selectEl.querySelector('input');

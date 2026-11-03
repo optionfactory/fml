@@ -420,9 +420,12 @@ class Dropdown extends ParsedElement {
         this.replaceChildren(fragment);
     }
     #selected() {
+        if (!this.#menu || this.#menu.hidden) {
+            return null;
+        }
         return (
-            this.#menu?.querySelector('[selected]:not([aria-disabled="true"])') ??
-            this.#menu?.querySelector('li:not([aria-disabled="true"])') ??
+            this.#menu.querySelector('[selected]:not([aria-disabled="true"])') ??
+            this.#menu.querySelector('li:not([aria-disabled="true"])') ??
             null
         );
     }
@@ -443,7 +446,8 @@ class Dropdown extends ParsedElement {
     }
     /**
      * Picks the highlighted row, or the first enabled one when none is: hides
-     * the dropdown and dispatches `change`. Does nothing when no row is enabled.
+     * the dropdown and dispatches `change`. Does nothing when no row is
+     * enabled, or while a search is loading and the rows are hidden.
      */
     acceptSelection() {
         const selected = this.#selected();
@@ -564,7 +568,8 @@ class Dropdown extends ParsedElement {
     }
     /**
      * Moves the highlight to the next or previous enabled row when the dropdown
-     * is shown, staying put at the edge, and shows it otherwise.
+     * is shown, staying put at the edge and while a search is loading, and
+     * shows it otherwise.
      * @param {boolean} forward
      * @param {() => SelectEntry[]|Promise<SelectEntry[]>} loader used only to show
      * @param {any[]} [keys] the keys currently selected, used only to show
@@ -592,10 +597,14 @@ class Dropdown extends ParsedElement {
         return null;
     }
     /**
-     * Highlights the first enabled row, or the last one.
+     * Highlights the first enabled row, or the last one. Does nothing while a
+     * search is loading and the rows are hidden.
      * @param {boolean} first
      */
     jump(first) {
+        if (this.#menu.hidden) {
+            return;
+        }
         const edge = first ? this.#menu.firstElementChild : this.#menu.lastElementChild;
         const target = this.#walk(edge, first);
         if (target) {
@@ -605,6 +614,7 @@ class Dropdown extends ParsedElement {
     /**
      * Moves the highlight by as many enabled rows as the menu shows at once,
      * one when that cannot be measured, stopping at the last enabled row.
+     * Does nothing while a search is loading.
      * @param {boolean} forward
      */
     page(forward) {
