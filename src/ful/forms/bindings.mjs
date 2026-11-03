@@ -253,7 +253,8 @@ class Bindings {
      * Each `ful-field-error` of the form gets `aria-live="off"` when
      * `scrollOnError` is set, since focusing the field announces its error, and
      * `aria-live="polite"` otherwise. With `scrollOnError` and at least one
-     * problem, the topmost `:invalid` control is focused.
+     * problem, the topmost `:invalid` control is focused; a `<fieldset>`
+     * matching `:invalid` for the controls it holds is not a candidate.
      *
      * A banner or `ful-field-error` belongs to the nearest enclosing form, so
      * those of a nested form are left alone.
@@ -314,7 +315,7 @@ class Bindings {
             return;
         }
         /** @type {HTMLElement[]} */ (Array.from(form.elements))
-            .filter((el) => el.matches(':invalid'))
+            .filter((el) => el.localName !== 'fieldset' && el.matches(':invalid'))
             .sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y)[0]
             ?.focus();
     }

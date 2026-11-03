@@ -528,6 +528,17 @@ describe('Bindings', () => {
                 'without scrollOnError the focus is left where it was',
             ).to.equal(true);
         });
+
+        it('focuses the invalid control inside a fieldset, not the fieldset holding it', () => {
+            const fieldset = document.createElement('fieldset');
+            fieldset.append(inputName);
+            form.prepend(fieldset);
+            fieldset.getBoundingClientRect = () => ({ y: 0 });
+
+            Bindings.errors(form, [{ type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Invalid name' }], true);
+
+            expect(document.activeElement === inputName, 'the invalid control takes the focus').to.equal(true);
+        });
     });
 });
 describe('Bindings.providePath prototype safety', () => {
