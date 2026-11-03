@@ -1805,6 +1805,21 @@ describe('Select dropdown opening', () => {
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'a readonly select does not open on click');
     });
 
+    it('closes the open dropdown when a claim lands', async () => {
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const dropdown = selectEl.querySelector('ful-dropdown');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        selectEl.setAttribute('readonly', '');
+        assert.isFalse(dropdown.shown, 'readonly closes the dropdown');
+
+        selectEl.removeAttribute('readonly');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        selectEl.disabled = true;
+        assert.isFalse(dropdown.shown, 'disabled closes the dropdown');
+    });
+
     it('leaves a click on another control inside it to that control', async () => {
         const [selectEl] = await mount(
             `<ful-select value="k1">pick<ful-tooltip slot="info">a note</ful-tooltip></ful-select>`,

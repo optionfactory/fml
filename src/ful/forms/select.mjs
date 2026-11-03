@@ -1329,6 +1329,36 @@ class Select extends Field {
         }
         return selection[0] ?? null;
     }
+    /**
+     * The field's disabled claim; turning it on while the dropdown is open
+     * closes it and drops a pending search.
+     * @type {boolean}
+     */
+    get disabled() {
+        return super.disabled;
+    }
+    set disabled(v) {
+        super.disabled = v;
+        if (v && this.#ddmenu?.shown) {
+            this.#abortdload();
+            this.#close();
+        }
+    }
+    /**
+     * The field's readonly claim; turning it on while the dropdown is open
+     * closes it and drops a pending search.
+     * @type {boolean}
+     */
+    get readonly() {
+        return super.readonly;
+    }
+    set readonly(v) {
+        super.readonly = v;
+        if (v && this.#ddmenu?.shown) {
+            this.#abortdload();
+            this.#close();
+        }
+    }
     #useItemList;
     /**
      * Whether the select holds several keys: `value` and `entry` answer arrays,
