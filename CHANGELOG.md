@@ -222,7 +222,6 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a pick, `Enter`, `Alt+ArrowUp` or a click closing the dropdown aborts a pending search, which no longer reopens the list 400ms later
 - [BUG] `Enter`, the arrows, `Home`, `End`, `PageUp` and `PageDown` do nothing while a newer search loads, where they acted on the previous search's hidden rows
 - [BUG] a click on a select's label opens the dropdown, where it opened and closed it in the same gesture
-- [BUG] a `disabled` or `readonly` claim landing while the dropdown is open closes it and drops the pending search, where `readonly` (and `disabled` on Firefox and WebKit) left the list open and the keyboard dead
 - [BUG] `Enter` on a highlighted disabled entry, such as a disabled current value, picks nothing, where it picked the first enabled entry; the arrows walk from the highlighted entry
 - [BUG] a single select keeps only the first key of a comma separated `value`, and turning `multiple` off keeps only the first selected key; toggling `multiple` redraws the badges, the items and the field at once
 - [BUG] `select.reload()` runs the search of an open dropdown again, which kept listing the rows of the previous vocabulary
