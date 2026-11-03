@@ -116,6 +116,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] an empty `failures+json` array or `problem+json` `problems` list becomes one `GENERIC_PROBLEM`, so a refused form submit no longer shows nothing
 - [BUG] `Hex.encode` writes the bytes of an `ArrayBuffer` or any typed array, a signed one included, as two digits per byte
 - [BUG] client-errors treats an empty `data-report-client-errors-uri` like a missing one, saying so once in the console
+- [BUG] client-errors sends a report whose body is over the 64KiB keepalive quota without `keepalive`, instead of having fetch refuse it
 
 #### Localization
 

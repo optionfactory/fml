@@ -123,6 +123,17 @@ describe('Client errors reporting', () => {
         ).to.be.at.most(6);
     });
 
+    it('sends a report over the keepalive quota without keepalive, which would refuse it', async () => {
+        reject(new Error('small'));
+        reject(new Error('x'.repeat(70 * 1024)));
+        await settle();
+
+        expect(
+            calls.map((c) => c.init.keepalive),
+            'only a body within the 64KiB keepalive quota asks for keepalive',
+        ).to.deep.equal([true, false]);
+    });
+
     it('does not report the failure of its own report', async () => {
         reject(new Error('nope'));
         await settle();

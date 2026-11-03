@@ -2,10 +2,11 @@ var complained_missing_uri = false;
 /**
  * Posts a json report of an `error` or `unhandledrejection` event (page url,
  * location, message with its cause chain, stack) to the uri the script tag's
- * `data-report-client-errors-uri` names, same-origin and `keepalive`. The csrf
- * header is sent only when both `_csrf_header` and `_csrf` metas are present. A
- * missing or empty uri is complained about once. The reporter never reports itself: a
- * failed or throwing report is dropped.
+ * `data-report-client-errors-uri` names, same-origin, and `keepalive` unless
+ * the body is over the 64KiB keepalive quota. The csrf header is sent only
+ * when both `_csrf_header` and `_csrf` metas are present. A missing or empty
+ * uri is complained about once. The reporter never reports itself: a failed
+ * or throwing report is dropped.
  * @param {any} evt an ErrorEvent or a PromiseRejectionEvent
  */
 function ful_report_error(evt) {
@@ -89,23 +90,25 @@ function ful_report_error(evt) {
     }
 
     try {
+        var body = JSON.stringify({
+            page: window.location?.href ? window.location.href : 'unknown',
+            filename: evt.filename,
+            line: evt.lineno,
+            col: evt.colno,
+            message: message(),
+            stack: split_stack(),
+        });
         fetch(uri, {
             method: 'POST',
             mode: 'same-origin',
             cache: 'no-cache',
             credentials: 'same-origin',
-            keepalive: true,
+            // fetch rejects a keepalive body over the 64KiB quota outright
+            keepalive: new TextEncoder().encode(body).length <= 64 * 1024,
             headers: headers,
             redirect: 'error',
             referrerPolicy: 'no-referrer-when-downgrade',
-            body: JSON.stringify({
-                page: window.location?.href ? window.location.href : 'unknown',
-                filename: evt.filename,
-                line: evt.lineno,
-                col: evt.colno,
-                message: message(),
-                stack: split_stack(),
-            }),
+            body: body,
         }).catch(() => {});
     } catch {}
 }
