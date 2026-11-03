@@ -623,6 +623,21 @@ describe('Select value resolution', () => {
         );
     });
 
+    it('keeps only the first key of a single select, also once multiple is turned off', async () => {
+        const [single] = await mount(`<ful-select value="it,fr"></ful-select>`);
+        const [multi] = await mount(`<ful-select multiple value="it,fr"></ful-select>`);
+
+        multi.multiple = false;
+        await settle();
+
+        for (const el of [single, multi]) {
+            assert.strictEqual(el.value, 'it', 'the first key wins');
+            assert.strictEqual(el.querySelectorAll('ful-item').length, 1, 'the item list shows the one key');
+            assert.strictEqual(el.querySelectorAll('ful-badge').length, 0, 'a single select shows no badges');
+            assert.strictEqual(el.querySelector('input').value, 'Label it', 'the field shows the label');
+        }
+    });
+
     it('warns once for a key carrying a comma, which no key may', async () => {
         const [selectEl] = await mount(`<ful-select value="a,b"></ful-select>`);
 

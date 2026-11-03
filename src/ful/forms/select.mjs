@@ -1262,8 +1262,8 @@ class Select extends Field {
     }
     /**
      * Selects the keys, coerced by `k-type`: a key, an array of keys, or null or
-     * undefined for none. The empty string is a key like any other. The keys
-     * are applied at once, each labeled by itself until the loader's `exact`
+     * undefined for none. The empty string is a key like any other, and a
+     * single select keeps only the first key. The keys are applied at once, each labeled by itself until the loader's `exact`
      * answers; a key it does not answer is then dropped, a key removed in the
      * meantime stays removed, and a later assignment wins over the late answer.
      * A failed lookup keeps the keys and surfaces as an unhandled rejection.
@@ -1273,7 +1273,8 @@ class Select extends Field {
      * @param {any} vs
      */
     set value(vs) {
-        const keys = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
+        const given = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
+        const keys = this.#multiple ? given : given.slice(0, 1);
         if (!this.#warnedComma && keys.some((k) => typeof k === 'string' && k.includes(','))) {
             this.#warnedComma = true;
             console.warn('a ful-select key cannot contain a comma: it is unexpressible in the value attribute', this);
@@ -1371,10 +1372,20 @@ class Select extends Field {
     get multiple() {
         return this.#multiple;
     }
-    /** @param {boolean} v */
+    /**
+     * Turning it off keeps only the first selected key; either way the badges,
+     * the items and the input follow at once.
+     * @param {boolean} v
+     */
     set multiple(v) {
         this.#multiple = v;
         this.reflectTo('multiple', v);
+        if (!v) {
+            this.#values = new Map([...this.#values].slice(0, 1));
+        }
+        if (this.#control) {
+            this.#syncBadges();
+        }
     }
     /**
      * Whether the selection shows as the `items` list below the control instead
