@@ -434,6 +434,17 @@ describe('InputLocalDate typing', () => {
         assert.deepStrictEqual(changes, [], 'a date missing its year is no value, so nothing changed');
     });
 
+    it('reports nothing when the field is left after the page wrote its value', async () => {
+        const [el, changes] = await mount();
+        const input = el.querySelector('input');
+        input.focus();
+
+        el.value = '2026-03-15';
+        input.blur();
+
+        assert.deepStrictEqual(changes, [], 'a value the page writes is not an edit, even while the field has focus');
+    });
+
     it('reports a date picked without typing at once, and once', async () => {
         const [el, changes] = await mount();
         const input = el.querySelector('input');

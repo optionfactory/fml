@@ -172,6 +172,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] several server problems on one field all show in its error, one per line, instead of only the last
 - [BUG] `ful-local-date` renders the `default` text for a day its month does not have (`2024-02-30`) instead of rolling over, and keeps a year below 100 instead of reading it as 19xx; a date-only instant (`ful-instant`, `ful-input-instant`) refuses such a day too
 - [BUG] a field with no label content takes no row for its empty `<label>`, required or not
+- [BUG] a value the page writes into a focused `ful-input-local-date`, `ful-input-local-time` or `ful-input-instant` no longer fires `change` when the field is left
 
 #### ful-input
 

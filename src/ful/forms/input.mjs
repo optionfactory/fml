@@ -132,6 +132,12 @@ class Input extends Field {
     /** @type {(HTMLInputElement|HTMLTextAreaElement)[]} */
     #controls = [];
     /**
+     * The serialized value a date or time control last reported, or held when
+     * focused or written.
+     * @type {string|null}
+     */
+    #committed = null;
+    /**
      * The type the field renders, which a subclass overrides to wrap another
      * native type. The base answers the declared `type`, else `number` under
      * `v-type="number"`, else `text`. It is also what selects the keystroke
@@ -210,20 +216,18 @@ class Input extends Field {
             });
             return;
         }
-        /** @type {string|null} */
-        let committed = null;
         let typed = false;
         const commit = () => {
             typed = false;
             const now = JSON.stringify(this.value);
-            if (now === committed) {
+            if (now === this.#committed) {
                 return;
             }
-            committed = now;
+            this.#committed = now;
             this._notifyChange();
         };
         control.addEventListener('focus', () => {
-            committed = JSON.stringify(this.value);
+            this.#committed = JSON.stringify(this.value);
         });
         control.addEventListener('keydown', (/** @type any */ evt) => {
             if (evt.key === 'Enter' && !evt.isComposing) {
@@ -247,8 +251,10 @@ class Input extends Field {
      * `v-type="number"`, where text that does not decode is answered as it is.
      * Writing `null`, `undefined` or `''` empties the control; anything else is
      * written as its string, replacing whatever was being typed, as a native
-     * control's value does. Answers a `string`, a `number` or `null`; typed
-     * `any` because subclasses answer other values.
+     * control's value does, and is not an edit: a date or time control that
+     * has the focus reports no `change` for it when it is left. Answers a
+     * `string`, a `number` or `null`; typed `any` because subclasses answer
+     * other values.
      * @type {any}
      */
     get value() {
@@ -269,6 +275,7 @@ class Input extends Field {
     }
     set value(value) {
         this._input.value = value === '' || value === undefined || value === null ? '' : `${value}`;
+        this.#committed = JSON.stringify(this.value);
     }
     /**
      * The control's placeholder, `null` when there is none. The control always
