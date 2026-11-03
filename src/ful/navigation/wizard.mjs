@@ -144,17 +144,14 @@ class Wizard extends ParsedElement {
      * @returns {Promise<any[] | undefined> | undefined} a promise resolving to
      * the answers, or to undefined when nobody listened or the delivery failed
      * (its error painted in the section); undefined, with a warning, when `ref`
-     * names no section
+     * names no section or one with no step paired with it
      */
     refresh(ref) {
-        const section =
+        const index =
             ref instanceof Element
-                ? ref
-                : typeof ref === 'string'
-                  ? this.#sections.find((s) => s.getAttribute('data-step') === ref)
-                  : undefined;
-        const index = this.#sections.indexOf(section);
-        if (index === -1) {
+                ? this.#sections.indexOf(ref)
+                : this.#sections.findIndex((s) => s.getAttribute('data-step') === ref);
+        if (index === -1 || index >= this.#steps.length) {
             console.warn(`ful-wizard: no section answers to "${ref}"`);
             return undefined;
         }
