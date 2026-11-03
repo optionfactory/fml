@@ -224,6 +224,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a failed load is announced (`role="alert"`) and the table carries `aria-busy` while the load it owns runs
 - [BUG] column headings are start-aligned
 - [BUG] `pageSize` takes a size written as a string, such as a select's value: the in-memory loader pages by it instead of showing every remaining row, and a value that is not a number is ignored
+- [BUG] a page, a sort or a page size asked for while a filter load runs carries the filters being loaded instead of the previous ones, which won and left rows contradicting the filter form; the filters of the last load asked for are the ones carried, even after it fails
 
 #### ful: disclosures (tooltip, dialog, drawer, menu, toasts)
 

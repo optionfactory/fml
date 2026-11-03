@@ -486,7 +486,9 @@ class TableLoader {
  * sort (none for a `null` order) and, once that load is the one showing, sets
  * the order of the sorter that asked and clears the others; a `submit:success`
  * of the filter form loads the first page with the submitted request as the
- * filters. The loads these start, and the autoload, are not awaited by
+ * filters. The filters a page, a sort or a size change carries are those of
+ * the last load asked for, whether it is still running, loaded or failed, so
+ * they are the ones the filter form shows. The loads these start, and the autoload, are not awaited by
  * anything: a failure shows the error panel and its rejection is unhandled.
  */
 class Table extends ParsedElement {
@@ -573,6 +575,8 @@ class Table extends ParsedElement {
     #latestRequest = { pageRequest: { page: 0, size: 10 }, sortRequest: null, filterRequest: {} };
     /** whether a load has been asked for, by autoload or by a caller */
     #loadRequested = false;
+    /** the filters of the last load asked for, which page, sort and size changes carry */
+    #requestedFilters = {};
     #loads = new Claims();
     /** @type {{ src: string|null, method: string|null }} */
     #builtFrom = { src: null, method: null };
@@ -608,7 +612,7 @@ class Table extends ParsedElement {
         if (!this.#loadRequested) {
             return;
         }
-        this.reload();
+        this.load(this.#latestRequest.pageRequest, this.#latestRequest.sortRequest, this.#requestedFilters);
     }
     /**
      * The url the loader asks for rows, reflected as the `src` attribute.
@@ -728,15 +732,16 @@ class Table extends ParsedElement {
             sortRequest: schema.sort,
             filterRequest: maybeForm?.values ?? {},
         };
+        this.#requestedFilters = this.#latestRequest.filterRequest;
         maybeForm?.addEventListener('submit:success', async (evt) => {
             await this.#loadPage(0, evt.detail.request);
         });
         this.addEventListener('page:requested', async (/** @type any */ e) => {
-            await this.#loadPage(e.detail.value, this.#latestRequest.filterRequest);
+            await this.#loadPage(e.detail.value, this.#requestedFilters);
         });
         this.addEventListener('sort:requested', async (/** @type any */ e) => {
             const sortRequest = e.detail.value.order ? e.detail.value : null;
-            await this.load(this.#latestRequest.pageRequest, sortRequest, this.#latestRequest.filterRequest);
+            await this.load(this.#latestRequest.pageRequest, sortRequest, this.#requestedFilters);
             if (this.#latestRequest.sortRequest !== sortRequest) {
                 return;
             }
@@ -765,7 +770,9 @@ class Table extends ParsedElement {
         );
     }
     /**
-     * Asks the loader for a page and shows it.
+     * Asks the loader for a page and shows it. Its filters are, from now on,
+     * the ones a page, a sort or a size change carries, even while it runs
+     * or once it failed.
      *
      * While the load runs the table carries `aria-busy="true"`, and the rows
      * already shown stay; the spinner panel shows only when there are none.
@@ -796,6 +803,7 @@ class Table extends ParsedElement {
      */
     async load(pageRequest, sortRequest, filterRequest) {
         this.#loadRequested = true;
+        this.#requestedFilters = filterRequest;
         const claim = this.#loads.take();
         this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
         this.#feedback.setAttribute('hidden', '');

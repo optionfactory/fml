@@ -996,6 +996,31 @@ describe('Table filters', () => {
         assert.strictEqual(last.pageRequest.page, 1, 'a click on a page button loads that zero based page');
         assert.deepStrictEqual(last.filterRequest, { q: 'refined' }, 'a later page keeps the submitted filters');
     });
+
+    it('pages with the submitted filters while their load is still in flight', async () => {
+        const inFlight = new Promise(() => {});
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: async (pageRequest, sortRequest, filterRequest) => {
+                    requests.push({ pageRequest, sortRequest, filterRequest });
+                    if (filterRequest.q === 'refined' && pageRequest.page === 0) {
+                        await inFlight;
+                    }
+                    return { data: [{ a: 1 }], size: 45 };
+                },
+            }),
+        });
+        const [tableEl] = await mountWithFilters();
+        tableEl.querySelector('input[name=q]').value = 'refined';
+        await tableEl.querySelector('ful-form').submit();
+
+        click(pageLink(tableEl.querySelector('ful-pagination'), '2'));
+        await settle();
+
+        const last = requests[requests.length - 1];
+        assert.strictEqual(last.pageRequest.page, 1, 'the clicked page is loaded');
+        assert.deepStrictEqual(last.filterRequest, { q: 'refined' }, 'the page carries the filters being loaded');
+    });
 });
 
 describe('Table resetWithFilter', () => {
