@@ -739,6 +739,7 @@ class Select extends Field {
     #control;
     #ddmenu;
     #input;
+    #label;
     #items;
     #itemstemplate;
     #multiple;
@@ -763,6 +764,7 @@ class Select extends Field {
         });
         const fragment = this.template().withOverlay({ slots, name }).render();
         this.#input = fragment.querySelector('ful-control > input');
+        this.#label = fragment.querySelector('label');
         this.#items = fragment.querySelector('ful-item-list');
         this.#itemstemplate =
             slots.items && !Fragments.isBlank(slots.items) ? Templates.fromFragment(slots.items) : null;
@@ -794,16 +796,18 @@ class Select extends Field {
             fragment,
             control: this.#input,
             error: fragment.querySelector('ful-field-error'),
-            label: fragment.querySelector('label'),
+            label: this.#label,
         };
     }
     /**
      * Pointer interaction: the element toggles the dropdown, the item list's
-     * remove buttons and the control's badges drop their entry.
+     * remove buttons and the control's badges drop their entry. A click on the
+     * label is left to the click the browser forwards to the input, which
+     * toggles once.
      */
     #wireChrome() {
         this.addEventListener('click', (/** @type any */ e) => {
-            if (!this._interactive()) {
+            if (!this._interactive() || this.#label.contains(e.target)) {
                 return;
             }
             const elsewhere = e.target.closest('button, [role="button"], a[href], input, select, textarea');

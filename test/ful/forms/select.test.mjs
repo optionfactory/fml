@@ -4,6 +4,7 @@ import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin } from '../../../src/ful/index.mjs';
 import { appended, settle } from '../../harness.mjs';
 import { installClock } from '../../clock.mjs';
+import { resetMouse, sendMouse } from '@web/test-runner-commands';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -1833,6 +1834,17 @@ describe('Select dropdown opening', () => {
         await opened();
 
         assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'a click on the control group opens the dropdown');
+    });
+
+    it('opens when its label is clicked', async () => {
+        const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
+        const { x, y, width, height } = selectEl.querySelector('label').getBoundingClientRect();
+
+        await sendMouse({ type: 'click', position: [Math.round(x + width / 2), Math.round(y + height / 2)] });
+        await resetMouse();
+        await opened();
+
+        assert.isTrue(selectEl.querySelector('ful-dropdown').shown, 'a click on the label opens the dropdown');
     });
 });
 
