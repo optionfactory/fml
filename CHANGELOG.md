@@ -123,6 +123,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] `#l10n:bytes()` formats sizes with the locale's digits, has a GiB tier, and puts a size exactly on a threshold in the larger unit (1024 is `1KiB`)
 - [BUG] the Spanish `files.max-files-exceeded` has a singular: a limit of one reads `1 archivo`
 - [BUG] `Localization.t` reads own properties only, for keys and for named placeholders
+- [BUG] `Localization.t` takes only a plain object as the named arguments, so a single `Date`, `Error` or other class instance fills `{0}`
 
 #### ful: forms and fields
 

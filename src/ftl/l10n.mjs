@@ -19,7 +19,8 @@ import { registry } from './registry.mjs';
 const PLACEHOLDER = /\{(\w+)\}/g;
 const POSITIONAL = /\{(\d+)\}/g;
 /** @param {any} v @returns {v is Record<string, string>} */
-const isPlainObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isPlainObject = (v) =>
+    typeof v === 'object' && v !== null && [Object.prototype, null].includes(Object.getPrototypeOf(v));
 
 /** @param {any} problem @returns {string|undefined} the reason, unless it is missing or blank */
 const reasonOf = (problem) =>
@@ -54,8 +55,8 @@ const formatter = (ctor, locale, options) => {
 class Localization {
     /**
      * Resolves a message from the translations and interpolates its arguments.
-     * A single plain object argument interpolates named placeholders
-     * ({name}); anything else interpolates positional ones ({0}).
+     * A single plain object argument (an object literal, or one with a null
+     * prototype) interpolates named placeholders ({name}); anything else interpolates positional ones ({0}).
      * A plural leaf selects its form through Intl.PluralRules over the
      * numeric {count} named argument.
      *

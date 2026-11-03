@@ -32,6 +32,15 @@ describe('Localization.t', () => {
         );
     });
 
+    it('interpolates a single class instance as a positional argument', () => {
+        const when = new Date(0);
+        assert.strictEqual(
+            Localization.t.call({ l10n: { at: 'at {0}' }, locale: 'en' }, 'at', when),
+            `at ${String(when)}`,
+            'a Date is a value to interpolate, not a map of named arguments',
+        );
+    });
+
     it('returns the key itself when the translations do not carry it', async () => {
         const warned = [];
         const original = console.warn;
@@ -62,12 +71,12 @@ describe('Localization.t', () => {
         console.warn = (...args) => warned.push(args.map(String).join(' '));
         try {
             assert.strictEqual(
-                call('hello.missingarg', Object.create({ who: 'inherited' })),
-                'Hi {who}',
-                'a {who} reached only through the prototype chain is an argument nobody passed',
+                Localization.t.call({ l10n: { greet: 'Hi {toString}' } }, 'greet', {}),
+                'Hi {toString}',
+                'a {toString} reached only through the prototype chain is an argument nobody passed',
             );
             assert.isTrue(
-                warned.some((w) => w.includes('wants {who}')),
+                warned.some((w) => w.includes('wants {toString}')),
                 'the placeholder with no own argument is warned about by name',
             );
         } finally {
