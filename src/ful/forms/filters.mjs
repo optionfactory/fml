@@ -196,7 +196,8 @@ class CompareFilter extends Input {
      * The operators the menu offers, narrowed to the vocabulary: an empty list,
      * or one where no name is known, offers all of it. A single operator pins
      * the button, and an assigned tuple then carries that operator whatever it
-     * names. An assignment made before the upgrade is held narrowed and
+     * names. When the operator shown leaves the list, the first listed one is
+     * shown. An assignment made before the upgrade is held narrowed and
      * answered back until the render, when the `operators` attribute is applied
      * over it, an absent attribute meaning the whole vocabulary. Assignments are
      * ignored while the `operator` attribute fixes the operator.
@@ -215,7 +216,9 @@ class CompareFilter extends Input {
             return;
         }
         this._operator.allowed = declared;
-        this._syncBetween();
+        if (this._operator.value !== null) {
+            this._showOperator(this._operator.preferring(this._operator.value));
+        }
     }
     /**
      * The filter's tuple, `[operator, operand]` or `[operator, from, to]` for
@@ -227,8 +230,8 @@ class CompareFilter extends Input {
         return this._tuple();
     }
     /**
-     * Shows a tuple: the operator it names, unless a pinned or fixed operator
-     * replaces it, and its operands, an operand missing from a shorter tuple
+     * Shows a tuple: the operator it names, or the first allowed one where the
+     * whitelist, a pin or a fixed operator does not allow it, and its operands, an operand missing from a shorter tuple
      * leaving its input empty. Null or undefined empties both operands and
      * keeps the operator.
      * @param {any[]|null|undefined} v
@@ -248,8 +251,7 @@ class CompareFilter extends Input {
             return;
         }
         const [declared, ...values] = v;
-        const operator = this._operator.pinned ? this._operator.allowed[0] : declared;
-        this._showOperator(operator);
+        this._showOperator(this._operator.preferring(declared));
         this._value1.value = values[0] ? this._deserialize(values[0]) : (values[0] ?? '');
         this._value2.value = values[1] ? this._deserialize(values[1]) : (values[1] ?? '');
     }
@@ -548,7 +550,8 @@ class BooleanFilter extends Field {
     /**
      * The operators the menu offers, narrowed to EQ and NEQ: an empty list, or
      * one where no name is known, offers both, and a single one pins the
-     * button. Held before the upgrade and replaced by the `operators` attribute
+     * button. When the operator shown leaves the list, the first listed one is
+     * shown. Held before the upgrade and replaced by the `operators` attribute
      * at the render, as on the compare filters.
      * @returns {string[]|undefined} undefined before the upgrade when nothing was assigned
      */
@@ -562,6 +565,9 @@ class BooleanFilter extends Field {
             return;
         }
         this._operator.allowed = declared;
+        if (this._operator.value !== null) {
+            this._operator.value = this._operator.preferring(this._operator.value);
+        }
     }
     /** @returns {string[]} */
     _vocabulary() {
@@ -575,8 +581,8 @@ class BooleanFilter extends Field {
         return this._value.value === '' ? null : [this._operator.value, this._value.value];
     }
     /**
-     * Shows a tuple: its operator, unless a pinned operator replaces it, and its
-     * token, a missing token meaning any. Null or undefined sets the value menu
+     * Shows a tuple: its operator, or the first allowed one where the whitelist
+     * does not allow it, and its token, a missing token meaning any. Null or undefined sets the value menu
      * back to any and keeps the operator.
      * @param {any[]|null|undefined} v
      */
@@ -585,7 +591,7 @@ class BooleanFilter extends Field {
             this._value.value = '';
             return;
         }
-        this._operator.value = this._operator.pinned ? this._operator.allowed[0] : v[0];
+        this._operator.value = this._operator.preferring(v[0]);
         this._value.value = v[1] ?? '';
     }
     /**

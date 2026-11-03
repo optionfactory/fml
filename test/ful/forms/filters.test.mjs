@@ -728,6 +728,22 @@ describe('Filter operator whitelisting', () => {
         );
         assert.deepStrictEqual(el.value, ['NEQ', 'true'], 'the pinned operator wins over the assigned tuple');
     });
+
+    it('keeps every operator it shows inside the whitelist, narrowed live or assigned', async () => {
+        const [number] = await mount(`<ful-filter-number operators="LT,GT,EQ" name="f">n</ful-filter-number>`);
+        const [bool] = await mount(`<ful-filter-boolean name="b">b</ful-filter-boolean>`);
+
+        number.value = ['NEQ', '1'];
+        assert.deepStrictEqual(number.value, ['LT', '1'], 'an assigned operator outside the whitelist is not shown');
+        number.value = ['GT', '1'];
+        number.setAttribute('operators', 'LT,EQ');
+        assert.deepStrictEqual(number.value, ['LT', '1'], 'narrowing drops the operator it no longer allows');
+
+        bool.value = [null, 'true'];
+        assert.deepStrictEqual(bool.value, ['EQ', 'true'], 'a null operator is not shown');
+        bool.value = ['LT', 'true'];
+        assert.deepStrictEqual(bool.value, ['EQ', 'true'], 'an operator the boolean filter does not know is not shown');
+    });
 });
 
 describe('Filter sensitivity whitelisting', () => {
