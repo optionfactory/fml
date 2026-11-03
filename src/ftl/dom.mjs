@@ -218,6 +218,13 @@ class Nodes {
         if (win === null) {
             return Promise.resolve();
         }
+        // interactive spans both the deferred scripts and the time between DOMContentLoaded and load
+        const [navigation] = /** @type {PerformanceNavigationTiming[]} */ (
+            win.performance.getEntriesByType('navigation')
+        );
+        if (navigation?.domContentLoadedEventStart > 0) {
+            return Promise.resolve();
+        }
         return new Promise((resolve) => {
             const done = () => {
                 win.removeEventListener('DOMContentLoaded', done);
@@ -234,12 +241,12 @@ class Nodes {
      * resolves once the element, or any of its ancestors, gains a next sibling,
      * which is the parser having moved past this subtree. The document's
      * DOMContentLoaded is the deadline. Resolves immediately for an element
-     * that is already parsed.
+     * that is already parsed, or once the parser has finished the document.
      * @param {Element} el
      * @returns {Promise<Element>} the element
      */
     static waitParsed(el) {
-        if (Nodes.isParsed(el)) {
+        if (Nodes.isParsed(el) || el.ownerDocument.readyState !== 'loading') {
             return Promise.resolve(el);
         }
         return new Promise((resolve) => {

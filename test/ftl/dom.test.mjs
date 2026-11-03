@@ -294,6 +294,17 @@ describe('dom.mjs', () => {
             ).to.equal(el);
         });
 
+        it('resolves waitParsed at once for a last child once the parser has finished the document', async () => {
+            const parent = document.createElement('div');
+            const el = document.createElement('div');
+            parent.appendChild(el);
+            const fakeDoc = { readyState: 'interactive', defaultView: { addEventListener() {} } };
+            Object.defineProperty(el, 'ownerDocument', { get: () => fakeDoc });
+
+            const resolved = await Nodes.waitParsed(el);
+            expect(resolved, 'an element appended after parsing ended waits for neither event').to.equal(el);
+        });
+
         it('waits for parsing to complete via MutationObserver', async () => {
             const parent = document.createElement('div');
             const el = document.createElement('div');
@@ -398,12 +409,24 @@ describe('dom.mjs', () => {
             await Nodes.waitDomContentLoaded({ readyState: 'interactive', defaultView: null });
         });
 
-        it('resolves in the interactive gap through load, where the event will never come', async () => {
+        it('resolves at once in the interactive gap once DOMContentLoaded has passed', async () => {
+            const doc = {
+                readyState: 'interactive',
+                defaultView: {
+                    performance: { getEntriesByType: () => [{ domContentLoadedEventStart: 120 }] },
+                    addEventListener() {},
+                },
+            };
+            await Nodes.waitDomContentLoaded(doc);
+        });
+
+        it('resolves in the interactive gap through load when the navigation timing is missing', async () => {
             const handlers = {};
             const detached = [];
             const doc = {
                 readyState: 'interactive',
                 defaultView: {
+                    performance: { getEntriesByType: () => [] },
                     addEventListener: (type, cb) => {
                         handlers[type] = cb;
                     },
@@ -434,6 +457,7 @@ describe('dom.mjs', () => {
             const doc = {
                 readyState: 'interactive',
                 defaultView: {
+                    performance: { getEntriesByType: () => [{ domContentLoadedEventStart: 0 }] },
                     addEventListener: (type, cb) => {
                         handlers[type] = cb;
                     },
