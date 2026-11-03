@@ -1185,6 +1185,27 @@ for (const { tag, content, open, update } of elements) {
             await closed(el);
         });
 
+        it('opens as a modal again after being moved in the page while open', async () => {
+            const [el, container] = await mount(`<${tag} header="t">body</${tag}>`);
+            const elsewhere = document.createElement('div');
+            container.append(elsewhere);
+            const closes = [];
+            el.addEventListener('close', (e) => closes.push(e.detail));
+            open(el);
+            elsewhere.append(el);
+
+            const asked = el.ask();
+            assert.isTrue(el.querySelector('dialog').matches(':modal'), 'the second ask shows it as a modal');
+            await settle();
+            el.close('done');
+            assert.deepStrictEqual(
+                await asked,
+                { dismissed: false, result: 'done', response: null },
+                'and waits for its own ending',
+            );
+            assert.strictEqual(closes.length, 1, 'one close, for the opening that answered');
+        });
+
         it('answers its waiters with a dismissal when it leaves the document while open', async () => {
             const [el, container] = await mount(`<${tag} header="t">body</${tag}>`);
             const asked = el.ask();

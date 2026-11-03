@@ -201,7 +201,8 @@ class Drawer extends ParsedElement {
      * shown or requested, except that one sliding out stops and stays open,
      * forgetting the result it was closing with, and the call waits for the
      * same ending as the calls before it, which is how a caller learns the
-     * outcome of the opening an `update()` made.
+     * outcome of the opening an `update()` made. One the page moved while open,
+     * which is no longer modal, opens anew.
      * @returns {Promise<{ dismissed: boolean, result: string|null, response: any }>} resolving on
      * close, or on removal from the document with a dismissal
      */
@@ -286,6 +287,10 @@ class Drawer extends ParsedElement {
             this.#answer = null;
         }
         this.#stopSlidingOut();
+        //a move in the page takes an open modal out of the top layer; close() would queue a close event answering the next opening
+        if (this.#dialog.open && !this.#dialog.matches(':modal')) {
+            this.#dialog.removeAttribute('open');
+        }
         if (this.#dialog.open) {
             return false;
         }

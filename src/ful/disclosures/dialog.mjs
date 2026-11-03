@@ -183,7 +183,8 @@ class Dialog extends ParsedElement {
      * the body and `first` true only on the first answered request), so a
      * listener can fill the body. A failed request is painted into the body
      * and does not reject. On a dialog already open nothing is shown or
-     * requested, and the call waits for the same ending as the calls before it.
+     * requested, and the call waits for the same ending as the calls before it;
+     * one the page moved while open, which is no longer modal, opens anew.
      * @returns {Promise<DialogOutcome>} resolving on close, or on removal from
      * the document with a dismissal
      */
@@ -265,6 +266,10 @@ class Dialog extends ParsedElement {
     }
     /** @returns {boolean} whether this call is the one that opened the modal */
     #show() {
+        //a move in the page takes an open modal out of the top layer; close() would queue a close event answering the next opening
+        if (this.#dialog.open && !this.#dialog.matches(':modal')) {
+            this.#dialog.removeAttribute('open');
+        }
         if (this.#dialog.open) {
             return false;
         }
