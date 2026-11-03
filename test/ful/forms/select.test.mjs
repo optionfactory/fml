@@ -2291,8 +2291,8 @@ describe('Disabled options', () => {
         { key: 'free', label: 'Free' },
         { key: 'sealed', label: 'Sealed', metadata: { disabled: true } },
     ];
-    const mount = () =>
-        mountSelect('<ful-select>pick</ful-select>', {
+    const mount = (html = '<ful-select>pick</ful-select>') =>
+        mountSelect(html, {
             prefetch: async () => {},
             exact: async (...keys) => keys.map((k) => VOCABULARY.find((v) => v.key === k) ?? { key: k, label: k }),
             load: async () => VOCABULARY,
@@ -2365,6 +2365,20 @@ describe('Disabled options', () => {
 
         keydown(input, 'Enter');
         assert.strictEqual(selectEl.value, 'free', 'the highlighted enabled option is the answer');
+    });
+
+    it('keeps a disabled current entry on Enter and walks the arrows from it', async () => {
+        const [selectEl] = await mount('<ful-select value="sealed">pick</ful-select>');
+        const input = selectEl.querySelector('input');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+        await settle();
+        const highlighted = () => selectEl.querySelector('menu li[selected]')?.textContent.trim();
+
+        keydown(input, 'Enter');
+        assert.strictEqual(selectEl.value, 'sealed', 'Enter on the disabled current entry changes nothing');
+        keydown(input, 'ArrowUp');
+        assert.strictEqual(highlighted(), 'Free', 'the walk starts from the highlighted disabled entry');
     });
 
     it('refuses the press on an entry, so the combobox keeps the focus', async () => {

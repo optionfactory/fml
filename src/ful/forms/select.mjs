@@ -423,11 +423,7 @@ class Dropdown extends ParsedElement {
         if (!this.#menu || this.#menu.hidden) {
             return null;
         }
-        return (
-            this.#menu.querySelector('[selected]:not([aria-disabled="true"])') ??
-            this.#menu.querySelector('li:not([aria-disabled="true"])') ??
-            null
-        );
+        return this.#menu.querySelector('li[selected]') ?? this.#menu.querySelector('li:not([aria-disabled="true"])');
     }
     #highlight(li) {
         if (!li) {
@@ -446,12 +442,13 @@ class Dropdown extends ParsedElement {
     }
     /**
      * Picks the highlighted row, or the first enabled one when none is: hides
-     * the dropdown and dispatches `change`. Does nothing when no row is
-     * enabled, or while a search is loading and the rows are hidden.
+     * the dropdown and dispatches `change`. Does nothing when the highlighted
+     * row is disabled, when no row is enabled, or while a search is loading
+     * and the rows are hidden.
      */
     acceptSelection() {
         const selected = this.#selected();
-        if (!selected) {
+        if (!selected || selected.matches('[aria-disabled="true"]')) {
             return;
         }
         this.#change(selected);
@@ -494,7 +491,12 @@ class Dropdown extends ParsedElement {
         this.#empty.toggleAttribute('hidden', values.length !== 0);
         this.#menu.toggleAttribute('hidden', values.length === 0);
         const current = values.findIndex(({ key }) => keys.some((r) => String(r) === String(key)));
-        this.#highlight(current >= 0 ? this.#menu.children[current] : this.#selected());
+        this.#highlight(
+            current >= 0
+                ? this.#menu.children[current]
+                : (this.#menu.querySelector('li[selected]:not([aria-disabled="true"])') ??
+                      this.#menu.querySelector('li:not([aria-disabled="true"])')),
+        );
     }
     #change(target) {
         const index = target.getAttribute('value');
