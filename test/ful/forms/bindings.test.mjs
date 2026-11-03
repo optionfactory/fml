@@ -529,6 +529,17 @@ describe('Bindings', () => {
             ).to.equal(true);
         });
 
+        it('shows every problem pinned on one control, one per line', () => {
+            const errs = [
+                { type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Too short' },
+                { type: 'FIELD_ERROR', context: 'users.0.name', reason: 'Not a name' },
+            ];
+
+            Bindings.errors(form, errs, false);
+
+            expect(inputName.validationMessage, 'both reasons reach the control').to.equal('Too short\nNot a name');
+        });
+
         it('focuses the invalid control inside a fieldset, not the fieldset holding it', () => {
             const fieldset = document.createElement('fieldset');
             fieldset.append(inputName);

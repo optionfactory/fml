@@ -238,7 +238,9 @@ class Bindings {
      * alone and a composite field named for a prefix catches the problems of its
      * subtree. Each control of that name gets `setCustomValidity(reason, rest)`,
      * `rest` being the remainder of the path (`''` on an exact match) that a
-     * composite can use to route the problem to an inner control.
+     * composite can use to route the problem to an inner control. Several
+     * problems reaching one control with the same `rest` are joined one per
+     * line into a single call.
      *
      * A control counts only when it can show a problem, through a
      * `setCustomValidity` of its own: a form-associated element that has none is
@@ -279,6 +281,8 @@ class Bindings {
             });
         }
         const unmatched = [];
+        /** @type {Map<any, Map<string, string[]>>} */
+        const pins = new Map();
         fieldErrors.forEach((e) => {
             const name = /** @type {string} */ (e.context).replace(/\[/g, '.').replace(/\]\./g, '.').replace(/\]/g, '');
             const parts = name.split('.');
@@ -290,12 +294,19 @@ class Bindings {
                 }
                 const context = parts.slice(i).join('.');
                 targets.forEach((input) => {
-                    input.setCustomValidity?.(e.reason, context);
+                    const contexts = pins.get(input) ?? new Map();
+                    contexts.set(context, [...(contexts.get(context) ?? []), e.reason]);
+                    pins.set(input, contexts);
                 });
                 return;
             }
             unmatched.push(e);
         });
+        for (const [input, contexts] of pins) {
+            for (const [context, reasons] of contexts) {
+                input.setCustomValidity(reasons.join('\n'), context);
+            }
+        }
         const bannered = [...globalErrors, ...unmatched];
         form.querySelectorAll('ful-errors').forEach((el) => {
             if (!ofForm(el)) {
