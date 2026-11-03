@@ -17,7 +17,10 @@ control already displaying the selection; `ful-form`'s `submit:success` /
 held off, the submit no longer in flight) and a `Failure`'s problems shown;
 `ful-table`'s `load:success` / `load:failure` carry the rows in place (the
 elements in them rendered) and `aria-busy` already removed; the async
-sections await the union of the answers before the section activates (0017).
+sections make the section current before asking for its content, so it shows
+under its loading state while the answers are awaited, and the move or the
+open settles once the union of the answers has, the loading state removed and
+a failure's problems painted (0017).
 Superseded work dispatches nothing at all: a stale load owns neither the
 outcome nor the busy state (0021).
 
