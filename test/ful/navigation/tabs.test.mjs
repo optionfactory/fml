@@ -247,11 +247,11 @@ describe('Tabs, async panels', () => {
                 await frames(3);
             }
         };
-        const crowded = async (width) => {
+        const crowded = async (width, dir = 'ltr') => {
             const names = Array.from({ length: 12 }, (_, i) => `<tab>Carrier number ${i + 1}</tab>`).join('');
             const panels = Array.from({ length: 12 }, (_, i) => `<section>panel ${i + 1}</section>`).join('');
             const tabs = await mount(
-                `<ful-tabs style="inline-size: ${width}px"><template slot="tabs">${names}</template>${panels}</ful-tabs>`,
+                `<ful-tabs dir="${dir}" style="inline-size: ${width}px"><template slot="tabs">${names}</template>${panels}</ful-tabs>`,
             );
             await frames();
             return {
@@ -262,9 +262,10 @@ describe('Tabs, async panels', () => {
             };
         };
         const visible = (tab, { start, end, list }) => {
+            const [left, right] = getComputedStyle(list).direction === 'rtl' ? [end, start] : [start, end];
             const view = list.getBoundingClientRect();
             const box = tab.getBoundingClientRect();
-            return box.left >= view.left + start.offsetWidth - 1 && box.right <= view.right - end.offsetWidth + 1;
+            return box.left >= view.left + left.offsetWidth - 1 && box.right <= view.right - right.offsetWidth + 1;
         };
 
         it('keeps the tabs on one line and shows the scroll buttons only at the sides with more tabs', async () => {
@@ -292,6 +293,28 @@ describe('Tabs, async panels', () => {
             crowd.start.click();
             await scrolledAway(crowd.list, before);
             assert.isBelow(crowd.list.scrollLeft, before, 'the previous button scrolls back');
+        });
+
+        it('scrolls towards the inline end under rtl, the buttons and their fade mirrored', async () => {
+            const crowd = await crowded(400, 'rtl');
+            const cut = [...crowd.list.children].find((tab) => !visible(tab, crowd));
+            assert.isTrue(crowd.start.hidden, 'at the start there is nothing before the first tab');
+            assert.isFalse(crowd.end.hidden, 'the tabs past the end show the next button');
+            assert.include(
+                getComputedStyle(crowd.end).backgroundImage,
+                'to right',
+                'the fade of the next button, on the left, opens to the right',
+            );
+
+            crowd.end.click();
+            await scrolledAway(crowd.list, 0);
+
+            assert.isTrue(visible(cut, crowd), 'the first tab cut at the end is now wholly visible');
+            assert.isFalse(crowd.start.hidden, 'once scrolled, the previous button appears');
+            const before = crowd.list.scrollLeft;
+            crowd.start.click();
+            await scrolledAway(crowd.list, before);
+            assert.isBelow(Math.abs(crowd.list.scrollLeft), Math.abs(before), 'the previous button scrolls back');
         });
 
         it('keeps the tablist its full height inside a flex column of bounded height', async () => {

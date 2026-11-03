@@ -131,17 +131,21 @@ class Tabs extends ParsedElement {
     #showScrollButtons() {
         const list = this.#tablist;
         const overflow = list.scrollWidth - list.clientWidth;
-        this.#scrollStart.hidden = list.scrollLeft <= 1;
-        this.#scrollEnd.hidden = list.scrollLeft >= overflow - 1;
+        const scrolled = Math.abs(list.scrollLeft);
+        this.#scrollStart.hidden = scrolled <= 1;
+        this.#scrollEnd.hidden = scrolled >= overflow - 1;
         this.#scrollStart.style.blockSize = this.#scrollEnd.style.blockSize = `${list.clientHeight}px`;
     }
     /**
-     * The part of the tablist that no scroll button covers.
-     * @returns {{ start: number, end: number }}
+     * The part of the tablist that no scroll button covers, in viewport
+     * coordinates, the start button being on the right under rtl.
+     * @returns {{ left: number, right: number }}
      */
     #visibleRange() {
         const view = this.#tablist.getBoundingClientRect();
-        return { start: view.left + this.#scrollStart.offsetWidth, end: view.right - this.#scrollEnd.offsetWidth };
+        const rtl = getComputedStyle(this.#tablist).direction === 'rtl';
+        const [onLeft, onRight] = rtl ? [this.#scrollEnd, this.#scrollStart] : [this.#scrollStart, this.#scrollEnd];
+        return { left: view.left + onLeft.offsetWidth, right: view.right - onRight.offsetWidth };
     }
     /**
      * Scrolls the tablist so that the first tab cut by the side the direction
@@ -150,11 +154,12 @@ class Tabs extends ParsedElement {
      * @returns {void}
      */
     #scrollByOneTab(direction) {
-        const { start, end } = this.#visibleRange();
-        const target =
-            direction > 0
-                ? this.#tabs.find((tab) => tab.getBoundingClientRect().right > end + 1)
-                : this.#tabs.findLast((tab) => tab.getBoundingClientRect().left < start - 1);
+        const { left, right } = this.#visibleRange();
+        const rightwards = direction > 0 !== (getComputedStyle(this.#tablist).direction === 'rtl');
+        const cut = rightwards
+            ? (/** @type HTMLElement */ tab) => tab.getBoundingClientRect().right > right + 1
+            : (/** @type HTMLElement */ tab) => tab.getBoundingClientRect().left < left - 1;
+        const target = direction > 0 ? this.#tabs.find(cut) : this.#tabs.findLast(cut);
         this.#bringIntoView(target, matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
     }
     /**
@@ -168,11 +173,12 @@ class Tabs extends ParsedElement {
         if (!tab) {
             return;
         }
-        const { start, end } = this.#visibleRange();
+        const { left, right } = this.#visibleRange();
         const box = tab.getBoundingClientRect();
-        const delta = box.right > end ? Math.ceil(box.right - end) : box.left < start ? Math.floor(box.left - start) : 0;
-        if (delta !== 0) {
-            this.#tablist.scrollBy({ left: delta, behavior });
+        if (box.right > right) {
+            this.#tablist.scrollBy({ left: Math.ceil(box.right - right), behavior });
+        } else if (box.left < left) {
+            this.#tablist.scrollBy({ left: Math.floor(box.left - left), behavior });
         }
     }
     /**

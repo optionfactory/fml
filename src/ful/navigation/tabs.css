@@ -82,6 +82,20 @@
             background: linear-gradient(to left, var(--ful-tabs-scroll-bg, var(--ful-bg)) 55%, transparent);
         }
 
+        &:dir(rtl) {
+            &[data-ref="scroll-start"] {
+                background-image: linear-gradient(to left, var(--ful-tabs-scroll-bg, var(--ful-bg)) 55%, transparent);
+            }
+
+            &[data-ref="scroll-end"] {
+                background-image: linear-gradient(to right, var(--ful-tabs-scroll-bg, var(--ful-bg)) 55%, transparent);
+            }
+
+            & > ful-icon {
+                scale: -1 1;
+            }
+        }
+
         &:hover {
             color: var(--ful-accent-ink);
         }
