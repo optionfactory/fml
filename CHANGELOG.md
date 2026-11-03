@@ -256,6 +256,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `pageSize` takes a size written as a string, such as a select's value: the in-memory loader pages by it instead of showing every remaining row, and a value that is not a number is ignored
 - [BUG] a page, a sort or a page size asked for while a filter load runs carries the filters being loaded instead of the previous ones, which won and left rows contradicting the filter form; the filters of the last load asked for are the ones carried, even after it fails
 - [BUG] a `ful-table` nested in another one's cell or footer pages and sorts alone: the outer table no longer loads on the nested pager's and sorters' requests
+- [BUG] `load:success` fires once the elements in the new rows (and in the empty panel) have rendered, so a listener reads a row's `ful-checkbox` instead of finding it not rendered yet
 
 #### ful: disclosures (tooltip, dialog, drawer, menu, toasts)
 

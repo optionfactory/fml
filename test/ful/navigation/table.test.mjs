@@ -392,6 +392,28 @@ describe('Table revalidation', () => {
 
         assert.deepStrictEqual(seen, ['false:2'], 'not busy, and the rows already in place');
     });
+
+    it('renders the fields of the rows before load:success reaches its listeners', async () => {
+        registry.defineComponent('loaders:table', {
+            create: () => ({ load: async () => ({ data: [{ a: 1 }], size: 1 }) }),
+        });
+        const container = appended(`
+            <ful-table>
+                <template slot="schema">
+                    <schema><column title="A"><ful-checkbox name="a">pick</ful-checkbox></column></schema>
+                </template>
+            </ful-table>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        const seen = [];
+        tableEl.addEventListener('load:success', () =>
+            seen.push(tableEl.querySelector('tbody:not([data-ref]) ful-checkbox').rendered),
+        );
+
+        await tableEl.reload();
+
+        assert.deepStrictEqual(seen, [true], 'the checkbox of the row is rendered during load:success');
+    });
 });
 
 describe('Table schema', () => {

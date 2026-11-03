@@ -787,7 +787,8 @@ class Table extends ParsedElement {
      * panel shows for an answer with no rows (the `empty` slot rendered with
      * `schema`, `pageRequest`, `filterRequest` and `pageResponse` in scope),
      * the request becomes the one
-     * `reload` repeats, `aria-busy` is removed and `load:success` is
+     * `reload` repeats; once the elements of the rows and of the empty panel
+     * have rendered, `aria-busy` is removed and `load:success` is
      * dispatched (bubbling, not cancelable) with `detail` set to
      * `{ pageRequest, sortRequest, filterRequest, response }`. A page beyond
      * the last one the answer reports is not shown: the last page is loaded
@@ -801,7 +802,9 @@ class Table extends ParsedElement {
      * returned promise rejects with the same error.
      *
      * A load started after this one supersedes it: when this one's answer or
-     * failure arrives it changes nothing, dispatches nothing and resolves.
+     * failure arrives it changes nothing, dispatches nothing and resolves;
+     * superseded while its rows render, it leaves them to the newer load and
+     * dispatches nothing.
      * @param {TablePageRequest} pageRequest
      * @param {TableSortRequest|null} sortRequest
      * @param {Record<string, any>} filterRequest
@@ -827,6 +830,14 @@ class Table extends ParsedElement {
             if (pageRequest.page <= lastPage) {
                 this.#latestRequest = { pageRequest, sortRequest, filterRequest };
                 this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
+                // a row element whose render fails leaves the rows shown: it does not fail the load
+                await Promise.all([
+                    Rendering.waitForChildren(this.#body),
+                    Rendering.waitForChildren(this.#empty),
+                ]).catch(() => undefined);
+                if (claim.stale) {
+                    return;
+                }
                 this.removeAttribute('aria-busy');
                 this.dispatchEvent(
                     new CustomEvent('load:success', {
