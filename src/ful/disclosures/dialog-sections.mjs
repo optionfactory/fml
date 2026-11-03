@@ -1,4 +1,4 @@
-import { Localization, Nodes } from '../../ftl/index.mjs';
+import { Localization } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { SectionRequests } from '../events/sections.mjs';
 
@@ -118,7 +118,7 @@ class DialogSections {
      */
     onSubmitted(answer) {
         this.#section.addEventListener('submit:success', (/** @type any */ e) => {
-            if (e.target !== Nodes.queryChildren(this.#section, 'ful-form')) {
+            if (e.target.localName !== 'ful-form' || e.target.parentElement !== this.#section) {
                 return;
             }
             answer(e.detail.response);

@@ -1022,6 +1022,21 @@ for (const { tag, content, open, update } of elements) {
             assert.strictEqual(detail.response?.id, 7, 'the close event carries the response the form answered with');
         });
 
+        it('closes on any form standing directly in its content, not only the first', async () => {
+            const [el] = await mount(`
+                <${tag} close-on-submit header="Edit">
+                    <ful-form><button type="submit">First</button></ful-form>
+                    <ful-form data-ref="second"><button type="submit">Second</button></ful-form>
+                </${tag}>`);
+            open(el);
+            const second = el.querySelector('ful-form[data-ref=second]');
+            AsyncEvents.asyncOn(second, 'submit:requested', async () => ({ id: 2 }));
+            const done = new Promise((r) => el.addEventListener('close', (e) => r(e.detail), { once: true }));
+            second.querySelector('button[type=submit]').click();
+
+            assert.strictEqual((await done).response?.id, 2, 'the second form answers with its response');
+        });
+
         it('a submit answering with no body at all is still an answer, not a dismissal', async () => {
             const [el] = await mount(editing);
             open(el);
