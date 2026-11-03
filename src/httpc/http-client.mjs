@@ -240,7 +240,7 @@ class HttpClientBuilder {
     }
     /** @returns {HttpClient} a client running the interceptors added so far */
     build() {
-        return new HttpClient(this.#interceptors);
+        return new HttpClient([...this.#interceptors]);
     }
 }
 

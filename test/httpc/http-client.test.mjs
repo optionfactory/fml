@@ -785,6 +785,22 @@ describe('HttpRequestBuilder request-level configuration', () => {
             '/two',
         ]);
     });
+
+    it('keeps a built client apart from interceptors added to its builder afterwards', async () => {
+        const seen = [];
+        const builder = HttpClient.builder();
+        const built = builder.build();
+        builder.withInterceptors({
+            intercept: async (url, request, chain) => {
+                seen.push(url.pathname);
+                return await chain.proceed(url, request);
+            },
+        });
+
+        await built.get('/one').fetchJson();
+
+        expect(seen, 'the client runs the interceptors its builder had when it was built').to.deep.equal([]);
+    });
 });
 
 describe('RedirectOnUnauthorizedInterceptor', () => {
