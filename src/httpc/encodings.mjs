@@ -107,12 +107,20 @@ class Hex {
         });
     }
     /**
-     * @param {Iterable<number>} bytes
+     * @param {Iterable<number>|ArrayBuffer|ArrayBufferView} bytes octets, or
+     * a buffer or view read as its bytes
      * @param {boolean} [upper] uppercase digits instead of lowercase
      * @returns {string} two digits per byte
      */
     static encode(bytes, upper) {
-        return Array.from(bytes)
+        let octets = /** @type {Iterable<number>} */ (bytes);
+        if (bytes instanceof ArrayBuffer) {
+            octets = new Uint8Array(bytes);
+        }
+        if (ArrayBuffer.isView(bytes)) {
+            octets = new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        }
+        return Array.from(octets)
             .map((b) => b.toString(16))
             .map((b) => (upper ? b.toUpperCase() : b))
             .map((o) => o.padStart(2, '0'))

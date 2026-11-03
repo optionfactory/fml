@@ -142,5 +142,11 @@ describe('Encodings', () => {
                 'the padding also holds with uppercase digits',
             ).to.equal('00050F10');
         });
+
+        it('encodes the bytes of an ArrayBuffer or of a signed typed array', () => {
+            const signed = new Int8Array([-1, 16]);
+            expect(Hex.encode(signed), 'a signed byte is written as its unsigned octet').to.equal('ff10');
+            expect(Hex.encode(signed.buffer), 'an ArrayBuffer is read as its bytes').to.equal('ff10');
+        });
     });
 });
