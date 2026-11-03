@@ -59,7 +59,8 @@
         border: var(--ful-controls-border-width) solid var(--ful-controls-border-color);
         border-radius: var(--ful-controls-border-radius);
 
-        &:has(:focus-visible):not(:has([popover] :focus-visible)) {
+        /* WebKit 27.2 no longer matches :focus-visible on a focused date or time input */
+        &:has(:focus-visible, :is(input[type='date'], input[type='time'], input[type='datetime-local']):focus):not(:has([popover] :focus-visible)) {
             border-color: var(--ful-focus-border-color);
             box-shadow: var(--ful-focus-box-shadow);
         }
@@ -153,7 +154,7 @@
     :invalid > ful-control-group {
         border-color: var(--ful-invalid-border-color);
 
-        &:has(:focus-visible):not(:has([popover] :focus-visible)) {
+        &:has(:focus-visible, :is(input[type='date'], input[type='time'], input[type='datetime-local']):focus):not(:has([popover] :focus-visible)) {
             border-color: var(--ful-invalid-border-color);
             box-shadow: var(--ful-invalid-box-shadow);
         }

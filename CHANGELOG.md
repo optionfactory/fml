@@ -177,6 +177,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a field with no label content takes no row for its empty `<label>`, required or not
 - [BUG] a value the page writes into a focused `ful-input-local-date`, `ful-input-local-time` or `ful-input-instant` no longer fires `change` when the field is left
 - [ENH] `value` works before the field has rendered on every field: `ful-input`, `ful-input-local-date`, `ful-input-local-time`, `ful-input-instant`, `ful-input-file`, `ful-checkbox`, `ful-radio-group`, `ful-select`, `ful-filter-text`, `ful-filter-number`, `ful-filter-local-date`, `ful-filter-instant`, `ful-filter-boolean` and `ful-filter-in`: it answers what the rendered field would from the last value written or the `value` attribute, and a write is held for the render to apply, leaving the `value` attribute (what a reset restores) alone; `ful-select` answers its declared keys coerced by `k-type`, the first one alone unless `multiple`, and a filter its tuple with the operator its declared `operator` or `operators` allow; `ful-input-file` answers no files. A custom field does the same through `_holdValue(value)` and `_heldValue()`
+- [BUG] a focused date, time or date-time field glows on WebKit 27.2, which stopped matching `:focus-visible` on those inputs
 
 #### ful-input
 

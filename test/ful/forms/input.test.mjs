@@ -420,7 +420,7 @@ describe('An invalid field that has the caret', () => {
 
             el.setCustomValidity('');
             el.querySelector('input').focus();
-            assert.isTrue(!!group.querySelector(':focus-visible'), 'the inner control has the visible focus');
+            assert.isTrue(!!group.querySelector(':focus'), 'the inner control has the focus');
             const focusedValidBorder = getComputedStyle(group).borderTopColor;
             const focusedValidShadow = getComputedStyle(group).boxShadow;
             assert.notStrictEqual(focusedValidShadow, 'none', 'a focused field glows');
