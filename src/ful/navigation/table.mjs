@@ -481,7 +481,8 @@ class TableLoader {
  * for it. Without it the table shows an initial panel until `load`,
  * `reload` or `resetWithFilter` is called.
  *
- * Inside the table a `page:requested` loads that page with the current size,
+ * Inside the table, and not inside a `ful-table` nested in it, a
+ * `page:requested` loads that page with the current size,
  * sort and filters; a `sort:requested` loads the current page with the new
  * sort (none for a `null` order) and, once that load is the one showing, sets
  * the order of the sorter that asked and clears the others; a `submit:success`
@@ -737,9 +738,15 @@ class Table extends ParsedElement {
             await this.#loadPage(0, evt.detail.request);
         });
         this.addEventListener('page:requested', async (/** @type any */ e) => {
+            if (e.target.closest('ful-table') !== this) {
+                return;
+            }
             await this.#loadPage(e.detail.value, this.#requestedFilters);
         });
         this.addEventListener('sort:requested', async (/** @type any */ e) => {
+            if (e.target.closest('ful-table') !== this) {
+                return;
+            }
             const sortRequest = e.detail.value.order ? e.detail.value : null;
             await this.load(this.#latestRequest.pageRequest, sortRequest, this.#requestedFilters);
             if (this.#latestRequest.sortRequest !== sortRequest) {

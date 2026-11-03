@@ -496,6 +496,41 @@ describe('Table pagination', () => {
         assert.deepStrictEqual(requests[1].filterRequest, { q: 'hi' }, 'another page keeps the current filters');
     });
 
+    it('leaves the pages and the sort of a table nested in its footer to that table', async () => {
+        const loaded = [];
+        registry.defineComponent('loaders:table', {
+            create: (table) => ({
+                load: async () => {
+                    loaded.push(table.id);
+                    return { data: [{ a: 1 }], size: 45 };
+                },
+            }),
+        });
+        const [, container] = await mount(`
+            <ful-table id="outer" autoload>
+                <template slot="schema"><schema><column title="A">{{ a }}</column></schema></template>
+                <template slot="footer">
+                    <ful-table id="inner" autoload>
+                        <template slot="schema"><schema><column title="B" sorter="b">{{ a }}</column></schema></template>
+                    </ful-table>
+                </template>
+            </ful-table>`);
+        const inner = container.querySelector('#inner');
+        await Rendering.waitFor(inner);
+        await settle();
+
+        click(pageLink(inner.querySelector('ful-pagination'), '3'));
+        click(inner.querySelector('ful-sorter'));
+        await settle();
+
+        assert.deepStrictEqual(
+            loaded.filter((id) => id === 'outer'),
+            ['outer'],
+            'the outer table loads only for its autoload',
+        );
+        assert.strictEqual(loaded.filter((id) => id === 'inner').length, 3, 'the nested table loads for both');
+    });
+
     it('reports the current page and the number of pages', async () => {
         withTotal(45);
         const [tableEl] = await mount(`
