@@ -182,6 +182,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] drops and removals fire `change`; programmatic assignments and reset stay silent
 - [ENH] a disabled or readonly field shows no dropzone and no remove buttons and accepts no drop; readonly also drops the picker button, and with `item-list` a readonly field shows only its list
 - [BUG] its warnings are announced through a live region and retire on a timer rather than on a css animation
+- [BUG] a pick in the native picker reports `change` with the constraints already applied, so its detail holds the accepted files only
 
 #### ful-select
 

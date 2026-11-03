@@ -143,9 +143,14 @@ class InputFile extends Input {
             this.files = InputFile.list(files);
             this._notifyChange();
         });
-        this._input.addEventListener('change', (e) => {
-            this.#update();
-        });
+        // capture runs before the base listener notifying change, so the event carries the constrained files
+        this._input.addEventListener(
+            'change',
+            () => {
+                this.#update();
+            },
+            { capture: true },
+        );
         return { ...pieces, freeze: this.#group };
     }
     #update() {

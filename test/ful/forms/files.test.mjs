@@ -357,6 +357,16 @@ describe('InputFile constraints', () => {
             'a drop that breaks a constraint shows its warning like a pick',
         );
     });
+
+    it('reports a pick through change with the constraints already applied', async () => {
+        const [el] = await mount(`<ful-input-file multiple accept=".pdf">files</ful-input-file>`);
+        const seen = [];
+        el.addEventListener('change', (evt) => seen.push([evt.detail.value, el.value]));
+
+        pick(el, file('a.pdf'), file('b.txt'));
+
+        assert.deepStrictEqual(seen, [[['a.pdf'], ['a.pdf']]], 'the change carries the accepted files only');
+    });
 });
 
 describe('InputFile dropzone', () => {
