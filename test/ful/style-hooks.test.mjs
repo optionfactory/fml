@@ -240,13 +240,37 @@ describe('Style hooks', () => {
             'fixed',
             'the backdrop spinner is fixed so it covers the whole page',
         );
-        const card = getComputedStyle(spinner, '::before');
+        assert.isTrue(document.elementFromPoint(1, 1) === spinner, 'a click anywhere on the page lands on the spinner');
+        const card = getComputedStyle(spinner);
         assert.strictEqual(
             card.backgroundColor,
             'rgb(255, 255, 255)',
             'the backdrop spinner draws a white card behind its glyph over the scrim',
         );
         assert.strictEqual(card.width, '128px', 'the card is wider than the glyph so it pads around it');
+        assert.strictEqual(card.height, '128px', 'and taller');
+    });
+
+    it('the backdrop spinner holds its text in its card, beside the glyph', () => {
+        const container = attach('<ful-spinner class="backdrop">Saving the order</ful-spinner>');
+        const spinner = container.querySelector('ful-spinner');
+        const text = document.createRange();
+        text.selectNodeContents(spinner);
+        const label = text.getBoundingClientRect();
+        const card = spinner.getBoundingClientRect();
+
+        assert.strictEqual(
+            getComputedStyle(spinner).backgroundColor,
+            'rgb(255, 255, 255)',
+            'the card is the spinner itself, so it grows with its text',
+        );
+        assert.isTrue(
+            label.top >= card.top &&
+                label.bottom <= card.bottom &&
+                label.left >= card.left &&
+                label.right <= card.right,
+            'the text sits inside the white card',
+        );
     });
 
     it('the button classes carry the themed chrome, ghost included', () => {

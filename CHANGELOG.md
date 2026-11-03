@@ -306,6 +306,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] the select's and the boolean filter's chevron follows the text colour, so it shows in dark mode
 - [ENH] the switch knob is painted with `--ful-active-color`, the colour on the accent, instead of a fixed white
 - [BUG] a live region is revealed before it is filled, so `ful-errors` and error sections are announced reliably
+- [BUG] `ful-spinner.backdrop` holds its text in its white card, under the glyph, instead of outside it
 
 #### Packaging
 
