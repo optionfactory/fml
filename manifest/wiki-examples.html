@@ -54,6 +54,8 @@ ftl.registry.defineComponent('loaders:users', {
 
 ftl.registry
     .plugin(new ful.Plugin({ language: 'en', translations: { 'app.email': 'Email' } }))
+    // 13: the blob module is defined before configure(), as the files page says
+    .defineModule('blob', { url: (f) => URL.createObjectURL(f) })
     .configure();
 
 const stage = document.getElementById('stage');
@@ -159,12 +161,19 @@ const mount = async (html) => {
     rin.dispatchEvent(new Event('input', { bubbles: true }));
     ok('11 reject is the same filter from the other side', rej.value === '12', `${rej.value}`);
 
+    d = await mount(`<ful-input name="p" keep="^[A-Z]{0,2}[0-9]*">n</ful-input>`);
+    const shaped = d.querySelector('ful-input');
+    const shapedIn = shaped.querySelector('input');
+    shapedIn.value = 'IT012x3';
+    shapedIn.dispatchEvent(new Event('input', { bubbles: true }));
+    ok('11 keep takes a pattern, not only a character class', shaped.value === 'IT012', `${shaped.value}`);
+
     d = await mount(`<ful-input name="p" keep="[0-9]{2}">n</ful-input>`);
     const pair = d.querySelector('ful-input');
     const pin = pair.querySelector('input');
-    pin.value = 'a12b3c45';
+    pin.value = '1';
     pin.dispatchEvent(new Event('input', { bubbles: true }));
-    ok('11 keep takes a pattern, not only a character class', pair.value === '1245', `${pair.value}`);
+    ok('11 keep must match each partial value: [0-9]{2} drops the first digit', pair.value === null, `${pair.value}`);
 
     // ===== 11: checkbox switch
     d = await mount(`<ful-checkbox name="marketing" type="switch">Send me the newsletter</ful-checkbox>`);
@@ -241,7 +250,6 @@ const mount = async (html) => {
     ok('13 info slot rendered', d.textContent.includes('pdf or png'));
 
     // ===== 13: the items template documented on the files page
-    ftl.registry.defineModule('blob', { url: (f) => URL.createObjectURL(f) });
     d = await mount(`
       <ful-input-file name="att" multiple item-list accept="image/*,.pdf">Attachments
         <template slot="items">
@@ -379,6 +387,24 @@ const mount = async (html) => {
     ok('16 Anchors.show lets the next line take the focus', document.activeElement?.id === 'shared-item', document.activeElement?.id);
     shared.hidePopover();
 
+    // ===== 16: your own anchored popover, placed by the page's css
+    const anchorSheet = document.createElement('style');
+    anchorSheet.textContent = `#downloads { inset: auto; margin: 0; top: anchor(bottom); left: anchor(left); }`;
+    document.head.append(anchorSheet);
+    d = await mount(`<p style="margin-left: 200px"><button id="dl-button">Scarica</button></p><ul popover id="downloads"><li><a href="/reports/summary.pdf">Riepilogo</a></li><li><a href="/reports/detail.pdf">Dettaglio</a></li></ul>`);
+    const dlButton = d.querySelector('#dl-button');
+    const downloads = d.querySelector('#downloads');
+    ful.Anchors.wire(dlButton, downloads, { prefix: 'app-downloads', invoke: true, expanded: true });
+    dlButton.click();
+    await new Promise((r) => requestAnimationFrame(r));
+    const dlb = dlButton.getBoundingClientRect();
+    const dlp = downloads.getBoundingClientRect();
+    ok('16 the anchor css lands the popover below its invoker, start-aligned',
+       downloads.matches(':popover-open') && Math.abs(dlp.top - dlb.bottom) < 1 && Math.abs(dlp.left - dlb.left) < 1,
+       `popover ${dlp.left},${dlp.top} button ${dlb.left},${dlb.bottom}`);
+    downloads.hidePopover();
+    anchorSheet.remove();
+
     // ===== 16: toasts, both ways
     d = await mount(`<ful-toasts id="tst" timeout="60000"></ful-toasts>`);
     const toasts = d.querySelector('ful-toasts');
@@ -483,6 +509,141 @@ const mount = async (html) => {
     await ftl.Rendering.waitFor(d);
     const grandchild = d.querySelector('x-nest-probe > x-wait-probe');
     ok('21 the waits follow components a render creates', grandchild?.rendered === true, String(grandchild?.rendered));
+
+    // ===== 21: the worked example, a callout opening on click
+    class Callout extends ftl.ParsedElement {
+        static slots = true;
+        static attributes = ['tone'];
+        static observed = ['open:presence'];
+        static template = `
+            <ful-control-group>
+                <button type="button" data-ref="toggle" aria-expanded="false">
+                    <ful-icon data-tpl-name="tone == 'warning' ? 'alert' : 'info-circle-fill'"></ful-icon>
+                    {{{{ slots.summary }}}}
+                </button>
+                <div data-ref="body" hidden>{{{{ slots.default }}}}</div>
+            </ful-control-group>`;
+
+        #toggle;
+        #body;
+
+        render({ slots }) {
+            const tone = this.declared('tone');
+            const fragment = this.template().withOverlay({ slots, tone }).render();
+            this.#toggle = fragment.querySelector('[data-ref=toggle]');
+            this.#body = fragment.querySelector('[data-ref=body]');
+            this.#toggle.addEventListener('click', () => {
+                this.open = !this.open;
+                this.dispatchEvent(new CustomEvent('change', { bubbles: true, detail: { open: this.open } }));
+            });
+            this.replaceChildren(fragment);
+        }
+
+        get open() {
+            return this.hasAttribute('open');
+        }
+        set open(v) {
+            this.#body.hidden = !v;
+            this.#toggle.setAttribute('aria-expanded', String(!!v));
+            this.reflectTo('open', v);
+        }
+    }
+    ftl.registry.defineElement('x-callout', Callout).configure();
+    d = await mount(`<x-callout tone="warning"><template slot="summary">Heads up</template><p>The details go here.</p></x-callout>`);
+    const callout = d.querySelector('x-callout');
+    const calloutToggle = callout.querySelector('[data-ref=toggle]');
+    const calloutChanged = new Promise((r) => callout.addEventListener('change', (e) => r(e.detail), { once: true }));
+    ok('21 the callout renders closed', callout.querySelector('[data-ref=body]').hidden && calloutToggle.textContent.includes('Heads up'));
+    calloutToggle.click();
+    const calloutDetail = await calloutChanged;
+    ok('21 the callout opens on click',
+       callout.open && !callout.querySelector('[data-ref=body]').hidden && calloutToggle.getAttribute('aria-expanded') === 'true' && calloutDetail.open === true,
+       `open=${callout.open} expanded=${calloutToggle.getAttribute('aria-expanded')}`);
+    ok('21 the tone picks the icon', callout.querySelector('ful-icon')?.getAttribute('name') === 'alert', callout.querySelector('ful-icon')?.getAttribute('name'));
+
+    // ===== 22: the worked example, a rating field
+    class Rating extends ful.Field {
+        static slots = true;
+        static observed = ['value:number'];
+        static attributes = ['stars:number'];
+        static template = `
+            <label>{{{{ slots.default }}}}</label>
+            {{{{ slots.info }}}}
+            <ful-control-group>
+                <ful-control data-ref="stars" role="radiogroup" tabindex="-1"></ful-control>
+            </ful-control-group>
+            <ful-field-error></ful-field-error>`;
+
+        #stars;
+        #value = null;
+
+        _build({ slots }) {
+            const fragment = this.template().withOverlay({ slots }).render();
+            this.#stars = fragment.querySelector('[data-ref=stars]');
+
+            const count = this.declared('stars') ?? 5;
+            for (let i = 1; i <= count; ++i) {
+                const star = document.createElement('button');
+                star.type = 'button';
+                star.dataset.star = String(i);
+                star.setAttribute('role', 'radio');
+                star.textContent = '★';
+                this.#stars.append(star);
+            }
+
+            this.#stars.addEventListener('click', (evt) => {
+                const star = evt.target.closest('[data-star]');
+                if (!star || !this._interactive()) {
+                    return;
+                }
+                this.value = Number(star.dataset.star);
+                this._notifyChange();
+            });
+
+            return {
+                fragment,
+                control: this.#stars,
+                error: fragment.querySelector('ful-field-error'),
+                label: fragment.querySelector('label'),
+                announces: this.#stars,
+                freeze: this.#stars,
+                also: [...this.#stars.children],
+            };
+        }
+
+        get value() {
+            return this.#stars ? this.#value : (this._heldValue() ?? null);
+        }
+        set value(v) {
+            if (!this.#stars) {
+                this._holdValue(v);
+                return;
+            }
+            this.#value = v ?? null;
+            for (const star of this.#stars.children) {
+                const on = this.#value !== null && Number(star.dataset.star) <= this.#value;
+                star.setAttribute('aria-checked', String(on));
+                star.classList.toggle('picked', on);
+            }
+        }
+    }
+    ftl.registry.defineElement('ful-rating', Rating).configure();
+    d = await mount(`<ful-rating name="score" stars="5" value="3" required>How did it go?</ful-rating>`);
+    const rating = d.querySelector('ful-rating');
+    const ratingGroup = rating.querySelector('[role=radiogroup]');
+    rating.querySelector('label').click();
+    ok('22 a label click picks no star and focuses the radiogroup',
+       rating.value === 3 && document.activeElement === ratingGroup,
+       `value=${rating.value} focus=${document.activeElement?.tagName}`);
+    rating.querySelector('[data-star="5"]').click();
+    ok('22 a star click picks it', rating.value === 5 && rating.querySelectorAll('.picked').length === 5, String(rating.value));
+    const unrendered = document.createElement('ful-rating');
+    unrendered.value = 4;
+    ok('22 the value pair answers before the render', unrendered.value === 4, String(unrendered.value));
+    stage.append(unrendered);
+    await ftl.Rendering.waitFor(unrendered);
+    ok('22 the held value is written once the field has rendered',
+       unrendered.value === 4 && unrendered.querySelectorAll('.picked').length === 4, String(unrendered.value));
 
     // ===== 20: icons and the static config
     d = await mount(`<p><ful-icon name="search" aria-hidden="true"></ful-icon></p>`);
