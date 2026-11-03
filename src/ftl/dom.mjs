@@ -220,7 +220,7 @@ class Nodes {
         }
         // interactive spans both the deferred scripts and the time between DOMContentLoaded and load
         const [navigation] = /** @type {PerformanceNavigationTiming[]} */ (
-            win.performance.getEntriesByType('navigation')
+            win.performance?.getEntriesByType('navigation') ?? []
         );
         if (navigation?.domContentLoadedEventStart > 0) {
             return Promise.resolve();

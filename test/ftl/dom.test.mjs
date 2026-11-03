@@ -439,7 +439,6 @@ describe('dom.mjs', () => {
             const doc = {
                 readyState: 'interactive',
                 defaultView: {
-                    performance: { getEntriesByType: () => [] },
                     addEventListener: (type, cb) => {
                         handlers[type] = cb;
                     },
