@@ -279,6 +279,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] the geometry and the backdrop are themed through `--ful-dialog-width`, `--ful-drawer-width`, `--ful-toasts-max-width` and `--ful-backdrop-color`, read wherever the page sets them (`:root`, the `ful-dialog`/`ful-drawer` host, a class on it, the native dialog), the library declaring none of them; the dialog's sections also answer to the `ful-dialog-header`, `ful-dialog-body` and `ful-dialog-footer` classes at any depth
 - [BUG] a `data-result` button of a dialog nested in a `ful-dialog` or `ful-drawer` closes only that dialog, not the one holding it
 - [BUG] a second click on a non-button invoker `Anchors.wire` made toggle its popover, the marker of every `ful-tooltip` included, closes the popover instead of opening it again
+- [BUG] a `ful-drawer` reopened while it slides out forgets the result it was closing with, so a later dismissal answers a dismissal
 
 #### ful: navigation (tabs, accordion, wizard) and async sections
 

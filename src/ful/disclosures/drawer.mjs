@@ -198,9 +198,10 @@ class Drawer extends ParsedElement {
      * the content section and `first` true only on the first answered request),
      * so a listener can fill the content. A failed request is painted into the
      * content section and does not reject. On a drawer already open nothing is
-     * shown or requested, except that one sliding out stops and stays open, and
-     * the call waits for the same ending as the calls before it, which is how
-     * a caller learns the outcome of the opening an `update()` made.
+     * shown or requested, except that one sliding out stops and stays open,
+     * forgetting the result it was closing with, and the call waits for the
+     * same ending as the calls before it, which is how a caller learns the
+     * outcome of the opening an `update()` made.
      * @returns {Promise<{ dismissed: boolean, result: string|null, response: any }>} resolving on
      * close, or on removal from the document with a dismissal
      */
@@ -281,6 +282,9 @@ class Drawer extends ParsedElement {
     }
     /** @returns {boolean} whether this call is the one that opened the modal */
     #show() {
+        if (this.#closing) {
+            this.#answer = null;
+        }
         this.#stopSlidingOut();
         if (this.#dialog.open) {
             return false;

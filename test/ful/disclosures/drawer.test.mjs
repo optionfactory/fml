@@ -328,6 +328,20 @@ describe('Drawer', () => {
         assert.deepStrictEqual(closes, [], 'a reopened drawer announces no close for the slide out it abandoned');
         await closed(drawer);
     });
+
+    it('forgets the answer of a slide out a reopen stopped', async () => {
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
+        drawer.open();
+        drawer.close('saved');
+        const asked = drawer.ask();
+        drawer.dismiss('button');
+
+        assert.deepStrictEqual(
+            await asked,
+            { dismissed: true, result: null, response: null },
+            'a dismissal after the reopen answers a dismissal, not the abandoned result',
+        );
+    });
 });
 
 const gestures = {
