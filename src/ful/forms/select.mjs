@@ -801,6 +801,7 @@ class Select extends Field {
                 return;
             }
             if (this.#ddmenu.shown) {
+                this.#abortdload();
                 this.#close();
                 return;
             }
@@ -883,6 +884,7 @@ class Select extends Field {
     #wireSelection() {
         this.#ddmenu.addEventListener('change', (e) => {
             e.stopPropagation();
+            this.#abortdload();
             if (!this._interactive()) {
                 this.#close();
                 return;
@@ -1122,6 +1124,7 @@ class Select extends Field {
                     return;
                 }
                 e.preventDefault();
+                this.#abortdload();
                 this.#editing = false;
                 this.#display();
                 this.#ddmenu.acceptSelection();
@@ -1146,6 +1149,7 @@ class Select extends Field {
             if (forward && !this.#ddmenu.shown) {
                 this.#open();
             } else if (!forward && this.#ddmenu.shown) {
+                this.#abortdload();
                 this.#close();
             }
             return;

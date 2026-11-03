@@ -215,6 +215,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a readonly or disabled select gives back the room held for its chevron
 - [BUG] a dropdown with no room below opens just above the control instead of at the top of the viewport
 - [BUG] a key matches the option whose key reads as the same text: a `k-type="boolean"` `value="true"` selects its option, and a `k-type="number"` `0` no longer also marks the `''` option picked
+- [BUG] a pick, `Enter`, `Alt+ArrowUp` or a click closing the dropdown aborts a pending search, which no longer reopens the list 400ms later
 
 #### ful-filter-*
 

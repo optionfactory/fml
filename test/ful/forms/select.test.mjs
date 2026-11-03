@@ -1700,6 +1700,27 @@ describe('Select pointer picking', () => {
             'a click on the blank area of the menu closes the dropdown',
         );
     });
+
+    it('does not let a throttled search reopen the dropdown after a pick', async () => {
+        const [selectEl] = await mount(`<ful-select>pick</ful-select>`);
+        const input = selectEl.querySelector('input');
+        const clock = installClock();
+        try {
+            input.value = 'L';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            await opened();
+            input.value = 'La';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+            selectEl.querySelectorAll('menu li')[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            await clock.advance(450);
+            await settle();
+
+            assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'the pick ended the search');
+        } finally {
+            clock.uninstall();
+        }
+    });
 });
 
 describe('Select query', () => {
