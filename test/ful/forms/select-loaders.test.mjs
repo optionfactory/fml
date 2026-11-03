@@ -745,6 +745,24 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         assert.deepStrictEqual(selectEl.value, ['k2'], 'the key the new data drops goes with it');
     });
 
+    it('lists the new vocabulary in a dropdown left open across the reload', async () => {
+        const bodies = { '/v': [['k1', 'One']] };
+        stub(bodies);
+        const selectEl = await mount('src="/v"');
+        selectEl.dispatchEvent(new Event('click', { bubbles: true }));
+        await settle();
+
+        bodies['/v'] = [['k2', 'Two']];
+        await selectEl.reload();
+        await settle();
+
+        assert.deepStrictEqual(
+            [...selectEl.querySelectorAll('menu li')].map((li) => li.textContent.trim()),
+            ['Two'],
+            'the open dropdown searches the reloaded vocabulary again',
+        );
+    });
+
     it('does nothing but invalidate when nothing is selected', async () => {
         const calls = stub({ '/v': [['k1', 'One']] });
         const selectEl = await mount('src="/v"');

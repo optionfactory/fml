@@ -935,21 +935,25 @@ class Select extends Field {
      * another control needs when that control changes. A key the loader no
      * longer knows is dropped from the selection, so a value invalidated by the
      * change does not survive it, and one it still knows keeps its place with a
-     * fresh label. The badges and items follow, and no `change` is dispatched.
+     * fresh label. The badges and items follow, an open dropdown runs its
+     * search again, and no `change` is dispatched.
      *
      * Where the vocabulary lives at a different address, write `src` or call
      * `reconfigure`, which build the loader for the new url and reload.
      * @returns {Promise<void>}
-     * @throws what the loader's invalidate, prefetch or key lookup throws
+     * @throws what the loader's invalidate, prefetch, key lookup or search
+     * throws
      */
     async reload() {
         await this.#loader.invalidate?.();
         await this.#loader.prefetch?.();
         const keys = [...this.#values.keys()];
-        if (keys.length === 0) {
-            return;
+        if (keys.length !== 0) {
+            await this.#resolve(keys, this.#assignments.take());
         }
-        await this.#resolve(keys, this.#assignments.take());
+        if (this.#ddmenu.shown) {
+            await this.#open();
+        }
     }
     /**
      * The url the loader asks for the vocabulary, reflected as the `src`
