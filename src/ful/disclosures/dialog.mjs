@@ -110,9 +110,9 @@ class Dialog extends ParsedElement {
             this.#settle(outcome);
         });
         this.#dialog.addEventListener('click', (/** @type any */ e) => {
-            const result = e.target.closest('button[data-result]')?.dataset.result;
-            if (result !== undefined) {
-                this.#dialog.close(result);
+            const button = e.target.closest('button[data-result]');
+            if (button && button.closest('dialog') === this.#dialog) {
+                this.#dialog.close(button.dataset.result);
             }
         });
         if (!requiresAnswer) {

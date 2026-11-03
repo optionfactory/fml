@@ -99,9 +99,9 @@ class Drawer extends ParsedElement {
             this.dismiss('escape');
         });
         this.#dialog.addEventListener('click', (/** @type any */ e) => {
-            const result = e.target.closest('button[data-result]')?.dataset.result;
-            if (result !== undefined) {
-                this.close(result);
+            const button = e.target.closest('button[data-result]');
+            if (button && button.closest('dialog') === this.#dialog) {
+                this.close(button.dataset.result);
             }
         });
         this.#dialog.addEventListener('close', () => {

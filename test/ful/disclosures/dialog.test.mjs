@@ -1142,6 +1142,22 @@ for (const { tag, content, open, update } of elements) {
             );
         });
 
+        it('leaves its answer to a dialog nested in it to that dialog', async () => {
+            const [el] = await mount(`
+                <${tag} header="Outer">
+                    <ful-dialog header="Inner"><template slot="buttons"><button type="button" data-result="picked">Pick</button></template></ful-dialog>
+                </${tag}>`);
+            const inner = el.querySelector('ful-dialog');
+            open(el);
+            const asked = inner.ask();
+            inner.querySelector('[data-result=picked]').click();
+
+            assert.strictEqual((await asked).result, 'picked', 'the nested dialog answers');
+            const outer = el.querySelector('dialog');
+            assert.isTrue(outer.open && !outer.hasAttribute('closing'), 'the outer one stays open');
+            await closed(el);
+        });
+
         it('answers its waiters with a dismissal when it leaves the document while open', async () => {
             const [el, container] = await mount(`<${tag} header="t">body</${tag}>`);
             const asked = el.ask();

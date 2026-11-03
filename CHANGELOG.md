@@ -277,6 +277,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] an `update()` of `ful-dialog` or `ful-drawer` that a newer one overtook resolves `null` instead of the content section the newer call filled, so a caller does not wire content that is not its own
 - [ENH] a dialog taller than the viewport scrolls its body between a header and a footer that stay in view, a footer closing a form in the body included, and a drawer keeps the last footer of its content, or of the form it holds, at the bottom of the panel
 - [ENH] the geometry and the backdrop are themed through `--ful-dialog-width`, `--ful-drawer-width`, `--ful-toasts-max-width` and `--ful-backdrop-color`, read wherever the page sets them (`:root`, the `ful-dialog`/`ful-drawer` host, a class on it, the native dialog), the library declaring none of them; the dialog's sections also answer to the `ful-dialog-header`, `ful-dialog-body` and `ful-dialog-footer` classes at any depth
+- [BUG] a `data-result` button of a dialog nested in a `ful-dialog` or `ful-drawer` closes only that dialog, not the one holding it
 
 #### ful: navigation (tabs, accordion, wizard) and async sections
 
