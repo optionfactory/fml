@@ -39,6 +39,9 @@
             },
             "style": {
                 "noDescendingSpecificity": "off"
+            },
+            "performance": {
+                "useDomNodeTextContent": "off"
             }
         }
     },
