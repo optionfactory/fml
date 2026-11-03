@@ -4,6 +4,20 @@ import { Input } from './input.mjs';
 const blankAsNull = (v) => (v === '' ? null : v);
 
 /**
+ * The local midnight of the yyyy-mm-dd date a text names, taking a year below
+ * 100 as it is and refusing a day its month does not have.
+ * @param {string} text
+ * @returns {Date} an invalid date when the text names no date
+ */
+const localMidnight = (text) => {
+    const [y, m, d] = text.split('-').map(Number);
+    const date = new Date(0);
+    date.setFullYear(y, m - 1, d);
+    date.setHours(0, 0, 0, 0);
+    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : new Date(Number.NaN);
+};
+
+/**
  * Formats the yyyy-mm-dd date in its content as a numeric date, in the locale
  * its `locale` attribute names, else the page's, else the platform default.
  * Blank content, or content that does not name a date, renders the `default`
@@ -12,10 +26,8 @@ const blankAsNull = (v) => (v === '' ? null : v);
 class LocalDate extends ParsedElement {
     static attributes = ['locale', 'default'];
     render() {
-        const content = this.textContent.trim();
-        const [y, m, d] = content.split('-').map(Number);
-        const parsed = content === '' ? null : new Date(y, m - 1, d);
-        if (parsed === null || Number.isNaN(parsed.getTime())) {
+        const parsed = localMidnight(this.textContent.trim());
+        if (Number.isNaN(parsed.getTime())) {
             this.replaceChildren(this.declared('default') ?? '');
             return;
         }
@@ -54,7 +66,7 @@ class Instant extends ParsedElement {
         );
     }
     static #parse(v) {
-        return /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00`) : new Date(v);
+        return /^\d{4}-\d{2}-\d{2}$/.test(v) ? localMidnight(v) : new Date(v);
     }
     /**
      * Converts an ISO instant to the `yyyy-mm-ddThh:mm:ss.sss` wall clock time

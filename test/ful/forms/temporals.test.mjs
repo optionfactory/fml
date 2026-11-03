@@ -178,6 +178,14 @@ describe('ful-local-date rendering', () => {
         );
     });
 
+    it('renders the default for a day the month does not have, and keeps a year below 100 as it is', async () => {
+        const [rolled] = await mount(`default="not set">2024-02-30</ful-local-date>`);
+        const [ancient] = await mount('>0050-01-01</ful-local-date>');
+
+        assert.strictEqual(rolled.textContent, 'not set', 'February 30 does not roll over into March');
+        assert.strictEqual(ancient.textContent, '1/1/50', 'the year 50 is not read as 1950');
+    });
+
     it('renders the numeric date in the page locale', async () => {
         const [el] = await mount('>2026-09-04</ful-local-date>');
         assert.strictEqual(el.textContent, '9/4/2026', 'the date is formatted numerically in the page locale, en here');
@@ -227,6 +235,7 @@ describe('Instant conversions', () => {
     it('answers null for a value that does not parse, instead of throwing', () => {
         assert.isNull(Instant.localToIso('garbage'), 'a value that does not parse converts to null');
         assert.isNull(Instant.localToIso(''), 'an empty value converts to null');
+        assert.isNull(Instant.localToIso('2024-02-30'), 'a date-only value naming a day the month lacks converts to null');
         assert.strictEqual(
             Instant.localToIso('2024-03-15'),
             new Date(2024, 2, 15).toISOString(),

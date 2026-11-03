@@ -170,6 +170,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `scroll-on-error` focuses the topmost invalid field when the fields sit in a `<fieldset>`, instead of the fieldset, which takes no focus
 - [BUG] under `track-changes` a native `<button type="reset">` counts as a reset, as `reset()` does, so the form turns dirty when the defaults differ from what was saved
 - [BUG] several server problems on one field all show in its error, one per line, instead of only the last
+- [BUG] `ful-local-date` renders the `default` text for a day its month does not have (`2024-02-30`) instead of rolling over, and keeps a year below 100 instead of reading it as 19xx; a date-only instant (`ful-instant`, `ful-input-instant`) refuses such a day too
 
 #### ful-input
 
