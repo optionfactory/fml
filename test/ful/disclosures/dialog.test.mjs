@@ -250,6 +250,19 @@ describe('Dialog close-on-submit', () => {
         dialog.close();
     });
 
+    it('keeps a footer holding only the text of its buttons slot', async () => {
+        const [dialog] = await mount(`
+            <ful-dialog header="Notice">
+                <p>Body</p>
+                <template slot="buttons">Closes by itself</template>
+            </ful-dialog>
+        `);
+        dialog.ask();
+
+        assert.notStrictEqual(getComputedStyle(dialog.querySelector('dialog > footer')).display, 'none');
+        dialog.close();
+    });
+
     it('keeps a slotted buttons set beside the form', async () => {
         const [dialog] = await mount(`
             <ful-dialog close-on-submit header="Edit">

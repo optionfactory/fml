@@ -77,10 +77,7 @@ class Dialog extends ParsedElement {
             <section data-ref="loading" hidden><ful-spinner class="centered" role="status"><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner></section>
             <section data-ref="error" role="alert" hidden></section>
             <div data-ref="body" class="ful-dialog-body">{{{{ slots.default }}}}</div>
-            <footer class="ful-dialog-footer">
-                <button type="button" data-ref="acknowledge" data-result="acknowledged" data-tpl-if="!slots.buttons && !closeOnSubmit" data-tpl-aria-label="#l10n:t('dialog.acknowledge')">{{ #l10n:t('dialog.acknowledge') }}</button>
-                {{{{ slots.buttons }}}}
-            </footer>
+            <footer class="ful-dialog-footer"><button type="button" data-ref="acknowledge" data-result="acknowledged" data-tpl-if="!slots.buttons && !closeOnSubmit" data-tpl-aria-label="#l10n:t('dialog.acknowledge')">{{ #l10n:t('dialog.acknowledge') }}</button>{{{{ slots.buttons }}}}</footer>
         </dialog>
     `;
     #dialog;

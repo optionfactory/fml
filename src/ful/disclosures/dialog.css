@@ -72,7 +72,7 @@
             margin: 0.5rem 1.25rem;
         }
 
-        & > footer.ful-dialog-footer:not(:has(*)) {
+        & > footer.ful-dialog-footer:empty {
             display: none;
         }
 
