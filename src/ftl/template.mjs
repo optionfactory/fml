@@ -93,7 +93,8 @@ class CommandsHandler {
         const statName = ops.popData(node, 'tplStat');
         const template = new Template(node, evaluator);
         const evaluated = evaluator.evaluateExpression(expression);
-        const proto = evaluated === null || typeof evaluated !== 'object' ? undefined : Object.getPrototypeOf(evaluated);
+        const proto =
+            evaluated === null || typeof evaluated !== 'object' ? undefined : Object.getPrototypeOf(evaluated);
         const plain = !evaluated?.[Symbol.iterator] && (proto === Object.prototype || proto === null);
         const dict = plain ? Object.entries(evaluated) : null;
         const keyed = evaluated instanceof Map ? [...evaluated] : dict;
@@ -173,6 +174,9 @@ class CommandsHandler {
         }
         const tuples = Array.isArray(attributesAndValues[0]) ? attributesAndValues : [attributesAndValues];
         tuples.forEach(([k, v]) => {
+            if (v === null || v === undefined) {
+                return;
+            }
             node.setAttribute(k, v);
         });
     }

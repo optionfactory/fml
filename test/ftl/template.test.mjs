@@ -857,6 +857,19 @@ describe('Template', () => {
         );
     });
 
+    it('appends no attribute for a tuple with a nullish value', () => {
+        const template = Template.fromHtml(
+            "<li data-tpl-attr-append=\"[['data-ref', id], ['title', missing], ['lang', 'it']]\"></li>",
+            modules,
+            { id: null },
+        );
+        assert.strictEqual(
+            Fragments.toHtml(template.render()),
+            '<li lang="it"></li>',
+            'a null or undefined value appends nothing instead of the text "null" or "undefined"',
+        );
+    });
+
     it('can remove the entire element with *-remove="all"', () => {
         const template = Template.fromHtml('<div><span data-tpl-remove="all">gone</span></div>', modules, {});
         const rendered = template.render();
