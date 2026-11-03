@@ -2508,6 +2508,24 @@ describe('Select dropdown anchoring', () => {
         }
     });
 
+    it('wraps the chips of a multiple select and anchors below the taller control', async () => {
+        const container = appended(
+            `<ful-select multiple style="width: 160px" value="alpha,bravo,charlie,delta"></ful-select>`,
+        );
+        const selectEl = container.querySelector('ful-select');
+        await Rendering.waitFor(selectEl);
+        await settle();
+        await open(selectEl);
+
+        const control = selectEl.querySelector('ful-control').getBoundingClientRect();
+        for (const badge of selectEl.querySelectorAll('ful-badge')) {
+            const { left, right } = badge.getBoundingClientRect();
+            assert.isAtLeast(left, control.left, 'no chip is cut at the start of the control');
+            assert.isAtMost(right, control.right, 'no chip is cut at the end of the control');
+        }
+        assertAnchored(selectEl);
+    });
+
     it('grows past its control for a long option, capped at the dropdown max-width', async () => {
         registry.defineComponent('loaders:select', {
             create: () => ({

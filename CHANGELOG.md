@@ -222,6 +222,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `Enter` on a highlighted disabled entry, such as a disabled current value, picks nothing, where it picked the first enabled entry; the arrows walk from the highlighted entry
 - [BUG] a single select keeps only the first key of a comma separated `value`, and turning `multiple` off keeps only the first selected key; toggling `multiple` redraws the badges, the items and the field at once
 - [BUG] `select.reload()` runs the search of an open dropdown again, which kept listing the rows of the previous vocabulary
+- [BUG] the chips of a `multiple` select without `item-list` wrap onto more lines, growing the control, where the ones that did not fit were cut off
 
 #### ful-filter-*
 

@@ -30,6 +30,15 @@
             }
         }
 
+        &[multiple]:not([item-list]) > ful-control-group > ful-control {
+            flex-wrap: wrap;
+            column-gap: 3px;
+
+            & > ful-badge + ful-badge {
+                margin-left: 0;
+            }
+        }
+
         &:disabled,
         &[readonly] {
             cursor: default;
