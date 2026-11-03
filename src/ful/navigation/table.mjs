@@ -346,8 +346,9 @@ class InMemoryTableLoader {
      */
     async load(pageRequest, sortRequest, filterRequest) {
         const rows = this.#sorted(sortRequest);
-        const begin = pageRequest.page * pageRequest.size;
-        const end = begin + pageRequest.size;
+        const size = Number(pageRequest.size);
+        const begin = pageRequest.page * size;
+        const end = begin + size;
         const page = rows.slice(begin, end);
         const totalElements = rows.length;
         return {
@@ -593,12 +594,14 @@ class Table extends ParsedElement {
      *
      * The reload is not awaited: a failure shows the error panel and its
      * rejection is unhandled.
-     * @param {number|null|undefined} value absent or null is the default of
-     * ten, so removing the attribute restores it
+     * @param {number|string|null|undefined} value a number or a string of
+     * one, such as a select's value; absent or null is the default of ten,
+     * so removing the attribute restores it, and a value that is not a
+     * number is ignored
      */
     set pageSize(value) {
-        const size = value ?? 10;
-        if (size === this.#latestRequest.pageRequest.size) {
+        const size = Number(value ?? 10);
+        if (Number.isNaN(size) || size === this.#latestRequest.pageRequest.size) {
             return;
         }
         this.#latestRequest = { ...this.#latestRequest, pageRequest: { page: 0, size } };

@@ -1158,6 +1158,20 @@ describe('In memory table loader', () => {
         );
     });
 
+    it('pages by a size written as a string, as a select hands it over', async () => {
+        const [tableEl] = await mountTable();
+        await tableEl.withLoader((loader) => loader.update([1, 2, 3, 4, 5, 6, 7].map((a) => ({ a }))));
+        await tableEl.reload();
+
+        tableEl.pageSize = '3';
+        await settle();
+        click(pageLink(tableEl.querySelector('ful-pagination'), '2'));
+        await settle();
+
+        assert.deepStrictEqual(rowTexts(tableEl), ['4', '5', '6'], 'the second page holds three rows');
+        assert.strictEqual(tableEl.pageSize, 3, 'pageSize answers the size as a number');
+    });
+
     it('replaces the data on update', async () => {
         const [tableEl] = await mountTable();
         await tableEl.withLoader((loader) => loader.update([{ a: 'old' }, { a: 'older' }, { a: 'oldest' }]));

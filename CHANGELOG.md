@@ -223,6 +223,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a page left behind by shrinking data falls back to the last existing page; an empty table shows `Page 1 of 1`; an `order` without its `sorter` asks for no sort
 - [BUG] a failed load is announced (`role="alert"`) and the table carries `aria-busy` while the load it owns runs
 - [BUG] column headings are start-aligned
+- [BUG] `pageSize` takes a size written as a string, such as a select's value: the in-memory loader pages by it instead of showing every remaining row, and a value that is not a number is ignored
 
 #### ful: disclosures (tooltip, dialog, drawer, menu, toasts)
 
