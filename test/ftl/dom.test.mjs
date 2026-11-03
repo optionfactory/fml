@@ -178,6 +178,19 @@ describe('dom.mjs', () => {
             expect(children[1].hasAttribute('slot'), 'the empty claim is stripped like any named one').to.be.false;
         });
 
+        it('collects a slot named like an Object.prototype member', () => {
+            const el = document.createElement('div');
+            el.innerHTML = `<p slot="constructor">a</p><p slot="__proto__">b</p>`;
+
+            const slots = LightSlots.from(el);
+
+            expect(slots.constructor.textContent, 'a slot named constructor gets its own fragment').to.equal('a');
+            expect(
+                Object.getOwnPropertyDescriptor(slots, '__proto__').value.textContent,
+                'a slot named __proto__ is a slot, not the prototype',
+            ).to.equal('b');
+        });
+
         it('parses a text/html script slot as markup', () => {
             const el = document.createElement('div');
             el.innerHTML = `<script type="text/html" slot="tpl"><p>mark<u>up</u></p></${'script'}>`;

@@ -152,7 +152,7 @@ class LightSlots {
                 el.removeAttribute('slot');
                 return [slot, LightSlots.slotFromNode(el)];
             });
-        const slots = {};
+        const slots = Object.create(null);
         slots.default = new DocumentFragment();
         slots.default.append(...el.childNodes);
         for (const [name, el] of namedSlots) {

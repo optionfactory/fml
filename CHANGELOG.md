@@ -99,6 +99,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `AsyncEvents.fireAsync`: a pipeline or delegate configured wrong still throws, and the outcomes of the listeners already dispatched no longer surface as unhandled rejections
 - [BUG] an element appended after DOMContentLoaded (`Dialog.ask()`) upgrades at once instead of waiting for `load`, and `Nodes.waitDomContentLoaded` resolves at once when DOMContentLoaded has passed
 - [BUG] `data-tpl-attr-append` appends nothing for a tuple whose value is `null` or `undefined`, instead of the text `null` or `undefined`
+- [BUG] `LightSlots.from` collects a slot named like an `Object.prototype` member (`slot="constructor"`, `slot="__proto__"`) instead of crashing
 
 #### httpc, client-errors and storage
 
