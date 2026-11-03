@@ -12,7 +12,7 @@ import { Timing } from '../timing.mjs';
  * @typedef {{ request(method: string, url: string): any }} SelectHttpClient
  */
 
-const byKeys = (entries, keys) => entries.filter(({ key }) => keys.some((r) => r == key));
+const byKeys = (entries, keys) => entries.filter(({ key }) => keys.some((r) => String(r) === String(key)));
 const byLabel = (entries, needle) =>
     entries.filter(({ label }) => (label ?? '').toLowerCase().includes(needle?.toLowerCase() ?? ''));
 
@@ -57,7 +57,8 @@ class RemoteLoader {
         await this.#ensureFetched();
     }
     /**
-     * The entries whose key loosely equals one of the keys, in vocabulary order.
+     * The entries whose key reads as the same text as one of the keys, in
+     * vocabulary order.
      * @param {...any} keys
      * @returns {Promise<SelectEntry[]>}
      * @throws when the fetch fails, or when an invalidation supersedes it
@@ -199,7 +200,8 @@ class InMemoryLoader {
      */
     async invalidate() {}
     /**
-     * The entries whose key loosely equals one of the keys, in vocabulary order.
+     * The entries whose key reads as the same text as one of the keys, in
+     * vocabulary order.
      * @param {...any} keys
      * @returns {SelectEntry[]}
      */
@@ -454,7 +456,7 @@ class Dropdown extends ParsedElement {
      * Renders the entries as rows and highlights the first one whose key is
      * picked, else the row the template marked `selected`, else the first
      * enabled row. A row is marked `picked` and
-     * `aria-selected="true"` when its key loosely equals one of the keys, and
+     * `aria-selected="true"` when its key reads as the same text as one of the keys, and
      * `aria-disabled="true"` when its `metadata.disabled` is truthy, titled with
      * `metadata.reason`. No entries shows the empty state instead of the menu.
      * @param {SelectEntry[]} values
@@ -470,7 +472,7 @@ class Dropdown extends ParsedElement {
         this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
         for (const [index, li] of [...this.#menu.children].entries()) {
             const entry = values[index];
-            const picked = keys.some((r) => r == entry?.key);
+            const picked = keys.some((r) => String(r) === String(entry?.key));
             li.toggleAttribute('picked', picked);
             li.setAttribute('aria-selected', picked ? 'true' : 'false');
             const disabled = !!entry?.metadata?.disabled;
@@ -487,7 +489,7 @@ class Dropdown extends ParsedElement {
         }
         this.#empty.toggleAttribute('hidden', values.length !== 0);
         this.#menu.toggleAttribute('hidden', values.length === 0);
-        const current = values.findIndex(({ key }) => keys.some((r) => r == key));
+        const current = values.findIndex(({ key }) => keys.some((r) => String(r) === String(key)));
         this.#highlight(current >= 0 ? this.#menu.children[current] : this.#selected());
     }
     #change(target) {

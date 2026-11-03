@@ -214,6 +214,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a click on another control inside a `ful-select` (a tooltip, an affix button) no longer opens the dropdown
 - [BUG] a readonly or disabled select gives back the room held for its chevron
 - [BUG] a dropdown with no room below opens just above the control instead of at the top of the viewport
+- [BUG] a key matches the option whose key reads as the same text: a `k-type="boolean"` `value="true"` selects its option, and a `k-type="number"` `0` no longer also marks the `''` option picked
 
 #### ful-filter-*
 

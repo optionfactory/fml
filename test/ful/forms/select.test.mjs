@@ -843,7 +843,7 @@ describe('Select key types', () => {
         assert.strictEqual(
             selectEl.querySelector('input').value,
             'Label 16',
-            'the string key is labelled by the loose match against the numeric key',
+            'the string key is labelled by the numeric key reading as the same text',
         );
     });
 
@@ -857,7 +857,7 @@ describe('Select key types', () => {
         assert.strictEqual(
             selectEl.querySelector('input').value,
             'Label 16',
-            'the coerced key is labelled by the loose match against the numeric key',
+            'the coerced key is labelled by the numeric key reading as the same text',
         );
     });
 
@@ -921,6 +921,24 @@ describe('Select key types', () => {
 
         assert.strictEqual(selectEl.value, 16, 'k-type number coerces the picked key to a number');
         assert.strictEqual(selectEl.querySelector('input').value, 'Label 16', 'the picked entry labels the field');
+    });
+
+    it('matches a coerced key against the option carrying the same text, and only that one', async () => {
+        const [yes] = await mount(
+            `<ful-select k-type="boolean" value="true"><template slot="options"><option value="">None</option><option value="true">Yes</option></template></ful-select>`,
+        );
+        const [zero] = await mount(
+            `<ful-select k-type="number" value="0"><template slot="options"><option value="">None</option><option value="0">Zero</option></template></ful-select>`,
+        );
+        zero.dispatchEvent(new Event('click', { bubbles: true }));
+        await opened();
+
+        assert.strictEqual(yes.querySelector('input').value, 'Yes', 'the boolean key selects its option');
+        assert.deepEqual(
+            [...zero.querySelectorAll('li[picked]')].map((li) => li.textContent.trim()),
+            ['Zero'],
+            'the number key marks its own option picked, not the empty one',
+        );
     });
 });
 
