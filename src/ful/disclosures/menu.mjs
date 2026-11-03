@@ -31,6 +31,21 @@ class Menu extends ParsedElement {
     #invoker = null;
     /** @type {HTMLElement|null} */
     #pressed = null;
+    #notePress = (/** @type PointerEvent */ evt) => {
+        const target = /** @type Node */ (evt.target);
+        this.#pressed = this.matches(':popover-open') && this.#invoker?.contains(target) ? this.#invoker : null;
+    };
+    /** Upgrades the menu, and has a shared one that came back follow the presses on its invoker again. */
+    connectedCallback() {
+        super.connectedCallback();
+        if (this.rendered && !this.declared('for')) {
+            document.addEventListener('pointerdown', this.#notePress, true);
+        }
+    }
+    /** Stops a shared menu following the presses while it is out of the document. */
+    disconnectedCallback() {
+        document.removeEventListener('pointerdown', this.#notePress, true);
+    }
     /**
      * Gives the menu the `menu` role and an empty `popover` attribute unless
      * it already has one, and marks the items. With `for`, read here once, it
@@ -116,14 +131,7 @@ class Menu extends ParsedElement {
         return this.#mark().filter((item) => !item.hasAttribute('disabled') && !item.hasAttribute('hidden'));
     }
     #wireShared() {
-        document.addEventListener(
-            'pointerdown',
-            (evt) => {
-                const target = /** @type Node */ (evt.target);
-                this.#pressed = this.matches(':popover-open') && this.#invoker?.contains(target) ? this.#invoker : null;
-            },
-            true,
-        );
+        document.addEventListener('pointerdown', this.#notePress, true);
         this.addEventListener('toggle', (/** @type any */ evt) => {
             if (evt.newState === 'closed') {
                 this.#invoker?.setAttribute('aria-expanded', 'false');

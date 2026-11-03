@@ -282,6 +282,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a `ful-drawer` reopened while it slides out forgets the result it was closing with, so a later dismissal answers a dismissal
 - [BUG] a `close-on-submit` `ful-dialog` without a `buttons` slot shows no empty footer under its body
 - [BUG] `close-on-submit` closes the `ful-dialog` or `ful-drawer` on the success of any `ful-form` standing directly in its body or content, not only the first
+- [BUG] a shared `ful-menu` removes its document listener when it leaves the document, and adds it back when it returns
 
 #### ful: navigation (tabs, accordion, wizard) and async sections
 

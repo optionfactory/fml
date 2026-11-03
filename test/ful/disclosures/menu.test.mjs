@@ -372,6 +372,36 @@ describe('ful-menu shared by several invokers', () => {
         assert.isTrue(menu.matches(':popover-open'), 'a later press opens it as usual');
     });
 
+    it('holds no listener on the document while it is out of it, and closes on a second press once back', async () => {
+        const live = new Set();
+        const { addEventListener, removeEventListener } = document;
+        document.addEventListener = function (type, listener, options) {
+            live.add(listener);
+            return addEventListener.call(this, type, listener, options);
+        };
+        document.removeEventListener = function (type, listener, options) {
+            live.delete(listener);
+            return removeEventListener.call(this, type, listener, options);
+        };
+        try {
+            const { first, menu } = await buildShared();
+            const parent = menu.parentElement;
+            menu.remove();
+            assert.strictEqual(live.size, 0, 'a menu out of the document leaves nothing on it');
+
+            parent.append(menu);
+            await openedFor(first, menu);
+            first.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+            menu.hidePopover();
+            first.click();
+            await tick();
+            assert.isFalse(menu.matches(':popover-open'), 'back in the document, a second press still closes it');
+        } finally {
+            document.addEventListener = addEventListener;
+            document.removeEventListener = removeEventListener;
+        }
+    });
+
     it('refuses showFor on a menu that names its invoker through for', async () => {
         const { menu } = await build();
         const other = /** @type HTMLElement */ (appended('<button>other</button>').firstElementChild);
