@@ -111,6 +111,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] storage: an unreachable backing (blocked cookies, private or embedded contexts) reads as a miss and removes as a no-op instead of throwing; writes still report their failure
 - [BUG] `HttpClientBuilder.build()` hands the client a copy of its interceptors, so adding interceptors to the builder afterwards leaves the clients already built unchanged
 - [BUG] a `problem+json` body whose `problems` is not an array becomes one `GENERIC_PROBLEM`, so `dropping()` and form binding no longer crash on it, and a missing `title` or `detail` no longer reads as `undefined` in the message
+- [BUG] an empty `failures+json` array or `problem+json` `problems` list becomes one `GENERIC_PROBLEM`, so a refused form submit no longer shows nothing
 
 #### Localization
 

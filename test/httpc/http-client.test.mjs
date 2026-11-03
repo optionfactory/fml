@@ -647,6 +647,26 @@ describe('HttpClientError problem+json', () => {
         ).to.deep.equal([HttpClientError.problem('GENERIC_PROBLEM', '400 Bad Request: Bad input')]);
     });
 
+    it('reports an empty problems list, in either media type, as one generic problem', async () => {
+        const failures = await HttpClientError.fromResponse(
+            new Response('[]', { status: 422, headers: { 'Content-Type': 'application/failures+json' } }),
+        );
+        const problem = await HttpClientError.fromResponse(
+            new Response(JSON.stringify({ title: 'T', problems: [] }), {
+                status: 422,
+                headers: { 'Content-Type': 'application/problem+json' },
+            }),
+        );
+        expect(
+            failures.problems.map((p) => p.type),
+            'an empty failures array still says something failed',
+        ).to.deep.equal(['GENERIC_PROBLEM']);
+        expect(
+            problem.problems.map((p) => p.type),
+            'an empty problems member reads as absent',
+        ).to.deep.equal(['GENERIC_PROBLEM']);
+    });
+
     it('carries the embedded problems when the payload has them', async () => {
         const problems = [{ type: 'VALIDATION', context: 'name', reason: 'blank' }];
         const res = new Response(JSON.stringify({ title: 'T', detail: 'D', problems }), {

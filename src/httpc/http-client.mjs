@@ -95,11 +95,12 @@ class HttpClientError extends Failure {
     /**
      * The failure an error response stands for, keeping its status. An
      * `application/failures+json` body is the problems list; an
-     * `application/problem+json` body contributes its `problems` array, or one
-     * GENERIC_PROBLEM made of whichever of its title and detail it has. Any
-     * other body is one GENERIC_PROBLEM carrying the body text. A json body that does not decode,
-     * or decodes to the wrong shape, and a body that cannot be read at all,
-     * each become one GENERIC_PROBLEM saying so.
+     * `application/problem+json` body contributes its non-empty `problems`
+     * array, or one GENERIC_PROBLEM made of whichever of its title and detail
+     * it has. Any other body is one GENERIC_PROBLEM carrying the body text. A
+     * json body that does not decode, or decodes to the wrong shape or to an
+     * empty failures array, and a body that cannot be read at all, each
+     * become one GENERIC_PROBLEM saying so.
      * @param {Response} response consumed
      * @returns {Promise<HttpClientError>}
      */
@@ -112,6 +113,9 @@ class HttpClientError extends Failure {
                 }
                 if (!Array.isArray(data)) {
                     return HttpClientError.#undecodable(response, 'as a failures array');
+                }
+                if (data.length === 0) {
+                    return HttpClientError.#undecodable(response, 'as a non-empty failures array');
                 }
                 const message = `${response.status} ${response.statusText}: ${data.length} failures`;
                 return new HttpClientError(message, response.status, data);
@@ -131,7 +135,7 @@ class HttpClientError extends Failure {
                 return new HttpClientError(
                     message,
                     response.status,
-                    Array.isArray(data.problems)
+                    Array.isArray(data.problems) && data.problems.length > 0
                         ? data.problems
                         : [HttpClientError.problem('GENERIC_PROBLEM', message)],
                 );
