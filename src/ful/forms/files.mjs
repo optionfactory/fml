@@ -257,7 +257,7 @@ class InputFile extends Input {
      * @returns {boolean}
      */
     get multiple() {
-        return this._input.multiple;
+        return this._input ? this._input.multiple : this.declared('multiple');
     }
     /** @param {boolean} v */
     set multiple(v) {
@@ -265,11 +265,11 @@ class InputFile extends Input {
         this.reflectTo('multiple', v);
     }
     /**
-     * The selected files, after the constraints.
+     * The selected files, after the constraints; none before the render.
      * @returns {FileList}
      */
     get files() {
-        return this._input.files;
+        return this._input ? this._input.files : InputFile.list();
     }
     /**
      * Replaces the selection and runs the constraints over it, refreshing the
@@ -296,7 +296,7 @@ class InputFile extends Input {
     }
     /**
      * The names of the selected files: an array when `multiple`, otherwise the
-     * one name or null.
+     * one name or null. Before the render no file is selected yet.
      * @returns {string[]|string|null}
      */
     get value() {
@@ -305,11 +305,12 @@ class InputFile extends Input {
     }
     /**
      * Empties the selection for a falsy value and ignores any other, since a
-     * file name cannot select a file.
+     * file name cannot select a file. Before the render there is nothing to
+     * empty, so it does nothing.
      * @param {any} v
      */
     set value(v) {
-        if (v) {
+        if (v || !this._input) {
             return;
         }
         this.files = InputFile.list();

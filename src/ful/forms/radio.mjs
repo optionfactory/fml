@@ -92,15 +92,31 @@ class RadioGroup extends Field {
      * The value of the checked radio, `null` when none is. Under
      * `type="boolean"` it answers `true` for a radio whose value is `true` and
      * `false` for any other. Writing a value checks the radio carrying it, and
-     * writing `null` or a value no radio carries clears the selection.
+     * writing `null` or a value no radio carries clears the selection. Before
+     * the render it answers the value last written, or the `value` attribute,
+     * when a `ful-radio` carries it, and a write is held for the render to
+     * apply.
      * @type {string | boolean | null}
      */
     get value() {
+        if (!this.#fieldset) {
+            const held = this._heldValue();
+            const radio = held === null ? null : this.querySelector(`ful-radio[value="${CSS.escape(String(held))}"]`);
+            const key = radio?.getAttribute('value') ?? null;
+            if (key === null || this.declared('type') !== 'boolean') {
+                return key;
+            }
+            return key === 'true';
+        }
         /** @type {HTMLInputElement|null} */
         const checked = this.querySelector('input[type=radio]:checked');
         return checked ? (this.#booleanType ? checked.value === 'true' : checked.value) : null;
     }
     set value(value) {
+        if (!this.#fieldset) {
+            this._holdValue(value);
+            return;
+        }
         const radios = this.querySelectorAll(`input[type=radio]`);
         const clear = () => {
             radios.forEach((el) => {

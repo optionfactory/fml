@@ -253,14 +253,24 @@ class InputInstant extends Input {
         return 'datetime-local';
     }
     /**
-     * The entered time as a UTC ISO instant.
+     * The entered time as a UTC ISO instant. Before the render it answers the
+     * value last written, or the `value` attribute, as the rendered field
+     * would, and a write is held for the render to apply.
      * @returns {string|null} null when empty or when the input holds text that does not parse
      */
     get value() {
+        if (!this._input) {
+            const held = this._heldValue();
+            return Instant.localToIso(held ? Instant.isoToLocal(held) : '');
+        }
         return Instant.localToIso(this._input.value);
     }
     /** @param {string|null|undefined} v an ISO instant; a falsy value empties the input */
     set value(v) {
+        if (!this._input) {
+            this._holdValue(v);
+            return;
+        }
         super.value = v ? Instant.isoToLocal(v) : '';
     }
     /**

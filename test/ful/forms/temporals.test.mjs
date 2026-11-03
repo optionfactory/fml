@@ -280,6 +280,23 @@ describe('InputInstant bounds and value', () => {
 
         assert.isNull(el.value, 'an unparseable value is no value, not a crash');
     });
+
+    it('answers and takes its value before the render, the render applying the write', async () => {
+        const el = document.createElement('ful-input-instant');
+        el.setAttribute('value', '2024-03-15');
+        assert.strictEqual(
+            el.value,
+            new Date(2024, 2, 15).toISOString(),
+            'the value attribute is answered as the instant the rendered field would answer',
+        );
+
+        const instant = new Date(2024, 2, 16, 10, 30).toISOString();
+        el.value = instant;
+        appended('').append(el);
+        await Rendering.waitFor(el);
+
+        assert.strictEqual(el.value, instant, 'the render applies the value written before it');
+    });
 });
 
 describe('InputLocalDate min and max', () => {

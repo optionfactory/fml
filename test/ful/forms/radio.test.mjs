@@ -1,7 +1,7 @@
 import { assert } from 'chai';
-import { registry } from '../../../src/ftl/index.mjs';
+import { registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Bindings, Plugin } from '../../../src/ful/index.mjs';
-import { mount } from '../../harness.mjs';
+import { appended, mount } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
 
@@ -201,6 +201,23 @@ describe('RadioGroup value', () => {
             { a: 'k2' },
             "the form sees only the group's value under the group's name",
         );
+    });
+
+    it('answers and takes its value before the render, the render applying the write', async () => {
+        const detached = document.createElement('div');
+        detached.innerHTML =
+            '<ful-radio-group name="a" value="k1">l<ful-radio value="k1">one</ful-radio><ful-radio value="k2">two</ful-radio></ful-radio-group>';
+        const group = detached.firstElementChild;
+        assert.strictEqual(group.value, 'k1', 'the value attribute is answered before the render');
+        group.value = 'missing';
+        assert.isNull(group.value, 'a key no radio carries is answered as no selection, as after the render');
+
+        group.value = 'k2';
+        appended('').append(group);
+        await Rendering.waitFor(group);
+
+        assert.strictEqual(group.value, 'k2', 'the render applies the value written before it');
+        assert.strictEqual(group.getAttribute('value'), 'k1', 'the write leaves the value attribute alone');
     });
 });
 

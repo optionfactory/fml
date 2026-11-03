@@ -50,13 +50,19 @@ class Checkbox extends Field {
     }
     /**
      * Whether the box is checked. The `value` attribute is read with the `bool`
-     * mapper, where only the text `true` means checked.
+     * mapper, where only the text `true` means checked. Before the render it
+     * answers the value last written, or the `value` attribute, and a write is
+     * held for the render to apply.
      * @type {boolean}
      */
     get value() {
-        return this.#input.checked;
+        return this.#input ? this.#input.checked : Boolean(this._heldValue());
     }
     set value(value) {
+        if (!this.#input) {
+            this._holdValue(value);
+            return;
+        }
         this.#input.checked = value;
     }
 }

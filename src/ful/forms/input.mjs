@@ -254,13 +254,15 @@ class Input extends Field {
      * control's value does, and is not an edit: a date or time control that
      * has the focus reports no `change` for it when it is left. Answers a
      * `string`, a `number` or `null`; typed `any` because subclasses answer
-     * other values.
+     * other values. Before the render the same shaping reads the value last
+     * written, or the `value` attribute, as its text, and a write is held for
+     * the render to apply.
      * @type {any}
      */
     get value() {
         const uppercase = this.declared('uppercase');
         const trim = this.declared('trim');
-        const v = this._input.value;
+        const v = this._input ? this._input.value : `${this._heldValue() ?? ''}`;
         const uppercased = uppercase ? v.toUpperCase() : v;
         const trimmed = trim ? uppercased.trim() : uppercased;
         if (trimmed === '') {
@@ -274,6 +276,10 @@ class Input extends Field {
         return normalized;
     }
     set value(value) {
+        if (!this._input) {
+            this._holdValue(value);
+            return;
+        }
         this._input.value = value === '' || value === undefined || value === null ? '' : `${value}`;
         this.#committed = JSON.stringify(this.value);
     }

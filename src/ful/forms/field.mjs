@@ -13,9 +13,12 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
  *
  * The claim setters, the validity protocol and the aria wiring all act on the
  * pieces, so a field with no native control returns a focusable piece of its
- * own chrome as the control. The claim getters and `focus()` are the only
- * members that tolerate a not yet rendered element; the other members need the
- * pieces and so work only after the render.
+ * own chrome as the control. The claims, `value` and `focus()` are the
+ * members that tolerate a not yet rendered element: before the render the
+ * `value` getter answers what the rendered field would answer from its current
+ * declared state, and a value written then is held and applied by the render
+ * (see `_holdValue`). The other members need the pieces and so work only after
+ * the render.
  *
  * The inner controls carry `form=""`, so the host is the only element the form
  * sees. Enter pressed in an inner `<input>` of any type but `file`, `button`,
@@ -51,6 +54,8 @@ class Field extends ParsedElement {
     #claims;
     #announces;
     #also = [];
+    /** @type {{ value: any } | null} the value written before the render, which the render applies */
+    #held = null;
     /** Sets the internals' role from the subclass's `static ROLE`. */
     constructor() {
         super();
@@ -285,10 +290,46 @@ class Field extends ParsedElement {
         return !this.matches(':disabled') && !this.readonly;
     }
     /**
+     * Upgrades as `ParsedElement.upgrade` does, then writes the value held by
+     * `_holdValue`, if any, through the `value` setter: the value written
+     * before the render wins over the declared one.
+     * @returns {Promise<void>} rejecting with what the render threw
+     */
+    async upgrade() {
+        await super.upgrade();
+        if (this.#held === null) {
+            return;
+        }
+        const { value } = this.#held;
+        this.#held = null;
+        this.value = value;
+    }
+    /**
+     * Keeps a value written before the field has its control, for a subclass's
+     * `value` setter to call in place of writing it: the upgrade writes it
+     * through the setter once the field has rendered, over the declared one.
+     * The `value` attribute is left alone, so a reset still restores it.
+     * @param {any} value
+     */
+    _holdValue(value) {
+        this.#held = { value };
+    }
+    /**
+     * The value a subclass's `value` getter shapes before the field has its
+     * control: the one `_holdValue` kept, else the declared `value` attribute
+     * read through its mapper.
+     * @returns {any}
+     */
+    _heldValue() {
+        return this.#held === null ? this.declared('value') : this.#held.value;
+    }
+    /**
      * The field's value, `null` when empty. Every concrete field overrides the
      * pair with its own semantics; the form extraction, `values =` assignment,
      * the `change` detail and `formResetCallback` all go through it. The base
-     * pair reads `undefined` and ignores writes.
+     * pair reads `undefined` and ignores writes. A concrete field answers and
+     * takes its value before the render too, through `_heldValue` and
+     * `_holdValue`.
      * @type {any}
      */
     get value() {

@@ -387,6 +387,24 @@ describe('Input focus and reset', () => {
 
         assert.strictEqual(input.value, 'ann', 'the reset brings back the rendered value');
     });
+
+    it('answers and takes its value before the render, the render applying the write', async () => {
+        const el = document.createElement('ful-input');
+        el.setAttribute('value', ' ab ');
+        el.setAttribute('trim', '');
+        el.setAttribute('uppercase', '');
+        assert.strictEqual(el.value, 'AB', 'the value attribute is answered as the rendered field would answer it');
+
+        el.value = 'cd';
+        assert.strictEqual(el.value, 'CD', 'a write before the render is answered back, shaped');
+        appended('').append(el);
+        await Rendering.waitFor(el);
+
+        assert.strictEqual(el.querySelector('input').value, 'cd', 'the render applies the value written before it');
+        assert.strictEqual(el.getAttribute('value'), ' ab ', 'the write leaves the value attribute alone');
+        el.formResetCallback();
+        assert.strictEqual(el.value, 'AB', 'a reset restores the value attribute');
+    });
 });
 
 describe('An invalid field that has the caret', () => {

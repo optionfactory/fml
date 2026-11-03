@@ -107,6 +107,19 @@ describe('Checkbox value', () => {
             'a later value attribute of false unchecks it, only the text true meaning checked',
         );
     });
+
+    it('answers and takes its value before the render, the render applying the write', async () => {
+        const el = document.createElement('ful-checkbox');
+        el.setAttribute('value', 'true');
+        assert.isTrue(el.value, 'the value attribute is answered before the render');
+
+        el.value = false;
+        appended('').append(el);
+        await Rendering.waitFor(el);
+
+        assert.isFalse(el.querySelector('input').checked, 'the render applies the value written before it');
+        assert.strictEqual(el.getAttribute('value'), 'true', 'the write leaves the value attribute alone');
+    });
 });
 
 describe('Checkbox states', () => {
