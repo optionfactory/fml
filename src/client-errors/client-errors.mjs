@@ -89,8 +89,9 @@ function ful_report_error(evt) {
         headers[csrfHeader] = csrfToken;
     }
 
+    var body;
     try {
-        var body = JSON.stringify({
+        body = JSON.stringify({
             page: window.location?.href ? window.location.href : 'unknown',
             filename: evt.filename,
             line: evt.lineno,
