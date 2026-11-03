@@ -1273,10 +1273,15 @@ class Select extends Field {
      * A failed lookup keeps the keys and surfaces as an unhandled rejection.
      * No `change` is dispatched. A key containing a
      * comma, which the value attribute cannot carry, is kept and warned about
-     * once per element.
+     * once per element. Before the render the write is held for the render to
+     * apply, over the `value` attribute, which it leaves alone.
      * @param {any} vs
      */
     set value(vs) {
+        if (!this.#control) {
+            this._holdValue(vs);
+            return;
+        }
         const given = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
         const keys = this.#multiple ? given : given.slice(0, 1);
         if (!this.#warnedComma && keys.some((k) => typeof k === 'string' && k.includes(','))) {
@@ -1285,9 +1290,6 @@ class Select extends Field {
         }
         this.#values = new Map(keys.map((k) => [k, { key: k, label: k, metadata: undefined }]));
         const claim = this.#assignments.take();
-        if (!this.#control) {
-            return;
-        }
         this.#syncBadges();
         if (keys.length === 0) {
             return;
@@ -1314,10 +1316,17 @@ class Select extends Field {
     }
     /**
      * The selected keys, in selection order, for a multiple select; the one
-     * key, or null, for a single one.
+     * key, or null, for a single one. Before the render it answers the keys
+     * last written, or the `value` attribute, coerced and cut to one key as the
+     * rendered select would.
      * @returns {any}
      */
     get value() {
+        if (!this.#control) {
+            const held = this._heldValue();
+            const keys = [held ?? []].flat().map((k) => this.#coerceKey(k));
+            return this.multiple ? keys : (keys[0] ?? null);
+        }
         if (this.#multiple) {
             return [...this.#values.keys()];
         }
@@ -1370,11 +1379,11 @@ class Select extends Field {
     /**
      * Whether the select holds several keys: `value` and `entry` answer arrays,
      * the input stays empty and the selection shows as removable badges in the
-     * control.
+     * control. Before the render it answers the `multiple` attribute.
      * @returns {boolean}
      */
     get multiple() {
-        return this.#multiple;
+        return this.#multiple ?? this.declared('multiple');
     }
     /**
      * Turning it off keeps only the first selected key; either way the badges,

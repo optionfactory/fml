@@ -831,6 +831,27 @@ describe('Select value assignment', () => {
         assert.strictEqual(outcome, 'upgraded', 'the upgrade completes without waiting on the key lookup');
         assert.strictEqual(selectEl.value, 'k1', 'the declared key is selected while the lookup is still pending');
     });
+
+    it('answers and takes its value before the render, the render applying the write', async () => {
+        registry.defineComponent('loaders:select', { create: () => labelling() });
+        const single = document.createElement('ful-select');
+        single.setAttribute('k-type', 'number');
+        single.setAttribute('value', '16,17');
+        assert.strictEqual(single.value, 16, 'a single select answers its first declared key, coerced');
+        const multiple = document.createElement('ful-select');
+        multiple.setAttribute('multiple', '');
+        multiple.setAttribute('value', 'a,b');
+        assert.deepStrictEqual(multiple.value, ['a', 'b'], 'a multiple select answers every declared key');
+
+        multiple.value = ['c'];
+        assert.deepStrictEqual(multiple.value, ['c'], 'a write before the render is answered back');
+        appended('').append(multiple);
+        await Rendering.waitFor(multiple);
+        await settle();
+
+        assert.deepStrictEqual(multiple.value, ['c'], 'the render applies the value written before it');
+        assert.strictEqual(multiple.getAttribute('value'), 'a,b', 'the write leaves the value attribute alone');
+    });
 });
 
 describe('Select key types', () => {

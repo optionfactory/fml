@@ -176,7 +176,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `ful-local-date` renders the `default` text for a day its month does not have (`2024-02-30`) instead of rolling over, and keeps a year below 100 instead of reading it as 19xx; a date-only instant (`ful-instant`, `ful-input-instant`) refuses such a day too
 - [BUG] a field with no label content takes no row for its empty `<label>`, required or not
 - [BUG] a value the page writes into a focused `ful-input-local-date`, `ful-input-local-time` or `ful-input-instant` no longer fires `change` when the field is left
-- [ENH] `value` works before the field has rendered on `ful-input` and its subclasses, `ful-checkbox` and `ful-radio-group`: it answers what the rendered field would from the last value written or the `value` attribute, and a write is held for the render to apply, leaving the `value` attribute (what a reset restores) alone; `ful-input-file` answers no files. A custom field does the same through `_holdValue(value)` and `_heldValue()`
+- [ENH] `value` works before the field has rendered on `ful-input` and its subclasses, `ful-checkbox`, `ful-radio-group` and `ful-select`: it answers what the rendered field would from the last value written or the `value` attribute, and a write is held for the render to apply, leaving the `value` attribute (what a reset restores) alone; `ful-select` answers its declared keys coerced by `k-type`, the first one alone unless `multiple`; `ful-input-file` answers no files. A custom field does the same through `_holdValue(value)` and `_heldValue()`
 
 #### ful-input
 

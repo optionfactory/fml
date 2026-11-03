@@ -48,7 +48,7 @@ describe('Field', () => {
         window.removeEventListener('error', onError);
     });
 
-    it('ignores a value property written before the render, without crashing', async () => {
+    it('applies a value property written before the render, without crashing', async () => {
         const uncaught = [];
         const onError = (e) => {
             uncaught.push(e.error?.message ?? e.message);
@@ -69,11 +69,7 @@ describe('Field', () => {
         await settle();
 
         assert.deepStrictEqual(uncaught, [], 'the property write does not crash the unrendered field');
-        assert.strictEqual(
-            selectEl.value,
-            null,
-            'the declared state wins, a property written before the render being unsupported',
-        );
+        assert.strictEqual(selectEl.value, 'early', 'the value written before the render wins over the declared one');
         window.removeEventListener('error', onError);
     });
 
