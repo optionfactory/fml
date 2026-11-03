@@ -238,6 +238,18 @@ describe('Dialog close-on-submit', () => {
         assert.isNotNull(dialog.querySelector('button[type=submit]'), "the form's own button stands");
     });
 
+    it('hides its footer when nothing is left to stand in it', async () => {
+        const [dialog] = await mount(form());
+        dialog.ask();
+
+        assert.strictEqual(
+            getComputedStyle(dialog.querySelector('dialog > footer')).display,
+            'none',
+            'no acknowledge button and no buttons slot leave no empty band under the body',
+        );
+        dialog.close();
+    });
+
     it('keeps a slotted buttons set beside the form', async () => {
         const [dialog] = await mount(`
             <ful-dialog close-on-submit header="Edit">

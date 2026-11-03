@@ -280,6 +280,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a `data-result` button of a dialog nested in a `ful-dialog` or `ful-drawer` closes only that dialog, not the one holding it
 - [BUG] a second click on a non-button invoker `Anchors.wire` made toggle its popover, the marker of every `ful-tooltip` included, closes the popover instead of opening it again
 - [BUG] a `ful-drawer` reopened while it slides out forgets the result it was closing with, so a later dismissal answers a dismissal
+- [BUG] a `close-on-submit` `ful-dialog` without a `buttons` slot shows no empty footer under its body
 
 #### ful: navigation (tabs, accordion, wizard) and async sections
 
