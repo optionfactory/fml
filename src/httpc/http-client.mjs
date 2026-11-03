@@ -95,9 +95,9 @@ class HttpClientError extends Failure {
     /**
      * The failure an error response stands for, keeping its status. An
      * `application/failures+json` body is the problems list; an
-     * `application/problem+json` body contributes its `problems`, or one
-     * GENERIC_PROBLEM made of its title and detail. Any other body is one
-     * GENERIC_PROBLEM carrying the body text. A json body that does not decode,
+     * `application/problem+json` body contributes its `problems` array, or one
+     * GENERIC_PROBLEM made of whichever of its title and detail it has. Any
+     * other body is one GENERIC_PROBLEM carrying the body text. A json body that does not decode,
      * or decodes to the wrong shape, and a body that cannot be read at all,
      * each become one GENERIC_PROBLEM saying so.
      * @param {Response} response consumed
@@ -124,11 +124,16 @@ class HttpClientError extends Failure {
                 if (typeof data !== 'object' || data === null || Array.isArray(data)) {
                     return HttpClientError.#undecodable(response, 'as a problem object');
                 }
-                const message = `${response.status} ${response.statusText}: ${data.title} ${data.detail}`;
+                const text = [data.title, data.detail].filter((part) => part !== undefined && part !== null).join(' ');
+                const message = text
+                    ? `${response.status} ${response.statusText}: ${text}`
+                    : `${response.status} ${response.statusText}`;
                 return new HttpClientError(
                     message,
                     response.status,
-                    data.problems || [HttpClientError.problem('GENERIC_PROBLEM', message)],
+                    Array.isArray(data.problems)
+                        ? data.problems
+                        : [HttpClientError.problem('GENERIC_PROBLEM', message)],
                 );
             }
             default: {

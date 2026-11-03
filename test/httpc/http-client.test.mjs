@@ -631,6 +631,22 @@ describe('HttpClientError problem+json', () => {
         expect(err.problems[0].type, 'the synthesized problem is generic').to.equal('GENERIC_PROBLEM');
     });
 
+    it('synthesizes a generic problem from the parts present when problems is not an array', async () => {
+        const res = new Response(JSON.stringify({ title: 'Bad input', problems: 'name is blank' }), {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: { 'Content-Type': 'application/problem+json' },
+        });
+        const err = await HttpClientError.fromResponse(res);
+        expect(err.message, 'a missing detail leaves no placeholder in the message').to.equal(
+            '400 Bad Request: Bad input',
+        );
+        expect(
+            err.dropping('x.').problems,
+            'problems that are not an array become one droppable problem',
+        ).to.deep.equal([HttpClientError.problem('GENERIC_PROBLEM', '400 Bad Request: Bad input')]);
+    });
+
     it('carries the embedded problems when the payload has them', async () => {
         const problems = [{ type: 'VALIDATION', context: 'name', reason: 'blank' }];
         const res = new Response(JSON.stringify({ title: 'T', detail: 'D', problems }), {
