@@ -112,10 +112,10 @@ class HttpClientError extends Failure {
                     return HttpClientError.#undecodable(response);
                 }
                 if (!Array.isArray(data)) {
-                    return HttpClientError.#undecodable(response, 'as a failures array');
+                    return HttpClientError.#undecodable(response, 'does not decode as a failures array');
                 }
                 if (data.length === 0) {
-                    return HttpClientError.#undecodable(response, 'as a non-empty failures array');
+                    return HttpClientError.#undecodable(response, 'carries no failures');
                 }
                 const message = `${response.status} ${response.statusText}: ${data.length} failures`;
                 return new HttpClientError(message, response.status, data);
@@ -126,7 +126,7 @@ class HttpClientError extends Failure {
                     return HttpClientError.#undecodable(response);
                 }
                 if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-                    return HttpClientError.#undecodable(response, 'as a problem object');
+                    return HttpClientError.#undecodable(response, 'does not decode as a problem object');
                 }
                 const text = [data.title, data.detail].filter((part) => part !== undefined && part !== null).join(' ');
                 const message = text
@@ -148,11 +148,11 @@ class HttpClientError extends Failure {
     static #unreadable = Symbol('unreadable body');
     /**
      * @param {Response} response
-     * @param {string} [as] what the body does not decode as
+     * @param {string} [flaw] what is wrong with the body
      */
-    static #undecodable(response, as = 'as json') {
+    static #undecodable(response, flaw = 'does not decode as json') {
         const mediaType = MediaType.parse(response.headers.get('Content-Type')).normalized;
-        const message = `${response.status} ${response.statusText}: the ${mediaType} body does not decode ${as}`;
+        const message = `${response.status} ${response.statusText}: the ${mediaType} body ${flaw}`;
         return new HttpClientError(message, response.status, [HttpClientError.problem('GENERIC_PROBLEM', message)]);
     }
     static async #generic(response) {

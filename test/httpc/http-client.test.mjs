@@ -661,6 +661,9 @@ describe('HttpClientError problem+json', () => {
             failures.problems.map((p) => p.type),
             'an empty failures array still says something failed',
         ).to.deep.equal(['GENERIC_PROBLEM']);
+        expect(failures.message, 'the message says the list was empty, not that it did not decode').to.match(
+            /the application\/failures\+json body carries no failures$/,
+        );
         expect(
             problem.problems.map((p) => p.type),
             'an empty problems member reads as absent',
