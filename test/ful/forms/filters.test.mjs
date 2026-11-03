@@ -1425,6 +1425,53 @@ describe('Filter property access before rendering', () => {
         }
     });
 
+    it('answers and takes its tuple before the render, the render applying the write', async () => {
+        registry.defineComponent('loaders:select', {
+            create: () => ({
+                prefetch: async () => {},
+                exact: async (...keys) => keys.map((k) => ({ key: k, label: k })),
+                load: async () => [],
+            }),
+        });
+        const text = document.createElement('ful-filter-text');
+        text.setAttribute('operators', 'EQ,STARTS_WITH');
+        text.setAttribute('value', '["CONTAINS","CASE_SENSITIVE","ab"]');
+        assert.deepStrictEqual(
+            text.value,
+            ['EQ', 'CASE_SENSITIVE', 'ab'],
+            'the declared tuple is answered as the rendered filter would, its operator narrowed',
+        );
+        const number = document.createElement('ful-filter-number');
+        number.value = ['BETWEEN', '1'];
+        assert.isNull(number.value, 'a BETWEEN missing a bound is no tuple, as after the render');
+        number.value = ['BETWEEN', '1', '5'];
+        const bool = document.createElement('ful-filter-boolean');
+        bool.setAttribute('value', '["EQ","true"]');
+        assert.deepStrictEqual(bool.value, ['EQ', 'true'], 'the boolean filter answers its declared tuple');
+        bool.value = ['NEQ', 'false'];
+        const inFilter = document.createElement('ful-filter-in');
+        inFilter.setAttribute('operator', 'IN');
+        inFilter.setAttribute('multiple', '');
+        inFilter.setAttribute('value', 'a');
+        assert.deepStrictEqual(inFilter.value, ['IN', 'a'], 'the set filter answers its declared keys');
+        inFilter.value = ['IN', 'b', 'c'];
+
+        const container = appended('');
+        container.append(text, number, bool, inFilter);
+        await Rendering.waitFor(container);
+        await settle();
+
+        assert.deepStrictEqual(
+            text.value,
+            ['EQ', 'CASE_SENSITIVE', 'ab'],
+            'the rendered filter answers the same tuple',
+        );
+        assert.deepStrictEqual(number.value, ['BETWEEN', '1', '5'], 'the render applies the tuple written before it');
+        assert.deepStrictEqual(bool.value, ['NEQ', 'false'], 'the boolean filter applies it too');
+        assert.deepStrictEqual(inFilter.value, ['IN', 'b', 'c'], 'and the set filter');
+        assert.strictEqual(bool.getAttribute('value'), '["EQ","true"]', 'the write leaves the value attribute alone');
+    });
+
     it('accepts a sensitivities assignment on a filter that has not rendered yet', async () => {
         const text = document.createElement('ful-filter-text');
         text.sensitivities = ['CASE_SENSITIVE', 'NOT_A_SENSITIVITY'];

@@ -224,20 +224,52 @@ class CompareFilter extends Input {
      * The filter's tuple, `[operator, operand]` or `[operator, from, to]` for
      * BETWEEN, each operand converted by `_serialize` (an ISO instant for the
      * instant filter). Null while any operand the operator uses is empty.
+     * Before the render it answers the tuple last written, or the `value`
+     * attribute, as the rendered filter would show it.
      * @returns {any[]|null}
      */
     get value() {
+        if (!this._operator) {
+            return this._shownTuple(this._heldValue());
+        }
         return this._tuple();
     }
     /**
      * Shows a tuple: the operator it names, or the first allowed one where the
      * whitelist, a pin or a fixed operator does not allow it, and its operands, an operand missing from a shorter tuple
      * leaving its input empty. Null or undefined empties both operands and
-     * keeps the operator.
+     * keeps the operator. Before the render the tuple is held for the render
+     * to apply, over the `value` attribute, which it leaves alone.
      * @param {any[]|null|undefined} v
      */
     set value(v) {
+        if (!this._operator) {
+            this._holdValue(v);
+            return;
+        }
         this._applyTuple(v);
+    }
+    /**
+     * The tuple `_tuple` answers once `_applyTuple(v)` has shown `v`, read
+     * from the declared `operator` and `operators` in place of the menu.
+     * @param {any[]|null|undefined} v
+     * @returns {any[]|null}
+     */
+    _shownTuple(v) {
+        if (v == null) {
+            return null;
+        }
+        const [declared, ...values] = v;
+        const fixed = this.declared('operator');
+        const known = this._vocabulary().includes(fixed);
+        const allowed =
+            fixed === null
+                ? ChoiceButton.narrow(this.declared('operators'), this._vocabulary())
+                : [known ? fixed : this._defaultOperator()];
+        const operator = allowed.includes(declared) ? declared : allowed[0];
+        const shown = [values[0], values[1]].map((o) => `${o ? this._deserialize(o) : (o ?? '')}`);
+        const operands = operator === 'BETWEEN' ? shown : shown.slice(0, 1);
+        return operands.some((o) => o === '') ? null : [operator, ...operands.map((o) => this._serialize(o))];
     }
     _tuple() {
         const operator = this._operator.value;
@@ -434,10 +466,26 @@ class TextFilter extends CompareFilter {
     }
     /**
      * The tuple with the sensitivity after the operator, `[operator,
-     * sensitivity, ...operands]`. Null while any operand the operator uses is empty.
+     * sensitivity, ...operands]`. Null while any operand the operator uses is
+     * empty. Before the render it answers the tuple last written, or the
+     * `value` attribute, as the rendered filter would show it.
      * @returns {any[]|null}
      */
     get value() {
+        if (!this._sensitivityButton) {
+            const held = this._heldValue();
+            const tuple = held == null ? null : this._shownTuple([held[0], ...held.slice(2)]);
+            if (tuple === null) {
+                return null;
+            }
+            const fixed = this.declared('sensitivity');
+            const allowed =
+                fixed === null
+                    ? ChoiceButton.narrow(this.declared('sensitivities'), SENSITIVITIES)
+                    : [SENSITIVITIES.includes(fixed) ? fixed : 'IGNORE_CASE'];
+            const kept = allowed.includes(held[1]) ? held[1] : 'IGNORE_CASE';
+            return [tuple[0], allowed.includes(kept) ? kept : allowed[0], ...tuple.slice(1)];
+        }
         const tuple = this._tuple();
         return tuple == null ? null : [tuple[0], this._sensitivity, ...tuple.slice(1)];
     }
@@ -445,10 +493,15 @@ class TextFilter extends CompareFilter {
      * Shows a tuple as the compare filter does, reading the sensitivity at
      * index 1. A sensitivity the whitelist does not allow leaves the current
      * one in place. Null or undefined empties the operands and keeps the
-     * operator and the sensitivity.
+     * operator and the sensitivity. Before the render the tuple is held, as
+     * on the compare filters.
      * @param {any[]|null|undefined} v
      */
     set value(v) {
+        if (!this._sensitivityButton) {
+            this._holdValue(v);
+            return;
+        }
         if (v == null) {
             this._applyTuple(v);
             return;
@@ -577,19 +630,35 @@ class BooleanFilter extends Field {
         return BooleanFilter.OPERATORS;
     }
     /**
-     * `[operator, token]`, the token being 'true' or 'false'; null while the value menu is on any.
+     * `[operator, token]`, the token being 'true' or 'false'; null while the
+     * value menu is on any. Before the render it answers the tuple last
+     * written, or the `value` attribute, as the rendered filter would show it.
      * @returns {string[]|null}
      */
     get value() {
+        if (!this._value) {
+            const held = this._heldValue();
+            const token = `${held?.[1] ?? ''}`;
+            if (token === '') {
+                return null;
+            }
+            const allowed = ChoiceButton.narrow(this.declared('operators'), this._vocabulary());
+            return [allowed.includes(held[0]) ? held[0] : allowed[0], token];
+        }
         return this._value.value === '' ? null : [this._operator.value, this._value.value];
     }
     /**
      * Shows a tuple: its operator, or the first allowed one where the whitelist
      * does not allow it, and its token, a missing token meaning any. Null or undefined sets the value menu
-     * back to any and keeps the operator.
+     * back to any and keeps the operator. Before the render the tuple is held,
+     * as on the compare filters.
      * @param {any[]|null|undefined} v
      */
     set value(v) {
+        if (!this._value) {
+            this._holdValue(v);
+            return;
+        }
         if (v == null) {
             this._value.value = '';
             return;
@@ -657,7 +726,8 @@ class InFilter extends Select {
      * The chosen keys as an array, a single choice included, led by the
      * declared `operator` when there is one. Null while nothing is chosen, so
      * that a table drops the filter instead of sending an empty set that
-     * matches nothing.
+     * matches nothing. Before the render it answers the keys the select answers
+     * then.
      * @returns {any[]|null}
      */
     get value() {
@@ -672,7 +742,8 @@ class InFilter extends Select {
      * Selects the keys of an array or a single bare key; a leading element equal
      * to the declared `operator` is dropped first, so the filter takes back what
      * it answered. A single select takes the first key. Null or undefined clears
-     * the selection.
+     * the selection. Before the render the keys are held, as the select holds
+     * them.
      * @param {any} v
      */
     set value(v) {
