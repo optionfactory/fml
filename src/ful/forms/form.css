@@ -36,6 +36,10 @@
         color: var(--ful-color);
     }
 
+    *:has(> ful-control-group) > label:empty {
+        display: none;
+    }
+
     *:has(> ful-control-group)[required] > label::before,
     *:has(> ful-choice)[required] > ful-choice > label::before,
     *:has(> fieldset > ful-radio-list)[required] > fieldset > legend::before {

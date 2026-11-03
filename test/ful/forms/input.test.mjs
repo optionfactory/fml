@@ -648,6 +648,18 @@ describe('Naming the control from the label', () => {
         });
     }
 
+    it('takes no room for the label of an unlabelled field, required or not', async () => {
+        const [plain] = await mount('<ful-input name="a"></ful-input>');
+        const [required] = await mount('<ful-input name="b" required></ful-input>');
+        const [labelled] = await mount('<ful-input name="c">C</ful-input>');
+        const offset = (el) =>
+            el.querySelector('ful-control-group').getBoundingClientRect().top - el.getBoundingClientRect().top;
+
+        assert.strictEqual(offset(plain), 0, 'the control sits at the top of an unlabelled field');
+        assert.strictEqual(offset(required), 0, 'the asterisk alone does not bring the row back');
+        assert.isAbove(offset(labelled), 0, 'a label with content still takes its row');
+    });
+
     it('gives two fields on one page ids of their own', async () => {
         const [a] = await mount('<ful-input name="a">A</ful-input>');
         const [b] = await mount('<ful-input name="b">B</ful-input>');
