@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import { Anchors } from '../../../src/ful/disclosures/anchors.mjs';
 import { attached } from '../../harness.mjs';
+import { sendMouse } from '@web/test-runner-commands';
 
 const frames = async (count = 3) => {
     for (let i = 0; i !== count; ++i) {
@@ -269,6 +270,28 @@ describe('Anchors.wire invoke and expanded', () => {
             invoker.remove();
             menu.remove();
         }
+    });
+
+    it('closes on a second click of a non-button invoker instead of opening again', async () => {
+        const invoker = document.createElement('span');
+        invoker.textContent = 'info';
+        invoker.style.cssText = 'position: fixed; top: 20px; left: 20px; padding: 10px';
+        const note = document.createElement('div');
+        note.setAttribute('popover', '');
+        note.textContent = 'the note';
+        attached(invoker, note);
+        Anchors.wire(invoker, note, { invoke: true });
+        const box = invoker.getBoundingClientRect();
+        const click = () =>
+            sendMouse({
+                type: 'click',
+                position: [Math.round(box.x + box.width / 2), Math.round(box.y + box.height / 2)],
+            });
+
+        await click();
+        assert.isTrue(note.matches(':popover-open'), 'the first click opens the popover');
+        await click();
+        assert.isFalse(note.matches(':popover-open'), 'the second click closes it');
     });
 });
 

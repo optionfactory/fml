@@ -194,7 +194,8 @@ class Anchors {
      *   which light dismiss then closes with no script of your own. The popover
      *   is given the generated id when it has none. A `button` or `input`
      *   invoker gets a `popovertarget` naming it; any other element toggles it
-     *   on click and on the Enter and Space keys
+     *   on click and on the Enter and Space keys; a click on it while the
+     *   popover is open closes the popover rather than opening it again
      * @param {boolean} [options.expanded] sets the invoker's `aria-expanded` to
      *   `false` at once and keeps it in step with the popover's `toggle` events
      * @param {boolean} [options.stretch] in the script placement, sizes the
@@ -218,7 +219,21 @@ class Anchors {
             if (invoker.localName === 'button' || invoker.localName === 'input') {
                 invoker.setAttribute('popovertarget', popover.id);
             } else {
-                invoker.addEventListener('click', () => popover.togglePopover());
+                let pressedOpen = false;
+                invoker.addEventListener(
+                    'pointerdown',
+                    () => {
+                        pressedOpen = popover.matches(':popover-open');
+                    },
+                    true,
+                );
+                invoker.addEventListener('click', () => {
+                    const dismissed = pressedOpen && !popover.matches(':popover-open');
+                    pressedOpen = false;
+                    if (!dismissed) {
+                        popover.togglePopover();
+                    }
+                });
                 invoker.addEventListener('keydown', (/** @type any */ evt) => {
                     if (evt.key !== 'Enter' && evt.key !== ' ') {
                         return;
