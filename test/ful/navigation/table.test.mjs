@@ -1020,6 +1020,46 @@ describe('Table filters', () => {
         );
     });
 
+    const mapping = (e) => {
+        e.detail.request = { mapped: e.detail.request.q };
+    };
+
+    it('sends the autoload through the submit listeners of the filter form', async () => {
+        const container = document.createElement('div');
+        container.addEventListener('submit', mapping);
+        container.innerHTML = `
+            <ful-table autoload>
+                <div slot="filters"><input name="q" value="initial"></div>
+                <template slot="schema"><schema><column title="A">{{ a }}</column></schema></template>
+            </ful-table>`;
+        attached(container);
+        await Rendering.waitFor(container);
+        await settle();
+
+        assert.deepStrictEqual(
+            requests.map((r) => r.filterRequest),
+            [{ mapped: 'initial' }],
+            'the first load carries the request a submit listener rewrote',
+        );
+    });
+
+    it('sends a reload before any load through the submit listeners of the filter form', async () => {
+        const [tableEl] = await mount(`
+            <ful-table>
+                <div slot="filters"><input name="q" value="initial"></div>
+                <template slot="schema"><schema><column title="A">{{ a }}</column></schema></template>
+            </ful-table>`);
+        tableEl.querySelector('ful-form').addEventListener('submit', mapping);
+
+        await tableEl.reload();
+
+        assert.deepStrictEqual(
+            requests.map((r) => r.filterRequest),
+            [{ mapped: 'initial' }],
+            'reload has loaded the request a submit listener rewrote by the time it resolves',
+        );
+    });
+
     it('reloads from the first page with the submitted filters, keeping the sort', async () => {
         const [tableEl] = await mountWithFilters();
         const paginator = tableEl.querySelector('ful-pagination');

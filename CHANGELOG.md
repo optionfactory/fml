@@ -47,6 +47,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - the events are `page:requested` and `sort:requested`, where they were `page-requested` and `sort-requested`, and they are not cancelable
 - the page being shown carries `aria-current="page"` and stays an enabled button, where it was disabled; the controls are `<button>` elements rather than `a[role=button]`
 - `ful-pagination`'s `pages` is read once at the upgrade
+- a `ful-table` with a `filters` slot makes its first load, by `autoload` or by `reload()` before any load has loaded (so a `src` or `method` write too), by submitting the filter form: a `submit` listener rewriting `detail.request` now shapes that load as it does the later ones, where the first load sent the raw form values. The filter form fires `submit` and `submit:success` for it, and a cancelled or failed filter submit loads nothing
 
 **Localization**
 

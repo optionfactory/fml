@@ -487,7 +487,9 @@ class TableLoader {
  * sort (none for a `null` order) and, once that load is the one showing, sets
  * the order of the sorter that asked and clears the others; a `submit:success`
  * of the filter form loads the first page with the submitted request as the
- * filters. The filters a page, a sort or a size change carries are those of
+ * filters. The first load goes through the filter form too: `reload`, and so
+ * `autoload`, submits it (see `reload`), so a `submit` listener rewriting
+ * `detail.request` shapes every load alike. The filters a page, a sort or a size change carries are those of
  * the last load asked for, whether it is still running, loaded or failed, so
  * they are the ones the filter form shows. The loads these start, and the autoload, are not awaited by
  * anything: a failure shows the error panel and its rejection is unhandled.
@@ -578,6 +580,12 @@ class Table extends ParsedElement {
     #loadRequested = false;
     /** the filters of the last load asked for, which page, sort and size changes carry */
     #requestedFilters = {};
+    /** @type {any} the `ful-form` wrapping the `filters` slot, if any */
+    #filters = null;
+    /** whether a load has shown its rows, after which `reload` repeats it */
+    #loaded = false;
+    /** @type {Promise<void>|null} the load the last `submit:success` of the filter form started */
+    #filterLoad = null;
     #loads = new Claims();
     /** @type {{ src: string|null, method: string|null }} */
     #builtFrom = { src: null, method: null };
@@ -734,8 +742,10 @@ class Table extends ParsedElement {
             filterRequest: maybeForm?.values ?? {},
         };
         this.#requestedFilters = this.#latestRequest.filterRequest;
+        this.#filters = maybeForm;
         maybeForm?.addEventListener('submit:success', async (evt) => {
-            await this.#loadPage(0, evt.detail.request);
+            this.#filterLoad = this.#loadPage(0, evt.detail.request);
+            await this.#filterLoad;
         });
         this.addEventListener('page:requested', async (/** @type any */ e) => {
             if (e.target.closest('ful-table') !== this) {
@@ -764,12 +774,23 @@ class Table extends ParsedElement {
 
     /**
      * Loads the last request that loaded, or, before any has, the first page
-     * with the declared size and sort and the values of the filters slot. A
-     * size written through `pageSize` since then replaces the page with the
-     * first one at that size.
+     * with the declared size and sort. A size written through `pageSize` since
+     * then replaces the page with the first one at that size.
+     *
+     * Before any load has loaded, a table with a `filters` slot submits its
+     * filter form instead, so the first request goes through the same
+     * `submit` listeners as the later ones, and the load its `submit:success`
+     * starts is the one awaited. A filter submit that is cancelled, fails or
+     * is dropped for one in flight loads nothing, and the promise resolves.
      * @returns {Promise<void>} as `load`
      */
     async reload() {
+        if (this.#filters && !this.#loaded) {
+            if (await this.#filters.submit()) {
+                await this.#filterLoad;
+            }
+            return;
+        }
         return await this.load(
             this.#latestRequest.pageRequest,
             this.#latestRequest.sortRequest,
@@ -829,6 +850,7 @@ class Table extends ParsedElement {
             lastPage = Math.max(0, Math.ceil(pageResponse.size / pageRequest.size) - 1);
             if (pageRequest.page <= lastPage) {
                 this.#latestRequest = { pageRequest, sortRequest, filterRequest };
+                this.#loaded = true;
                 this.#update(pageRequest, sortRequest, filterRequest, pageResponse);
                 // a row element whose render fails leaves the rows shown: it does not fail the load
                 await Promise.all([
