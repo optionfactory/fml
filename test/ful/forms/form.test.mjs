@@ -391,6 +391,44 @@ describe('Form submit outcome events', () => {
         );
     });
 
+    it('settles the form before its outcome events reach their listeners', async () => {
+        let attempts = 0;
+        stubLoader({
+            prepare: async (v) => v,
+            submit: async () => {
+                if (++attempts === 1) {
+                    throw new Failure('invalid', [{ type: 'GENERIC_ERROR', reason: 'try again' }]);
+                }
+                return {};
+            },
+            transform: async (r) => r,
+        });
+        const [form] = await mount(`
+            <ful-form>
+                <ful-errors hidden></ful-errors>
+                <button type="submit">go</button>
+            </ful-form>`);
+        const seen = [];
+        let retried;
+        form.addEventListener('submit:failure', () => {
+            seen.push({
+                busy: form.hasAttribute('aria-busy'),
+                heldOff: heldOff(form.querySelector('button')),
+                banner: form.querySelector('ful-errors').textContent,
+            });
+            retried = form.submit();
+        });
+
+        await form.submit();
+
+        assert.deepStrictEqual(
+            seen,
+            [{ busy: false, heldOff: false, banner: 'try again' }],
+            'submit:failure sees the form released and its problems shown',
+        );
+        assert.isTrue(await retried, 'a submit from a submit:failure listener is not dropped as in flight');
+    });
+
     it('leaves the fields of another form alone, both their validity and their values', async () => {
         const [outer, container] = await mount(`
             <ful-form id="outer-form">

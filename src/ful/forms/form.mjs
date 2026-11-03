@@ -252,7 +252,7 @@ class Form extends ParsedElement {
     }
     #submitting = false;
     /**
-     * Runs the submit pipeline, with the spinner up for its whole length:
+     * Runs the submit pipeline, with the spinner up until its outcome:
      *
      * 1. builds the loader: the component the `loader` attribute names
      *    (`loaders:form` by default), called as `create(form)`
@@ -269,8 +269,8 @@ class Form extends ParsedElement {
      * 6. has the loader `submit` the request and `transform` the response
      * 7. under `track-changes`, commits the values extracted at step 2 (see
      *    `commit`): an edit made while the submit was in flight stays unsaved
-     * 8. fires `submit:success` with `{ submitter, values, request, response }`,
-     *    `response` being the transformed one
+     * 8. releases the spinner and fires `submit:success` with `{ submitter,
+     *    values, request, response }`, `response` being the transformed one
      *
      * Anything thrown from step 1 on, a missing loader or a throwing mapper
      * included, fires `submit:failure` with `{ submitter, values, request,
@@ -278,6 +278,11 @@ class Form extends ParsedElement {
      * has its problems shown through `errors`, anything else is logged with
      * `console.warn`. The `values` of both outcome events are the extracted
      * ones, not a replacement a `submit` listener put on its detail.
+     *
+     * The form settles before either outcome event (0016): its listeners see
+     * the spinner released and the buttons no longer held off, the problems of
+     * a `Failure` already shown, and the submit no longer in flight, so one
+     * of them may submit again.
      *
      * A call while a submit is in flight returns at once, doing nothing.
      * @param {HTMLElement} [submitter] the button that submitted, if any; it is
@@ -294,6 +299,7 @@ class Form extends ParsedElement {
         this.spinner(true);
         let values;
         let request;
+        let outcome;
         try {
             const loader = this.component(this.declared('loader') ?? 'loaders:form').create(this);
             values = Bindings.extractFrom(this.form, submitter);
@@ -321,32 +327,28 @@ class Form extends ParsedElement {
             if (submitted) {
                 this.#commitFrom(submitted.saved, submitted.upTo);
             }
-            this.dispatchEvent(
-                new CustomEvent('submit:success', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: { submitter, values, request, response: mapped },
-                }),
-            );
-            return true;
+            outcome = new CustomEvent('submit:success', {
+                bubbles: true,
+                cancelable: false,
+                detail: { submitter, values, request, response: mapped },
+            });
         } catch (e) {
-            this.dispatchEvent(
-                new CustomEvent('submit:failure', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: { submitter, values, request, exception: e },
-                }),
-            );
+            outcome = new CustomEvent('submit:failure', {
+                bubbles: true,
+                cancelable: false,
+                detail: { submitter, values, request, exception: e },
+            });
             if (e instanceof Failure) {
                 this.errors = e.problems;
             } else {
                 console.warn('failed to submit form', this, 'reason:', e);
             }
-            return false;
         } finally {
             this.#submitting = false;
             this.spinner(false);
         }
+        this.dispatchEvent(outcome);
+        return outcome.type === 'submit:success';
     }
     /**
      * Saves the unsaved edits, for a page action that would lose them, such as
