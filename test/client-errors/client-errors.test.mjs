@@ -134,16 +134,21 @@ describe('Client errors reporting', () => {
         ).to.deep.equal(['nope']);
     });
 
-    it('does nothing when no reporting uri is configured', async () => {
+    it('does nothing when no reporting uri is configured, empty or missing, and says so once', async () => {
         const errors = [];
         console.error = (...args) => errors.push(args);
-        scriptEl.remove();
+        scriptEl.setAttribute('data-report-client-errors-uri', '');
 
+        reject(new Error('nope'));
+        await settle();
+        expect(errors.length, 'an empty uri is logged to the console like a missing one').to.equal(1);
+
+        scriptEl.remove();
         reject(new Error('nope'));
         await settle();
 
         expect(calls, 'nothing is posted without a reporting uri').to.deep.equal([]);
-        expect(errors.length, 'the missing uri is logged to the console').to.equal(1);
+        expect(errors.length, 'the console is told once per page').to.equal(1);
     });
 });
 

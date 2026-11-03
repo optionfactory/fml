@@ -4,7 +4,7 @@ var complained_missing_uri = false;
  * location, message with its cause chain, stack) to the uri the script tag's
  * `data-report-client-errors-uri` names, same-origin and `keepalive`. The csrf
  * header is sent only when both `_csrf_header` and `_csrf` metas are present. A
- * missing uri is complained about once. The reporter never reports itself: a
+ * missing or empty uri is complained about once. The reporter never reports itself: a
  * failed or throwing report is dropped.
  * @param {any} evt an ErrorEvent or a PromiseRejectionEvent
  */
@@ -24,14 +24,15 @@ function ful_report_error(evt) {
     function configured_report_uri() {
         /** @type {HTMLScriptElement | null} */
         var scriptEl = document.querySelector('script[data-report-client-errors-uri]');
-        if (!scriptEl) {
+        var uri = scriptEl?.getAttribute('data-report-client-errors-uri');
+        if (!uri) {
             if (!complained_missing_uri) {
                 complained_missing_uri = true;
-                console?.error?.('missing attribute data-report-client-errors-uri');
+                console?.error?.('missing or empty attribute data-report-client-errors-uri');
             }
             return null;
         }
-        return scriptEl.getAttribute('data-report-client-errors-uri');
+        return uri;
     }
 
     /** @returns {string[]|undefined} */

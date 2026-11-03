@@ -115,6 +115,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a `problem+json` body whose `problems` is not an array becomes one `GENERIC_PROBLEM`, so `dropping()` and form binding no longer crash on it, and a missing `title` or `detail` no longer reads as `undefined` in the message
 - [BUG] an empty `failures+json` array or `problem+json` `problems` list becomes one `GENERIC_PROBLEM`, so a refused form submit no longer shows nothing
 - [BUG] `Hex.encode` writes the bytes of an `ArrayBuffer` or any typed array, a signed one included, as two digits per byte
+- [BUG] client-errors treats an empty `data-report-client-errors-uri` like a missing one, saying so once in the console
 
 #### Localization
 
