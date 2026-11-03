@@ -283,12 +283,30 @@ describe('Wizard, async sections', () => {
         );
 
         assert.isTrue(
-            warnings.some((w) => w.includes('no section carries data-step="nowhere"')),
+            warnings.some((w) => w.includes('carries data-step="nowhere"')),
             `expected the move complaint, saw ${JSON.stringify(warnings)}`,
         );
         assert.isTrue(
             warnings.some((w) => w.includes('no section answers to')),
             `expected the refresh complaint, saw ${JSON.stringify(warnings)}`,
+        );
+    });
+
+    it('says so when asked to move to a section no step is paired with', async () => {
+        const warnings = captureConsole('warn');
+        const [wizard] = await mount(`
+            <ful-wizard>
+                <template slot="steps"><step>One</step><step>Two</step></template>
+                <section data-step="a">a</section>
+                <section data-step="b">b</section>
+                <section data-step="surplus">surplus</section>
+            </ful-wizard>`);
+
+        assert.isTrue(wizard.move('surplus') === undefined, 'a move to an unpaired section answers undefined');
+        assert.strictEqual(wizard.step, 'a', 'and leaves the current step where it is');
+        assert.isTrue(
+            warnings.some((w) => w.includes('data-step="surplus"')),
+            `expected the move complaint, saw ${JSON.stringify(warnings)}`,
         );
     });
 

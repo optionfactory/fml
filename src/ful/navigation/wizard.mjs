@@ -123,14 +123,15 @@ class Wizard extends ParsedElement {
      * @returns {Promise<any[] | undefined> | undefined} a promise resolving to
      * the answers once they are delivered, or to undefined when nobody
      * listened; undefined when the section is already current, and undefined
-     * with a warning when no section carries `ref`
+     * with a warning when no section carries `ref` or the one carrying it has
+     * no step paired with it
      * @throws what the entered section's delivery rejected with, as the rejection
      * of the returned promise, after its error is painted in the section
      */
     move(ref) {
         const index = this.#sections.findIndex((s) => s.getAttribute('data-step') === ref);
-        if (index === -1) {
-            console.warn(`ful-wizard: no section carries data-step="${ref}"`);
+        if (index === -1 || index >= this.#steps.length) {
+            console.warn(`ful-wizard: no section paired with a step carries data-step="${ref}"`);
             return undefined;
         }
         return this.#move(index);
