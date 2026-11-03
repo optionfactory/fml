@@ -748,13 +748,13 @@ class Table extends ParsedElement {
             await this.#filterLoad;
         });
         this.addEventListener('page:requested', async (/** @type any */ e) => {
-            if (e.target.closest('ful-table') !== this) {
+            if (e.composedPath().find((n) => n instanceof Table) !== this) {
                 return;
             }
             await this.#loadPage(e.detail.value, this.#requestedFilters);
         });
         this.addEventListener('sort:requested', async (/** @type any */ e) => {
-            if (e.target.closest('ful-table') !== this) {
+            if (e.composedPath().find((n) => n instanceof Table) !== this) {
                 return;
             }
             const sortRequest = e.detail.value.order ? e.detail.value : null;

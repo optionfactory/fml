@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { registry, Rendering } from '../../../src/ftl/index.mjs';
-import { Plugin } from '../../../src/ful/index.mjs';
+import { Plugin, Table } from '../../../src/ful/index.mjs';
 import { TableLoader } from '../../../src/ful/navigation/table.mjs';
 import { appended, settle, attached } from '../../harness.mjs';
 
@@ -551,6 +551,35 @@ describe('Table pagination', () => {
             'the outer table loads only for its autoload',
         );
         assert.strictEqual(loaded.filter((id) => id === 'inner').length, 3, 'the nested table loads for both');
+    });
+
+    it('pages and sorts a table subclass registered under its own tag', async () => {
+        const loaded = [];
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: async (pageRequest, sortRequest) => {
+                    loaded.push([pageRequest.page, sortRequest?.order ?? null]);
+                    return { data: [{ a: 1 }], size: 45 };
+                },
+            }),
+        });
+        if (!customElements.get('own-table')) {
+            registry.defineElement('own-table', class extends Table {});
+        }
+        const table = appended(`
+            <own-table autoload>
+                <template slot="schema"><schema><column title="A" sorter="a">{{ a }}</column></schema></template>
+            </own-table>`).querySelector('own-table');
+        await Rendering.waitFor(table);
+        await settle();
+
+        click(pageLink(table.querySelector('ful-pagination'), '3'));
+        await settle();
+        click(table.querySelector('ful-sorter'));
+        await settle();
+
+        assert.deepStrictEqual(loaded.slice(1).map(([page]) => page), [2, 2], 'its pager and its sorter load it');
+        assert.isNotNull(loaded[2][1], 'the sort is the one the sorter asked for');
     });
 
     it('reports the current page and the number of pages', async () => {
