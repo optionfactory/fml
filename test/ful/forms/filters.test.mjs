@@ -1419,6 +1419,12 @@ describe('Filter property access before rendering', () => {
         );
     });
 
+    it('answers a null criterion before it has rendered', () => {
+        for (const tag of ['ful-filter-text', 'ful-filter-number', 'ful-filter-boolean', 'ful-filter-in']) {
+            assert.isNull(document.createElement(tag).criterion, `${tag} contributes nothing yet`);
+        }
+    });
+
     it('accepts a sensitivities assignment on a filter that has not rendered yet', async () => {
         const text = document.createElement('ful-filter-text');
         text.sensitivities = ['CASE_SENSITIVE', 'NOT_A_SENSITIVITY'];

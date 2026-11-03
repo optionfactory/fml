@@ -234,6 +234,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a range filter's upper bound takes the same `keep`/`reject`, `input-*` passthrough, `autocomplete` and `placeholder` as the lower one; `input-id` stays on the first
 - [BUG] a `ful-filter-boolean` reset restores its default operator
 - [BUG] a filter shows only operators its `operators` whitelist allows: narrowing the list replaces an operator it drops with the first listed one, and an assigned tuple naming an operator outside it, or none, shows the first allowed one
+- [BUG] a filter's `criterion` answers `null` before the filter has rendered, where the compare and boolean filters threw
 
 #### ful-table and pagination
 

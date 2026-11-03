@@ -268,10 +268,13 @@ class CompareFilter extends Input {
      * them rather than as serialized: a date filter describes what is in its
      * control, not the ISO string it sends. Null while every one of those
      * operands is empty, so a BETWEEN with one bound answers that bound while
-     * its value is still null.
+     * its value is still null, and before the filter has rendered.
      * @returns {FilterCriterion|null}
      */
     get criterion() {
+        if (!this._operator) {
+            return null;
+        }
         return asCriterion(labelTextOf(this), this._operator.value, this.#operands());
     }
     #operands() {
@@ -606,10 +609,13 @@ class BooleanFilter extends Field {
     }
     /**
      * The operator and the localized word the value menu shows, not the token.
-     * Null while the value menu is on any.
+     * Null while the value menu is on any, and before the filter has rendered.
      * @returns {FilterCriterion|null}
      */
     get criterion() {
+        if (!this._value) {
+            return null;
+        }
         const token = this._value.value;
         return asCriterion(labelTextOf(this), this._operator.value, [token === '' ? '' : booleanValueLabel(token)]);
     }
@@ -679,7 +685,7 @@ class InFilter extends Select {
     }
     /**
      * The declared operator, or null, and the labels of the chosen entries. Null
-     * while nothing is chosen.
+     * while nothing is chosen, as before the filter has rendered.
      * @returns {FilterCriterion|null}
      */
     get criterion() {
