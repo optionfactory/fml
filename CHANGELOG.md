@@ -168,6 +168,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a `form-autocomplete` on a `ful-form` reaches the form it renders instead of being removed when the host declares no `autocomplete`, and has the last word over `autocomplete` there, as `input-autocomplete` has on a field
 - [BUG] two `ful-radio-group`s with the same `name` (in two forms, or two rows) keep their own selection instead of sharing one native radio group
 - [BUG] `scroll-on-error` focuses the topmost invalid field when the fields sit in a `<fieldset>`, instead of the fieldset, which takes no focus
+- [BUG] under `track-changes` a native `<button type="reset">` counts as a reset, as `reset()` does, so the form turns dirty when the defaults differ from what was saved
 
 #### ful-input
 

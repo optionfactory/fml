@@ -227,6 +227,22 @@ describe('Form unsaved edits', () => {
         assert.isTrue(form.dirty, 'resetting away from what was saved is unsaved');
     });
 
+    it('counts a native reset button as a reset, dispatching one dirty change', async () => {
+        const form = await mountForm(
+            `<ful-form track-changes><input name="code" value="A1"><button type="reset">reset</button></ful-form>`,
+        );
+        const changes = [];
+        form.addEventListener('dirty:change', (e) => changes.push(e.detail.dirty));
+        type(form.querySelector('[name=code]'), 'B2');
+        form.commit();
+
+        form.querySelector('button').click();
+        await frame();
+
+        assert.isTrue(form.dirty, 'the reset away from what was saved is unsaved');
+        assert.deepEqual(changes, [true], 'the reset reports the flip once');
+    });
+
     it('tracks nothing without the attribute', async () => {
         const form = await mountForm(
             `<ful-form><input name="code" value="A1"><button type="submit">save</button></ful-form>`,

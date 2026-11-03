@@ -223,6 +223,18 @@ class Form extends ParsedElement {
         this.addEventListener('input', (evt) => this.#touch(evt.target));
         this.addEventListener('change', (evt) => this.#touch(evt.target));
         this.addEventListener('focusin', (evt) => this.#focus(evt.target));
+        this.form.addEventListener('reset', (evt) => {
+            if (evt.target !== this.form) {
+                return;
+            }
+            for (const name of new Set([...this.#saved.keys(), ...this.#snapshot().keys()])) {
+                this.#edits.set(name, ++this.#sequence);
+            }
+            // the controls are restored only after the event, so the state is read at the next frame
+            if (this.#frame === 0) {
+                this.#frame = requestAnimationFrame(() => this.#refresh());
+            }
+        });
         Rendering.waitForChildren(this)
             .catch(() => undefined)
             .then(() => this.commit());
@@ -353,18 +365,15 @@ class Form extends ParsedElement {
     }
     /**
      * Resets the native form, each field returning to its default value. Under
-     * `track-changes` every control counts as edited: the form is dirty if the
-     * defaults differ from what was last committed.
+     * `track-changes` a reset, this one or a native reset button's, counts
+     * every control as edited: the form is dirty if the defaults differ from
+     * what was last committed.
      */
     reset() {
         this.form.reset();
-        if (!this.#tracking) {
-            return;
+        if (this.#tracking) {
+            this.#refresh();
         }
-        for (const name of new Set([...this.#saved.keys(), ...this.#snapshot().keys()])) {
-            this.#edits.set(name, ++this.#sequence);
-        }
-        this.#refresh();
     }
     /** name → the serialized values the last commit recorded */
     #saved = new Map();
