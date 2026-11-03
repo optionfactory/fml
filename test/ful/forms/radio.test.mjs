@@ -47,6 +47,18 @@ describe('RadioGroup rendering', () => {
         assert.strictEqual(second.value, 'k1', 'the second group keeps its own selection beside the first');
     });
 
+    it('keeps same-named groups in two forms apart, so one does not steal the selection of the other', async () => {
+        const form = `<form>${GROUP}</form>`;
+        const container = await mount(`${form}${form}`, { children: true });
+        const [first, second] = container.querySelectorAll('ful-radio-group');
+
+        first.querySelector('input').click();
+        second.querySelector('input').click();
+
+        assert.strictEqual(first.value, 'k1', 'the selection in the other form must not clear this one');
+        assert.strictEqual(second.value, 'k1', 'the second group keeps its own selection beside the first');
+    });
+
     it('forwards the ful-radio attributes and the group input- attributes onto the generated input', async () => {
         const container = await mount(`
             <ful-radio-group name="a" input-class="check" input-data-shared="s">
@@ -179,11 +191,9 @@ describe('RadioGroup value', () => {
         const form = container.querySelector('form');
         const inputs = Array.from(form.querySelectorAll('input[type=radio]'));
 
-        assert.deepEqual(
-            inputs.map((i) => i.getAttribute('name')),
-            ['a-ignore', 'a-ignore'],
-            'the radios carry a name of their own derived from the group name, so the form does not submit them',
-        );
+        const names = inputs.map((i) => i.getAttribute('name'));
+        assert.match(names[0], /^a-\d+-ignore$/, 'the radios carry a name of their own minted from the group name');
+        assert.strictEqual(names[1], names[0], 'the radios of one group share that name');
         assert.isNull(inputs[0].form, 'form="" detaches them from the form');
         assert.notInclude(Array.from(form.elements), inputs[0], "the radios are not among the form's elements");
         assert.deepEqual(

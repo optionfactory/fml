@@ -6,10 +6,10 @@ import { Field } from './field.mjs';
  * a radio input carrying its attributes, labelled by its content; every
  * `input-*` attribute on the group is forwarded onto each radio as well. The
  * default slot is the `<legend>`, and `header` and `footer` slots frame the
- * list. The radios share a name of their own (derived from `name`, or minted
- * when there is none) and carry `form=""`, so the group is the only element
- * the form sees. A radio's native `change` is stopped and republished as the
- * group's own.
+ * list. The radios share a name of their own, minted afresh for each group
+ * (from `name` when there is one) so that same-named groups stay apart, and
+ * carry `form=""`, so the group is the only element the form sees. A radio's
+ * native `change` is stopped and republished as the group's own.
  *
  * The host carries the `radiogroup` role, `aria-readonly`, `aria-required`,
  * `aria-invalid` and the description. The disabled and readonly claims act on
@@ -54,7 +54,7 @@ class RadioGroup extends Field {
      * `announces` pieces
      */
     _build({ slots }) {
-        const name = this.declared('name') ?? Attributes.uid('ful-radiogroup');
+        const name = Attributes.uid(this.declared('name') ?? 'ful-radiogroup');
         const radioEls = Array.from(slots.default.querySelectorAll('ful-radio'));
         const inputsAndLabels = radioEls.map((el) => {
             const input = document.createElement('input');
