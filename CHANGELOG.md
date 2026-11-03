@@ -58,6 +58,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 **Templates and elements built on ftl**
 
 - `data-tpl-text` and `data-tpl-html` are gone: write `>{{ x }}<` and `>{{{ x }}}<`. Only `<script type="text/html">` is parsed as slot markup; any other script type slots as the plain node it is
+- `Attributes.toggle` and `Attributes.flip` are gone: use `el.toggleAttribute(name, force)`, or `Attributes.set(el, name, value)`, which removes the attribute for a nullish value
 - `render(c)` receives `{ slots }` alone: the base assigns the declared attributes to the properties after it returns, in declaration order, and a render reads what it needs while building through `declared(name)`. The `disabled` argument and `c.observed` are gone
 - `reflect(fn)` is gone: `reflectTo(name, value)` writes an observed attribute, marshalling through the mapper it was declared with, so a setter hands over the value instead of calling `toggleAttribute` or `setAttribute` itself
 - `ParsedElement` attaches the element internals for every element and exposes them as `internals`: a subclass must not call `attachInternals()` (a second call throws) nor declare an `internals` field
@@ -133,7 +134,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 #### ful: forms and fields
 
-- [NEW] `Field` is exported: the base of every form-associated field, carrying validity, focus delegation, labelling, Enter submission, the `disabled`/`readonly`/`required` claims and reset. A custom field implements `_build(conf)` and returns its pieces (`fragment`, `control`, `error`, `label`, `described`, `claims`, `freeze`, `also`); the wiki's extending-fields page describes them
+- [NEW] `Field` is exported: the base of every form-associated field, carrying validity, focus delegation, labelling, Enter submission, the `disabled`/`readonly`/`required` claims and reset. A custom field implements `_build(conf)` and returns its pieces (`fragment`, `control`, `error`, `label`, `described`, `announces`, `claims`, `freeze`, `also`); the wiki's extending-fields page describes them
 - [NEW] `Field.describedBy(el)` adds an element to the accessible description of the field's control; `describable(el)` answers the nearest ancestor that accepts one
 - [NEW] `new ful.Plugin({ httpClient })` takes the client every ful component fetches through; the default still sends the csrf token and redirects to `/` on a 401
 - [NEW] `ful-input` and `ful-form` take `autocomplete`, each field inheriting the form's token unless it names its own; `input-autocomplete` still has the last word
@@ -275,7 +276,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] `ful-toasts`: one region per page, where `show(message, { severity, timeout, action })` or a `show-toast` event stacks a toast that retires on its timer (5 seconds by default) or its dismiss button; the timer holds while the toast is hovered or focused, and `error` is announced as an alert
 - [ENH] the `ful-toasts` region is a manual popover shown again on every toast, so a toast raised while a dialog or drawer is open shows above it
 - [NEW] `Anchors.show(popover, anchor, options)` places a popover beside an element or a rectangle once, and `Anchors.wire(invoker, popover, options)` pairs a popover with its invoker, placing it by hand where the platform lacks css anchor positioning
-- [ENH] the anchored popovers (the select's dropdown, the filter menus, the tooltip's note) are placed on every platform, by the stylesheet where css anchor positioning exists and by the library elsewhere, before they are first shown
+- [ENH] the anchored popovers (the select's dropdown, the filter menus) are placed on every platform, by the stylesheet where css anchor positioning exists and by the library elsewhere, before they are first shown; the tooltip's note is always placed by the library, which also draws its callout
 - [BUG] a tooltip slotted in a field's `before` or `after` affix wraps its note instead of running it off the screen on one line
 - [BUG] `ful-menu` and the filters' operator, sensitivity and value menus open above their invoker where there is no room below, instead of running off the viewport
 - [ENH] an `update()` of `ful-dialog` or `ful-drawer` that a newer one overtook resolves `null` instead of the content section the newer call filled, so a caller does not wire content that is not its own
@@ -323,11 +324,13 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] a release candidate is published under the `rc` dist-tag; a bare `npm install @optionfactory/fml` resolves to the latest release
 - [REF] internal: the ful sources are grouped by family (`chrome/`, `disclosures/`, `forms/`, `navigation/`, `l10n/`); the entries and the published bundles are unchanged
 
-### version 8.0.2
+### version 8.0.3
 
 - [REF] the disabled protocol of `ful-input`, `ful-checkbox`, `ful-select`, `ful-radio-group` and `ful-filter-*` now follows native semantics: the attribute is the field's own claim and nothing but its author ever writes it, a disabled `<fieldset>` ancestry is honored through `:disabled` and the browser's own disabling of the inner controls, and the `disabled` property reflects the claim only, like a native input's. This replaces the `formDisabledCallback` and unclaiming machinery, which kept regressing: a re-enabled fieldset used to leave fields disabled for good, and a field declared disabled in markup inside a disabled fieldset used to lose its claim when the fieldset came back. Behavior change: a field disabled only by its ancestry now reads `.disabled === false`, ask `matches(':disabled')` for the effective state, as with a native input
 - [ENH] `ful-select` declares the type of its keys with `k-type`: `string` (the default, like every other control), `number` or `boolean`. A key that does not decode is kept as it is. Unlike 8.0.0, which leaked whatever the endpoint carried into `value`, `change` and the submitted payload, typed keys are now an explicit opt in
 - [BUG] `ful-select` keeps its selection when the endpoint carries typed keys: a `value="16"` assignment used to be dropped as soon as the loader answered with the numeric `16`, the internal lookup comparing strictly what the loaders match loosely. Keys are coerced to one canonical type at every entry point, an option picked from the dropdown included
+
+### version 8.0.2
 
 - [BUG] a `ful-input`, `ful-checkbox`, `ful-select`, `ful-radio-group` or `ful-filter-*` inside a re-enabled `<fieldset>` follows it back to enabled. The form disabled state no longer puts the attribute on the host, which used to make the element disabled on its own: the platform only delivers `formDisabledCallback(false)` on an actual state change, so the element stayed disabled for good. A field disabled on its own while the fieldset was disabled still stays disabled
 - [BUG] a component that throws while upgrading no longer keeps `ftl:ready` from firing for the whole page. The failure still reaches the console and the global error reporter as before, it just does not hold back everything else
