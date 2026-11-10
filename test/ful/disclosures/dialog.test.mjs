@@ -565,9 +565,13 @@ describe('Dialog dismissal', () => {
             'flex',
             'a footer carrying the ful-dialog-footer class is laid out as a row even when not a direct child',
         );
-        assert.strictEqual(
-            getComputedStyle(nested).justifyContent,
-            'flex-end',
+        // measured, not read from the computed keyword: chromium 158 serializes flex-end as flow-end
+        const style = getComputedStyle(nested);
+        const inner = nested.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
+        assert.approximately(
+            nested.querySelector('button').getBoundingClientRect().right,
+            inner,
+            1,
             'the nested footer aligns its buttons to the end, as a direct child one does',
         );
     });

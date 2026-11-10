@@ -64,7 +64,7 @@
         "wiki:verify": "node manifest/wiki-examples.mjs"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.6.4",
+        "@biomejs/biome": "2.6.6",
         "@jridgewell/sourcemap-codec": "^1.6.0",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^1.0.0",
