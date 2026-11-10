@@ -17,7 +17,8 @@ zero-based `#index`, `data-step` name) on the component, the event's target
 being the component itself so a host's sections are told from a nested
 component's. Answer at most once per section with an async listener; the
 component awaits the union of the answers. The loading ring covers the wait,
-a failed delivery paints the section's problems and rejects the move, and
+a failed delivery paints the section's problems, rejects the move and leaves
+`detail.first` true so the next entry delivers again, and
 nobody listening is a plain activation at zero cost, so server-rendered
 sections never use the mechanism at all. `refresh()` re-fires explicitly.
 

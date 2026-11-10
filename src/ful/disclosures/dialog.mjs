@@ -177,7 +177,7 @@ class Dialog extends ParsedElement {
      * opening, hides the error and loading sections, and dispatches
      * `section:requested` on the element (bubbling, with
      * `detail: { section, first, name: null, index: null }`, `section` being
-     * the body and `first` true only on the first answered request), so a
+     * the body and `first` true until a delivery succeeds), so a
      * listener can fill the body. A failed request is painted into the body
      * and does not reject. On a dialog already open nothing is shown or
      * requested, and the call waits for the same ending as the calls before it;

@@ -19,8 +19,10 @@ import { Claims } from '../claims.mjs';
  * failure's problems, one per line, or its message when it carries none.
  */
 class SectionRequests {
-    /** @type {WeakSet<Element>} */
+    /** @type {WeakSet<Element>} the sections a first delivery succeeded for */
     #entered = new WeakSet();
+    /** @type {WeakSet<Element>} the sections whose first delivery is in flight */
+    #entering = new WeakSet();
     /** @type {WeakMap<Element, Claims>} */
     #claims = new WeakMap();
 
@@ -29,9 +31,12 @@ class SectionRequests {
      * is given, then `section:requested:<name>` when a name is given, each
      * bubbling from `host` with the same detail `{ name, section, index, first }`,
      * and awaits every answer attached to any of them. `first` is true until a
-     * request for the section is answered by at least one listener, so a request
-     * nobody listened to does not spend it. A request with answers removes the
-     * error a previous failure painted before it waits.
+     * delivery of the section succeeds: a request nobody listened to does not
+     * spend it, and neither does one whose answers failed, so the next request
+     * is a first one again. While a first delivery is in flight a newer request
+     * for the same section carries `first` false, so the content is not
+     * delivered twice. A request with answers removes the error a previous
+     * failure painted before it waits.
      * @param {Element} host the component the events are dispatched on
      * @param {Element} section the element the answers deliver into
      * @param {string|null} name the section's `data-step`, when it has one
@@ -42,7 +47,7 @@ class SectionRequests {
      * problems in the section unless a newer request superseded this one
      */
     async request(host, section, name, index) {
-        const first = !this.#entered.has(section);
+        const first = !this.#entered.has(section) && !this.#entering.has(section);
         const detail = { name, section, index, first };
         const types = [
             'section:requested',
@@ -60,7 +65,9 @@ class SectionRequests {
         if (promises.length === 0) {
             return undefined;
         }
-        this.#entered.add(section);
+        if (first) {
+            this.#entering.add(section);
+        }
         let claims = this.#claims.get(section);
         if (!claims) {
             claims = new Claims();
@@ -76,13 +83,20 @@ class SectionRequests {
             }
         });
         try {
-            return await Promise.all(promises);
+            const answers = await Promise.all(promises);
+            if (first) {
+                this.#entered.add(section);
+            }
+            return answers;
         } catch (cause) {
             if (owned()) {
                 this.#paintError(section, cause);
             }
             throw cause;
         } finally {
+            if (first) {
+                this.#entering.delete(section);
+            }
             cancelAnimationFrame(frame);
             if (owned()) {
                 section.toggleAttribute('loading', false);

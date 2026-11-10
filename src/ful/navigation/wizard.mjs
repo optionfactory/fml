@@ -138,7 +138,7 @@ class Wizard extends ParsedElement {
     }
     /**
      * Fires the section requests again for a section, whether it is current or
-     * not, with `first` false once an earlier request was answered.
+     * not, with `first` false once an earlier delivery succeeded.
      * @param {string | Element} ref the section's `data-step`, or the section
      * itself
      * @returns {Promise<any[] | undefined> | undefined} a promise resolving to

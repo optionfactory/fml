@@ -86,7 +86,7 @@ describe('SectionRequests', () => {
         assert.strictEqual(section.textContent, 'the content', 'the section content is left untouched');
     });
 
-    it('keeps first true until a request is answered, per section', async () => {
+    it('keeps first true until a delivery succeeds, per section', async () => {
         await requests.request(host, section, null, null);
         const firsts = [];
         AsyncEvents.asyncOn(host, 'section:requested', (e) => firsts.push(`${e.detail.first}`));
@@ -98,6 +98,64 @@ describe('SectionRequests', () => {
         await requests.request(host, other, null, null);
 
         assert.strictEqual(firsts.join(','), 'true,false,true', 'the unanswered request did not spend it');
+    });
+
+    it('keeps first true after a failed delivery, so the next request delivers in place of the error', async () => {
+        let failing = true;
+        const firsts = [];
+        AsyncEvents.asyncOn(host, 'section:requested', (e) => {
+            firsts.push(`${e.detail.first}`);
+            if (!e.detail.first) {
+                return;
+            }
+            if (failing) {
+                throw new Error('unreachable');
+            }
+            e.detail.section.append(' delivered');
+        });
+
+        await rejection(requests.request(host, section, null, null));
+        assert.strictEqual(section.firstElementChild.textContent, 'unreachable', 'the failure is painted');
+        failing = false;
+        await requests.request(host, section, null, null);
+        await requests.request(host, section, null, null);
+
+        assert.strictEqual(firsts.join(','), 'true,true,false', 'only the delivery that succeeded spent it');
+        assert.strictEqual(section.innerHTML, 'the content delivered', 'the retry delivered and removed the error');
+    });
+
+    it('answers first false while a first delivery is in flight, so the content is not delivered twice', async () => {
+        const { promise, resolve } = Promise.withResolvers();
+        const firsts = [];
+        AsyncEvents.asyncOn(host, 'section:requested', (e) => {
+            firsts.push(`${e.detail.first}`);
+            return e.detail.first ? promise : undefined;
+        });
+
+        const pending = requests.request(host, section, null, null);
+        await requests.request(host, section, null, null);
+        resolve();
+        await pending;
+        await requests.request(host, section, null, null);
+
+        assert.strictEqual(firsts.join(','), 'true,false,false', 'the overlapping request was not a first one');
+    });
+
+    it('keeps first true when the first delivery fails after a newer request settled', async () => {
+        const { promise, reject } = Promise.withResolvers();
+        const firsts = [];
+        AsyncEvents.asyncOn(host, 'section:requested', (e) => {
+            firsts.push(`${e.detail.first}`);
+            return e.detail.first ? promise : undefined;
+        });
+
+        const pending = requests.request(host, section, null, null);
+        await requests.request(host, section, null, null);
+        reject(new Error('unreachable'));
+        await rejection(pending);
+        await rejection(requests.request(host, section, null, null));
+
+        assert.strictEqual(firsts.join(','), 'true,false,true', 'the request that settled meanwhile did not spend it');
     });
 
     it('resolves with the answers in the order they were attached, across the families', async () => {

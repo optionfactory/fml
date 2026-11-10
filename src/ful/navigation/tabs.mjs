@@ -197,7 +197,7 @@ class Tabs extends ParsedElement {
     }
     /**
      * Fires the section requests again for a panel, whether it is visible or
-     * not, with `first` false once an earlier request was answered.
+     * not, with `first` false once an earlier delivery succeeded.
      * @param {number | Element} ref the panel's index, or the panel itself
      * @returns {Promise<any[] | undefined> | undefined} a promise resolving to
      * the answers, or to undefined when nobody listened or the delivery
