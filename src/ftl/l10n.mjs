@@ -1,4 +1,5 @@
 import { BoundedCache } from './cache.mjs';
+import { Expressions } from './expressions.mjs';
 import { registry } from './registry.mjs';
 
 /**
@@ -10,11 +11,26 @@ import { registry } from './registry.mjs';
  */
 
 /**
- * The receiver contract of the module functions: bound to a proxy over the
- * data stack when called from a template, or to a plain object by Localization.of().
+ * The receiver contract of the module functions: a plain object carrying the
+ * translations and the locale, as Localization.of() binds them, or the proxy
+ * over the data stack a template calls them with.
  *
  * @typedef {{ l10n?: Messages, locale?: string }} Receiver
  */
+
+/**
+ * The translations or the locale of a receiver. From a template they are read
+ * from the bound data alone (the registry's overlays, or the data handed to
+ * the Template factory): the rows and responses a render pushes on top are
+ * what arrives later, and must not supply or replace the page's own messages.
+ * @param {any} receiver
+ * @param {'l10n' | 'locale'} name
+ * @returns {any}
+ */
+const configured = (receiver, name) => {
+    const bound = receiver[Expressions.BOUND];
+    return typeof bound === 'function' ? bound(name) : receiver[name];
+};
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 const POSITIONAL = /\{(\d+)\}/g;
@@ -50,7 +66,9 @@ const formatter = (ctor, locale, options) => {
  * The translations as a template module: `#l10n:t()` for messages, plus date,
  * number and bytes formatting in the page's locale. The template form and the
  * imperative `of()` facade both resolve through the registry's scope, so they
- * always produce the same result for the same key.
+ * always produce the same result for the same key. A template reads `l10n`
+ * and `locale` from its bound data only, the most recent layer winning: an
+ * overlay pushed while rendering (a row, a response) never reaches them.
  */
 class Localization {
     /**
@@ -69,7 +87,7 @@ class Localization {
      * @returns {string} the message, or the key itself when the translations do not carry it
      */
     static t(key, ...args) {
-        const messages = this.l10n ?? {};
+        const messages = configured(this, 'l10n') ?? {};
         let message = Object.hasOwn(messages, key) ? messages[key] : undefined;
         if (message === undefined) {
             warnOnce(`missing message "${key}"`);
@@ -81,7 +99,7 @@ class Localization {
                 warnOnce(`plural message "${key}" needs a numeric {count}`);
                 message = message.other;
             } else {
-                const locale = this.locale ?? navigator?.language ?? 'en';
+                const locale = configured(this, 'locale') ?? navigator?.language ?? 'en';
                 const category = formatter(Intl.PluralRules, locale).select(named.count);
                 message = message[category] ?? message.other;
             }
@@ -121,7 +139,7 @@ class Localization {
      * @returns {string}
      */
     static date(value, options) {
-        return formatter(Intl.DateTimeFormat, this.locale, options).format(value);
+        return formatter(Intl.DateTimeFormat, configured(this, 'locale'), options).format(value);
     }
 
     /**
@@ -133,7 +151,7 @@ class Localization {
      * @returns {string}
      */
     static number(value, options) {
-        return formatter(Intl.NumberFormat, this.locale, options).format(value);
+        return formatter(Intl.NumberFormat, configured(this, 'locale'), options).format(value);
     }
 
     /**
@@ -146,7 +164,7 @@ class Localization {
      * @returns {string}
      */
     static bytes(value) {
-        const format = formatter(Intl.NumberFormat, this.locale, { maximumFractionDigits: 2 }).format;
+        const format = formatter(Intl.NumberFormat, configured(this, 'locale'), { maximumFractionDigits: 2 }).format;
         if (value >= 1024 * 1024 * 1024) {
             return `${format(value / 1024 / 1024 / 1024)}GiB`;
         }

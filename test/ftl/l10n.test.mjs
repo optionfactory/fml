@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Localization, registry } from '../../src/ftl/index.mjs';
+import { Fragments, Localization, registry, Template } from '../../src/ftl/index.mjs';
 
 const TRANSLATIONS = {
     'hello.name': 'Hello {name}',
@@ -290,6 +290,48 @@ describe('Localization.of', () => {
             Localization.of().t('app.fn'),
             'Da una funzione',
             'the facade finds translations carried by a function overlay',
+        );
+    });
+});
+
+describe('Localization in a template', () => {
+    const page = { l10n: { legal: '<b>terms</b>' }, locale: 'it' };
+    const rendered = (html, ...overlays) =>
+        Fragments.toHtml(
+            Template.fromHtml(html, { l10n: Localization }, page)
+                .withOverlay(...overlays)
+                .render(),
+        );
+
+    it('never takes the messages from the data a render pushes', () => {
+        const rows = [{ name: 'ok' }, { name: 'evil', l10n: { legal: '<img src=x onerror=alert(1)>' } }];
+        assert.strictEqual(
+            rendered('<li data-tpl-each="rows">{{{ #l10n:t("legal") }}} {{ name }}</li>', { rows }),
+            '<li><b>terms</b> ok</li><li><b>terms</b> evil</li>',
+            'a row carrying an l10n field reads the page messages, like the row that carries none',
+        );
+    });
+
+    it('never takes the locale from the data a render pushes', () => {
+        const rows = [{ locale: 'en' }, { locale: 'not_a_tag!' }];
+        assert.strictEqual(
+            rendered('<i data-tpl-each="rows">{{ #l10n:number(1.5) }}</i>', { rows }),
+            '<i>1,5</i><i>1,5</i>',
+            'a row carrying a locale field, a malformed one included, formats in the page locale',
+        );
+    });
+
+    it('reads the bound data alone, so an overlay cannot supply what the page left out', () => {
+        const template = Template.fromHtml('{{ #l10n:t("k") }}', { l10n: Localization });
+        assert.strictEqual(
+            Fragments.toHtml(template.withOverlay({ l10n: { k: 'from an overlay' } }).render()),
+            'k',
+            'messages pushed with withOverlay are not the page messages: the key answers itself',
+        );
+        assert.strictEqual(
+            Fragments.toHtml(template.withOverlay({ l10n: 'shadowed' }).render()),
+            Fragments.toHtml(template.render()),
+            'a name shadowed for the expressions is still not what the module reads',
         );
     });
 });

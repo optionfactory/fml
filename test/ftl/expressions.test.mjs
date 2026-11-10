@@ -397,6 +397,22 @@ describe('AST execution edge cases', () => {
             'null, undefined and primitive overlays are skipped, not searched and not fatal',
         );
     });
+    it('answers a module function the bound data apart from the overlays pushed later', () => {
+        const probe = {
+            name() {
+                return `${this.name}/${this[Expressions.BOUND]('name')}/${this[Expressions.BOUND]('row')}`;
+            },
+        };
+        const evaluator = new ExpressionEvaluator({ probe }, [{ name: 'outer' }, { name: 'bound' }]);
+        assert.strictEqual(
+            evaluator
+                .withOverlay({ name: 'row', row: true, [Expressions.BOUND]: () => 'forged' })
+                .evaluateExpression('#probe:name()'),
+            'row/bound/undefined',
+            'the receiver resolves a name innermost first, and Expressions.BOUND in the layers the evaluator was created with',
+        );
+    });
+
     it('parses one expression once, answering the same ast', () => {
         const a = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);
         const b = Expressions.parse('1 == 1', Expressions.MODE_EXPRESSION);

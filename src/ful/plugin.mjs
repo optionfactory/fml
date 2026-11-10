@@ -38,8 +38,11 @@ class Plugin {
     /**
      * @param {{ language?: string, translations?: Record<string, any>, httpClient?: HttpClient }} [options]
      * `language` is fixed for the page: a full BCP-47 tag or a primary subtag,
-     * defaulting to `navigator.language`, then to 'en'. Its primary subtag,
-     * lowercased, picks the built-in translations (en, it, es, fr); the messages
+     * defaulting to `navigator.language`, then to 'en', an empty one included.
+     * It is canonicalized (`IT-it` and `it_IT` both read `it-IT`), and one that
+     * is no language tag at all throws here, rather than at the first message
+     * or number formatted in it. Its primary subtag picks the built-in
+     * translations (en, it, es, fr); the messages
      * are the english ones, overridden by that language's, overridden by
      * `translations`, so a language without built-in translations reads in
      * english. `translations` is a flat map of keys to messages: reword built-in
@@ -47,9 +50,18 @@ class Plugin {
      * `httpClient` is the client every ful component fetches through, registered
      * as the `http-client` component; without one, `configure` builds a client
      * that sends the csrf token and navigates to '/' on a 401 response.
+     * @throws {RangeError} when `language` is not a language tag
      */
     constructor(options = {}) {
-        this.#language = options.language ?? navigator?.language ?? 'en';
+        const language = options.language || navigator?.language || 'en';
+        try {
+            // unicode locale identifiers separate subtags with an underscore too, Intl takes the dash alone
+            this.#language = Intl.getCanonicalLocales(String(language).replaceAll('_', '-'))[0];
+        } catch {
+            throw new RangeError(
+                `Plugin: language '${language}' is not a language tag: pass a BCP-47 tag such as 'it' or 'it-IT', or leave it out for the browser's language`,
+            );
+        }
         this.#translations = options.translations ?? {};
         this.#httpClient = options.httpClient ?? null;
     }
@@ -58,7 +70,7 @@ class Plugin {
      * Defines on `registry` the `l10n` module, the `http-client` component,
      * every `ful-*` element, the `loaders:select`, `loaders:form` and
      * `loaders:table` components, and an overlay publishing `l10n` (the merged
-     * messages) and `locale` (the `language` as given) to every template.
+     * messages) and `locale` (the `language`, canonicalized) to every template.
      * @param {{ defineModule(name: string, module: any): any, defineComponent(name: string, component: any): any, defineElement(tag: string, klass: CustomElementConstructor): any, defineOverlay(...data: any[]): any }} registry
      * the ftl `Registry`, each of those methods answering the registry itself
      * @returns {void}
@@ -66,7 +78,7 @@ class Plugin {
     configure(registry) {
         const httpClient =
             this.#httpClient ?? HttpClient.builder().withCsrfToken().withRedirectOnUnauthorized('/').build();
-        const language = this.#language.split('-')[0].toLowerCase();
+        const language = this.#language.split('-')[0];
         const l10n = { ...BUILTIN.en, ...BUILTIN[language], ...this.#translations };
         registry
             .defineModule('l10n', Localization)

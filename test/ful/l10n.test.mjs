@@ -210,4 +210,37 @@ describe('Plugin language matching', () => {
 
         assert.strictEqual(container.textContent, 'Chiudi', 'an upper-cased tag bakes the Italian messages');
     });
+
+    const published = (language) => {
+        const reg = new Registry();
+        reg.plugin(new Plugin({ language }));
+        return [reg.evaluator().resolve('locale'), reg.evaluator().resolve('l10n')['dialog.close']];
+    };
+
+    it('publishes the canonical tag, an underscore reading as a dash', () => {
+        assert.deepEqual(published('IT-it'), ['it-IT', 'Chiudi'], 'the case of a tag is normalized');
+        assert.deepEqual(
+            published('it_IT'),
+            ['it-IT', 'Chiudi'],
+            'the underscore form a server locale prints is taken',
+        );
+    });
+
+    it('falls back to the browser language for an empty one', () => {
+        const [locale] = published('');
+        assert.strictEqual(
+            locale,
+            Intl.getCanonicalLocales(navigator.language)[0],
+            'an empty language, as a page without a lang attribute answers, is no language given',
+        );
+    });
+
+    it('refuses a language that is no tag at all, where the page configures', () => {
+        assert.throws(
+            () => new Plugin({ language: 'italiano!' }),
+            RangeError,
+            "language 'italiano!' is not a language tag",
+            'a malformed tag fails at construction, not at the first number formatted',
+        );
+    });
 });

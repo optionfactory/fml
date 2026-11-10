@@ -19,7 +19,20 @@ per line, otherwise an error's message), which every ful surface paints a
 rejection through. The
 language is fixed per page: the ful plugin bakes the fallback chain once at
 `configure()`, and elements stay queued until configuration completes, so no
-message can render ahead of its translations.
+message can render ahead of its translations. The plugin canonicalizes the
+language tag and refuses one that is no tag at all at construction, since a
+malformed locale otherwise fails at the first formatter that meets it.
+
+The module reads `l10n` and `locale` from the bound data of the scope alone
+(the registry's layers, or the data handed to a Template factory), through
+`Expressions.BOUND`, never from an overlay a render pushes. Translations are
+page source (0007) and a row or a response is what arrives later: were the
+lookup the ordinary innermost-first one, an api row carrying a field named
+`l10n` would replace the messages, and one named `locale` the formatting.
+Binding the messages into the module at plugin time was the alternative; it
+would have left the bare `defineModule('l10n', Localization)` plus
+`defineOverlay({ l10n, locale })` registration, and `Localization.of()`
+reading the registry, either broken or still exposed.
 
 Remote translations are the app's concern and the app's timing: fetch and
 await before `configure()`, or server-render the flat map inline

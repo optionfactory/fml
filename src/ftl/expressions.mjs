@@ -25,6 +25,8 @@ const resolveInStack = (dataStack, prop) => {
     return undefined;
 };
 
+const BOUND = Symbol('BOUND');
+
 /**
  * Evaluates a parsed expression against a scope. One instance per evaluation:
  * it holds the modules and the data stack that names resolve against, and keeps
@@ -33,9 +35,11 @@ const resolveInStack = (dataStack, prop) => {
 class EvaluatingVisitor {
     #modules;
     #dataStack;
-    constructor(modules, dataStack) {
+    #bound;
+    constructor(modules, dataStack, bound) {
         this.#modules = modules;
         this.#dataStack = dataStack;
+        this.#bound = bound ?? dataStack.length;
     }
     #resolve(prop) {
         return resolveInStack(this.#dataStack, prop);
@@ -59,8 +63,9 @@ class EvaluatingVisitor {
     #cached_resolve_proxy;
     #resolve_proxy() {
         if (!this.#cached_resolve_proxy) {
+            const bound = (name) => resolveInStack(this.#dataStack.slice(0, this.#bound), name);
             this.#cached_resolve_proxy = new Proxy(this.#dataStack, {
-                get: (target, prop) => this.#resolve(prop),
+                get: (target, prop) => (prop === BOUND ? bound : this.#resolve(prop)),
             });
         }
         return this.#cached_resolve_proxy;
@@ -213,6 +218,16 @@ class Expressions {
      * `{{{ }}}` (html) or `{{{{ }}}}` (node) interpolation, in order.
      */
     static MODE_TEMPLATED = Symbol('MODE_TEMPLATED');
+    /**
+     * The key under which the receiver of a module function answers a lookup
+     * against the bound data alone: `this[Expressions.BOUND](name)` resolves
+     * the name in the layers the scope was created with (a registry's data,
+     * the data handed to a Template factory) and never in an overlay pushed
+     * afterwards, by `data-tpl-each`, `data-tpl-with` or `withOverlay`. It is
+     * how a module reads what the page configured without the rendered data
+     * being able to supply or replace it. No name on the data stack reaches it.
+     */
+    static BOUND = BOUND;
 
     static #astCache = new BoundedCache(1000);
 
@@ -237,10 +252,11 @@ class Expressions {
      * @param {any[]} dataStack innermost overlay last
      * @param {any} ast what `parse` answered
      * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode] the mode it was parsed in
+     * @param {number} [bound] how many layers, from the outermost, are the bound data; all of them when omitted
      * @returns {any} the value, or the list of parts in MODE_TEMPLATED
      */
-    static evaluate(modules, dataStack, ast, mode) {
-        return new EvaluatingVisitor(modules, dataStack).visitRoot(ast, mode === Expressions.MODE_TEMPLATED);
+    static evaluate(modules, dataStack, ast, mode, bound) {
+        return new EvaluatingVisitor(modules, dataStack, bound).visitRoot(ast, mode === Expressions.MODE_TEMPLATED);
     }
     /**
      * Parses and evaluates an expression.
@@ -248,10 +264,11 @@ class Expressions {
      * @param {any[]} dataStack innermost overlay last
      * @param {string} expression
      * @param {(typeof Expressions.MODE_EXPRESSION | typeof Expressions.MODE_TEMPLATED)?} [mode] MODE_EXPRESSION when omitted
+     * @param {number} [bound] how many layers, from the outermost, are the bound data; all of them when omitted
      * @returns {any} the value, or the list of parts in MODE_TEMPLATED
      */
-    static interpret(modules, dataStack, expression, mode) {
-        return Expressions.evaluate(modules, dataStack, Expressions.parse(expression, mode), mode);
+    static interpret(modules, dataStack, expression, mode, bound) {
+        return Expressions.evaluate(modules, dataStack, Expressions.parse(expression, mode), mode, bound);
     }
 }
 
@@ -260,17 +277,24 @@ class Expressions {
  * that a bare identifier resolves against, as a single value. Adding an overlay
  * returns a new evaluator instead of modifying this one, so a template can add
  * data for one subtree without affecting the rest of the render.
+ *
+ * The layers an evaluator is created with are its bound data; the overlays
+ * pushed afterwards are not. A bare identifier resolves against both, while a
+ * module function can ask for the bound data alone through `Expressions.BOUND`.
  */
 class ExpressionEvaluator {
     #modules;
     #dataStack;
+    #bound;
     /**
      * @param {{ [k: string]: any } | null | undefined} modules
      * @param {any[]} dataStack innermost overlay last
+     * @param {number} [bound] how many layers, from the outermost, are the bound data; all of them when omitted
      */
-    constructor(modules, dataStack) {
+    constructor(modules, dataStack, bound) {
         this.#modules = modules;
         this.#dataStack = dataStack;
+        this.#bound = bound ?? dataStack.length;
     }
     /**
      * A new evaluator with one more module: `#name:fn()` resolves into it, and an
@@ -281,11 +305,11 @@ class ExpressionEvaluator {
      */
     withModule(name, value) {
         const module = name ? { [name]: value } : value;
-        return new ExpressionEvaluator({ ...this.#modules, ...module }, this.#dataStack);
+        return new ExpressionEvaluator({ ...this.#modules, ...module }, this.#dataStack, this.#bound);
     }
     /**
      * A new evaluator with the data pushed as the innermost overlays, the last
-     * one winning a shared name.
+     * one winning a shared name. The bound data stays what it was.
      * @param {...any} data
      * @returns {ExpressionEvaluator}
      */
@@ -293,6 +317,7 @@ class ExpressionEvaluator {
         return new ExpressionEvaluator(
             this.#modules,
             data.length === 0 ? this.#dataStack : [...this.#dataStack, ...data],
+            this.#bound,
         );
     }
     /**
@@ -310,7 +335,13 @@ class ExpressionEvaluator {
      * @returns {any}
      */
     evaluateExpression(expression) {
-        return Expressions.interpret(this.#modules, this.#dataStack, expression, Expressions.MODE_EXPRESSION);
+        return Expressions.interpret(
+            this.#modules,
+            this.#dataStack,
+            expression,
+            Expressions.MODE_EXPRESSION,
+            this.#bound,
+        );
     }
     /**
      * Evaluates a templated text, the `{{ }}` form, against this scope.
@@ -318,7 +349,7 @@ class ExpressionEvaluator {
      * @returns {{ type: symbol, value: any }[]} its parts, as MODE_TEMPLATED describes
      */
     evaluateTemplated(text) {
-        return Expressions.interpret(this.#modules, this.#dataStack, text, Expressions.MODE_TEMPLATED);
+        return Expressions.interpret(this.#modules, this.#dataStack, text, Expressions.MODE_TEMPLATED, this.#bound);
     }
 }
 
