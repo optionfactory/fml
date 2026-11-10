@@ -96,15 +96,27 @@ class DialogSections {
     /**
      * Calls `dismiss` when a press and its release both land on the backdrop,
      * so a selection dragged out of the panel and released outside does not.
+     * The backdrop is where the pointer is outside the dialog's rectangle: a
+     * part of the panel no child covers, the room around the error section
+     * for one, is the panel.
      * @param {() => void} dismiss
      */
     onBackdrop(dismiss) {
+        const onBackdrop = (/** @type MouseEvent */ e) => {
+            if (e.target !== this.#dialog) {
+                return false;
+            }
+            const panel = this.#dialog.getBoundingClientRect();
+            return (
+                e.clientX < panel.left || e.clientX > panel.right || e.clientY < panel.top || e.clientY > panel.bottom
+            );
+        };
         let pressedOutside = false;
         this.#dialog.addEventListener('mousedown', (e) => {
-            pressedOutside = e.target === this.#dialog;
+            pressedOutside = onBackdrop(e);
         });
         this.#dialog.addEventListener('click', (e) => {
-            if (pressedOutside && e.target === this.#dialog) {
+            if (pressedOutside && onBackdrop(e)) {
                 dismiss();
             }
         });

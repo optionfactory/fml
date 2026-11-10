@@ -1021,6 +1021,26 @@ for (const { tag, content, open, update } of elements) {
             await closed(el);
         });
 
+        it('stays open on a click that lands on a part of the panel no child covers', async () => {
+            const [el] = await mount(`<${tag} header="t">body</${tag}>`);
+            const native = el.querySelector('dialog');
+            open(el);
+            const panel = native.getBoundingClientRect();
+            const inside = { bubbles: true, clientX: panel.left + panel.width / 2, clientY: panel.top + panel.height / 2 };
+
+            native.dispatchEvent(new MouseEvent('mousedown', inside));
+            native.dispatchEvent(new MouseEvent('click', inside));
+            assert.isTrue(
+                native.open,
+                'a press and release inside the rectangle of the panel are not on the backdrop, whatever element they hit',
+            );
+
+            native.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            native.dispatchEvent(new MouseEvent('click', inside));
+            assert.isTrue(native.open, 'a press on the backdrop released over the panel does not dismiss either');
+            await closed(el);
+        });
+
         it('closes on its own form succeeding, the close event carrying the response', async () => {
             const [el] = await mount(editing);
             open(el);
