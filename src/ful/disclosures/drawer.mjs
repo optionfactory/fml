@@ -1,4 +1,5 @@
 import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { Claims } from '../claims.mjs';
 import { discardEdits } from './dialog.mjs';
 import { DialogSections } from './dialog-sections.mjs';
 import { wireTargets } from './targets.mjs';
@@ -64,11 +65,7 @@ class Drawer extends ParsedElement {
     #answer = null;
     #resolvers = [];
     #closing = false;
-    #slideOutEnded = (/** @type AnimationEvent */ e) => {
-        if (e.target === this.#dialog) {
-            this.#closeNow();
-        }
-    };
+    #slides = new Claims();
     /**
      * @param {{ slots: Record<string, DocumentFragment> }} c
      */
@@ -195,7 +192,7 @@ class Drawer extends ParsedElement {
      * opening, hides the error and loading sections, and dispatches
      * `section:requested` on the element (bubbling, with
      * `detail: { section, first, name: null, index: null }`, `section` being
-     * the content section and `first` true only on the first answered request),
+     * the content section and `first` true until a delivery succeeds),
      * so a listener can fill the content. A failed request is painted into the
      * content section and does not reject. On a drawer already open nothing is
      * shown or requested, except that one sliding out stops and stays open,
@@ -246,11 +243,13 @@ class Drawer extends ParsedElement {
     /**
      * Slides the drawer out and closes it when the animation ends, setting the
      * `closing` attribute on the native dialog meanwhile; the `close` event is
-     * dispatched then, after this call has returned. Where the user prefers
-     * reduced motion, or no animation runs, it closes at once. A non-empty
-     * result answers as the button carrying that `data-result` would; no
-     * result, or an empty one, is a dismissal. Does nothing on a drawer that is
-     * closed or already sliding out.
+     * dispatched then, after this call has returned. An animation the page
+     * cancels, by hiding the drawer or an ancestor of it, closes it as one
+     * that ended does. Where the user prefers reduced motion, or no animation
+     * runs, it closes at once. A non-empty result answers as the button
+     * carrying that `data-result` would; no result, or an empty one, is a
+     * dismissal. Does nothing on a drawer that is closed or already sliding
+     * out.
      * @param {string} [result]
      */
     close(result) {
@@ -265,12 +264,18 @@ class Drawer extends ParsedElement {
             return;
         }
         this.#dialog.setAttribute('closing', '');
-        if (this.#dialog.getAnimations().length === 0) {
+        const animations = this.#dialog.getAnimations();
+        if (animations.length === 0) {
             this.#closeNow();
             return;
         }
         this.#closing = true;
-        this.#dialog.addEventListener('animationend', this.#slideOutEnded);
+        const slide = this.#slides.take();
+        Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
+            if (!slide.stale) {
+                this.#closeNow();
+            }
+        });
     }
     #closeNow() {
         this.#stopSlidingOut();
@@ -278,7 +283,7 @@ class Drawer extends ParsedElement {
     }
     #stopSlidingOut() {
         this.#closing = false;
-        this.#dialog.removeEventListener('animationend', this.#slideOutEnded);
+        this.#slides.invalidate();
         this.#dialog.removeAttribute('closing');
     }
     /** @returns {boolean} whether this call is the one that opened the modal */

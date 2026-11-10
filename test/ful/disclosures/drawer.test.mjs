@@ -329,6 +329,24 @@ describe('Drawer', () => {
         await closed(drawer);
     });
 
+    it('closes when the page hides it during the slide out, rather than staying open unseen', async () => {
+        const [drawer, container] = await mount('<ful-drawer header="t">body</ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        const asked = drawer.ask();
+        await settle();
+
+        drawer.close('saved');
+        container.hidden = true;
+
+        assert.deepStrictEqual(
+            await asked,
+            { dismissed: false, result: 'saved', response: null },
+            'a slide out the page cancelled by hiding the drawer still answers the waiters',
+        );
+        assert.isFalse(dialog.open, 'the native dialog is closed, so the page is not left inert behind an unseen modal');
+        assert.isFalse(dialog.hasAttribute('closing'), 'the closing state leaves with the close');
+    });
+
     it('forgets the answer of a slide out a reopen stopped', async () => {
         const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
         drawer.open();
