@@ -27,6 +27,10 @@ import { Claims } from '../claims.mjs';
  * current `order` in the cycle `asc`, `desc`, `null`. The button does not
  * change its own `order`: whoever handles the event sets it, which `ful-table`
  * does once the sorted page has loaded.
+ *
+ * The stylesheet draws an up arrow for `asc` and a down arrow for `desc`. An
+ * unsorted button shows the up arrow dimmed, `asc` being the order its first
+ * activation asks for.
  */
 class SortButton extends ParsedElement {
     static attributes = ['sorter'];
@@ -603,18 +607,19 @@ class Table extends ParsedElement {
      * writing the size is not a request to start loading, which is what
      * `autoload` and `reload()` are for. A write that does not change the size
      * does nothing. A write made before the render is replaced by the declared
-     * `page-size` when the table renders.
+     * `page-size` when the table renders, or by ten when that is not a number
+     * above zero.
      *
      * The reload is not awaited: a failure shows the error panel and its
      * rejection is unhandled.
      * @param {number|string|null|undefined} value a number or a string of
      * one, such as a select's value; absent or null is the default of ten,
      * so removing the attribute restores it, and a value that is not a
-     * number is ignored
+     * finite number above zero is ignored
      */
     set pageSize(value) {
         const size = Number(value ?? 10);
-        if (Number.isNaN(size) || size === this.#latestRequest.pageRequest.size) {
+        if (!Number.isFinite(size) || size <= 0 || size === this.#latestRequest.pageRequest.size) {
             return;
         }
         this.#latestRequest = { ...this.#latestRequest, pageRequest: { page: 0, size } };
@@ -733,10 +738,11 @@ class Table extends ParsedElement {
         await Rendering.waitForChildren(this);
 
         const maybeForm = /** @type any */ (Nodes.queryChildren(this, 'ful-form'));
+        const declaredSize = this.declared('page-size');
         this.#latestRequest = {
             pageRequest: {
                 page: 0,
-                size: this.declared('page-size') ?? 10,
+                size: Number.isFinite(declaredSize) && declaredSize > 0 ? declaredSize : 10,
             },
             sortRequest: schema.sort,
             filterRequest: maybeForm?.values ?? {},
@@ -820,7 +826,10 @@ class Table extends ParsedElement {
      * `aria-busy` is removed, `load:failure` is dispatched (bubbling, not
      * cancelable) with `detail` set to
      * `{ pageRequest, sortRequest, filterRequest, exception }`, and the
-     * returned promise rejects with the same error.
+     * returned promise rejects with the same error. An answer the table cannot
+     * page fails the same way, with an error saying so: one whose `size` is
+     * not a number, as a response of another shape read without a
+     * `response-mapper` is, or a page size of zero.
      *
      * A load started after this one supersedes it: when this one's answer or
      * failure arrives it changes nothing, dispatches nothing and resolves;
@@ -848,6 +857,11 @@ class Table extends ParsedElement {
                 return;
             }
             lastPage = Math.max(0, Math.ceil(pageResponse.size / pageRequest.size) - 1);
+            if (!Number.isFinite(lastPage)) {
+                throw new Error(
+                    `ful-table cannot page the loader's answer: it needs { data, size }, size being the total number of rows, and got a size of ${pageResponse.size} for pages of ${pageRequest.size}. A response of another shape needs a response-mapper`,
+                );
+            }
             if (pageRequest.page <= lastPage) {
                 this.#latestRequest = { pageRequest, sortRequest, filterRequest };
                 this.#loaded = true;

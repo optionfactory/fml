@@ -210,6 +210,62 @@ describe('Table load failures', () => {
         );
     });
 
+    it('fails the load, once, when the answer carries no numeric size', async () => {
+        let calls = 0;
+        const [tableEl] = mount(
+            {
+                load: async () => {
+                    ++calls;
+                    return { content: [{ a: 1 }], totalElements: 1 };
+                },
+            },
+            false,
+        );
+        await Rendering.waitFor(tableEl);
+        const failures = [];
+        tableEl.addEventListener('load:failure', (e) => failures.push(e.detail.exception));
+
+        let caught = null;
+        try {
+            await tableEl.reload();
+        } catch (e) {
+            caught = e;
+        }
+        await settle();
+
+        assert.strictEqual(calls, 1, 'an answer that cannot be paged is not asked for again');
+        assert.include(caught?.message, 'response-mapper', 'the rejection tells the author what the answer lacks');
+        assert.isTrue(failures[0] === caught, 'load:failure carries the same error');
+        const feedback = tableEl.querySelector('tbody[data-ref=feedback]');
+        assert.isFalse(feedback.hasAttribute('hidden'), 'the error panel is shown');
+        assert.include(feedback.textContent, '{ data, size }', 'the error panel names the shape the table needs');
+    });
+
+    it('fails the load, once, when asked for pages of no rows', async () => {
+        let calls = 0;
+        const [tableEl] = mount(
+            {
+                load: async () => {
+                    ++calls;
+                    return { data: [], size: 0 };
+                },
+            },
+            false,
+        );
+        await Rendering.waitFor(tableEl);
+
+        let caught = null;
+        try {
+            await tableEl.load({ page: 0, size: 0 }, null, {});
+        } catch (e) {
+            caught = e;
+        }
+        await settle();
+
+        assert.strictEqual(calls, 1, 'a page size of zero does not loop over the loader');
+        assert.include(caught?.message, 'pages of 0', 'the rejection names the page size');
+    });
+
     it('upgrades when the first load never answers', async () => {
         const [tableEl] = mount({ load: () => new Promise(() => {}) }, true);
 
@@ -254,6 +310,36 @@ describe('Table sorter layout', () => {
             4,
             "the heading starts on the sorter's own first line, beside the arrow",
         );
+    });
+
+    it('draws ascending as the up arrow, descending as the down arrow, unsorted as the first click dimmed', async () => {
+        const container = appended(`
+            <ful-sorter sorter="a">Unsorted</ful-sorter>
+            <ful-sorter sorter="b" order="asc">Ascending</ful-sorter>
+            <ful-sorter sorter="c" order="desc">Descending</ful-sorter>`);
+        await Rendering.waitFor(container);
+        const [unsorted, ascending, descending] = container.querySelectorAll('ful-sorter');
+        /** the two masks are the bootstrap-icons arrows, told apart by where their path starts */
+        const arrowOf = (sorter) => {
+            const mask = getComputedStyle(sorter, '::before').maskImage;
+            if (mask.includes('M8 15a')) {
+                return 'up';
+            }
+            return mask.includes('M8 1a') ? 'down' : mask;
+        };
+        const opacityOf = (sorter) => Number(getComputedStyle(sorter, '::before').opacity);
+        let asked = null;
+        unsorted.addEventListener('sort:requested', (e) => {
+            asked = e.detail.value.order;
+        });
+        unsorted.click();
+
+        assert.strictEqual(arrowOf(ascending), 'up', 'ascending is the up arrow');
+        assert.strictEqual(arrowOf(descending), 'down', 'descending is the down arrow');
+        assert.strictEqual(asked, 'asc', 'the first click on an unsorted column asks for ascending');
+        assert.strictEqual(arrowOf(unsorted), 'up', 'an unsorted column shows the arrow of the order its first click asks for');
+        assert.isBelow(opacityOf(unsorted), 1, 'the unsorted arrow is dimmed');
+        assert.strictEqual(opacityOf(ascending), 1, 'the arrow of a sorted column is not dimmed');
     });
 
     it('lets a heading too long for its column wrap within itself', async () => {
@@ -1752,6 +1838,18 @@ describe('Table page-size', () => {
         await settle();
 
         assert.strictEqual(requests.length, before, 'a write of the same size starts no load');
+    });
+
+    it('ignores a size that is not above zero, declared or written', async () => {
+        const tableEl = await mount('autoload page-size="0"');
+
+        assert.strictEqual(tableEl.pageSize, 10, 'a declared page-size of zero leaves the default of ten');
+
+        tableEl.pageSize = 0;
+        tableEl.pageSize = -5;
+        await settle();
+
+        assert.deepStrictEqual(requests, [{ page: 0, size: 10 }], 'a write of zero or less neither reloads nor sticks');
     });
 
     it('records the size without loading a table that was never asked to load', async () => {
