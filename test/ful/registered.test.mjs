@@ -107,6 +107,7 @@ const ELEMENTS = [
             multiple: ['', true],
             'item-list': ['', true],
             dropzone: ['', true],
+            'no-input': ['', true],
             'max-files': ['3', 3],
             'max-file-size': ['10', 10],
             'max-total-size': ['20', 20],

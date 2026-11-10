@@ -13,6 +13,15 @@ const mount = async (html) => {
 };
 
 describe('InputFile', () => {
+    it('answers no file before the render, instead of throwing', () => {
+        const single = document.createElement('ful-input-file');
+        const several = document.createElement('ful-input-file');
+        several.setAttribute('multiple', '');
+
+        assert.isNull(single.value, 'a single file field not rendered yet has no name to answer');
+        assert.deepStrictEqual(several.value, [], 'a multiple one answers an empty list');
+    });
+
     it('mounts without accessing not yet initialized internals', async () => {
         const [el] = await mount(`<ful-input-file>files</ful-input-file>`);
 
@@ -182,11 +191,11 @@ describe('InputFile selection', () => {
         const [el] = await mount(`<ful-input-file multiple>files</ful-input-file>`);
 
         assert.isNull(el.file, 'file is null while nothing is selected');
-        assert.strictEqual(el.totalsize, 0, 'the total size of an empty selection is zero');
+        assert.strictEqual(el.totalSize, 0, 'the total size of an empty selection is zero');
         pick(el, file('a.txt', 10), file('b.txt', 20));
 
         assert.strictEqual(el.file.name, 'a.txt', 'file answers the first selected file');
-        assert.strictEqual(el.totalsize, 30, 'totalsize adds the sizes of every selected file');
+        assert.strictEqual(el.totalSize, 30, 'totalSize adds the sizes of every selected file');
 
         el.file = file('c.txt', 5);
         assert.deepStrictEqual(selected(el), ['c.txt'], 'assigning a file replaces the selection');
@@ -387,6 +396,24 @@ describe('InputFile dropzone', () => {
 
         assert.deepStrictEqual(selected(el), ['a.txt'], 'dragging a link must not wipe the pick');
         assert.deepStrictEqual(listed(el), ['a.txt'], 'a drop with no file leaves the item list as it was');
+    });
+});
+
+describe('InputFile no-input', () => {
+    it('takes the picker control out of sight and leaves it to the keyboard', async () => {
+        const [el] = await mount(`<ful-input-file dropzone no-input>files</ful-input-file>`);
+        const input = el.querySelector('input');
+        const group = el.querySelector('ful-control-group');
+
+        assert.isTrue(el.noInput, 'the no-input attribute is read into the noInput property');
+        assert.strictEqual(group.getBoundingClientRect().width, 1, 'the control group is clipped to a pixel');
+        assert.notStrictEqual(getComputedStyle(group).display, 'none', 'and is not removed from the page');
+        el.focus();
+        assert.isTrue(document.activeElement === input, 'so the input still takes the focus');
+
+        el.noInput = false;
+        assert.isFalse(el.hasAttribute('no-input'), 'the property reflects back onto the attribute');
+        assert.isAbove(group.getBoundingClientRect().width, 1, 'and the control is shown again');
     });
 });
 

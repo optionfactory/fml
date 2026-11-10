@@ -222,13 +222,14 @@
             }
         },
         "ful-input-file": {
-            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares; the noinput claim hides the picker control, the dropzone and the item list carrying the field alone. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares; the no-input claim takes the picker control out of sight, the dropzone and the item list carrying the field alone. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
                 "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
                 "accept": "Comma separated list of accepted tokens: an extension (.pdf), a mime type (application/pdf) or a wildcard (image/*). Files that do not match are dropped with a warning.",
                 "multiple": "Allows selecting more than one file.",
                 "item-list": "Shows the list of selected files.",
                 "dropzone": "Shows the dropzone.",
+                "no-input": "Takes the picker control out of sight, for a field carried by its dropzone and its item list. The control stays reachable from the keyboard, which opens the picker from it.",
                 "max-files": "Maximum number of files. Exceeding it clears the selection.",
                 "max-file-size": "Maximum size of a single file, in bytes. Larger files are dropped.",
                 "max-total-size": "Maximum size of all the selected files, in bytes. Exceeding it clears the selection."

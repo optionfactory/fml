@@ -6,7 +6,8 @@ import { Input } from './input.mjs';
  * size and count limits it declares.
  *
  * The `dropzone` and `item-list` attributes show the dropzone and the list of
- * chosen files. A `dropzone` slot replaces the default dropzone's content, and
+ * chosen files, and `no-input` takes the picker control out of sight, leaving
+ * it to the keyboard and to assistive technology. A `dropzone` slot replaces the default dropzone's content, and
  * an `items` slot holding a template replaces the stock item, rendered with the
  * same `files` overlay so that it reads the File objects it lists. Clicking the
  * dropzone opens the picker, and the host carries a `dragover` attribute while
@@ -49,6 +50,7 @@ class InputFile extends Input {
         'multiple:presence',
         'item-list:presence',
         'dropzone:presence',
+        'no-input:presence',
         'max-files:number',
         'max-file-size:number',
         'max-total-size:number',
@@ -300,7 +302,7 @@ class InputFile extends Input {
      * @returns {string[]|string|null}
      */
     get value() {
-        const names = Array.from(this._input.files).map((f) => f.name);
+        const names = Array.from(this.files).map((f) => f.name);
         return this.multiple ? names : (names[0] ?? null);
     }
     /**
@@ -323,7 +325,7 @@ class InputFile extends Input {
      * The size of the selected files together, in bytes.
      * @returns {number}
      */
-    get totalsize() {
+    get totalSize() {
         return Array.from(this.files).reduce((a, f) => a + f.size, 0);
     }
     #maxFiles;
@@ -397,6 +399,23 @@ class InputFile extends Input {
 
         this.#useDropzone = v;
         this.reflectTo('dropzone', v);
+    }
+    #noInput;
+    /**
+     * Whether the picker control is taken out of sight, the dropzone and the
+     * item list carrying the field alone; the stylesheet hides it from the
+     * reflected `no-input` attribute. The control stays in the tab order and
+     * keeps the label, the description and the error, and the dropzone shows
+     * the focus ring while it holds the focus.
+     * @returns {boolean}
+     */
+    get noInput() {
+        return this.#noInput;
+    }
+    /** @param {boolean} v */
+    set noInput(v) {
+        this.#noInput = v;
+        this.reflectTo('no-input', v);
     }
 }
 
