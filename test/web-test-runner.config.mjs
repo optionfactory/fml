@@ -7,7 +7,9 @@ export default {
     browserLogs: process.env.FML_TEST_LOGS === '1',
     browsers: [
         playwrightLauncher({ product: 'chromium' }),
-        playwrightLauncher({ product: 'firefox' }),
+        // one page at a time: firefox 159 stalls for seconds inside a popover opening while
+        // other test pages of the same browser are busy, which times out whichever test opens one
+        playwrightLauncher({ product: 'firefox', concurrency: 1 }),
         playwrightLauncher({ product: 'webkit' }),
     ],
     coverage: true,
