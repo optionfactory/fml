@@ -13,7 +13,8 @@ either, because a fetch already in flight still resolves.
 
 ## Decision
 
-Every contended resource holds a `Claims` (`src/ful/claims.mjs`). Starting a
+Every contended resource holds a `Claims` (`src/ful/claims.mjs`, exported as
+`ful.Claims` for components built outside the library). Starting a
 piece of work takes a claim, which starts a new generation and supersedes
 every claim before it. When the work finishes, its holder asks the claim
 whether it is `stale` before painting chrome, storing state, dispatching an
