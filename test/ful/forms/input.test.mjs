@@ -757,6 +757,54 @@ describe('Field validity', () => {
             'clearing the custom error removes aria-invalid from the inner input',
         );
     });
+
+    it('shows the error region of the invalid field alone, leaving the other fields of the form where they were', async () => {
+        const [form] = await mount(
+            `<ful-form><ful-input name="a">a</ful-input><ful-input name="b">b</ful-input><p>end</p></ful-form>`,
+        );
+        const [a, b] = form.querySelectorAll('ful-input');
+        const end = form.querySelector('p');
+        const below = () => end.getBoundingClientRect().top - b.getBoundingClientRect().top;
+        const before = below();
+
+        form.errors = [{ type: 'FIELD_ERROR', context: 'a', reason: 'wrong' }];
+
+        assert.isTrue(form.form.matches(':invalid'), 'the form itself matches :invalid for the field it holds');
+        assert.strictEqual(
+            getComputedStyle(a.querySelector('ful-field-error')).display,
+            'block',
+            'the field carrying the problem shows its error region',
+        );
+        assert.strictEqual(
+            getComputedStyle(b.querySelector('ful-field-error')).display,
+            'none',
+            'a valid field of the same form keeps its empty error region out of the layout',
+        );
+        assert.strictEqual(below(), before, 'nothing moves under a field that has no problem');
+    });
+});
+
+describe('A field with no label', () => {
+    it('takes no row for a label holding whitespace alone', async () => {
+        const [, container] = await mount(`<div>
+            <ful-input name="a"><template slot="before">x</template></ful-input>
+            <ful-input name="b">
+                <template slot="before">x</template>
+            </ful-input>
+        </div>`);
+        const [tight, spaced] = container.querySelectorAll('ful-input');
+
+        assert.strictEqual(
+            getComputedStyle(spaced.querySelector('label')).display,
+            'none',
+            'a label left with the whitespace between the slots is empty, and hidden as an empty one is',
+        );
+        assert.strictEqual(
+            spaced.getBoundingClientRect().height,
+            tight.getBoundingClientRect().height,
+            'the field is as tall as one written with no whitespace at all',
+        );
+    });
 });
 
 describe('Field descriptions', () => {

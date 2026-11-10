@@ -145,6 +145,26 @@ describe('Field', () => {
         assert.isTrue(document.activeElement === field.querySelector('input'), 'the control is focused once it exists');
     });
 
+    it('keeps a problem reported before the render and shows it once rendered', async () => {
+        const early = document.createElement('ful-input');
+        early.setCustomValidity('wrong');
+        const cleared = document.createElement('ful-input');
+        cleared.setCustomValidity('wrong');
+        cleared.setCustomValidity('');
+
+        const container = appended('');
+        container.append(early, cleared);
+        await Rendering.waitFor(container);
+
+        assert.strictEqual(
+            early.querySelector('ful-field-error').innerText,
+            'wrong',
+            'the message reported before the render is in the error region',
+        );
+        assert.isTrue(early.matches(':invalid'), 'and the field is invalid');
+        assert.isFalse(cleared.matches(':invalid'), 'a problem cleared before the render is not shown');
+    });
+
     it('a field that never implements _build says so by name', async () => {
         class NoBuildField extends Field {}
         registry.defineElement('x-no-build-field', NoBuildField);

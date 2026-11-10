@@ -18,7 +18,9 @@
         display: none;
         font-size: 0.875rem;
 
-        :invalid & {
+        /* keyed on the message, not on an :invalid ancestor: the form and any
+           fieldset match :invalid for the fields they hold */
+        &:not(:empty) {
             display: block;
             margin-top: 0.25rem;
             color: var(--ful-field-error-invalid-color);

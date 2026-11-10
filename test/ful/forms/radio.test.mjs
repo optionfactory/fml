@@ -86,6 +86,22 @@ describe('RadioGroup rendering', () => {
         );
         assert.isFalse(second.disabled, 'disabling one ful-radio leaves the other radios enabled');
     });
+
+    it('takes no row for a legend when the group holds only its radios', async () => {
+        const container = await mount(`
+            <ful-radio-group name="a" required>
+                <ful-radio value="k1">one</ful-radio>
+                <ful-radio value="k2">two</ful-radio>
+            </ful-radio-group>`);
+        const legend = container.querySelector('legend');
+
+        assert.strictEqual(legend.childNodes.length, 0, 'the whitespace around the radios is not a legend');
+        assert.strictEqual(
+            getComputedStyle(legend).display,
+            'none',
+            'an empty legend is hidden, required marker included',
+        );
+    });
 });
 
 describe('RadioGroup value', () => {

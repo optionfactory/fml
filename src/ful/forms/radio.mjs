@@ -24,9 +24,7 @@ class RadioGroup extends Field {
     static ROLE = 'radiogroup';
     static template = `
         <fieldset>
-            <legend>
-                {{{{ slots.default }}}}
-            </legend>
+            <legend>{{{{ slots.default }}}}</legend>
             <header data-tpl-if="slots.header">
                 {{{{ slots.header }}}}
             </header>
@@ -74,6 +72,9 @@ class RadioGroup extends Field {
         radioEls.forEach((el) => {
             el.remove();
         });
+        if (Fragments.isBlank(slots.default)) {
+            slots.default.replaceChildren();
+        }
         const fragment = this.template().withOverlay({ name, slots, inputsAndLabels }).render();
         this.#fieldset = /** @type HTMLElement */ (fragment.firstElementChild);
         this.#firstRadio = fragment.querySelector('input[type=radio]');

@@ -2,7 +2,7 @@ import { tick } from '../../tick.mjs';
 import { assert } from 'chai';
 import { Failure } from '../../../src/httpc/index.mjs';
 import { ParsedElement, registry, Rendering } from '../../../src/ftl/index.mjs';
-import { AsyncEvents, FormLoader, Plugin } from '../../../src/ful/index.mjs';
+import { AsyncEvents, Field, FormLoader, Plugin } from '../../../src/ful/index.mjs';
 import { appended, attached } from '../../harness.mjs';
 
 registry.plugin(new Plugin({ language: 'en' })).configure();
@@ -865,6 +865,29 @@ describe('Form loader selection', () => {
 });
 
 describe('Form reset and validity', () => {
+    it('still submits, and shows its problems, when one of its fields failed to render', async () => {
+        class UnbuiltField extends Field {
+            _build() {
+                throw new Error('unbuilt on purpose');
+            }
+        }
+        registry.defineElement('x-unbuilt-field', UnbuiltField);
+        const container = appended(
+            `<ful-form><ful-input name="a">a</ful-input><x-unbuilt-field name="b"></x-unbuilt-field></ful-form>`,
+        );
+        const form = container.firstElementChild;
+        await Rendering.waitFor(form).catch(() => {});
+
+        assert.isTrue(await form.submit(), 'the field that never rendered does not fail the submit');
+
+        form.errors = [{ type: 'FIELD_ERROR', context: 'a', reason: 'wrong' }];
+        assert.strictEqual(
+            form.querySelector('ful-input ful-field-error').innerText,
+            'wrong',
+            'and the problems still reach the fields that did render',
+        );
+    });
+
     it('restores the fields to the values they were rendered with', async () => {
         const [form] = await mount(`<ful-form><input name="name" value="ann"></ful-form>`);
         form.values = { name: 'bob' };

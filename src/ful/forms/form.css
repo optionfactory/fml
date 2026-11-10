@@ -36,7 +36,8 @@
         color: var(--ful-color);
     }
 
-    *:has(> ful-control-group) > label:empty {
+    *:has(> ful-control-group) > label:empty,
+    *:has(> fieldset > ful-radio-list) > fieldset > legend:empty {
         display: none;
     }
 

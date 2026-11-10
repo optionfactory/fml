@@ -1,4 +1,4 @@
-import { Attributes, ParsedElement } from '../../ftl/index.mjs';
+import { Attributes, Fragments, ParsedElement } from '../../ftl/index.mjs';
 
 /**
  * The base of every form-associated ful field: a form-associated custom element
@@ -13,12 +13,13 @@ import { Attributes, ParsedElement } from '../../ftl/index.mjs';
  *
  * The claim setters, the validity protocol and the aria wiring all act on the
  * pieces, so a field with no native control returns a focusable piece of its
- * own chrome as the control. The claims, `value` and `focus()` are the
- * members that tolerate a not yet rendered element: before the render the
- * `value` getter answers what the rendered field would answer from its current
- * declared state, and a value written then is held and applied by the render
- * (see `_holdValue`). The other members need the pieces and so work only after
- * the render.
+ * own chrome as the control. The claims, `value`, `focus()` and
+ * `setCustomValidity` are the members that tolerate a not yet rendered
+ * element: before the render the `value` getter answers what the rendered
+ * field would answer from its current declared state, a value written then is
+ * held and applied by the render (see `_holdValue`), and a problem reported
+ * then is shown by it. The other members need the pieces and so work only
+ * after the render.
  *
  * The inner controls carry `form=""`, so the host is the only element the form
  * sees. Enter pressed in an inner `<input>` of any type but `file`, `button`,
@@ -56,6 +57,8 @@ class Field extends ParsedElement {
     #also = [];
     /** @type {{ value: any } | null} the value written before the render, which the render applies */
     #held = null;
+    /** @type {{ error: string, context?: string } | null} the problem reported before the render, which the render shows */
+    #reported = null;
     /** Sets the internals' role from the subclass's `static ROLE`. */
     constructor() {
         super();
@@ -119,6 +122,11 @@ class Field extends ParsedElement {
             const options = this.#pendingFocus;
             this.#pendingFocus = null;
             control.focus(options);
+        }
+        if (this.#reported !== null) {
+            const { error, context } = this.#reported;
+            this.#reported = null;
+            this.setCustomValidity(error, context);
         }
     }
     /**
@@ -199,11 +207,17 @@ class Field extends ParsedElement {
      * field owning a whole subtree overrides this to route the message to the
      * inner control the path names.
      *
-     * Needs the render: before it there is no error region to write to.
+     * Before the render there is no error region to write to: a message is
+     * kept (the last one wins) and shown once the field has rendered, and a
+     * clear drops the one kept. A field whose render failed shows nothing.
      * @param {string} [error] the message, empty or missing to clear
      * @param {string} [context] the path below this field's name, '' on an exact match
      */
     setCustomValidity(error, context) {
+        if (!this.#fieldError) {
+            this.#reported = error ? { error, context } : null;
+            return;
+        }
         Attributes.set(this.#announces ?? this.#control, 'aria-invalid', error ? 'true' : null);
         if (!error) {
             this.internals.setValidity({});
@@ -414,11 +428,16 @@ class Field extends ParsedElement {
     /**
      * Calls `_build(conf)` and wires the pieces it answers. When `_build`
      * returns a promise the pieces are wired once it settles; a field that
-     * builds synchronously renders synchronously.
+     * builds synchronously renders synchronously. A default slot holding
+     * nothing but whitespace is emptied first, so the label it becomes is
+     * `:empty` and takes no row.
      * @param {{ slots: Record<string, DocumentFragment> | undefined }} conf
      * @returns {void | Promise<void>}
      */
     render(conf) {
+        if (conf.slots?.default && Fragments.isBlank(conf.slots.default)) {
+            conf.slots.default.replaceChildren();
+        }
         const built = /** @type {any} */ (this._build(conf));
         if (built instanceof Promise) {
             return built.then((pieces) => this.#wire(pieces));
