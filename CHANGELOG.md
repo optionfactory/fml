@@ -12,7 +12,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - `ful-form`'s inner `<form>` is `display: contents` and `ful-form` is the layout box: css that laid out or painted `ful-form > form` moves to `ful-form`
 - `ful-spinner` is a style-only tag: the `Spinner` export and the `.ful-spinner-wrapper`/`.ful-spinner-icon` hooks are gone, a page registering elements by hand drops its `defineElement('ful-spinner', …)` line, and `role="status"` is the author's to carry
 - the keyframes carry the `ful-` prefix: `spinner-border` is `ful-spinner-border` and the field warning's `show-and-hide` is `ful-field-warning`. A page pointing `--ful-spinner-icon-animation-name` at `spinner-border` renames it
-- every rule ful ships sits in a cascade layer (`ful.theme`, `ful.components`, `ful.hidden`), so a page rule outside a layer now wins over the library whatever its specificity. Check page css that was written expecting to lose
+- every rule ful ships sits in a cascade layer (`ful.theme`, `ful.components` and the top-level `ful-hidden`), so a page rule outside a layer now wins over the library whatever its specificity. Check page css that was written expecting to lose. A page with layers of its own names `ful-hidden` last in its `@layer` statement (`@layer ful, app, ful-hidden;`, written before `ful.css` loads), so `[hidden]` beats their `display`
 
 **Fields and forms**
 
@@ -41,6 +41,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - `mask` is replaced by `keep` and `reject`: `mask="[^0-9]"` becomes `keep="[0-9]"`, or `reject="[^0-9]"`
 - `ful-input`'s `type`, `uppercase` and `trim` are read once at the upgrade: rewriting one afterwards has no effect
 - multiword attributes are spelled with a dash: `ful-input-file`'s `maxfiles`, `maxfilesize`, `maxtotalsize` and `itemlist` become `max-files`, `max-file-size`, `max-total-size` and `item-list`, and `ful-select`'s `itemlist` becomes `item-list`. The properties are `maxFiles`, `maxFileSize`, `maxTotalSize` and `itemList`, and css keyed on `[itemlist]` selects `[item-list]`
+- `ful-input-file`'s `noinput` becomes `no-input`, an observed attribute with a `noInput` property: css keyed on `[noinput]` selects `[no-input]`. The control it hides is clipped out of sight rather than removed, so the keyboard still reaches it and opens the picker, the dropzone showing the focus ring meanwhile
+- `ful-input-file`'s `totalsize` property is `totalSize`
 
 **ful-table and ful-pagination**
 
@@ -49,6 +51,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - the page being shown carries `aria-current="page"` and stays an enabled button, where it was disabled; the controls are `<button>` elements rather than `a[role=button]`
 - `ful-pagination`'s `pages` is read once at the upgrade
 - a `ful-table` with a `filters` slot makes its first load, by `autoload` or by `reload()` before any load has loaded (so a `src` or `method` write too), by submitting the filter form: a `submit` listener rewriting `detail.request` now shapes that load as it does the later ones, where the first load sent the raw form values. The filter form fires `submit` and `submit:success` for it, and a cancelled or failed filter submit loads nothing
+- the `ful-sorter` arrows read ascending as the up arrow and descending as the down arrow, an unsorted column showing the up arrow dimmed. Page css overriding the `ful-sorter::before` masks checks its two images
 
 **Localization**
 
@@ -68,6 +71,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - `registry.upgrades` is replaced by `pending()`, `whenUpgraded(el)` and `settle(accept)`
 - the evaluation scope is one `ExpressionEvaluator`: `Template.withContext`, `withContextFrom`, `withModules` and `withData` collapse into `withEvaluator(evaluator)`, the `Template` constructor takes `(fragment, evaluator)`, `Registry.context()` becomes `evaluator()`, and `Template.evaluate(expression, mode, ...data)` and `ExpressionEvaluator.evaluate(expression, mode)` become `evaluateExpression(...)` and `evaluateTemplated(...)`. The usual call needs no evaluator: on a template carrying no data of its own, the way `Templates.fromSelector(...)` makes one, `withData([a, b])` becomes `withOverlay(a, b)` and `withModules(modules)` becomes `withModule(null, modules)`
 - a `RenderError` carries one frame per nesting level naming its node, so its message reads ``Error evaluating data-tpl-each="rows" in `<ul>` `` where it read `Error rendering template` followed by the template's markup
+- `ftl:ready` and `registry.ready()` need `configure()` to have been called: a registry that is never configured is never ready
 
 **httpc**
 
@@ -81,7 +85,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 - `ful-tablist` no longer wraps its tabs onto more lines: it scrolls. `ful-tabs` renders two scroll buttons (`.ful-tabs-scroll`) beside it, so a query for the tabs selects `[role="tab"]` rather than every `button` of the host
 - `Timing.debounce(ms, fn, { immediate })` and `Timing.throttle(ms, fn, { leading, trailing })` take an options object; the six `DEBOUNCE_*`/`THROTTLE_*` constants are gone
-- the package declares `sideEffects: false`: a bundler importing through the root entry may drop the `window.ftl`/`window.httpc`/`window.ful` assignments. Script-tag users of `dist/fml.mjs` are unaffected; `import * as fml` keeps the namespaces explicit
+- the package declares `sideEffects: false`: a bundler importing through the root entry may drop the `window.ftl`/`window.httpc`/`window.ful` assignments, and prunes a stylesheet imported from a script (`import '@optionfactory/fml/ful.css'`), so bring the stylesheet in from css (`@import`) or link it. Script-tag users of `dist/fml.mjs` are unaffected; `import * as fml` keeps the namespaces explicit
+- `ful.TableSchemaParser` is no longer exported: it is the table's own reading of its `schema` slot
 
 #### ftl: templates, expressions and the registry
 
@@ -104,6 +109,9 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] an element appended after DOMContentLoaded (`Dialog.ask()`) upgrades at once instead of waiting for `load`, and `Nodes.waitDomContentLoaded` resolves at once when DOMContentLoaded has passed
 - [BUG] `data-tpl-attr-append` appends nothing for a tuple whose value is `null` or `undefined`, instead of the text `null` or `undefined`
 - [BUG] `LightSlots.from` collects a slot named like an `Object.prototype` member (`slot="constructor"`, `slot="__proto__"`) instead of crashing
+- [NEW] the receiver of a module function answers `this[Expressions.BOUND](name)`, a lookup against the bound data alone, for a module that reads what the page configured and must not take it from the rendered data
+- [BUG] `ftl:ready` and `registry.ready()` wait for the first `configure()`: a page that configures late, awaiting its translations first, used to be reported ready at DOMContentLoaded with nothing defined, and never again once its elements had upgraded
+- [DOC] `ftl.BoundedCache` and `ful.Claims` are documented: the bounded cache behind the parsed expressions, and the generations a component drops superseded async work through
 
 #### httpc, client-errors and storage
 
@@ -132,6 +140,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] the Spanish `files.max-files-exceeded` has a singular: a limit of one reads `1 archivo`
 - [BUG] `Localization.t` reads own properties only, for keys and for named placeholders
 - [BUG] `Localization.t` takes only a plain object as the named arguments, so a single `Date`, `Error` or other class instance fills `{0}`
+- [BUG] `#l10n:t()`, `#l10n:date()`, `#l10n:number()` and `#l10n:bytes()` read `l10n` and `locale` from the data the template is bound to (the registry's overlays, or the data given to a `Template` factory), never from what a render pushes on top: a row or a response carrying a field named `l10n` or `locale` used to replace the messages or the formatting for that row
+- [BUG] `new ful.Plugin({ language })` canonicalizes the tag (`IT-it` and `it_IT` publish `it-IT` as `locale`), takes an empty one as none given, and throws a `RangeError` for one that is no language tag: a malformed tag used to configure and then fail every `#l10n:number()`, `#l10n:date()`, `#l10n:bytes()` and plural message
 
 #### ful: forms and fields
 
@@ -179,6 +189,9 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a value the page writes into a focused `ful-input-local-date`, `ful-input-local-time` or `ful-input-instant` no longer fires `change` when the field is left
 - [ENH] `value` works before the field has rendered on every field: `ful-input`, `ful-input-local-date`, `ful-input-local-time`, `ful-input-instant`, `ful-input-file`, `ful-checkbox`, `ful-radio-group`, `ful-select`, `ful-filter-text`, `ful-filter-number`, `ful-filter-local-date`, `ful-filter-instant`, `ful-filter-boolean` and `ful-filter-in`: it answers what the rendered field would from the last value written or the `value` attribute, and a write is held for the render to apply, leaving the `value` attribute (what a reset restores) alone; `ful-select` answers its declared keys coerced by `k-type`, the first one alone unless `multiple`, and a filter its tuple with the operator its declared `operator` or `operators` allow; `ful-input-file` answers no files. A custom field does the same through `_holdValue(value)` and `_heldValue()`
 - [BUG] a focused date, time or date-time field glows on WebKit 27.2, which stopped matching `:focus-visible` on those inputs
+- [BUG] a field problem no longer moves the other fields of its form: the error region is shown when it holds a message, where every `ful-field-error` inside an invalid form or fieldset took a 4px margin
+- [BUG] a field written over several lines with no label text takes no row for its label: a default slot holding whitespace alone renders an empty `<label>`, and a `ful-radio-group` with no legend text hides its `<legend>`
+- [BUG] `setCustomValidity` on a field that has not rendered keeps the message for the render to show, where it threw: a form holding a field still rendering, or one whose render failed, no longer fails every submit with a `TypeError`
 
 #### ful-input
 
@@ -196,6 +209,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] a disabled or readonly field shows no dropzone and no remove buttons and accepts no drop; readonly also drops the picker button, and with `item-list` a readonly field shows only its list
 - [BUG] its warnings are announced through a live region and retire on a timer rather than on a css animation
 - [BUG] a pick in the native picker reports `change` with the constraints already applied, so its detail holds the accepted files only
+- [BUG] `ful-input-file` answers no file through `value` before it has rendered, where the getter threw, taking `form.values` with it
 
 #### ful-select
 
@@ -262,6 +276,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a `ful-table` nested in another one's cell or footer pages and sorts alone: the outer table no longer loads on the nested pager's and sorters' requests
 - [BUG] a `Table` subclass registered under a tag of its own pages and sorts again: rc29 left its pager and sorters unanswered
 - [BUG] `load:success` fires once the elements in the new rows (and in the empty panel) have rendered, so a listener reads a row's `ful-checkbox` instead of finding it not rendered yet
+- [ENH] the sorter draws ascending as an up arrow and descending as a down arrow, where they were the other way round; an unsorted column shows the up arrow dimmed, ascending being what its first click asks for
+- [BUG] a loader answer without a numeric `size`, such as a response of another shape read without a `response-mapper`, is a failed load saying what the table needs, where it asked the loader again without end; a `page-size` or `pageSize` that is not above zero is ignored
 
 #### ful: disclosures (tooltip, dialog, drawer, menu, toasts)
 
@@ -291,6 +307,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `close-on-submit` closes the `ful-dialog` or `ful-drawer` on the success of any `ful-form` standing directly in its body or content, not only the first
 - [BUG] a shared `ful-menu` removes its document listener when it leaves the document, and adds it back when it returns
 - [BUG] a `ful-dialog` or `ful-drawer` the page moved while open opens as a modal again on the next `ask()`, `open()` or `update()`, instead of leaving the call waiting
+- [BUG] a `ful-drawer` the page hides while it slides out, itself or an ancestor, closes and answers its `ask()` instead of staying open as an unseen modal that leaves the page inert
+- [BUG] a click on a part of a `ful-dialog` or `ful-drawer` panel that no child covers, such as the room under the error of a failed `update()`, no longer dismisses it: the backdrop is where the pointer is outside the panel's rectangle
 
 #### ful: navigation (tabs, accordion, wizard) and async sections
 
@@ -302,6 +320,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] async sections: entering a tab panel or a wizard section, or opening a dialog or drawer, fires `section:requested`, then `section:requested:#<index>` and, where the section has a name, `section:requested:<name>`, on the component. A listener registered through `AsyncEvents.asyncOn` delivers the section's content; the component shows a loading state and paints a failure, the wizard's `move()` rejecting on one, and `refresh()` fires the request again. Without a listener nothing changes
 - [BUG] under `dir="rtl"` the `ful-tabs` scroll buttons show at the side that has more tabs and scroll towards it, their chevrons and fade mirrored
 - [BUG] `wizard.move(name)` to a section no step is paired with warns and stays where it is, instead of moving to the last step; `wizard.refresh(name)` of such a section warns and delivers nothing into it
+- [BUG] an async section whose delivery failed keeps `detail.first` true, so the next entry delivers again in place of the error instead of leaving the section empty; a request overlapping a first delivery still in flight carries `first` false
 
 #### ful: theme, chrome and accessibility
 
@@ -318,6 +337,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] the switch knob is painted with `--ful-active-color`, the colour on the accent, instead of a fixed white
 - [BUG] a live region is revealed before it is filled, so `ful-errors` and error sections are announced reliably
 - [BUG] `ful-spinner.backdrop` holds its text in its white card, under the glyph, instead of outside it
+- [ENH] `[hidden]` hides through `ful-hidden`, a top-level cascade layer a page can order after its own layers, where a layer nested in `ful` would lose to every page layer
 
 #### Packaging
 
