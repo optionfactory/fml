@@ -1,4 +1,4 @@
-@layer ful.theme, ful.components, ful.hidden;
+@layer ful.theme, ful.components, ful-hidden;
 
 @layer ful.theme {
     @property --ful-border-width {

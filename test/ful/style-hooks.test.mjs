@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import '../../../src/ful/index.mjs';
-import { appended } from '../harness.mjs';
+import { appended, attached } from '../harness.mjs';
 
 const attach = (html) => {
     const container = appended(html);
@@ -60,6 +60,45 @@ describe('The cascade contract', () => {
             getComputedStyle(container.firstElementChild).display,
             'none',
             'the hidden layer comes after the components layer, so it beats the component chrome whatever its specificity',
+        );
+    });
+
+    it('declares the order of its layers, the hidden one a top-level layer of its own', () => {
+        const statements = [...document.styleSheets]
+            .flatMap((sheet) => [...sheet.cssRules])
+            .filter((rule) => rule instanceof CSSLayerStatementRule)
+            .map((rule) => rule.nameList.join(', '));
+
+        assert.deepStrictEqual(
+            statements,
+            ['ful.theme, ful.components, ful-hidden'],
+            'one statement orders the layers, ful-hidden standing outside the ful parent so a page can place it',
+        );
+    });
+
+    it('lets a page order ful-hidden after its own layers, so hidden beats their display', async () => {
+        const library = [...document.styleSheets]
+            .filter((sheet) => [...sheet.cssRules].some((rule) => rule.cssText.startsWith('@layer ful')))
+            .map((sheet) => sheet.ownerNode.textContent)
+            .join('\n');
+        const frame = attached(document.createElement('iframe'));
+        const page = /** @type {Document} */ (frame.contentDocument);
+        page.head.innerHTML = `
+            <style>@layer ful, app, ful-hidden;</style>
+            <style>${library}</style>
+            <style>@layer app { .pane { display: flex } }</style>`;
+        page.body.innerHTML = '<div class="pane" hidden>x</div><div class="pane">y</div>';
+        const [hidden, shown] = page.body.children;
+
+        assert.strictEqual(
+            page.defaultView.getComputedStyle(hidden).display,
+            'none',
+            'a page naming ful-hidden last in its own order has hidden beat the display of its layers',
+        );
+        assert.strictEqual(
+            page.defaultView.getComputedStyle(shown).display,
+            'flex',
+            'the page layer still lays out what is not hidden',
         );
     });
 });
