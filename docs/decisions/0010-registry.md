@@ -22,7 +22,11 @@ mechanism of their own (0015).
 
 Elements enqueue for upgrade through their defining registry, so a page that
 configures late (remote translations awaited before `configure()`) delays
-every upgrade behind it without any element knowing.
+every upgrade behind it without any element knowing. Readiness is delayed
+with them: `ftl:ready` and `ready()` wait for DOMContentLoaded, for the first
+`configure()` and for the queue to drain, because before `configure()` nothing
+is defined and an empty queue says nothing about the page. A registry that is
+never configured is never ready.
 
 ## Consequences
 

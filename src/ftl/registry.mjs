@@ -8,13 +8,21 @@ class UpgradeQueue {
     #ready = new Promise((resolve) => {
         this.#readyResolve = resolve;
     });
+    #configured = /** @type {PromiseWithResolvers<void>} */ (Promise.withResolvers());
     constructor() {
-        Nodes.waitDomContentLoaded(document).then(() => {
+        Promise.all([Nodes.waitDomContentLoaded(document), this.#configured.promise]).then(() => {
             this.#start();
         });
     }
     ready() {
         return this.#ready;
+    }
+    /**
+     * Marks the registry as configured: until then nothing is defined, so an
+     * empty queue says nothing about the page and readiness is held back.
+     */
+    configured() {
+        this.#configured.resolve();
     }
     async #start() {
         await this.settled();
@@ -58,7 +66,10 @@ class UpgradeQueue {
      * @returns {Promise<void>}
      */
     settled() {
-        return this.#drain(() => true, (entry) => entry.finished);
+        return this.#drain(
+            () => true,
+            (entry) => entry.finished,
+        );
     }
     /**
      * Waits for the accepted upgrades, the ones enqueued meanwhile included,
@@ -312,7 +323,9 @@ class Registry {
     }
     /**
      * Defines every element deferred so far; from then on, defineElement takes
-     * effect immediately.
+     * effect immediately. Readiness waits for the first call: a page that
+     * configures late (translations fetched first) gets its ftl:ready once the
+     * elements this defines have upgraded, not at DOMContentLoaded.
      * @returns {Registry} this registry
      */
     configure() {
@@ -321,6 +334,7 @@ class Registry {
             delete this.#tagToClass[tag];
         }
         this.#configured = true;
+        this.#upgradeQueue.configured();
         return this;
     }
     /**
@@ -352,9 +366,11 @@ class Registry {
     /**
      * Waits for this registry's readiness: resolves right after its ftl:ready
      * event is dispatched on the document, and immediately when that already
-     * happened. Never rejects: a failed upgrade counts as settled, and its
-     * rejection is left unhandled so it still reaches the console and the
-     * page's error reporting.
+     * happened. The event is dispatched once DOMContentLoaded has passed,
+     * configure() has been called and the queue has drained, so a registry
+     * that is never configured is never ready. Never rejects: a failed
+     * upgrade counts as settled, and its rejection is left unhandled so it
+     * still reaches the console and the page's error reporting.
      * @returns {Promise<void>}
      */
     ready() {

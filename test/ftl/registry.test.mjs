@@ -280,12 +280,42 @@ describe('Registry', () => {
                 },
                 { once: true },
             );
-            const late = new Registry();
+            const late = new Registry().configure();
 
             await late.ready();
 
             expect(fired, 'the event is dispatched before the await resumes').to.be.true;
             await late.ready();
+        });
+
+        it('holds readiness until configure, then until what it defined has upgraded', async () => {
+            let events = 0;
+            const count = () => events++;
+            document.addEventListener('ftl:ready', count);
+            const late = new Registry();
+            let rendered = false;
+            late.defineElement(
+                'reg-late-configured',
+                class extends ParsedElement {
+                    async render() {
+                        await new Promise((resolve) => setTimeout(resolve, 20));
+                        rendered = true;
+                    }
+                },
+            );
+            attached(document.createElement('reg-late-configured'));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            const beforeConfigure = events;
+
+            late.configure();
+            await late.ready();
+            document.removeEventListener('ftl:ready', count);
+
+            expect(beforeConfigure, 'a registry not yet configured has defined nothing, so it is not ready').to.equal(
+                0,
+            );
+            expect(rendered, 'readiness waits for the elements a late configure defines').to.be.true;
+            expect(events, 'the event is dispatched once, after that upgrade').to.equal(1);
         });
     });
 });
