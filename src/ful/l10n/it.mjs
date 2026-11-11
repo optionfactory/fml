@@ -7,6 +7,8 @@ export default {
     'table.initial': 'Avvia la ricerca per visualizzare i risultati.',
     'table.error': 'Errore nel caricamento dei dati:',
     'table.no-data': 'Nessun elemento trovato.',
+    'table.loaded': 'Mostrati {loaded} di {total}',
+    'table.retry': 'Riprova',
     'dropdown.empty': 'Nessun risultato',
     'select.remove': 'Rimuovi',
     'files.dropzone-label': 'Clicca o trascina i file qui',

@@ -535,6 +535,19 @@
         </ful-table>
     </fieldset>
     <fieldset>
+        <legend>infinite paging</legend>
+        <div style="display: flex; flex-direction: column; height: 16rem">
+            <ful-table class="ful-fill" paging="infinite" loader="loaders:mock-data" autoload page-size="5">
+                <template slot="schema">
+                    <schema>
+                        <column title="Name" sorter="name" order="asc">{{ self.name }}</column>
+                        <column title="Value">{{ self.value }}</column>
+                    </schema>
+                </template>
+            </ful-table>
+        </div>
+    </fieldset>
+    <fieldset>
         <legend>pagination</legend>
         <ful-pagination current="2" total="9"></ful-pagination>
         <ful-pagination current="5" total="30" pages="3"></ful-pagination>

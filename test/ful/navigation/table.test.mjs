@@ -2003,3 +2003,143 @@ describe('Table empty state', () => {
         assert.isTrue(panel(tableEl).hidden, 'a failed load does not show the empty panel beside the error');
     });
 });
+
+describe('Table infinite paging', () => {
+    let requests;
+    let held;
+    let fails;
+    const mount = async () => {
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: async (pageRequest, sortRequest) => {
+                    requests.push({ page: pageRequest.page, sort: sortRequest?.order ?? null });
+                    if (held) {
+                        await held;
+                    }
+                    if (fails) {
+                        fails = false;
+                        throw new Error('boom');
+                    }
+                    const rows = Array.from({ length: 50 }, (x, i) => ({ a: i }));
+                    if (sortRequest?.order === 'desc') {
+                        rows.reverse();
+                    }
+                    const start = pageRequest.page * pageRequest.size;
+                    return { data: rows.slice(start, start + pageRequest.size), size: rows.length };
+                },
+            }),
+        });
+        const container = appended(`
+            <div style="display: flex; flex-direction: column; height: 200px">
+                <ful-table class="ful-fill" paging="infinite" autoload page-size="20">
+                    <template slot="schema"><schema><column title="A" sorter="a">{{ a }}</column></schema></template>
+                </ful-table>
+            </div>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        return tableEl;
+    };
+    const rows = (tableEl) => tableEl.querySelector('tbody:not([data-ref])').children.length;
+    const count = (tableEl) => tableEl.querySelector('ful-table-status [data-ref=count]').textContent;
+    const scrolledToEnd = async (tableEl) => {
+        const loaded = new Promise((resolve) => {
+            tableEl.addEventListener('load:success', resolve, { once: true });
+            tableEl.addEventListener('load:failure', resolve, { once: true });
+        });
+        const wrapper = tableEl.querySelector('ful-table-wrapper');
+        wrapper.scrollTop = wrapper.scrollHeight;
+        await loaded;
+        await settle();
+    };
+    beforeEach(() => {
+        requests = [];
+        held = null;
+        fails = false;
+    });
+
+    it('appends the next page as the end of the rows comes into view, until the total', async () => {
+        const tableEl = await mount();
+        assert.strictEqual(rows(tableEl), 20, 'the first load shows one page');
+        assert.strictEqual(count(tableEl), 'Showing 20 of 50', 'the status bar counts the rows shown');
+        assert.isNull(tableEl.querySelector('ful-pagination'), 'there is no pager');
+
+        await scrolledToEnd(tableEl);
+        await scrolledToEnd(tableEl);
+        tableEl.querySelector('ful-table-wrapper').scrollTop = 1e6;
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await settle();
+
+        assert.strictEqual(rows(tableEl), 50, 'the following pages are appended');
+        assert.strictEqual(count(tableEl), 'Showing 50 of 50', 'the count follows the appends');
+        assert.deepStrictEqual(
+            requests.map((r) => r.page),
+            [0, 1, 2],
+            'nothing is asked once the rows shown reach the total',
+        );
+    });
+
+    it('starts over from the first page on reload, scrolled back to the top', async () => {
+        const tableEl = await mount();
+        await scrolledToEnd(tableEl);
+        assert.strictEqual(rows(tableEl), 40, 'a page was appended');
+
+        tableEl.querySelector('ful-table-status [data-ref=reload]').click();
+        await settle();
+
+        assert.strictEqual(requests.at(-1).page, 0, 'the reload button asks for the first page again');
+        assert.strictEqual(rows(tableEl), 20, 'the appended pages are dropped');
+        assert.strictEqual(tableEl.querySelector('ful-table-wrapper').scrollTop, 0, 'the rows are back at the top');
+    });
+
+    it('keeps the rows and offers a retry when an append fails', async () => {
+        const tableEl = await mount();
+        fails = true;
+        await scrolledToEnd(tableEl);
+
+        const failure = tableEl.querySelector('ful-table-status [role=alert]');
+        assert.strictEqual(rows(tableEl), 20, 'the rows shown stay');
+        assert.isFalse(failure.hidden, 'the failure is announced in the status bar');
+        assert.include(failure.textContent, 'boom', 'with its reason');
+
+        const loaded = new Promise((resolve) => tableEl.addEventListener('load:success', resolve, { once: true }));
+        failure.querySelector('[data-ref=retry]').click();
+        await loaded;
+
+        assert.strictEqual(rows(tableEl), 40, 'the retry appends the page that failed');
+        assert.isTrue(failure.hidden, 'the failure is gone');
+        assert.deepStrictEqual(
+            requests.map((r) => r.page),
+            [0, 1, 1],
+            'the retry asks for the same page',
+        );
+    });
+
+    it('drops an append that a sort supersedes', async () => {
+        const tableEl = await mount();
+        let release;
+        held = new Promise((resolve) => {
+            release = resolve;
+        });
+        tableEl.querySelector('ful-table-wrapper').scrollTop = 1e6;
+        while (requests.length < 2) {
+            await new Promise((r) => requestAnimationFrame(r));
+        }
+        tableEl.querySelector('ful-sorter').click();
+        await settle();
+        held = null;
+        release();
+        await settle();
+
+        assert.deepStrictEqual(
+            requests,
+            [
+                { page: 0, sort: null },
+                { page: 1, sort: null },
+                { page: 0, sort: 'asc' },
+            ],
+            'the sort starts over from the first page',
+        );
+        assert.strictEqual(rows(tableEl), 20, 'the superseded append adds nothing to the sorted rows');
+    });
+});

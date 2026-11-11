@@ -7,6 +7,8 @@ export default {
     'table.initial': 'Start searching to see results.',
     'table.error': 'Error while loading data:',
     'table.no-data': 'No elements found.',
+    'table.loaded': 'Showing {loaded} of {total}',
+    'table.retry': 'Retry',
     'dropdown.empty': 'No results',
     'select.remove': 'Remove',
     'files.dropzone-label': 'Click or drop your files here',

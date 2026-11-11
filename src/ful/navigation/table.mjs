@@ -485,6 +485,14 @@ class TableLoader {
  * for it. Without it the table shows an initial panel until `load`,
  * `reload` or `resetWithFilter` is called.
  *
+ * `paging="infinite"`, read once at the upgrade, replaces the pager with a
+ * status bar saying how many rows of how many are shown, with a reload
+ * button. A load still replaces the rows with one page, scrolling the rows
+ * back to the top; from then on, whenever a row of the last half page
+ * comes into view, the next page is asked with the same size, sort and
+ * filters and appended (see `load`). `reload`, a sort, a filter submit and a
+ * size change start over from the first page.
+ *
  * Inside the table, and not inside a `ful-table` nested in it, a
  * `page:requested` loads that page with the current size,
  * sort and filters; a `sort:requested` loads the current page with the new
@@ -500,13 +508,14 @@ class TableLoader {
  */
 class Table extends ParsedElement {
     /** Read once at the upgrade. */
-    static attributes = ['loader', 'autoload:presence'];
+    static attributes = ['loader', 'autoload:presence', 'paging'];
     /** These stay live after the upgrade: see `pageSize`, `src` and `method`. */
     static observed = ['page-size:number', 'src', 'method'];
     static slots = true;
     static config = {
         searchIcon: 'search',
         emptyIcon: 'inbox',
+        reloadIcon: 'arrow-clockwise',
     };
     static template = `
         <ful-form data-tpl-if="slots.filters">
@@ -560,7 +569,16 @@ class Table extends ParsedElement {
                 </tfoot>
             </table>
         </ful-table-wrapper>
-        <ful-pagination current="0" total="1"></ful-pagination>
+        <ful-pagination data-tpl-if="!infinite" current="0" total="1"></ful-pagination>
+        <ful-table-status data-tpl-if="infinite">
+            <span data-ref="count"></span>
+            <ful-spinner data-ref="appending" role="status" hidden><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
+            <div data-ref="append-failure" role="alert" hidden>
+                <span>{{ #l10n:t('table.error') }} <span data-ref="append-error"></span></span>
+                <button type="button" data-ref="retry">{{ #l10n:t('table.retry') }}</button>
+            </div>
+            <button type="button" data-ref="reload" data-tpl-aria-label="#l10n:t('pagination.reload')"><ful-icon data-tpl-name="config.reloadIcon" aria-hidden="true"></ful-icon></button>
+        </ful-table-status>
     `;
     static templates = {
         row: `
@@ -578,6 +596,15 @@ class Table extends ParsedElement {
     #feedback;
     #paginator;
     #sorters;
+    #wrapper;
+    /** @type {{ count: Element, appending: Element, failure: Element, error: Element } | null} the pieces of the `paging="infinite"` status bar, null under the pager */
+    #status = null;
+    /** @type {IntersectionObserver|null} */
+    #endWatch = null;
+    /** @type {Element[]} the rows whose coming into view appends the next page, none while no append is awaited */
+    #watched = [];
+    /** the page the next append asks for, the rows shown, the total the last answer reported and the rows it carried */
+    #appended = { next: 1, shown: 0, total: 0, last: 0 };
     /** @type {{ pageRequest: { page: number, size: number }, sortRequest: any, filterRequest: any }} */
     #latestRequest = { pageRequest: { page: 0, size: 10 }, sortRequest: null, filterRequest: {} };
     /** whether a load has been asked for, by autoload or by a caller */
@@ -715,12 +742,33 @@ class Table extends ParsedElement {
     async render({ slots }) {
         const template = this.template();
         const schema = TableSchemaParser.parse(slots.schema, template);
-        const fragment = template.withOverlay({ slots, schema }).render();
+        const infinite = this.declared('paging') === 'infinite';
+        const fragment = template.withOverlay({ slots, schema, infinite }).render();
         const tableWrapper = /** @type HTMLTableElement */ (Nodes.queryChildren(fragment, 'ful-table-wrapper'));
         const table = /** @type HTMLTableElement */ (tableWrapper.querySelector('table'));
         Attributes.forward('table-', this, table);
         this.#buildLoader();
 
+        this.#wrapper = tableWrapper;
+        const status = Nodes.queryChildren(fragment, 'ful-table-status');
+        if (status) {
+            const piece = (/** @type string */ ref) =>
+                /** @type Element */ (status.querySelector(`[data-ref=${ref}]`));
+            this.#status = {
+                count: piece('count'),
+                appending: piece('appending'),
+                failure: piece('append-failure'),
+                error: piece('append-error'),
+            };
+            piece('reload').addEventListener('click', () => this.reload());
+            piece('retry').addEventListener('click', () => this.#appendNext());
+            this.#endWatch = new IntersectionObserver((entries) => {
+                // an entry queued before the watch moved on to another row, or stopped, asks for nothing
+                if (entries.some((e) => e.isIntersecting && this.#watched.includes(e.target))) {
+                    this.#appendNext();
+                }
+            });
+        }
         this.#schema = schema;
         this.#body = table.querySelector(':scope > tbody');
         this.#loading = table.querySelector(':scope > tbody[data-ref=loading]');
@@ -835,6 +883,20 @@ class Table extends ParsedElement {
      * failure arrives it changes nothing, dispatches nothing and resolves;
      * superseded while its rows render, it leaves them to the newer load and
      * dispatches nothing.
+     *
+     * Under `paging="infinite"` the status bar takes the pager's place, and
+     * once the load has dispatched `load:success` the next page is awaited:
+     * when a row of the last half page comes into view, through
+     * whatever scrolls it, the following page is asked for with the same
+     * size, sort and filters and its rows are appended. An append runs
+     * without `aria-busy`, a spinner in the status bar standing in, and
+     * dispatches `load:success` or `load:failure` as a load does, its
+     * `pageRequest` naming the appended page. A failed append keeps the
+     * rows, shows the error in the status bar with a retry button and
+     * rejects to nobody, nothing awaiting it. Appending stops once the rows
+     * shown reach the total the last answer reported, or an answer carries
+     * no rows. A load supersedes an append in flight; `reload` repeats this
+     * load, not the pages appended to it.
      * @param {TablePageRequest} pageRequest
      * @param {TableSortRequest|null} sortRequest
      * @param {Record<string, any>} filterRequest
@@ -845,6 +907,10 @@ class Table extends ParsedElement {
         this.#loadRequested = true;
         this.#requestedFilters = filterRequest;
         const claim = this.#loads.take();
+        this.#watched = [];
+        this.#endWatch?.disconnect();
+        this.#status?.appending.setAttribute('hidden', '');
+        this.#status?.failure.setAttribute('hidden', '');
         this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
         this.#feedback.setAttribute('hidden', '');
         this.#noAutoload.setAttribute('hidden', '');
@@ -882,6 +948,7 @@ class Table extends ParsedElement {
                         detail: { pageRequest, sortRequest, filterRequest, response: pageResponse },
                     }),
                 );
+                this.#watchEnd(pageRequest.size);
                 return;
             }
         } catch (/** @type any */ error) {
@@ -890,6 +957,7 @@ class Table extends ParsedElement {
             }
             this.#loading.setAttribute('hidden', '');
             this.#body.replaceChildren();
+            this.#status?.count.replaceChildren();
             this.#feedback.removeAttribute('hidden');
             this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Localization.of().failure(error);
             this.removeAttribute('aria-busy');
@@ -930,8 +998,86 @@ class Table extends ParsedElement {
             filterRequest,
         );
     }
+    /**
+     * Watches the last half page of rows, so that any of them coming into
+     * view appends the next page, unless the rows shown already reach the
+     * total or the last answer carried none. A single row would be missed by
+     * a scroll jumping past it, to the end for instance.
+     * @param {number} size the rows a page asks for
+     */
+    #watchEnd(size) {
+        const { shown, total, last } = this.#appended;
+        if (!this.#endWatch || !(shown < total) || last === 0) {
+            return;
+        }
+        const rows = [...this.#body.children];
+        this.#watched = rows.slice(Math.max(0, rows.length - Math.ceil(size / 2)));
+        for (const row of this.#watched) {
+            this.#endWatch.observe(row);
+        }
+    }
+    async #appendNext() {
+        const status = this.#status;
+        if (!status) {
+            return;
+        }
+        this.#watched = [];
+        this.#endWatch?.disconnect();
+        const { sortRequest, filterRequest } = this.#latestRequest;
+        const pageRequest = { page: this.#appended.next, size: this.#latestRequest.pageRequest.size };
+        const claim = this.#loads.take();
+        status.failure.setAttribute('hidden', '');
+        status.appending.removeAttribute('hidden');
+        try {
+            const pageResponse = await this.#loader.load(pageRequest, sortRequest, filterRequest);
+            if (claim.stale) {
+                return;
+            }
+            this.#body.append(
+                this.template('row')
+                    .withOverlay({ schema: this.#schema, pageRequest, filterRequest, pageResponse })
+                    .render(),
+            );
+            this.#appended = {
+                next: pageRequest.page + 1,
+                shown: this.#appended.shown + pageResponse.data.length,
+                total: pageResponse.size,
+                last: pageResponse.data.length,
+            };
+            status.count.textContent = Localization.of().t('table.loaded', {
+                loaded: this.#appended.shown,
+                total: this.#appended.total,
+            });
+            await Rendering.waitForChildren(this.#body).catch(() => undefined);
+            if (claim.stale) {
+                return;
+            }
+            status.appending.setAttribute('hidden', '');
+            this.dispatchEvent(
+                new CustomEvent('load:success', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: { pageRequest, sortRequest, filterRequest, response: pageResponse },
+                }),
+            );
+            this.#watchEnd(pageRequest.size);
+        } catch (/** @type any */ error) {
+            if (claim.stale) {
+                return;
+            }
+            status.appending.setAttribute('hidden', '');
+            status.error.textContent = Localization.of().failure(error);
+            status.failure.removeAttribute('hidden');
+            this.dispatchEvent(
+                new CustomEvent('load:failure', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: { pageRequest, sortRequest, filterRequest, exception: error },
+                }),
+            );
+        }
+    }
     #update(pageRequest, sortRequest, filterRequest, pageResponse) {
-        const pages = Math.ceil(pageResponse.size / pageRequest.size);
         this.#loading.setAttribute('hidden', '');
         this.#body.replaceChildren(
             this.template('row')
@@ -951,7 +1097,21 @@ class Table extends ParsedElement {
                     .render(),
             );
         }
-        this.#paginator.update({ current: pageRequest.page, total: pages });
+        if (this.#status) {
+            this.#wrapper.scrollTop = 0;
+            this.#appended = {
+                next: pageRequest.page + 1,
+                shown: pageResponse.data.length,
+                total: pageResponse.size,
+                last: pageResponse.data.length,
+            };
+            this.#status.count.textContent = Localization.of().t('table.loaded', {
+                loaded: this.#appended.shown,
+                total: this.#appended.total,
+            });
+            return;
+        }
+        this.#paginator.update({ current: pageRequest.page, total: Math.ceil(pageResponse.size / pageRequest.size) });
     }
 }
 
