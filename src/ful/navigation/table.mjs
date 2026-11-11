@@ -844,9 +844,13 @@ class Table extends ParsedElement {
             // a table that loaded while it was not laid out, in a tab not yet shown for one, has
             // measured nothing: with a first page shorter than its panel no scroll would ever come
             // to do it. Its box changing size is the moment it is laid out, or shows more rows.
+            // A frame later: rows added while the sizes are being reported resize the header, which
+            // is observed too, and the browser reports that as a resize loop.
             new ResizeObserver(() => {
-                this.#countInView();
-                this.#reconcile(false);
+                requestAnimationFrame(() => {
+                    this.#countInView();
+                    this.#reconcile(false);
+                });
             }).observe(tableWrapper);
         } else if (status) {
             this.#endWatch = new IntersectionObserver((entries) => {
@@ -858,6 +862,11 @@ class Table extends ParsedElement {
         }
         const thead = /** @type HTMLTableSectionElement */ (this.querySelector('thead'));
         schema.headersTemplate.renderTo(thead);
+        // the stylesheet starts the scrollbar of a filling table under its header, which it can
+        // only do knowing how tall the header is: a title wrapping onto a second line changes it
+        new ResizeObserver(() => {
+            tableWrapper.style.setProperty('--ful-table-header-height', `${thead.getBoundingClientRect().height}px`);
+        }).observe(thead);
         this.#sorters = thead.querySelectorAll('ful-sorter');
         await Rendering.waitForChildren(this);
 

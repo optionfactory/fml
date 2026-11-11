@@ -39,6 +39,38 @@
             flex: 1 1 auto;
             min-height: 0;
             overflow: auto;
+
+            /* the header stays put above the rows, so their scrollbar starts under it: the track
+               is inset by the height the table publishes. Insetting it means dressing the bar */
+            &::-webkit-scrollbar {
+                width: var(--ful-scrollbar-width);
+                height: var(--ful-scrollbar-width);
+            }
+
+            &::-webkit-scrollbar-track {
+                background-color: var(--ful-scrollbar-bg);
+                border-radius: var(--ful-scrollbar-width);
+            }
+
+            &::-webkit-scrollbar-track:vertical {
+                margin-block-start: var(--ful-table-header-height, 0px);
+            }
+
+            &::-webkit-scrollbar-thumb {
+                background-color: var(--ful-scrollbar-thumb-bg);
+                border: var(--ful-scrollbar-border-width) solid var(--ful-scrollbar-bg);
+                border-radius: var(--ful-scrollbar-width);
+            }
+
+            &::-webkit-scrollbar-corner {
+                background-color: transparent;
+            }
+
+            /* where the track cannot be inset the bar runs beside the header, in the same colours.
+               Only there: a browser that reads these properties ignores the rules above */
+            @supports not selector(::-webkit-scrollbar) {
+                scrollbar-color: var(--ful-scrollbar-thumb-bg) var(--ful-scrollbar-bg);
+            }
         }
 
         & > :not(ful-table-wrapper) {

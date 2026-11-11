@@ -1717,6 +1717,28 @@ describe('Table filling its container', () => {
         );
     });
 
+    it('publishes the height of its header, so the scrollbar of the rows can start under it', async () => {
+        const [, tableEl] = await mount('ful-fill');
+        const wrapper = tableEl.querySelector('ful-table-wrapper');
+        const thead = tableEl.querySelector('thead');
+        const published = () => Number.parseFloat(wrapper.style.getPropertyValue('--ful-table-header-height'));
+        const frames = async () => {
+            for (let i = 0; i < 3; ++i) {
+                await new Promise((r) => requestAnimationFrame(r));
+            }
+        };
+        await frames();
+        const before = thead.getBoundingClientRect().height;
+
+        assert.closeTo(published(), before, 0.5, 'the wrapper carries the height of the header');
+
+        thead.querySelector('th').style.paddingBlock = '2rem';
+        await frames();
+
+        assert.isAbove(thead.getBoundingClientRect().height, before, 'the header grew');
+        assert.closeTo(published(), thead.getBoundingClientRect().height, 0.5, 'and the height follows it');
+    });
+
     it('gives the empty panel the room the rows would take, the header keeping its height', async () => {
         registry.defineComponent('loaders:no-rows', { create: () => ({ load: async () => ({ data: [], size: 0 }) }) });
         const container = appended(`
