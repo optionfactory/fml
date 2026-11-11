@@ -14,6 +14,10 @@ import { Claims } from '../claims.mjs';
  * requested page and the total number of rows across every page
  */
 /**
+ * @typedef {{ count: Element, appending: Element, failure: Element, error: Element }} TableStatus the pieces
+ * of the status bar `paging="infinite"` and `paging="virtual"` show in place of the pager
+ */
+/**
  * @typedef {{ load(pageRequest: TablePageRequest, sortRequest: TableSortRequest|null, filterRequest: Record<string, any>): Promise<TablePageResponse> }} TableRowLoader
  */
 
@@ -493,6 +497,13 @@ class TableLoader {
  * filters and appended (see `load`). `reload`, a sort, a filter submit and a
  * size change start over from the first page.
  *
+ * `paging="virtual"` shows the same status bar, saying which rows of how many
+ * are in view, and keeps in the page only the page in view and one on either
+ * side of it, the others standing in as empty space sized on the height of
+ * the rows. The rows must scroll inside the table, as `ful-fill` makes them:
+ * a table whose rows the page scrolls appends as `paging="infinite"` does,
+ * and warns. See `load` and `reload`.
+ *
  * Inside the table, and not inside a `ful-table` nested in it, a
  * `page:requested` loads that page with the current size,
  * sort and filters; a `sort:requested` loads the current page with the new
@@ -525,7 +536,9 @@ class Table extends ParsedElement {
             <table>
                 <caption data-tpl-if="slots.caption">{{{{ slots.caption }}}}</caption>
                 <thead></thead>
+                <tbody data-tpl-if="virtual" data-ref="before" aria-hidden="true"><tr><td data-tpl-colspan="schema.length"></td></tr></tbody>
                 <tbody></tbody>
+                <tbody data-tpl-if="virtual" data-ref="after" aria-hidden="true"><tr><td data-tpl-colspan="schema.length"></td></tr></tbody>
                 <tbody data-ref="initial">
                     <tr>
                         <td data-tpl-colspan="schema.length">
@@ -569,8 +582,8 @@ class Table extends ParsedElement {
                 </tfoot>
             </table>
         </ful-table-wrapper>
-        <ful-pagination data-tpl-if="!infinite" current="0" total="1"></ful-pagination>
-        <ful-table-status data-tpl-if="infinite">
+        <ful-pagination data-tpl-if="!scrolled" current="0" total="1"></ful-pagination>
+        <ful-table-status data-tpl-if="scrolled">
             <span data-ref="count"></span>
             <ful-spinner data-ref="appending" role="status" hidden><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
             <div data-ref="append-failure" role="alert" hidden>
@@ -597,7 +610,7 @@ class Table extends ParsedElement {
     #paginator;
     #sorters;
     #wrapper;
-    /** @type {{ count: Element, appending: Element, failure: Element, error: Element } | null} the pieces of the `paging="infinite"` status bar, null under the pager */
+    /** @type {TableStatus|null} null under the pager */
     #status = null;
     /** @type {IntersectionObserver|null} */
     #endWatch = null;
@@ -605,6 +618,22 @@ class Table extends ParsedElement {
     #watched = [];
     /** the page the next append asks for, the rows shown, the total the last answer reported and the rows it carried */
     #appended = { next: 1, shown: 0, total: 0, last: 0 };
+    /** whether the table keeps a window of pages, `paging="virtual"` over rows that scroll inside it */
+    #virtual = false;
+    /** @type {{ before: HTMLElement, after: HTMLElement } | null} the cells standing in for the rows above and below the window */
+    #spacers = null;
+    /** @type {{ first: number, last: number, pages: Map<number, Element[]> } | null} the pages in the page, in order, null while no rows show */
+    #window = null;
+    /** the total number of rows the last answer reported */
+    #total = 0;
+    /** the height of a row the spacers are sized on, measured on the first rows a load shows; 0 until measured */
+    #rowHeight = 0;
+    /** @type {{ readonly stale: boolean } | null} the claim of the window shift in flight */
+    #shifting = null;
+    /** whether the last window shift failed: scrolling asks for nothing more until a retry or a load */
+    #windowFailed = false;
+    /** @type {ReturnType<typeof setTimeout>|undefined} */
+    #jump = undefined;
     /** @type {{ pageRequest: { page: number, size: number }, sortRequest: any, filterRequest: any }} */
     #latestRequest = { pageRequest: { page: 0, size: 10 }, sortRequest: null, filterRequest: {} };
     /** whether a load has been asked for, by autoload or by a caller */
@@ -732,6 +761,7 @@ class Table extends ParsedElement {
         }
         this.#buildLoader();
         this.#latestRequest = { ...this.#latestRequest, pageRequest: { ...this.#latestRequest.pageRequest, page: 0 } };
+        this.#window = null;
         return true;
     }
     /**
@@ -742,8 +772,15 @@ class Table extends ParsedElement {
     async render({ slots }) {
         const template = this.template();
         const schema = TableSchemaParser.parse(slots.schema, template);
-        const infinite = this.declared('paging') === 'infinite';
-        const fragment = template.withOverlay({ slots, schema, infinite }).render();
+        const paging = this.declared('paging');
+        const fragment = template
+            .withOverlay({
+                slots,
+                schema,
+                scrolled: paging === 'infinite' || paging === 'virtual',
+                virtual: paging === 'virtual',
+            })
+            .render();
         const tableWrapper = /** @type HTMLTableElement */ (Nodes.queryChildren(fragment, 'ful-table-wrapper'));
         const table = /** @type HTMLTableElement */ (tableWrapper.querySelector('table'));
         Attributes.forward('table-', this, table);
@@ -751,6 +788,26 @@ class Table extends ParsedElement {
 
         this.#wrapper = tableWrapper;
         const status = Nodes.queryChildren(fragment, 'ful-table-status');
+        this.#schema = schema;
+        this.#body = table.querySelector(':scope > tbody:not([data-ref])');
+        this.#loading = table.querySelector(':scope > tbody[data-ref=loading]');
+        this.#noAutoload = table.querySelector(':scope > tbody[data-ref=initial]');
+        this.#empty = table.querySelector(':scope > tbody[data-ref=empty]');
+        this.#emptyAuthors = this.#empty.querySelector('ful-empty[data-ref=empty-authors]');
+        this.#emptyTemplate =
+            slots.empty && !Fragments.isBlank(slots.empty) ? Templates.fromFragment(slots.empty) : null;
+        this.#feedback = table.querySelector(':scope > tbody[data-ref=feedback]');
+        this.#paginator = Nodes.queryChildren(fragment, 'ful-pagination');
+        this.replaceChildren(fragment);
+        if (paging === 'virtual') {
+            const overflow = getComputedStyle(tableWrapper).overflowY;
+            this.#virtual = overflow === 'auto' || overflow === 'scroll';
+            if (!this.#virtual) {
+                console.warn(
+                    'ful-table: paging="virtual" needs rows that scroll inside the table, as ful-fill makes them; this one appends its pages as paging="infinite" does',
+                );
+            }
+        }
         if (status) {
             const piece = (/** @type string */ ref) =>
                 /** @type Element */ (status.querySelector(`[data-ref=${ref}]`));
@@ -761,7 +818,36 @@ class Table extends ParsedElement {
                 error: piece('append-error'),
             };
             piece('reload').addEventListener('click', () => this.reload());
-            piece('retry').addEventListener('click', () => this.#appendNext());
+            piece('retry').addEventListener('click', () => {
+                if (!this.#virtual) {
+                    this.#appendNext();
+                    return;
+                }
+                this.#windowFailed = false;
+                this.#reconcile(true);
+            });
+        }
+        if (this.#virtual) {
+            this.#spacers = {
+                before: /** @type HTMLElement */ (table.querySelector(':scope > tbody[data-ref=before] td')),
+                after: /** @type HTMLElement */ (table.querySelector(':scope > tbody[data-ref=after] td')),
+            };
+            let frame = 0;
+            tableWrapper.addEventListener(
+                'scroll',
+                () => {
+                    if (frame) {
+                        return;
+                    }
+                    frame = requestAnimationFrame(() => {
+                        frame = 0;
+                        this.#countInView();
+                        this.#reconcile(false);
+                    });
+                },
+                { passive: true },
+            );
+        } else if (status) {
             this.#endWatch = new IntersectionObserver((entries) => {
                 // an entry queued before the watch moved on to another row, or stopped, asks for nothing
                 if (entries.some((e) => e.isIntersecting && this.#watched.includes(e.target))) {
@@ -769,17 +855,6 @@ class Table extends ParsedElement {
                 }
             });
         }
-        this.#schema = schema;
-        this.#body = table.querySelector(':scope > tbody');
-        this.#loading = table.querySelector(':scope > tbody[data-ref=loading]');
-        this.#noAutoload = table.querySelector(':scope > tbody[data-ref=initial]');
-        this.#empty = table.querySelector(':scope > tbody[data-ref=empty]');
-        this.#emptyAuthors = this.#empty.querySelector('ful-empty[data-ref=empty-authors]');
-        this.#emptyTemplate =
-            slots.empty && !Fragments.isBlank(slots.empty) ? Templates.fromFragment(slots.empty) : null;
-        this.#feedback = table.querySelector(':scope > tbody[data-ref=feedback]');
-        this.#paginator = Nodes.queryChildren(fragment, 'ful-pagination');
-        this.replaceChildren(fragment);
         const thead = /** @type HTMLTableSectionElement */ (this.querySelector('thead'));
         schema.headersTemplate.renderTo(thead);
         this.#sorters = thead.querySelectorAll('ful-sorter');
@@ -836,6 +911,14 @@ class Table extends ParsedElement {
      * `submit` listeners as the later ones, and the load its `submit:success`
      * starts is the one awaited. A filter submit that is cancelled, fails or
      * is dropped for one in flight loads nothing, and the promise resolves.
+     *
+     * Under `paging="virtual"`, once rows show, it asks again for the pages in
+     * the page, with the same size, sort and filters, and shows them where
+     * they are, the scroll position and the widths of the columns kept; the
+     * table is busy and settles, fails and dispatches as a load does, one
+     * `load:success` per page. When the answers report fewer rows than the
+     * window starts at, it loads the first page instead. A `src` or `method`
+     * write still starts over from the first page.
      * @returns {Promise<void>} as `load`
      */
     async reload() {
@@ -844,6 +927,9 @@ class Table extends ParsedElement {
                 await this.#filterLoad;
             }
             return;
+        }
+        if (this.#window) {
+            return await this.#reloadWindow();
         }
         return await this.load(
             this.#latestRequest.pageRequest,
@@ -897,6 +983,26 @@ class Table extends ParsedElement {
      * shown reach the total the last answer reported, or an answer carries
      * no rows. A load supersedes an append in flight; `reload` repeats this
      * load, not the pages appended to it.
+     *
+     * Under `paging="virtual"` the load shows its page as the window, scrolled
+     * to where it sits among the total, and measures two things on its rows:
+     * the height the empty space standing in for the other rows is sized on,
+     * and the width of the columns, which then stay as they are, in
+     * proportion, until the next load, so that the pages coming and going do
+     * not move them. From then on the window follows the scroll: the page in
+     * view and one on either side stay in the page and the others are dropped,
+     * the page holding the focus kept while it is within two pages of them. A
+     * page next to the window is asked for at once; a scroll landing farther
+     * waits for the scroll to rest. Window pages are asked for without
+     * `aria-busy`, a spinner in the status bar standing in, and dispatch
+     * `load:success` or `load:failure` per page as appends do; a failure keeps
+     * the rows and offers a retry. The row in view stays where it is as pages
+     * come and go above it: the table measures it before and after and
+     * corrects the scroll by whatever the browser's own scroll anchoring has
+     * not kept, which is all of it where the browser anchors no table rows
+     * (Firefox), has no scroll anchoring or the rows' container declares
+     * `overflow-anchor: none`, and nothing where it has. The table carries
+     * `aria-rowcount` and each row its `aria-rowindex`.
      * @param {TablePageRequest} pageRequest
      * @param {TableSortRequest|null} sortRequest
      * @param {Record<string, any>} filterRequest
@@ -909,6 +1015,9 @@ class Table extends ParsedElement {
         const claim = this.#loads.take();
         this.#watched = [];
         this.#endWatch?.disconnect();
+        clearTimeout(this.#jump);
+        this.#shifting = null;
+        this.#windowFailed = false;
         this.#status?.appending.setAttribute('hidden', '');
         this.#status?.failure.setAttribute('hidden', '');
         this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
@@ -940,6 +1049,9 @@ class Table extends ParsedElement {
                 if (claim.stale) {
                     return;
                 }
+                if (this.#virtual) {
+                    this.#settleWindow();
+                }
                 this.removeAttribute('aria-busy');
                 this.dispatchEvent(
                     new CustomEvent('load:success', {
@@ -949,25 +1061,14 @@ class Table extends ParsedElement {
                     }),
                 );
                 this.#watchEnd(pageRequest.size);
+                this.#reconcile(false);
                 return;
             }
         } catch (/** @type any */ error) {
             if (claim.stale) {
                 return;
             }
-            this.#loading.setAttribute('hidden', '');
-            this.#body.replaceChildren();
-            this.#status?.count.replaceChildren();
-            this.#feedback.removeAttribute('hidden');
-            this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Localization.of().failure(error);
-            this.removeAttribute('aria-busy');
-            this.dispatchEvent(
-                new CustomEvent('load:failure', {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: { pageRequest, sortRequest, filterRequest, exception: error },
-                }),
-            );
+            this.#fail(error, { pageRequest, sortRequest, filterRequest });
             throw error;
         }
         return await this.load({ page: lastPage, size: pageRequest.size }, sortRequest, filterRequest);
@@ -1077,18 +1178,400 @@ class Table extends ParsedElement {
             );
         }
     }
+    /**
+     * Renders the rows of a page, numbering them with `aria-rowindex` under
+     * `paging="virtual"`, the header row being the first.
+     * @param {TablePageRequest} pageRequest
+     * @param {Record<string, any>} filterRequest
+     * @param {TablePageResponse} pageResponse
+     * @returns {Element[]}
+     */
+    #pageRows(pageRequest, filterRequest, pageResponse) {
+        const rows = [
+            ...this.template('row')
+                .withOverlay({ schema: this.#schema, pageRequest, filterRequest, pageResponse })
+                .render().children,
+        ];
+        if (this.#virtual) {
+            rows.forEach((row, i) => {
+                row.setAttribute('aria-rowindex', String(pageRequest.page * pageRequest.size + i + 2));
+            });
+        }
+        return rows;
+    }
+    /**
+     * Shows a failed load: the rows go, the error panel shows and
+     * `load:failure` is dispatched.
+     * @param {any} error
+     * @param {{ pageRequest: TablePageRequest, sortRequest: TableSortRequest|null, filterRequest: Record<string, any> }} request
+     */
+    #fail(error, request) {
+        this.#loading.setAttribute('hidden', '');
+        this.#body.replaceChildren();
+        this.#window = null;
+        this.#fitSpacers();
+        this.#status?.count.replaceChildren();
+        this.#feedback.removeAttribute('hidden');
+        this.#feedback.querySelector('[data-ref=feedback-error]').textContent = Localization.of().failure(error);
+        this.removeAttribute('aria-busy');
+        this.dispatchEvent(
+            new CustomEvent('load:failure', {
+                bubbles: true,
+                cancelable: false,
+                detail: { ...request, exception: error },
+            }),
+        );
+    }
+    /** Counts the rows of a load just shown and moves the window where its page sits. */
+    #settleWindow() {
+        const table = /** @type HTMLTableElement */ (this.#body.parentElement);
+        table.setAttribute('aria-rowcount', String(this.#total + 1));
+        table.tHead?.rows[0]?.setAttribute('aria-rowindex', '1');
+        const status = /** @type TableStatus */ (this.#status);
+        const window = this.#window;
+        if (!window) {
+            this.#fitSpacers();
+            status.count.textContent = Localization.of().t('table.loaded', { loaded: 0, total: this.#total });
+            return;
+        }
+        const size = this.#latestRequest.pageRequest.size;
+        const from = window.first * size;
+        status.count.textContent = Localization.of().t('table.range', {
+            from: from + 1,
+            to: from + /** @type Element[] */ (window.pages.get(window.first)).length,
+            total: this.#total,
+        });
+        if (this.#measureRows()) {
+            this.#wrapper.scrollTop = from * this.#rowHeight;
+        }
+    }
+    /**
+     * Measures the height of a row and locks the widths of the columns, once
+     * per load, on the rows it shows, then sizes the spacers. A table that is not laid out, inside a
+     * closed disclosure for instance, measures nothing and is measured when
+     * its rows next scroll.
+     * @returns {boolean} whether the rows are measured
+     */
+    #measureRows() {
+        if (this.#rowHeight > 0) {
+            return true;
+        }
+        const count = this.#body.childElementCount;
+        const height = this.#body.getBoundingClientRect().height;
+        if (count === 0 || height === 0) {
+            return false;
+        }
+        this.#rowHeight = height / count;
+        this.#lockColumns();
+        this.#fitSpacers();
+        return true;
+    }
+    /**
+     * Fixes the widths of the columns, in proportion to the table, at those
+     * the rows in the page give them.
+     */
+    #lockColumns() {
+        const table = /** @type HTMLTableElement */ (this.#body.parentElement);
+        const widths = [...(table.tHead?.rows[0]?.cells ?? [])].map((cell) => cell.getBoundingClientRect().width);
+        const sum = widths.reduce((a, b) => a + b, 0);
+        const columns = document.createElement('colgroup');
+        columns.setAttribute('data-ref', 'widths');
+        for (const width of widths) {
+            const column = document.createElement('col');
+            column.style.width = `${(width / sum) * 100}%`;
+            columns.append(column);
+        }
+        table.insertBefore(columns, table.tHead);
+    }
+    #unlockColumns() {
+        this.#body.parentElement?.querySelector(':scope > colgroup[data-ref=widths]')?.remove();
+    }
+    /** Sizes the space standing in for the rows above and below the window. */
+    #fitSpacers() {
+        if (!this.#spacers) {
+            return;
+        }
+        const window = this.#window;
+        const size = this.#latestRequest.pageRequest.size;
+        const above = window ? window.first * size : 0;
+        const below = window ? Math.max(0, this.#total - (window.last + 1) * size) : 0;
+        this.#spacers.before.style.height = `${above * this.#rowHeight}px`;
+        this.#spacers.after.style.height = `${below * this.#rowHeight}px`;
+    }
+    /** Says in the status bar which rows are in view; nothing changes while none is. */
+    #countInView() {
+        const window = this.#window;
+        if (!window || !this.#status) {
+            return;
+        }
+        const size = this.#latestRequest.pageRequest.size;
+        const view = this.#wrapper.getBoundingClientRect();
+        const top = view.top + (this.#body.parentElement?.querySelector(':scope > thead')?.getBoundingClientRect().height ?? 0);
+        let from = 0;
+        let to = 0;
+        for (const [page, rows] of window.pages) {
+            rows.forEach((row, i) => {
+                const rect = row.getBoundingClientRect();
+                if (rect.bottom > top && rect.top < view.bottom) {
+                    from ||= page * size + i + 1;
+                    to = page * size + i + 1;
+                }
+            });
+        }
+        if (from > 0) {
+            this.#status.count.textContent = Localization.of().t('table.range', { from, to, total: this.#total });
+        }
+    }
+    /**
+     * The page at the middle of the view: found among the rows in the page,
+     * or estimated on the height of a row when the middle falls in the space
+     * standing in for others.
+     * @param {{ first: number, last: number, pages: Map<number, Element[]> }} window
+     * @returns {number}
+     */
+    #pageInView(window) {
+        const pageHeight = this.#latestRequest.pageRequest.size * this.#rowHeight;
+        const view = this.#wrapper.getBoundingClientRect();
+        const middle = view.top + view.height / 2;
+        const rows = this.#body.getBoundingClientRect();
+        if (middle < rows.top) {
+            return Math.max(0, window.first - Math.ceil((rows.top - middle) / pageHeight));
+        }
+        if (middle >= rows.bottom) {
+            return window.last + 1 + Math.floor((middle - rows.bottom) / pageHeight);
+        }
+        let found = window.first;
+        for (const [page, pageRows] of window.pages) {
+            if (pageRows.length > 0 && pageRows[0].getBoundingClientRect().top <= middle) {
+                found = page;
+            }
+        }
+        return found;
+    }
+    /**
+     * Moves the window to the page in view and its neighbours. A window next
+     * to the current one moves at once; one farther away waits for the scroll
+     * to rest, unless `settled` says it has.
+     * @param {boolean} settled
+     */
+    #reconcile(settled) {
+        const window = this.#window;
+        if (
+            !window ||
+            this.#shifting ||
+            this.#windowFailed ||
+            this.hasAttribute('aria-busy') ||
+            !this.#wrapper.isConnected ||
+            !this.#measureRows()
+        ) {
+            return;
+        }
+        const pageCount = Math.ceil(this.#total / this.#latestRequest.pageRequest.size);
+        if (!(pageCount > 0)) {
+            return;
+        }
+        const target = Math.min(pageCount - 1, this.#pageInView(window));
+        let first = Math.max(0, target - 1);
+        let last = Math.min(pageCount - 1, target + 1);
+        const focused = this.#body.contains(document.activeElement)
+            ? /** @type Element */ (document.activeElement).closest('tr')
+            : null;
+        const focusedPage = [...window.pages].find(([, rows]) => focused && rows.includes(focused))?.[0];
+        if (focusedPage !== undefined && Math.max(last, focusedPage) - Math.min(first, focusedPage) <= 4) {
+            first = Math.min(first, focusedPage);
+            last = Math.max(last, focusedPage);
+        }
+        if (first === window.first && last === window.last) {
+            return;
+        }
+        clearTimeout(this.#jump);
+        if (!settled && (last < window.first - 1 || first > window.last + 1)) {
+            this.#jump = setTimeout(() => this.#reconcile(true), 150);
+            return;
+        }
+        this.#shiftWindow(window, first, last);
+    }
+    /**
+     * Asks for the pages of the new window that are not in the page, drops
+     * the ones outside it and keeps the row in view where it is.
+     * @param {{ first: number, last: number, pages: Map<number, Element[]> }} window
+     * @param {number} first
+     * @param {number} last
+     */
+    async #shiftWindow(window, first, last) {
+        const status = /** @type TableStatus */ (this.#status);
+        const claim = this.#loads.hold();
+        this.#shifting = claim;
+        const { sortRequest, filterRequest } = this.#latestRequest;
+        const size = this.#latestRequest.pageRequest.size;
+        const wanted = Array.from({ length: last - first + 1 }, (_, i) => first + i);
+        const missing = wanted.filter((page) => !window.pages.has(page));
+        status.failure.setAttribute('hidden', '');
+        status.appending.removeAttribute('hidden');
+        try {
+            const answers = await Promise.all(
+                missing.map(async (page) => {
+                    const pageRequest = { page, size };
+                    return { pageRequest, response: await this.#loader.load(pageRequest, sortRequest, filterRequest) };
+                }),
+            );
+            if (claim.stale) {
+                return;
+            }
+            const kept = wanted.filter((page) => window.pages.has(page));
+            const top = this.#wrapper.getBoundingClientRect().top;
+            const anchor = kept
+                .flatMap((page) => window.pages.get(page) ?? [])
+                .find((row) => row.getBoundingClientRect().bottom > top);
+            const anchorTop = anchor?.getBoundingClientRect().top ?? 0;
+            for (const [page, rows] of window.pages) {
+                if (page < first || page > last) {
+                    for (const row of rows) {
+                        row.remove();
+                    }
+                }
+            }
+            /** @type {Map<number, Element[]>} */
+            const pages = new Map();
+            for (const page of wanted) {
+                const answer = answers.find((a) => a.pageRequest.page === page);
+                pages.set(
+                    page,
+                    window.pages.get(page) ??
+                        (answer ? this.#pageRows(answer.pageRequest, filterRequest, answer.response) : []),
+                );
+            }
+            if (kept.length === 0) {
+                this.#body.replaceChildren(...[...pages.values()].flat());
+            } else {
+                this.#body.prepend(...wanted.filter((page) => page < kept[0]).flatMap((page) => pages.get(page) ?? []));
+                this.#body.append(
+                    ...wanted.filter((page) => page > /** @type number */ (kept.at(-1))).flatMap((page) => pages.get(page) ?? []),
+                );
+            }
+            this.#window = { first, last, pages };
+            this.#total = answers.at(-1)?.response.size ?? this.#total;
+            this.#body.parentElement?.setAttribute('aria-rowcount', String(this.#total + 1));
+            this.#fitSpacers();
+            if (anchor) {
+                this.#wrapper.scrollTop += anchor.getBoundingClientRect().top - anchorTop;
+            }
+            await Rendering.waitForChildren(this.#body).catch(() => undefined);
+            if (claim.stale) {
+                return;
+            }
+            if (anchor) {
+                // the elements in the new rows have rendered since, which can change their height
+                this.#wrapper.scrollTop += anchor.getBoundingClientRect().top - anchorTop;
+            }
+            status.appending.setAttribute('hidden', '');
+            this.#countInView();
+            for (const { pageRequest, response } of answers) {
+                this.dispatchEvent(
+                    new CustomEvent('load:success', {
+                        bubbles: true,
+                        cancelable: false,
+                        detail: { pageRequest, sortRequest, filterRequest, response },
+                    }),
+                );
+            }
+        } catch (/** @type any */ error) {
+            if (claim.stale) {
+                return;
+            }
+            this.#windowFailed = true;
+            status.appending.setAttribute('hidden', '');
+            status.error.textContent = Localization.of().failure(error);
+            status.failure.removeAttribute('hidden');
+            this.dispatchEvent(
+                new CustomEvent('load:failure', {
+                    bubbles: true,
+                    cancelable: false,
+                    detail: { pageRequest: { page: missing[0], size }, sortRequest, filterRequest, exception: error },
+                }),
+            );
+            return;
+        } finally {
+            if (this.#shifting === claim) {
+                this.#shifting = null;
+            }
+        }
+        this.#reconcile(false);
+    }
+    /**
+     * Asks again for the pages of the window and shows them where they are.
+     * @returns {Promise<void>}
+     */
+    async #reloadWindow() {
+        const window = /** @type {{ first: number, last: number, pages: Map<number, Element[]> }} */ (this.#window);
+        const status = /** @type TableStatus */ (this.#status);
+        const { sortRequest, filterRequest } = this.#latestRequest;
+        const size = this.#latestRequest.pageRequest.size;
+        this.#requestedFilters = filterRequest;
+        const claim = this.#loads.take();
+        clearTimeout(this.#jump);
+        this.#shifting = null;
+        this.#windowFailed = false;
+        status.appending.setAttribute('hidden', '');
+        status.failure.setAttribute('hidden', '');
+        this.setAttribute('aria-busy', 'true');
+        const wanted = Array.from({ length: window.last - window.first + 1 }, (_, i) => window.first + i);
+        try {
+            const answers = await Promise.all(
+                wanted.map(async (page) => {
+                    const pageRequest = { page, size };
+                    return { pageRequest, response: await this.#loader.load(pageRequest, sortRequest, filterRequest) };
+                }),
+            );
+            if (claim.stale) {
+                return;
+            }
+            const total = /** @type {{ response: TablePageResponse }} */ (answers.at(-1)).response.size;
+            const pageCount = Math.ceil(total / size);
+            if (!(window.first < pageCount)) {
+                return await this.load({ page: 0, size }, sortRequest, filterRequest);
+            }
+            const shown = answers.filter((a) => a.pageRequest.page < pageCount);
+            const pages = new Map(
+                shown.map((a) => [a.pageRequest.page, this.#pageRows(a.pageRequest, filterRequest, a.response)]),
+            );
+            this.#body.replaceChildren(...[...pages.values()].flat());
+            this.#window = { first: window.first, last: Math.min(window.last, pageCount - 1), pages };
+            this.#total = total;
+            this.#body.parentElement?.setAttribute('aria-rowcount', String(total + 1));
+            this.#fitSpacers();
+            await Rendering.waitForChildren(this.#body).catch(() => undefined);
+            if (claim.stale) {
+                return;
+            }
+            this.removeAttribute('aria-busy');
+            this.#countInView();
+            for (const { pageRequest, response } of shown) {
+                this.dispatchEvent(
+                    new CustomEvent('load:success', {
+                        bubbles: true,
+                        cancelable: false,
+                        detail: { pageRequest, sortRequest, filterRequest, response },
+                    }),
+                );
+            }
+            this.#reconcile(false);
+        } catch (/** @type any */ error) {
+            if (claim.stale) {
+                return;
+            }
+            this.#fail(error, { pageRequest: { page: window.first, size }, sortRequest, filterRequest });
+            throw error;
+        }
+    }
     #update(pageRequest, sortRequest, filterRequest, pageResponse) {
         this.#loading.setAttribute('hidden', '');
-        this.#body.replaceChildren(
-            this.template('row')
-                .withOverlay({
-                    schema: this.#schema,
-                    pageRequest,
-                    filterRequest,
-                    pageResponse,
-                })
-                .render(),
-        );
+        if (this.#virtual) {
+            this.#rowHeight = 0;
+            this.#unlockColumns();
+        }
+        const rows = this.#pageRows(pageRequest, filterRequest, pageResponse);
+        this.#body.replaceChildren(...rows);
         this.#empty.toggleAttribute('hidden', pageResponse.data.length !== 0);
         if (this.#emptyTemplate && pageResponse.data.length === 0) {
             this.#emptyAuthors.replaceChildren(
@@ -1096,6 +1579,13 @@ class Table extends ParsedElement {
                     .withOverlay({ schema: this.#schema, pageRequest, filterRequest, pageResponse })
                     .render(),
             );
+        }
+        if (this.#virtual) {
+            this.#wrapper.scrollTop = 0;
+            this.#total = pageResponse.size;
+            this.#window =
+                rows.length > 0 ? { first: pageRequest.page, last: pageRequest.page, pages: new Map([[pageRequest.page, rows]]) } : null;
+            return;
         }
         if (this.#status) {
             this.#wrapper.scrollTop = 0;

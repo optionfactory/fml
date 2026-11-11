@@ -211,6 +211,23 @@
             vertical-align: middle;
         }
 
+        & table:has(> colgroup[data-ref="widths"]) {
+            table-layout: fixed;
+
+            & td {
+                overflow-wrap: anywhere;
+            }
+        }
+
+        & tbody:is([data-ref="before"], [data-ref="after"]) {
+            overflow-anchor: none;
+
+            & td {
+                padding: 0;
+                border: 0;
+            }
+        }
+
         & tbody[data-ref="feedback"] {
             & > tr > td > div {
                 padding: 1rem;

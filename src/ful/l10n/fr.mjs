@@ -8,6 +8,7 @@ export default {
     'table.error': 'Erreur lors du chargement des données :',
     'table.no-data': 'Aucun élément trouvé.',
     'table.loaded': 'Affichage de {loaded} sur {total}',
+    'table.range': 'Lignes {from} à {to} sur {total}',
     'table.retry': 'Réessayer',
     'dropdown.empty': 'Aucun résultat',
     'select.remove': 'Retirer',

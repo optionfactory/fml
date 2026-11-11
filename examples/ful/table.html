@@ -105,6 +105,20 @@
     </fieldset>
 
     <fieldset>
+        <legend>paging="virtual": ten thousand rows, three pages of them in the page at a time</legend>
+        <div style="display: flex; flex-direction: column; height: 320px">
+            <ful-table class="ful-fill" paging="virtual" loader="loaders:many-rows" autoload page-size="25">
+                <template slot="schema">
+                    <schema>
+                        <column title="Riga" sorter="row" order="asc">{{ row }}</column>
+                        <column title="Codice">{{ code }}</column>
+                    </schema>
+                </template>
+            </ful-table>
+        </div>
+    </fieldset>
+
+    <fieldset>
         <legend>src stays live: the table follows the selected customer</legend>
         <ful-select id="customer" value="1">
             Cliente
@@ -198,6 +212,22 @@
             }
         }
 
+        class ManyRowsLoader {
+            async load(pageRequest, sortRequest) {
+                await ful.Timing.sleep(300);
+                const total = 10000;
+                const start = pageRequest.page * pageRequest.size;
+                const data = Array.from({ length: Math.max(0, Math.min(pageRequest.size, total - start)) }, (x, i) => {
+                    const row = sortRequest?.order === 'desc' ? total - start - i : start + i + 1;
+                    return { row, code: `R-${String(row).padStart(5, '0')}` };
+                });
+                return { size: total, data };
+            }
+            static create() {
+                return new ManyRowsLoader();
+            }
+        }
+
         class ShipmentsLoader {
             #rows;
             constructor(customer) {
@@ -228,6 +258,7 @@
             .plugin(new ful.Plugin())
             .defineComponent("loaders:shipments", ShipmentsLoader)
             .defineComponent("loaders:mock-data", MockDataLoader)
+            .defineComponent("loaders:many-rows", ManyRowsLoader)
             .defineComponent("loaders:no-data", { create: () => ({ load: async () => ({ size: 0, data: [] }) }) })
             .configure();
     </script>
