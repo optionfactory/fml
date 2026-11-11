@@ -91,6 +91,12 @@ body > fieldset :is(ful-select, ful-input-file, ful-tabs, ful-accordion, ful-wiz
     align-self: stretch;
 }
 
+/*the box giving a ful-fill table its height: a ful-fill table is a flex container of its own, so it
+is stretched through this box rather than by the display: block rule above*/
+body > fieldset > div:has(> ful-table.ful-fill) {
+    align-self: stretch;
+}
+
 body > fieldset ful-form {
     display: grid;
     gap: 1rem;
