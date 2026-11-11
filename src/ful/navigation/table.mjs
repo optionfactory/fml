@@ -1290,6 +1290,19 @@ class Table extends ParsedElement {
         }
         table.insertBefore(columns, table.tHead);
     }
+    /**
+     * Locks the widths of the columns again, on the rows now in the page, when
+     * one of them holds something its column has no room for and that cannot
+     * wrap: left as it is it would stick out of the table, and the rows would
+     * scroll sideways for it.
+     */
+    #widenColumns() {
+        const cramped = [...this.#body.querySelectorAll(':scope > tr > *')].some((cell) => cell.scrollWidth > cell.clientWidth + 1);
+        if (cramped) {
+            this.#unlockColumns();
+            this.#lockColumns();
+        }
+    }
     #unlockColumns() {
         this.#body.parentElement?.querySelector(':scope > colgroup[data-ref=widths]')?.remove();
     }
@@ -1455,6 +1468,7 @@ class Table extends ParsedElement {
             this.#total = answers.at(-1)?.response.size ?? this.#total;
             this.#body.parentElement?.setAttribute('aria-rowcount', String(this.#total + 1));
             this.#fitSpacers();
+            this.#widenColumns();
             if (anchor) {
                 this.#wrapper.scrollTop += anchor.getBoundingClientRect().top - anchorTop;
             }
@@ -1462,6 +1476,7 @@ class Table extends ParsedElement {
             if (claim.stale) {
                 return;
             }
+            this.#widenColumns();
             if (anchor) {
                 // the elements in the new rows have rendered since, which can change their height
                 this.#wrapper.scrollTop += anchor.getBoundingClientRect().top - anchorTop;
@@ -1546,6 +1561,7 @@ class Table extends ParsedElement {
             if (claim.stale) {
                 return;
             }
+            this.#widenColumns();
             this.removeAttribute('aria-busy');
             this.#countInView();
             for (const { pageRequest, response } of shown) {

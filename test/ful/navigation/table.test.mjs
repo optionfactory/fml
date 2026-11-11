@@ -2216,7 +2216,7 @@ describe('Table virtual paging', function () {
     let held;
     let total;
     let failNext;
-    const all = Array.from({ length: 1000 }, (x, i) => ({ a: i, tall: i < 100, wide: i >= 500 }));
+    const all = Array.from({ length: 1000 }, (x, i) => ({ a: i, tall: i < 100, wide: i >= 500, unbreakable: i >= 800 }));
     const mount = async ({ fill = true, hidden = false, size = 20 } = {}) => {
         registry.defineComponent('loaders:table', {
             create: () => ({
@@ -2242,6 +2242,7 @@ describe('Table virtual paging', function () {
                     <template slot="schema"><schema tabindex="-1">
                         <column title="A" sorter="a">{{ a }}<div data-tpl-if="tall">more</div></column>
                         <column title="B">{{ wide ? 'a much longer text that would widen this column if it could' : 'b' }}</column>
+                        <column title="C"><span data-tpl-if="unbreakable" style="display: inline-block; width: 200px">c</span></column>
                     </schema></template>
                 </ful-table>
             </div>`);
@@ -2408,6 +2409,18 @@ describe('Table virtual paging', function () {
         const wrapper = wrapperOf(tableEl);
         assert.isAbove(body(tableEl).children.length, 3, 'once shown it asks for the pages its panel has room for, with no scroll');
         assert.isAbove(wrapper.scrollHeight, wrapper.clientHeight, 'and the rows not in the page take their space, so they can be scrolled to');
+    });
+
+    it('gives a column the room for what cannot wrap, so the rows never scroll sideways', async () => {
+        const tableEl = await mount();
+        const wrapper = wrapperOf(tableEl);
+        const narrow = tableEl.querySelector('thead th:nth-child(3)').getBoundingClientRect().width;
+        assert.isBelow(narrow, 200, 'the column is locked narrower than what a later page holds');
+
+        await scrolledTo(tableEl, 42);
+
+        assert.isAtLeast(tableEl.querySelector('thead th:nth-child(3)').getBoundingClientRect().width, 200, 'the column grew to hold it');
+        assert.strictEqual(wrapper.scrollWidth, wrapper.clientWidth, 'nothing sticks out of the table');
     });
 
     for (const anchoring of ['auto', 'none']) {
