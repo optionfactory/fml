@@ -1717,6 +1717,30 @@ describe('Table filling its container', () => {
         );
     });
 
+    it('gives the empty panel the room the rows would take, the header keeping its height', async () => {
+        registry.defineComponent('loaders:no-rows', { create: () => ({ load: async () => ({ data: [], size: 0 }) }) });
+        const container = appended(`
+            <div style="display: flex; flex-direction: column; height: 600px">
+                <ful-table class="ful-fill" loader="loaders:no-rows" autoload>
+                    <template slot="schema"><schema><column title="A">{{ a }}</column></schema></template>
+                </ful-table>
+            </div>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await settle();
+        const wrapper = tableEl.querySelector('ful-table-wrapper');
+        const panel = tableEl.querySelector('tbody[data-ref=empty]');
+
+        assert.closeTo(
+            panel.getBoundingClientRect().bottom,
+            wrapper.getBoundingClientRect().bottom,
+            2,
+            'the empty panel reaches the bottom of the room the rows scroll in',
+        );
+        assert.isBelow(tableEl.querySelector('thead').getBoundingClientRect().height, 60, 'the header is not stretched');
+        assert.isAtMost(wrapper.scrollHeight, wrapper.clientHeight + 1, 'and nothing is left to scroll');
+    });
+
     it('grows with its rows without the class, leaving the page to scroll it', async () => {
         const [box, tableEl] = await mount('');
         const wrapper = tableEl.querySelector('ful-table-wrapper');

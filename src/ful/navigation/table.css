@@ -44,6 +44,22 @@
         & > :not(ful-table-wrapper) {
             flex: none;
         }
+
+        /* a panel standing in for the rows takes the room they would: the table is as tall as
+           the wrapper and the height left over goes to the rows with none of their own, the panel's;
+           the header's row states one, the least it can be, so it keeps the height of its cells */
+        & > ful-table-wrapper > table:has(> tbody:is([data-ref="initial"], [data-ref="loading"], [data-ref="empty"], [data-ref="feedback"]):not([hidden])) {
+            height: 100%;
+            margin-bottom: 0;
+
+            & > thead > tr {
+                height: 1px;
+            }
+
+            & > tbody:is([data-ref="initial"], [data-ref="loading"], [data-ref="empty"], [data-ref="feedback"]) {
+                height: auto;
+            }
+        }
     }
 
     ful-sorter {
