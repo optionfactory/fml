@@ -832,18 +832,12 @@ class Table extends ParsedElement {
                 before: /** @type HTMLElement */ (table.querySelector(':scope > tbody[data-ref=before] td')),
                 after: /** @type HTMLElement */ (table.querySelector(':scope > tbody[data-ref=after] td')),
             };
-            let frame = 0;
+            // scroll fires once per frame at most, so it needs no throttle of its own
             tableWrapper.addEventListener(
                 'scroll',
                 () => {
-                    if (frame) {
-                        return;
-                    }
-                    frame = requestAnimationFrame(() => {
-                        frame = 0;
-                        this.#countInView();
-                        this.#reconcile(false);
-                    });
+                    this.#countInView();
+                    this.#reconcile(false);
                 },
                 { passive: true },
             );
@@ -1118,10 +1112,7 @@ class Table extends ParsedElement {
         }
     }
     async #appendNext() {
-        const status = this.#status;
-        if (!status) {
-            return;
-        }
+        const status = /** @type TableStatus */ (this.#status);
         this.#watched = [];
         this.#endWatch?.disconnect();
         const { sortRequest, filterRequest } = this.#latestRequest;
@@ -1300,16 +1291,13 @@ class Table extends ParsedElement {
     }
     /** Says in the status bar which rows are in view; nothing changes while none is. */
     #countInView() {
-        const window = this.#window;
-        if (!window || !this.#status) {
-            return;
-        }
+        const status = /** @type TableStatus */ (this.#status);
         const size = this.#latestRequest.pageRequest.size;
         const view = this.#wrapper.getBoundingClientRect();
         const top = view.top + (this.#body.parentElement?.querySelector(':scope > thead')?.getBoundingClientRect().height ?? 0);
         let from = 0;
         let to = 0;
-        for (const [page, rows] of window.pages) {
+        for (const [page, rows] of this.#window?.pages ?? []) {
             rows.forEach((row, i) => {
                 const rect = row.getBoundingClientRect();
                 if (rect.bottom > top && rect.top < view.bottom) {
@@ -1319,7 +1307,7 @@ class Table extends ParsedElement {
             });
         }
         if (from > 0) {
-            this.#status.count.textContent = Localization.of().t('table.range', { from, to, total: this.#total });
+            status.count.textContent = Localization.of().t('table.range', { from, to, total: this.#total });
         }
     }
     /**
@@ -1356,18 +1344,16 @@ class Table extends ParsedElement {
      */
     #reconcile(settled) {
         const window = this.#window;
+        const pageCount = Math.ceil(this.#total / this.#latestRequest.pageRequest.size);
         if (
             !window ||
             this.#shifting ||
             this.#windowFailed ||
             this.hasAttribute('aria-busy') ||
             !this.#wrapper.isConnected ||
+            !(pageCount > 0) ||
             !this.#measureRows()
         ) {
-            return;
-        }
-        const pageCount = Math.ceil(this.#total / this.#latestRequest.pageRequest.size);
-        if (!(pageCount > 0)) {
             return;
         }
         const target = Math.min(pageCount - 1, this.#pageInView(window));

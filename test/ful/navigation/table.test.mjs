@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { registry, Rendering } from '../../../src/ftl/index.mjs';
+import { ParsedElement, registry, Rendering } from '../../../src/ftl/index.mjs';
 import { Plugin, Table } from '../../../src/ful/index.mjs';
 import { TableLoader } from '../../../src/ful/navigation/table.mjs';
 import { appended, settle, attached } from '../../harness.mjs';
@@ -2115,41 +2115,49 @@ describe('Table infinite paging', () => {
         );
     });
 
-    it('drops an append that a sort supersedes', async () => {
-        const tableEl = await mount();
-        let release;
-        held = new Promise((resolve) => {
-            release = resolve;
-        });
-        tableEl.querySelector('ful-table-wrapper').scrollTop = 1e6;
-        while (requests.length < 2) {
-            await new Promise((r) => requestAnimationFrame(r));
-        }
-        tableEl.querySelector('ful-sorter').click();
-        await settle();
-        held = null;
-        release();
-        await settle();
+    for (const failing of [false, true]) {
+        it(`drops an append that a sort supersedes, ${failing ? 'failed' : 'answered'}`, async () => {
+            const tableEl = await mount();
+            const failures = [];
+            tableEl.addEventListener('load:failure', () => failures.push('failure'));
+            let release;
+            held = new Promise((resolve) => {
+                release = resolve;
+            });
+            tableEl.querySelector('ful-table-wrapper').scrollTop = 1e6;
+            while (requests.length < 2) {
+                await new Promise((r) => requestAnimationFrame(r));
+            }
+            fails = failing;
+            tableEl.querySelector('ful-sorter').click();
+            await settle();
+            held = null;
+            release();
+            await settle();
 
-        assert.deepStrictEqual(
-            requests,
-            [
-                { page: 0, sort: null },
-                { page: 1, sort: null },
-                { page: 0, sort: 'asc' },
-            ],
-            'the sort starts over from the first page',
-        );
-        assert.strictEqual(rows(tableEl), 20, 'the superseded append adds nothing to the sorted rows');
-    });
+            assert.deepStrictEqual(
+                requests,
+                [
+                    { page: 0, sort: null },
+                    { page: 1, sort: null },
+                    { page: 0, sort: 'asc' },
+                ],
+                'the sort starts over from the first page',
+            );
+            assert.strictEqual(rows(tableEl), 20, 'the superseded append adds nothing to the sorted rows');
+            assert.isEmpty(failures, 'nor announces anything');
+        });
+    }
 });
 
 describe('Table virtual paging', function () {
     this.timeout(20000);
     let requests;
     let held;
+    let total;
+    let failNext;
     const all = Array.from({ length: 1000 }, (x, i) => ({ a: i, tall: i < 100, wide: i >= 500 }));
-    const mount = async (fill = true) => {
+    const mount = async ({ fill = true, hidden = false } = {}) => {
         registry.defineComponent('loaders:table', {
             create: () => ({
                 load: async (pageRequest, sortRequest) => {
@@ -2157,16 +2165,21 @@ describe('Table virtual paging', function () {
                     if (held) {
                         await held;
                     }
-                    const rows = sortRequest?.order === 'desc' ? [...all].reverse() : all;
+                    if (failNext) {
+                        failNext = false;
+                        throw new Error('boom');
+                    }
+                    const sorted = sortRequest?.order === 'desc' ? [...all].reverse() : all;
+                    const rows = sorted.slice(0, total);
                     const start = pageRequest.page * pageRequest.size;
                     return { data: rows.slice(start, start + pageRequest.size), size: rows.length };
                 },
             }),
         });
         const container = appended(`
-            <div style="display: flex; flex-direction: column; height: 300px; width: 600px">
+            <div style="display: ${hidden ? 'none' : 'flex'}; flex-direction: column; height: 300px; width: 600px">
                 <ful-table class="${fill ? 'ful-fill' : ''}" paging="virtual" autoload page-size="20">
-                    <template slot="schema"><schema>
+                    <template slot="schema"><schema tabindex="-1">
                         <column title="A" sorter="a">{{ a }}<div data-tpl-if="tall">more</div></column>
                         <column title="B">{{ wide ? 'a much longer text that would widen this column if it could' : 'b' }}</column>
                     </schema></template>
@@ -2192,9 +2205,18 @@ describe('Table virtual paging', function () {
         wrapper.scrollTop = (page / 50) * wrapper.scrollHeight;
         await rested();
     };
+    const rowAt = (tableEl, page) => body(tableEl).querySelector(`tr[aria-rowindex="${page * 20 + 2}"]`);
+    const centred = async (tableEl, row) => {
+        const wrapper = wrapperOf(tableEl);
+        const top = row.getBoundingClientRect().top - wrapper.getBoundingClientRect().top;
+        wrapper.scrollTop += top - wrapper.clientHeight / 2 + 5;
+        await rested();
+    };
     beforeEach(() => {
         requests = [];
         held = null;
+        total = 1000;
+        failNext = false;
     });
 
     it('keeps the page in view and its neighbours, the other rows standing in as space', async () => {
@@ -2220,6 +2242,100 @@ describe('Table virtual paging', function () {
             1,
             'the columns keep the widths the first rows gave them',
         );
+
+        await scrolledTo(tableEl, 5);
+
+        assert.isAtMost(firstIndex(tableEl), 6 * 20, 'a scroll back up moves the window up as far');
+        assert.isAtMost(body(tableEl).children.length, 60, 'still three pages at most');
+    });
+
+    it('keeps the rows and offers a retry when a page fails', async () => {
+        const tableEl = await mount();
+        failNext = true;
+        await scrolledTo(tableEl, 30);
+
+        const failure = tableEl.querySelector('ful-table-status [role=alert]');
+        assert.isFalse(failure.hidden, 'the failure is announced in the status bar');
+        assert.strictEqual(firstIndex(tableEl), 2, 'the rows shown stay');
+        const asked = requests.length;
+        wrapperOf(tableEl).scrollTop += 10;
+        await rested();
+        assert.strictEqual(requests.length, asked, 'scrolling asks for nothing more');
+
+        failure.querySelector('[data-ref=retry]').click();
+        await rested();
+
+        assert.isTrue(failure.hidden, 'the failure is gone');
+        assert.isAbove(firstIndex(tableEl), 500, 'the retry shows the pages in view');
+    });
+
+    for (const failing of [false, true]) {
+        it(`drops a page or a reload that a sort supersedes, ${failing ? 'failed' : 'answered'}`, async () => {
+            const tableEl = await mount();
+            const failures = [];
+            tableEl.addEventListener('load:failure', () => failures.push('failure'));
+            const superseded = async (start) => {
+                let release;
+                held = new Promise((resolve) => {
+                    release = resolve;
+                });
+                const asked = requests.length;
+                const started = start();
+                while (requests.length === asked) {
+                    await new Promise((r) => setTimeout(r, 20));
+                }
+                failNext = failing;
+                tableEl.querySelector('ful-sorter').click();
+                await settle();
+                held = null;
+                release();
+                await started;
+                await rested();
+            };
+
+            await superseded(() => {
+                wrapperOf(tableEl).scrollTop = wrapperOf(tableEl).scrollHeight / 2;
+            });
+            assert.strictEqual(wrapperOf(tableEl).scrollTop, 0, 'the sort shows its first page at the top');
+            assert.strictEqual(firstIndex(tableEl), 2, 'the page superseded adds nothing');
+
+            await scrolledTo(tableEl, 30);
+            await superseded(() => tableEl.reload());
+            assert.strictEqual(firstIndex(tableEl), 2, 'the reload superseded shows nothing, nor rejects');
+            assert.isEmpty(failures, 'nothing superseded announces anything');
+        });
+    }
+
+    it('keeps the page holding the focus while it is near the window', async () => {
+        const tableEl = await mount();
+        await scrolledTo(tableEl, 30);
+        const focused = body(tableEl).firstElementChild;
+        const page = (Number(focused.getAttribute('aria-rowindex')) - 2) / 20;
+        focused.focus({ preventScroll: true });
+        await rested();
+
+        await centred(tableEl, rowAt(tableEl, page + 2));
+
+        assert.isTrue(focused.isConnected, 'the focused row stays in the page');
+        assert.isTrue(document.activeElement === focused, 'and keeps the focus');
+        assert.strictEqual(body(tableEl).children.length, 80, 'its page joins the window');
+
+        await scrolledTo(tableEl, 45);
+
+        assert.isFalse(focused.isConnected, 'a scroll far away drops it');
+    });
+
+    it('measures its rows once they are laid out, when it loaded hidden', async () => {
+        const tableEl = await mount({ hidden: true });
+        assert.strictEqual(body(tableEl).children.length, 20, 'a hidden table shows its first page and asks for nothing more');
+        assert.isNull(tableEl.querySelector('colgroup'), 'nor locks its columns');
+
+        tableEl.parentElement.style.display = 'flex';
+        wrapperOf(tableEl).scrollTop = 1;
+        await rested();
+
+        assert.strictEqual(body(tableEl).children.length, 40, 'once shown it asks for the next page');
+        assert.isNotNull(tableEl.querySelector('colgroup[data-ref=widths]'), 'and locks its columns');
     });
 
     for (const anchoring of ['auto', 'none']) {
@@ -2282,12 +2398,41 @@ describe('Table virtual paging', function () {
         assert.strictEqual(firstIndex(tableEl), 2, 'the first row is the first of the sorted rows');
     });
 
+    it('starts over when a reload finds fewer rows than the window starts at, or fails', async () => {
+        const tableEl = await mount();
+        await scrolledTo(tableEl, 30);
+
+        total = 100;
+        await tableEl.reload();
+        await rested();
+        assert.strictEqual(firstIndex(tableEl), 2, 'the first page is shown');
+        assert.strictEqual(wrapperOf(tableEl).scrollTop, 0, 'at the top');
+
+        failNext = true;
+        const failed = await tableEl.reload().then(
+            () => false,
+            () => true,
+        );
+        assert.isTrue(failed, 'a failed reload rejects');
+        assert.isFalse(tableEl.querySelector('tbody[data-ref=feedback]').hidden, 'and shows the error panel');
+
+        total = 0;
+        await tableEl.reload();
+        await settle();
+        assert.isFalse(tableEl.querySelector('tbody[data-ref=empty]').hidden, 'no rows show the empty panel');
+        assert.strictEqual(
+            tableEl.querySelector('ful-table-status [data-ref=count]').textContent,
+            'Showing 0 of 0',
+            'the status bar counts none',
+        );
+    });
+
     it('appends as paging="infinite" does, and warns, when the page scrolls its rows', async () => {
         const warn = console.warn;
         const warnings = [];
         console.warn = (message) => warnings.push(String(message));
         try {
-            const tableEl = await mount(false);
+            const tableEl = await mount({ fill: false });
             assert.isTrue(
                 warnings.some((w) => w.includes('paging="virtual"')),
                 'the table says why it does not keep a window',
@@ -2302,4 +2447,83 @@ describe('Table virtual paging', function () {
             console.warn = warn;
         }
     });
+});
+
+describe('Table loads superseded while their rows render', function () {
+    this.timeout(20000);
+    let gate = Promise.resolve();
+    class GatedRow extends ParsedElement {
+        async render() {
+            await gate;
+        }
+    }
+    registry.defineElement('x-gated-row', GatedRow);
+    const rested = async () => {
+        for (let i = 0; i < 3; ++i) {
+            await new Promise((r) => setTimeout(r, 200));
+            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+            await settle();
+        }
+    };
+    const mount = async (paging) => {
+        registry.defineComponent('loaders:table', {
+            create: () => ({
+                load: async (pageRequest) => {
+                    const start = pageRequest.page * pageRequest.size;
+                    return { data: Array.from({ length: pageRequest.size }, (x, i) => ({ a: start + i })), size: 1000 };
+                },
+            }),
+        });
+        const container = appended(`
+            <div style="display: flex; flex-direction: column; height: 300px">
+                <ful-table class="ful-fill" paging="${paging}" autoload page-size="20">
+                    <template slot="schema"><schema><column title="A" sorter="a"><x-gated-row></x-gated-row>{{ a }}</column></schema></template>
+                </ful-table>
+            </div>`);
+        const tableEl = container.querySelector('ful-table');
+        await Rendering.waitFor(tableEl);
+        await rested();
+        return tableEl;
+    };
+    const cases = {
+        pages: (tableEl) => tableEl.reload(),
+        infinite: (tableEl) => {
+            tableEl.querySelector('ful-table-wrapper').scrollTop = 1e6;
+        },
+        'virtual window': (tableEl) => {
+            const wrapper = tableEl.querySelector('ful-table-wrapper');
+            wrapper.scrollTop = wrapper.scrollHeight / 2;
+        },
+        'virtual reload': (tableEl) => tableEl.reload(),
+    };
+    for (const [name, start] of Object.entries(cases)) {
+        it(`announces nothing for a ${name} load a sort supersedes while its rows render`, async () => {
+            const tableEl = await mount(name.split(' ')[0]);
+            if (name === 'virtual reload') {
+                const wrapper = tableEl.querySelector('ful-table-wrapper');
+                wrapper.scrollTop = wrapper.scrollHeight / 2;
+                await rested();
+            }
+            const seen = [];
+            tableEl.addEventListener('load:success', (e) => seen.push(e.detail.sortRequest?.order ?? null));
+            let open;
+            gate = new Promise((resolve) => {
+                open = resolve;
+            });
+            const started = start(tableEl);
+            await rested();
+            tableEl.querySelector('ful-sorter').click();
+            await settle();
+            gate = Promise.resolve();
+            open();
+            await started;
+            await rested();
+
+            assert.isNotEmpty(seen, 'the sort loads');
+            assert.isTrue(
+                seen.every((order) => order === 'asc'),
+                'only the sort, and the pages after it, announce their rows',
+            );
+        });
+    }
 });
