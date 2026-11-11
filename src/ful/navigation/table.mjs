@@ -841,6 +841,13 @@ class Table extends ParsedElement {
                 },
                 { passive: true },
             );
+            // a table that loaded while it was not laid out, in a tab not yet shown for one, has
+            // measured nothing: with a first page shorter than its panel no scroll would ever come
+            // to do it. Its box changing size is the moment it is laid out, or shows more rows.
+            new ResizeObserver(() => {
+                this.#countInView();
+                this.#reconcile(false);
+            }).observe(tableWrapper);
         } else if (status) {
             this.#endWatch = new IntersectionObserver((entries) => {
                 // an entry queued before the watch moved on to another row, or stopped, asks for nothing
@@ -1240,7 +1247,7 @@ class Table extends ParsedElement {
      * Measures the height of a row and locks the widths of the columns, once
      * per load, on the rows it shows, then sizes the spacers. A table that is not laid out, inside a
      * closed disclosure for instance, measures nothing and is measured when
-     * its rows next scroll.
+     * it is laid out, or when its rows next scroll.
      * @returns {boolean} whether the rows are measured
      */
     #measureRows() {

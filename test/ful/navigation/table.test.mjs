@@ -2157,7 +2157,7 @@ describe('Table virtual paging', function () {
     let total;
     let failNext;
     const all = Array.from({ length: 1000 }, (x, i) => ({ a: i, tall: i < 100, wide: i >= 500 }));
-    const mount = async ({ fill = true, hidden = false } = {}) => {
+    const mount = async ({ fill = true, hidden = false, size = 20 } = {}) => {
         registry.defineComponent('loaders:table', {
             create: () => ({
                 load: async (pageRequest, sortRequest) => {
@@ -2178,7 +2178,7 @@ describe('Table virtual paging', function () {
         });
         const container = appended(`
             <div style="display: ${hidden ? 'none' : 'flex'}; flex-direction: column; height: 300px; width: 600px">
-                <ful-table class="${fill ? 'ful-fill' : ''}" paging="virtual" autoload page-size="20">
+                <ful-table class="${fill ? 'ful-fill' : ''}" paging="virtual" autoload page-size="${size}">
                     <template slot="schema"><schema tabindex="-1">
                         <column title="A" sorter="a">{{ a }}<div data-tpl-if="tall">more</div></column>
                         <column title="B">{{ wide ? 'a much longer text that would widen this column if it could' : 'b' }}</column>
@@ -2336,6 +2336,18 @@ describe('Table virtual paging', function () {
 
         assert.strictEqual(body(tableEl).children.length, 40, 'once shown it asks for the next page');
         assert.isNotNull(tableEl.querySelector('colgroup[data-ref=widths]'), 'and locks its columns');
+    });
+
+    it('fills its panel once it is laid out, when it loaded hidden with a page shorter than the panel', async () => {
+        const tableEl = await mount({ hidden: true, size: 3 });
+        assert.strictEqual(body(tableEl).children.length, 3, 'a hidden table shows its first page');
+
+        tableEl.parentElement.style.display = 'flex';
+        await rested();
+
+        const wrapper = wrapperOf(tableEl);
+        assert.isAbove(body(tableEl).children.length, 3, 'once shown it asks for the pages its panel has room for, with no scroll');
+        assert.isAbove(wrapper.scrollHeight, wrapper.clientHeight, 'and the rows not in the page take their space, so they can be scrolled to');
     });
 
     for (const anchoring of ['auto', 'none']) {
