@@ -1739,6 +1739,20 @@ describe('Table filling its container', () => {
         assert.closeTo(published(), thead.getBoundingClientRect().height, 0.5, 'and the height follows it');
     });
 
+    it('keeps its own scrollbar inside a box that colours its scrollbars', async function () {
+        if (!CSS.supports('selector(::-webkit-scrollbar)')) {
+            this.skip();
+        }
+        const [, tableEl] = await mount('ful-fill');
+        tableEl.parentElement.style.scrollbarColor = 'red blue';
+
+        assert.strictEqual(
+            getComputedStyle(tableEl.querySelector('ful-table-wrapper')).scrollbarColor,
+            'auto',
+            'the colour of the box around it is not inherited, which would bring the bar of the browser back',
+        );
+    });
+
     it('gives the empty panel the room the rows would take, the header keeping its height', async () => {
         registry.defineComponent('loaders:no-rows', { create: () => ({ load: async () => ({ data: [], size: 0 }) }) });
         const container = appended(`

@@ -66,8 +66,14 @@
                 background-color: transparent;
             }
 
-            /* where the track cannot be inset the bar runs beside the header, in the same colours.
-               Only there: a browser that reads these properties ignores the rules above */
+            /* a browser that reads the standard properties ignores the rules above, and the colour
+               is inherited: one set on a box around the table would bring its own bar back. Where
+               the track cannot be inset the bar runs beside the header, in the same colours */
+            @supports selector(::-webkit-scrollbar) {
+                scrollbar-color: auto;
+                scrollbar-width: auto;
+            }
+
             @supports not selector(::-webkit-scrollbar) {
                 scrollbar-color: var(--ful-scrollbar-thumb-bg) var(--ful-scrollbar-bg);
             }
