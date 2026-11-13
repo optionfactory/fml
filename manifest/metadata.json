@@ -115,7 +115,7 @@
         "ful-filter-in": {
             "description": "A ful-table filter over set membership, answering for both of data-jpa's set annotations: InEnum and InList take the same array of values and no operator, differing only in what the server converts them to. The vocabulary comes from wherever a select's does, slotted options or a loader, and the value is an array whether one key was chosen or several, an empty selection contributing nothing rather than an empty array. It picks one key unless multiple is declared, as a ful-select does.",
             "attributes": {
-                "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
+                "d-expr": "The expression yielding the rows from the response body; when absent, data under mode=paged and the body itself otherwise.",
                 "item-list": "Shows the selection as a ful-item-list under the control. For a multiple select the list replaces the ful-badge chips, which it hides; a single select keeps its label in the field as well.",
                 "k-expr": "The expression yielding an option's key, evaluated against each row of the response. Set it together with l-expr to shape a response without a mapper component.",
                 "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or boolean.",
@@ -123,14 +123,16 @@
                 "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
                 "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
                 "method": "The method the vocabulary is fetched with; POST when absent. Stays live, as src does.",
-                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
+                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold; paged asks it per query a page at a time, as a ful-table does, loading the next page as the rows are scrolled to the end.",
                 "multiple": "Always on for this element: a set of one is still a set, and a single selection would answer a bare key where the filter request wants an array.",
                 "name": "The field name the surrounding form submits the selection under.",
+                "page-size": "Under mode=paged, the rows asked per page, 25 when absent: the search sends page (from 0) and size, and the dropdown asks for the next page as its rows are scrolled to the end, up to 200 rows.",
                 "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
                 "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
                 "operator": "A fixed operator sent in front of the chosen keys, for the field a compare reads rather than a set: absent the value is the bare array an InEnum or an InList takes, present it is [operator, ...keys]. No menu is rendered either way, the operator being the author naming the server's comparison rather than a choice offered to whoever is filtering. The criterion reports it, so a chip can show it.",
                 "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
                 "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory. Stays live: writing it builds the loader again and reloads as reload() does, dropping a selected key the new vocabulary does not know.",
+                "t-expr": "Under mode=chunked or mode=paged, the expression yielding how many rows match the query, evaluated against the response body; size by default under mode=paged. When the dropdown lists fewer, it tells how many it shows of how many and to type to narrow down. An answer that is not a number counts as unknown.",
                 "value": "Comma separated list of the selected keys. Empty contributes nothing, so the table drops the filter rather than sending an empty set."
             },
             "slots": {
@@ -326,7 +328,7 @@
         "ful-select": {
             "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
             "attributes": {
-                "d-expr": "The expression yielding the rows from the response body; the body itself when absent.",
+                "d-expr": "The expression yielding the rows from the response body; when absent, data under mode=paged and the body itself otherwise.",
                 "item-list": "Shows the selection as a ful-item-list under the control. For a multiple select the list replaces the ful-badge chips, which it hides; a single select keeps its label in the field as well.",
                 "k-expr": "The expression yielding an option's key, evaluated against each row of the response. Set it together with l-expr to shape a response without a mapper component.",
                 "k-type": "How a key coerces when it arrives from the response or from the value attribute: number, string or boolean.",
@@ -334,13 +336,15 @@
                 "loader": "The registered component name the select loads its vocabulary through; loaders:select when absent.",
                 "m-expr": "The expression yielding an option's metadata, evaluated against each row; the whole row when absent.",
                 "method": "The method the vocabulary is fetched with; POST when absent. Stays live, as src does.",
-                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold.",
+                "mode": "chunked asks the endpoint per query instead of fetching the vocabulary once, for a list too large to hold; paged asks it per query a page at a time, as a ful-table does, loading the next page as the rows are scrolled to the end.",
                 "multiple": "Selects any number of options rather than one: the value is a comma separated list of keys and the selection renders as ful-badge chips.",
                 "name": "The field name the surrounding form submits the selection under.",
+                "page-size": "Under mode=paged, the rows asked per page, 25 when absent: the search sends page (from 0) and size, and the dropdown asks for the next page as its rows are scrolled to the end, up to 200 rows.",
                 "preload": "Fetches the vocabulary while the element upgrades rather than on first use. The field paints immediately either way; the options arrive when they arrive.",
                 "response-mapper": "The registered component name that turns a response into { key, label, metadata } entries. The k-expr/l-expr pair takes precedence; without either, the response is read as positional rows.",
                 "revision": "Caches the fetched vocabulary in local storage under this revision; a load under a different one is a miss that evicts the entry. It is the cache's namespace, so a vocabulary that differs per user wants the principal in it. Left valueless, the revision the registry's 'revision' component answers is used, so a page states its build once instead of every element repeating it.",
                 "src": "The url the vocabulary is fetched from. Without it the slotted <option> elements are the whole vocabulary, held in memory. Stays live: writing it builds the loader again and reloads as reload() does, dropping a selected key the new vocabulary does not know.",
+                "t-expr": "Under mode=chunked or mode=paged, the expression yielding how many rows match the query, evaluated against the response body; size by default under mode=paged. When the dropdown lists fewer, it tells how many it shows of how many and to type to narrow down. An answer that is not a number counts as unknown.",
                 "value": "The selected keys, comma separated, whether or not the select is multiple. A key given here is trimmed and cannot contain a comma; assign such a key through the property instead. The property answers a key for a single select and an array for a multiple one. A single select reads a present but empty attribute as the empty key, the one an <option value=\"\"> carries, where an absent attribute means no selection; a multiple select reads it as no keys."
             },
             "slots": {

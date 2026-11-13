@@ -11,6 +11,8 @@ export default {
     'table.range': 'Righe {from}-{to} di {total}',
     'table.retry': 'Riprova',
     'dropdown.empty': 'Nessun risultato',
+    'dropdown.more': 'Mostrati {loaded} di {total}: scrivi per restringere',
+    'dropdown.more-unknown': 'Ce ne sono altri: scrivi per restringere',
     'select.remove': 'Rimuovi',
     'files.dropzone-label': 'Clicca o trascina i file qui',
     'files.remove': 'Rimuovi',

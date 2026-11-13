@@ -365,6 +365,177 @@ describe('SelectLoader', () => {
         );
     });
 
+    /** a stubbed server holding `total` entries, answering pages of `size` from the `page` and `size` sent, or all of them when none is asked */
+    const pagedHttp = (total) => {
+        const calls = [];
+        registry.defineComponent('http-client', {
+            request(method, url) {
+                const params = {};
+                calls.push(params);
+                return {
+                    param(name, ...values) {
+                        params[name] = values[0];
+                        return this;
+                    },
+                    async fetchJson() {
+                        const size = params.size ?? total;
+                        const page = params.page ?? 0;
+                        const rows = [];
+                        for (let i = page * size; i < Math.min(total, (page + 1) * size); ++i) {
+                            rows.push({ id: `k${i}`, name: `Entry ${i}` });
+                        }
+                        return { data: rows, size: total };
+                    },
+                };
+            },
+        });
+        return calls;
+    };
+    /** waits for the observer watching the last row and the request it starts */
+    const settled = async () => {
+        for (let i = 0; i !== 4; ++i) {
+            await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+            await opened();
+        }
+    };
+    /** scrolls the rows to the end and waits for the page it asks, if any, to be listed */
+    const scrolledToEnd = async (dropdown) => {
+        const menu = dropdown.querySelector('menu');
+        const before = menu.children.length;
+        menu.scrollTop = menu.scrollHeight;
+        for (let i = 0; i !== 12 && menu.children.length === before; ++i) {
+            await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+            await opened();
+        }
+    };
+    const moreHint = (dropdown) => dropdown.querySelector('[data-ref=more]');
+    const CHUNKED = 'mode="chunked" d-expr="data" k-expr="id" l-expr="name"';
+    /** a paged select relying on the `{ data, size }` answer and the page size a paged endpoint gives by default */
+    const PAGED = 'src="/paged" mode="paged" k-expr="id" l-expr="name"';
+
+    it('asks a chunked endpoint for pages and appends the next one as the rows are scrolled to the end', async () => {
+        const calls = pagedHttp(60);
+        const [selectEl] = await mount(`${PAGED}`);
+
+        const dropdown = await open(selectEl);
+        assert.lengthOf(options(dropdown), 25, 'the list opens with the first page');
+        assert.deepInclude(calls, { s: '', page: 0, size: 25 }, 'the first page is asked with its size');
+
+        await scrolledToEnd(dropdown);
+        assert.lengthOf(options(dropdown), 50, 'scrolling to the end appends the second page');
+        await scrolledToEnd(dropdown);
+
+        assert.lengthOf(options(dropdown), 60, 'the third page is the last');
+        assert.strictEqual(options(dropdown)[59], 'Entry 59');
+        assert.isTrue(moreHint(dropdown).hidden, 'with every match listed nothing is said under the rows');
+        assert.lengthOf(calls.filter((c) => 's' in c), 3, 'no page is asked past the total');
+    });
+
+    it('lists only the first page of a new search, even after the rows were scrolled far down', async () => {
+        const calls = pagedHttp(1000);
+        const [selectEl] = await mount(`${PAGED}`);
+        const dropdown = await open(selectEl);
+        for (let i = 0; i !== 3; ++i) {
+            await scrolledToEnd(dropdown);
+        }
+        calls.length = 0;
+
+        const input = selectEl.querySelector('input');
+        input.value = 'entry';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        await settled();
+
+        assert.lengthOf(options(dropdown), 25, 'the rows of the new search start again from its first page');
+        assert.deepStrictEqual(calls.filter((c) => 's' in c), [{ s: 'entry', page: 0, size: 25 }], 'no further page is asked before the rows are scrolled');
+    });
+
+    it('picks an entry of a page loaded by scrolling', async () => {
+        pagedHttp(60);
+        const [selectEl] = await mount(`${PAGED}`);
+        const dropdown = await open(selectEl);
+        await scrolledToEnd(dropdown);
+
+        dropdown.querySelectorAll('menu li')[40].click();
+        await opened();
+
+        assert.strictEqual(selectEl.value, 'k40', 'the row of the second page carries its own entry');
+    });
+
+    it('stops loading pages at the most rows a list shows, and tells to type', async () => {
+        pagedHttp(1000);
+        const [selectEl] = await mount(`${PAGED} page-size="50"`);
+        const dropdown = await open(selectEl);
+
+        for (let i = 0; i !== 4; ++i) {
+            await scrolledToEnd(dropdown);
+        }
+
+        assert.lengthOf(options(dropdown), 200, 'a list holds at most 200 rows');
+        assert.isFalse(moreHint(dropdown).hidden, 'past them the user is told');
+        assert.include(moreHint(dropdown).textContent, '200 of 1000');
+    });
+
+    it('tells how many match when a chunked endpoint answers fewer, even without pages', async () => {
+        const calls = pagedHttp(25);
+        registry.defineComponent('http-client', {
+            request() {
+                calls.push({});
+                return {
+                    param() {
+                        return this;
+                    },
+                    async fetchJson() {
+                        return { data: [{ id: 'k0', name: 'Entry 0' }], size: 48256 };
+                    },
+                };
+            },
+        });
+        const [selectEl] = await mount(`src="/unpaged" ${CHUNKED} t-expr="size"`);
+
+        const dropdown = await open(selectEl);
+
+        assert.include(moreHint(dropdown).textContent, '1 of 48256', 'the total read through t-expr is told');
+    });
+
+    it('reads the rows and the total where a paged endpoint answers in another shape', async () => {
+        registry.defineComponent('http-client', {
+            request() {
+                const params = {};
+                return {
+                    param(name, ...values) {
+                        params[name] = values[0];
+                        return this;
+                    },
+                    async fetchJson() {
+                        const rows = Array.from({ length: 25 }, (_, i) => ({ id: `k${params.page * 25 + i}`, name: `Entry ${params.page * 25 + i}` }));
+                        return { rows, count: { matching: 50 } };
+                    },
+                };
+            },
+        });
+        const [selectEl] = await mount(`src="/other" mode="paged" d-expr="rows" t-expr="count.matching" k-expr="id" l-expr="name"`);
+
+        const dropdown = await open(selectEl);
+        for (let i = 0; i !== 3; ++i) {
+            await scrolledToEnd(dropdown);
+        }
+
+        assert.lengthOf(options(dropdown), 50, 'the pages stop at the total read through t-expr, though each came back full');
+        assert.strictEqual(options(dropdown)[49], 'Entry 49', 'the rows are read through d-expr');
+    });
+
+    it('asks a chunked endpoint for no page, even with a page size', async () => {
+        const calls = pagedHttp(60);
+        const [selectEl] = await mount(`src="/paged" ${CHUNKED} page-size="25"`);
+
+        const dropdown = await open(selectEl);
+        await scrolledToEnd(dropdown);
+
+        assert.lengthOf(options(dropdown), 60, 'an endpoint that knows no pages answers the whole search');
+        assert.notProperty(calls.find((c) => 's' in c), 'page', 'no page is sent: the endpoint might answer the same rows again');
+    });
+
     it('maps the response through the declared expressions', async () => {
         stubHttp({
             '/shaped': {

@@ -11,6 +11,8 @@ export default {
     'table.range': 'Lignes {from} à {to} sur {total}',
     'table.retry': 'Réessayer',
     'dropdown.empty': 'Aucun résultat',
+    'dropdown.more': '{loaded} sur {total} affichés : tapez pour affiner',
+    'dropdown.more-unknown': 'Il y en a d’autres : tapez pour affiner',
     'select.remove': 'Retirer',
     'files.dropzone-label': 'Cliquez ou déposez vos fichiers ici',
     'files.remove': 'Retirer',

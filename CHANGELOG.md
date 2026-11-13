@@ -228,6 +228,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [ENH] a `preload` select paints its label and control at once instead of holding its upgrade on the prefetch; a first open during the prefetch joins it
 - [ENH] `multiple` is live, and the loader's attributes (`src`, `method`, `mode`, `preload`, `revision`, `k-expr`, `l-expr`, `d-expr`, `m-expr`, `response-mapper`) are declared and documented in the IDE metadata
 - [ENH] `src` and `method` stay live on `ful-select` and `ful-filter-in`: writing either, as an attribute or as a property, closes the dropdown, builds the loader again and reloads as `reload()` does
+- [NEW] `mode="paged"` asks the endpoint per query a page at a time, as a `ful-table` does: the search sends `s`, `page` and `size` (`page-size`, 25 by default), the dropdown appends the next page as its rows are scrolled to the end, up to 200 rows, and expects `{ data, size }`, so `d-expr` defaults to `data` and `t-expr` to `size`. `t-expr` reads how many rows match, under `mode="chunked"` too, and the dropdown tells how many it shows of how many and to type to narrow down. `mode="chunked"` sends no page, as before
 - [NEW] `select.reconfigure({ src, method }, { notify })` writes both at once, reloads once and answers a promise settling with the reload; `notify` fires `change` when the reload dropped a selected key
 - [ENH] a key containing a comma assigned through the property warns once per element
 - [ENH] a claim landing while the dropdown is open closes it

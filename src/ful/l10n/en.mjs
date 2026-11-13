@@ -11,6 +11,8 @@ export default {
     'table.range': 'Rows {from}-{to} of {total}',
     'table.retry': 'Retry',
     'dropdown.empty': 'No results',
+    'dropdown.more': 'Showing {loaded} of {total}: type to narrow down',
+    'dropdown.more-unknown': 'There are more: type to narrow down',
     'select.remove': 'Remove',
     'files.dropzone-label': 'Click or drop your files here',
     'files.remove': 'Remove',

@@ -108,6 +108,13 @@
             text-align: start;
         }
 
+        /* under the rows: more entries match than the list shows */
+        ful-empty[data-ref='more'] {
+            border-block-start: var(--ful-border-width, 1px) solid var(--ful-border-color);
+            font-size: 0.875em;
+            opacity: 0.75;
+        }
+
         menu {
             height: auto;
             max-height: 200px;

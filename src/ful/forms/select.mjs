@@ -1,4 +1,4 @@
-import { Attributes, Fragments, ParsedElement, Templates } from '../../ftl/index.mjs';
+import { Attributes, Fragments, Localization, ParsedElement, Templates } from '../../ftl/index.mjs';
 import { Claims } from '../claims.mjs';
 import { Anchors } from '../disclosures/anchors.mjs';
 import { Field } from './field.mjs';
@@ -10,6 +10,11 @@ import { Timing } from '../timing.mjs';
  */
 /**
  * @typedef {{ request(method: string, url: string): any }} SelectHttpClient
+ */
+/**
+ * A page of a vocabulary too large to load whole: its entries, how many entries
+ * match in all when the server says so, and whether another page follows.
+ * @typedef {{ entries: SelectEntry[], total: number|null, more: boolean }} SelectPage
  */
 
 const byKeys = (entries, keys) => entries.filter(({ key }) => keys.some((r) => String(r) === String(key)));
@@ -137,14 +142,22 @@ class PartialRemoteLoader {
     #url;
     #method;
     #responseMapper;
+    #pageSize;
+    #totalMapper;
     /**
-     * @param {{ http: SelectHttpClient, url: string, method: string, responseMapper: (response: any) => SelectEntry[] }} conf
+     * @param {{ http: SelectHttpClient, url: string, method: string, responseMapper: (response: any) => SelectEntry[],
+     *     pageSize?: number|null, totalMapper?: ((response: any) => number|null)|null }} conf
+     * `pageSize` asks for pages of that many entries, sent as `page` and `size` beside `s`; without it every
+     * search is one request answered whole, as by an endpoint that knows no pages. `totalMapper` reads, from
+     * a response, how many entries match in all; an answer that is not a number counts as unknown.
      */
-    constructor({ http, url, method, responseMapper }) {
+    constructor({ http, url, method, responseMapper, pageSize = null, totalMapper = null }) {
         this.#http = http;
         this.#url = url;
         this.#method = method;
         this.#responseMapper = responseMapper;
+        this.#pageSize = pageSize;
+        this.#totalMapper = totalMapper;
     }
     /**
      * Does nothing, since nothing is held between queries.
@@ -173,8 +186,29 @@ class PartialRemoteLoader {
      * @throws when the request fails
      */
     async load(needle) {
-        const response = await this.#http.request(this.#method, this.#url).param('s', needle).fetchJson();
-        return this.#responseMapper(response);
+        return (await this.page(needle ?? null, 0)).entries;
+    }
+    /**
+     * Asks the endpoint for one page of the entries matching the needle. Another
+     * page follows when the total says more entries match, or, with no total,
+     * when this page came back full. Without a page size there is only page 0.
+     * @param {string|null} needle
+     * @param {number} page
+     * @returns {Promise<SelectPage>}
+     * @throws when the request fails
+     */
+    async page(needle, page) {
+        let request = this.#http.request(this.#method, this.#url).param('s', needle);
+        if (this.#pageSize) {
+            request = request.param('page', page).param('size', this.#pageSize);
+        }
+        const response = await request.fetchJson();
+        const entries = this.#responseMapper(response);
+        const mapped = this.#totalMapper ? this.#totalMapper(response) : null;
+        const total = Number.isFinite(mapped) ? mapped : null;
+        const loaded = page * (this.#pageSize ?? 0) + entries.length;
+        const more = !!this.#pageSize && (total === null ? entries.length === this.#pageSize : loaded < total);
+        return { entries, total, more };
     }
 }
 
@@ -242,28 +276,54 @@ class InMemoryLoader {
  * with `metadata.reason`, when present, as the row's title.
  */
 class SelectLoader {
+    /** The entries a paged loader asks for at a time when no size is given: more than a dropdown shows at once, so a scroll does not ask at every row. */
+    static PAGE_SIZE = 25;
     /**
      * Builds a loader from a plain configuration, reading no dom: `data` alone
      * is the in-memory vocabulary, a `url` is fetched whole or, under
-     * `mode: 'chunked'`, per query. A test, or a caller holding its own
+     * `mode: 'chunked'` or `mode: 'paged'`, per query. A test, or a caller holding its own
      * configuration, builds a loader this way; `create` is the same thing with
      * an element's attributes parsed first.
      *
      * A remote loader fetches once and filters in memory, caching the response
      * in local storage under `method@url` when a revision is given; a chunked
-     * one sends every search as `s` and every key lookup as `k`. The response
-     * mapper turns the parsed response body into entries.
-     * @param {{ data?: SelectEntry[], url?: undefined, http?: undefined, method?: undefined, mode?: undefined, prefetch?: undefined, revision?: undefined, responseMapper?: undefined }
-     *     | { data?: undefined, url: string, http: SelectHttpClient, method?: string, mode?: string, prefetch?: boolean, revision?: string|null, responseMapper: (response: any) => SelectEntry[] }} conf
+     * one sends every search as `s` and every key lookup as `k`; a paged one
+     * also asks for the matches a page at a time, `pageSize` of them
+     * (`SelectLoader.PAGE_SIZE` by default). The response mapper
+     * turns the parsed response body into entries, the total mapper reads how
+     * many match in all.
+     * @param {{ data?: SelectEntry[], url?: undefined, http?: undefined, method?: undefined, mode?: undefined, prefetch?: undefined, revision?: undefined, responseMapper?: undefined, pageSize?: undefined, totalMapper?: undefined }
+     *     | { data?: undefined, url: string, http: SelectHttpClient, method?: string, mode?: string, prefetch?: boolean, revision?: string|null, responseMapper: (response: any) => SelectEntry[], pageSize?: number|null, totalMapper?: ((response: any) => number|null)|null }} conf
      * `method` defaults to POST
      * @returns {InMemoryLoader|PartialRemoteLoader|RemoteLoader}
      */
-    static from({ data, http, url, method = 'POST', mode, prefetch = false, revision = null, responseMapper }) {
+    static from({
+        data,
+        http,
+        url,
+        method = 'POST',
+        mode,
+        prefetch = false,
+        revision = null,
+        responseMapper,
+        pageSize = null,
+        totalMapper = null,
+    }) {
         if (!url) {
             return new InMemoryLoader(data ?? []);
         }
         if ('chunked' === mode) {
-            return new PartialRemoteLoader({ http, url, method, responseMapper });
+            return new PartialRemoteLoader({ http, url, method, responseMapper, totalMapper });
+        }
+        if ('paged' === mode) {
+            return new PartialRemoteLoader({
+                http,
+                url,
+                method,
+                responseMapper,
+                pageSize: pageSize ?? SelectLoader.PAGE_SIZE,
+                totalMapper,
+            });
         }
         return new RemoteLoader({ http, url, method, responseMapper, prefetch, revision });
     }
@@ -273,7 +333,7 @@ class SelectLoader {
      * `value` attribute or else its trimmed text. With `src` the url is
      * requested through the `http-client` component with `method` (POST by
      * default): once on first use, or at the upgrade under `preload`, or per
-     * query under `mode="chunked"`. A `revision` caches the whole response in local storage; a
+     * query under `mode="chunked"` or `mode="paged"`. A `revision` caches the whole response in local storage; a
      * valueless one takes the `revision` component, calling it when it is a
      * function, and warns and does not cache when none is registered.
      *
@@ -281,6 +341,15 @@ class SelectLoader {
      * each row of `d-expr` (the response itself by default), with `m-expr` as
      * the metadata (the row by default); else through the `response-mapper`
      * component; else each row is read as a `[key, label, metadata]` array.
+     *
+     * Under `mode="paged"` the search also sends `page` and `size` (`page-size`,
+     * 25 by default), the dropdown asking for the next page as its rows are
+     * scrolled to the end, and the endpoint answers as one paging a
+     * `ful-table` does, `{ data, size }` with `size` the number of entries
+     * matching in all: `d-expr` defaults to `data` and `t-expr` to `size`.
+     * `t-expr`, evaluated on the response, is how many entries match in all,
+     * which the dropdown tells when it shows fewer; under `mode="chunked"` it
+     * is read where it is declared.
      * @param {ParsedElement} el the element declaring the loader attributes
      * @param {{ options?: DocumentFragment }} conf
      * @returns {InMemoryLoader|PartialRemoteLoader|RemoteLoader}
@@ -304,6 +373,8 @@ class SelectLoader {
             prefetch: el.declared('preload'),
             revision: SelectLoader.#revisionFrom(el),
             responseMapper: SelectLoader.#responseMapperFrom(el),
+            pageSize: Number(el.declared('page-size')) || null,
+            totalMapper: SelectLoader.#totalMapperFrom(el),
         });
     }
     static #revisionFrom(el) {
@@ -321,13 +392,21 @@ class SelectLoader {
         }
         return typeof configured === 'function' ? configured() : configured;
     }
+    static #totalMapperFrom(el) {
+        const expression = el.declared('t-expr') ?? (el.declared('mode') === 'paged' ? 'size' : null);
+        if (!expression) {
+            return null;
+        }
+        return (response) => el._registry.evaluator().withOverlay(response).evaluateExpression(expression);
+    }
     static #responseMapperFrom(el) {
+        const paged = el.declared('mode') === 'paged';
         if (el.declared('k-expr') && el.declared('l-expr')) {
             return (response) => {
                 const rows = el._registry
                     .evaluator()
                     .withOverlay(response)
-                    .evaluateExpression(el.declared('d-expr') ?? 'self');
+                    .evaluateExpression(el.declared('d-expr') ?? (paged ? 'data' : 'self'));
                 return rows.map((row) => {
                     const evaluator = el._registry.evaluator().withOverlay(row);
                     return {
@@ -341,7 +420,12 @@ class SelectLoader {
         if (el.declared('response-mapper')) {
             return el.component(el.declared('response-mapper'));
         }
-        return (/** @type any[] */ response) => response.map(([key, label, metadata]) => ({ key, label, metadata }));
+        return (/** @type any */ response) =>
+            (paged ? response.data : response).map((/** @type any[] */ [key, label, metadata]) => ({
+                key,
+                label,
+                metadata,
+            }));
     }
 }
 
@@ -369,6 +453,7 @@ class Dropdown extends ParsedElement {
         <ful-spinner class="centered" role="status" hidden><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
         <ful-empty data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('dropdown.empty') }}</ful-empty>
         <menu tabindex="-1" role="listbox" hidden></menu>
+        <ful-empty data-ref="more" aria-live="polite" hidden></ful-empty>
     `;
     /**
      * `options` renders one row per entry, each entry carrying its `index`
@@ -382,12 +467,27 @@ class Dropdown extends ParsedElement {
             </li>
         `,
     };
+    /**
+     * The rows a paged vocabulary loads into the list at most: past them the user is told to type, as
+     * nobody scrolls through thousands of entries to find one.
+     */
+    static MAX_ROWS = 200;
     #spinner;
     #menu;
     #empty;
+    #more;
     #optionstemplate;
     #options = new Map();
     #shows = new Claims();
+    /**
+     * the pages of the current show: how to ask for the next, the last asked for, and what the last answered
+     * @type {{ next: ((page: number) => any)|null, page: number, more: boolean, total: number|null, loading: boolean }}
+     */
+    #paging = { next: null, page: 0, more: false, total: null, loading: false };
+    /** @type {IntersectionObserver|null} watches the last row while another page follows */
+    #endWatch = null;
+    /** the keys selected when the dropdown was shown, which the rows of a later page are marked against */
+    #keys = [];
     /**
      * @param {{ slots: Record<string, DocumentFragment> }} conf
      */
@@ -398,6 +498,7 @@ class Dropdown extends ParsedElement {
             : Templates.fromFragment(slots.default);
         this.#spinner = fragment.querySelector('ful-spinner');
         this.#empty = fragment.querySelector('[data-ref=empty]');
+        this.#more = fragment.querySelector('[data-ref=more]');
         this.#menu = fragment.querySelector('menu');
         this.#menu.id = this.declared('listbox') || Attributes.uid('ful-listbox');
         this.#menu.addEventListener('mousedown', (evt) => {
@@ -468,14 +569,48 @@ class Dropdown extends ParsedElement {
         if (values === undefined) {
             throw new Error('null data');
         }
-        this.#options = new Map(values.map((v, i) => [String(i), v]));
-        const data = values.map((entry, index) => ({ index, ...entry }));
-        this.#optionstemplate.withOverlay(data).renderTo(this.#menu);
-        for (const [index, li] of [...this.#menu.children].entries()) {
+        // rows rendered from outside a show are the whole list: no page follows them
+        this.#endWatch?.disconnect();
+        this.#paging.more = false;
+        this.#paging.total = null;
+        this.#more.setAttribute('hidden', '');
+        this.#options = new Map();
+        this.#menu.replaceChildren(this.#rows(values, keys));
+        this.#empty.toggleAttribute('hidden', values.length !== 0);
+        this.#menu.toggleAttribute('hidden', values.length === 0);
+        // a fresh list starts at its top at once: gliding there from where the previous list was scrolled
+        // would show its last row on the way and have the next page asked
+        this.#menu.scrollTop = 0;
+        const current = values.findIndex(({ key }) => keys.some((r) => String(r) === String(key)));
+        this.#highlight(
+            current >= 0
+                ? this.#menu.children[current]
+                : (this.#menu.querySelector('li[selected]:not([aria-disabled="true"])') ??
+                      this.#menu.querySelector('li:not([aria-disabled="true"])')),
+        );
+    }
+    /**
+     * The rows of the entries, numbered after those already in the list.
+     * @param {SelectEntry[]} values
+     * @param {any[]} keys the keys currently selected
+     * @returns {DocumentFragment}
+     */
+    #rows(values, keys) {
+        const offset = this.#options.size;
+        for (const [i, v] of values.entries()) {
+            this.#options.set(String(offset + i), v);
+        }
+        const fragment = this.#optionstemplate
+            .withOverlay(values.map((entry, i) => ({ index: offset + i, ...entry })))
+            .render();
+        for (const [index, li] of [...fragment.children].entries()) {
             const entry = values[index];
             const picked = keys.some((r) => String(r) === String(entry?.key));
             li.toggleAttribute('picked', picked);
             li.setAttribute('aria-selected', picked ? 'true' : 'false');
+            if (offset > 0) {
+                li.removeAttribute('selected');
+            }
             const disabled = !!entry?.metadata?.disabled;
             if (disabled) {
                 li.setAttribute('aria-disabled', 'true');
@@ -488,15 +623,83 @@ class Dropdown extends ParsedElement {
                 li.removeAttribute('title');
             }
         }
-        this.#empty.toggleAttribute('hidden', values.length !== 0);
-        this.#menu.toggleAttribute('hidden', values.length === 0);
-        const current = values.findIndex(({ key }) => keys.some((r) => String(r) === String(key)));
-        this.#highlight(
-            current >= 0
-                ? this.#menu.children[current]
-                : (this.#menu.querySelector('li[selected]:not([aria-disabled="true"])') ??
-                      this.#menu.querySelector('li:not([aria-disabled="true"])')),
+        return fragment;
+    }
+    /**
+     * Says, under the rows, that more entries match than the list shows: how many when the total is
+     * known. While another page is on its way it says nothing.
+     */
+    #tellMore() {
+        const { more, total, loading } = this.#paging;
+        const shown = this.#options.size;
+        const capped = more && shown >= Dropdown.MAX_ROWS;
+        const hidden = total !== null ? total > shown && (!more || capped) : capped;
+        if (loading || !hidden) {
+            this.#more.setAttribute('hidden', '');
+            return;
+        }
+        this.#more.textContent =
+            total !== null
+                ? Localization.of().t('dropdown.more', { loaded: shown, total })
+                : Localization.of().t('dropdown.more-unknown');
+        this.#more.removeAttribute('hidden');
+    }
+    /** Watches the last row while another page follows and the list has room for it. */
+    #watchEnd() {
+        this.#endWatch?.disconnect();
+        const last = this.#menu.lastElementChild;
+        if (!this.#paging.more || !last || this.#options.size >= Dropdown.MAX_ROWS) {
+            return;
+        }
+        this.#endWatch ??= new IntersectionObserver(
+            (entries) => {
+                if (entries.some((e) => e.isIntersecting && e.target === this.#menu.lastElementChild)) {
+                    this.#loadNext();
+                }
+            },
+            { root: this.#menu },
         );
+        this.#endWatch.observe(last);
+    }
+    /** Appends the next page to the rows, leaving the highlight where it is. */
+    async #loadNext() {
+        const paging = this.#paging;
+        if (paging.loading || !paging.more || !paging.next) {
+            return;
+        }
+        const claim = this.#shows.hold();
+        paging.loading = true;
+        this.#tellMore();
+        try {
+            const answer = Dropdown.#asPage(await paging.next(paging.page + 1));
+            if (claim.stale) {
+                return;
+            }
+            paging.page += 1;
+            paging.more = answer.more;
+            paging.total = answer.total;
+            this.#menu.append(this.#rows(answer.entries, this.#keys));
+        } catch (e) {
+            if (claim.stale) {
+                return;
+            }
+            // the rows already shown stay usable: the next scroll to the end asks again
+            console.warn('ful-dropdown: the next page could not be loaded', e);
+        } finally {
+            if (!claim.stale) {
+                paging.loading = false;
+                this.#tellMore();
+                this.#watchEnd();
+            }
+        }
+    }
+    /**
+     * What a loader answers, as a page: a plain array is the whole vocabulary of the search.
+     * @param {SelectEntry[]|SelectPage} answer
+     * @returns {SelectPage}
+     */
+    static #asPage(answer) {
+        return Array.isArray(answer) ? { entries: answer, total: null, more: false } : answer;
     }
     #change(target) {
         const index = target.getAttribute('value');
@@ -517,6 +720,8 @@ class Dropdown extends ParsedElement {
      */
     hide() {
         this.#shows.invalidate();
+        this.#endWatch?.disconnect();
+        this.#paging = { next: null, page: 0, more: false, total: null, loading: false };
         if (this.matches(':popover-open')) {
             this.hidePopover();
         }
@@ -537,7 +742,14 @@ class Dropdown extends ParsedElement {
      * answers as `update` does. A show overtaken by a later `show` or by `hide`
      * before its loader settles leaves the dropdown alone and resolves, even
      * when its loader rejected.
-     * @param {() => SelectEntry[]|Promise<SelectEntry[]>} loader
+     *
+     * The loader is called with the page it is asked for, 0 first. Answering an
+     * array, it gives the whole vocabulary of the search; answering a
+     * `SelectPage` whose `more` is true, it is asked for the next page each time
+     * the rows are scrolled to the end, and its rows are appended, up to
+     * `Dropdown.MAX_ROWS`. Under the rows the dropdown says when more entries
+     * match than it shows.
+     * @param {(page: number) => SelectEntry[]|SelectPage|Promise<SelectEntry[]|SelectPage>} loader
      * @param {any[]} [keys] the keys currently selected
      * @returns {Promise<void>}
      * @throws what the loader threw, after hiding the dropdown, when this show
@@ -545,17 +757,25 @@ class Dropdown extends ParsedElement {
      */
     async show(loader, keys = []) {
         const claim = this.#shows.take();
+        this.#endWatch?.disconnect();
+        this.#paging = { next: loader, page: 0, more: false, total: null, loading: false };
+        this.#keys = keys;
         if (!this.matches(':popover-open')) {
             this.showPopover();
         }
         this.#menu.setAttribute('hidden', '');
+        this.#more.setAttribute('hidden', '');
         this.#spinner.removeAttribute('hidden');
         try {
-            const data = await loader();
+            const answer = Dropdown.#asPage(await loader(0));
             if (claim.stale) {
                 return;
             }
-            this.update(data, keys);
+            this.update(answer.entries, keys);
+            this.#paging.more = answer.more;
+            this.#paging.total = answer.total;
+            this.#tellMore();
+            this.#watchEnd();
         } catch (/** @type any */ e) {
             if (claim.stale) {
                 return;
@@ -573,7 +793,7 @@ class Dropdown extends ParsedElement {
      * is shown, staying put at the edge and while a search is loading, and
      * shows it otherwise.
      * @param {boolean} forward
-     * @param {() => SelectEntry[]|Promise<SelectEntry[]>} loader used only to show
+     * @param {(page: number) => SelectEntry[]|SelectPage|Promise<SelectEntry[]|SelectPage>} loader used only to show
      * @param {any[]} [keys] the keys currently selected, used only to show
      * @returns {Promise<void>}
      * @throws what `show` throws
@@ -685,6 +905,8 @@ class Select extends Field {
         'd-expr',
         'm-expr',
         'response-mapper',
+        'page-size',
+        't-expr',
     ];
     /**
      * Beside the field's claims: `multiple`, `item-list`, `value` as a comma
@@ -1174,7 +1396,7 @@ class Select extends Field {
             }
             return;
         }
-        this.#ddmenu.moveOrShow(forward, () => this.#loader.load(this.#query()), [...this.#values.keys()]);
+        this.#ddmenu.moveOrShow(forward, this.#search(), [...this.#values.keys()]);
     }
     /**
      * @param {boolean} [commit] whether the user is leaving the field, which
@@ -1192,7 +1414,17 @@ class Select extends Field {
         this.#display();
     }
     #open() {
-        return this.#ddmenu.show(() => this.#loader.load(this.#query()), [...this.#values.keys()]);
+        return this.#ddmenu.show(this.#search(), [...this.#values.keys()]);
+    }
+    /**
+     * What the dropdown asks for the rows of the current query: the loader's pages when it has them,
+     * else the whole of what it answers.
+     * @returns {(page: number) => SelectEntry[]|SelectPage|Promise<SelectEntry[]|SelectPage>}
+     */
+    #search() {
+        const query = this.#query();
+        const loader = this.#loader;
+        return typeof loader.page === 'function' ? (page) => loader.page(query, page) : () => loader.load(query);
     }
     #query() {
         return this.#editing ? this.#input.value : '';

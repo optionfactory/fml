@@ -11,6 +11,8 @@ export default {
     'table.range': 'Filas {from}-{to} de {total}',
     'table.retry': 'Reintentar',
     'dropdown.empty': 'Sin resultados',
+    'dropdown.more': 'Mostrando {loaded} de {total}: escribe para acotar',
+    'dropdown.more-unknown': 'Hay más: escribe para acotar',
     'select.remove': 'Eliminar',
     'files.dropzone-label': 'Haz clic o arrastra tus archivos aquí',
     'files.remove': 'Eliminar',
