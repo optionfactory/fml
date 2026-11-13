@@ -1368,7 +1368,10 @@ class Table extends ParsedElement {
     /**
      * Moves the window to the page in view and its neighbours. A window next
      * to the current one moves at once; one farther away waits for the scroll
-     * to rest, unless `settled` says it has.
+     * to rest, unless `settled` says it has. A table that is no longer laid
+     * out, in a tab switched away from for instance, has no page in view and
+     * keeps its window: its boxes all measure nothing, which reads as rows
+     * scrolled past, and each page loaded for that would ask for the next.
      * @param {boolean} settled
      */
     #reconcile(settled) {
@@ -1381,7 +1384,8 @@ class Table extends ParsedElement {
             this.hasAttribute('aria-busy') ||
             !this.#wrapper.isConnected ||
             !(pageCount > 0) ||
-            !this.#measureRows()
+            !this.#measureRows() ||
+            this.#wrapper.getBoundingClientRect().height === 0
         ) {
             return;
         }

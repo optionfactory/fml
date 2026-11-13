@@ -2399,6 +2399,20 @@ describe('Table virtual paging', function () {
         assert.isNotNull(tableEl.querySelector('colgroup[data-ref=widths]'), 'and locks its columns');
     });
 
+    it('asks for nothing while it is hidden, after it was shown', async () => {
+        const tableEl = await mount();
+        await rested();
+        const shown = body(tableEl).children.length;
+        const firstRow = body(tableEl).children[0].textContent;
+
+        tableEl.parentElement.style.display = 'none';
+        await rested();
+        await rested();
+
+        assert.strictEqual(body(tableEl).children.length, shown, 'a table hidden after its rows were measured keeps its pages');
+        assert.strictEqual(body(tableEl).children[0].textContent, firstRow, 'and does not walk on to the next ones');
+    });
+
     it('fills its panel once it is laid out, when it loaded hidden with a page shorter than the panel', async () => {
         const tableEl = await mount({ hidden: true, size: 3 });
         assert.strictEqual(body(tableEl).children.length, 3, 'a hidden table shows its first page');
