@@ -76,7 +76,7 @@
         }
 
         & input[type="radio"]:focus-visible {
-            outline: 0;
+            outline: var(--ful-focus-outline);
         }
 
         & label:has(input[type="radio"]:focus-visible) {

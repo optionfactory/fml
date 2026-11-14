@@ -67,6 +67,10 @@
             background-color: transparent;
             border: 0;
             outline: 0;
+
+            &:focus-visible {
+                outline: var(--ful-focus-outline);
+            }
         }
     }
 

@@ -43,6 +43,8 @@
 
         --ful-focus-border-color: color-mix(in srgb, var(--ful-active-bg) 75%, white);
         --ful-focus-box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ful-active-bg) 25%, transparent);
+        /* forced colors force the shadow away, so the outline it stands in for comes back */
+        --ful-focus-outline: 0;
 
         --ful-backdrop-color: rgb(0 0 0 / 50%);
 
@@ -76,5 +78,11 @@
         --ful-spinner-icon-animation-speed: 0.75s;
         --ful-spinner-icon-animation-name: ful-spinner-border;
         --ful-spinner-icon-color: currentcolor;
+    }
+
+    @media (forced-colors: active) {
+        :root {
+            --ful-focus-outline: auto;
+        }
     }
 }

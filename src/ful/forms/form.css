@@ -82,7 +82,7 @@
             border-radius: 0;
 
             &:focus {
-                outline: 0;
+                outline: var(--ful-focus-outline);
             }
         }
 
@@ -190,7 +190,7 @@
 
         &:focus-visible {
             border-color: var(--ful-focus-border-color);
-            outline: 0;
+            outline: var(--ful-focus-outline);
         }
     }
 
@@ -216,7 +216,7 @@
             accent-color: var(--ful-active-bg);
 
             &:focus-visible {
-                outline: 0;
+                outline: var(--ful-focus-outline);
                 box-shadow: var(--ful-focus-box-shadow);
             }
         }

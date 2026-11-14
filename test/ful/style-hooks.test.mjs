@@ -545,4 +545,34 @@ describe('Style hooks', () => {
             'the sticky header has an opaque background so the rows scrolling under it do not show through',
         );
     });
+
+    it('draws the focus ring through the outline the theme can bring back where shadows are forced away', () => {
+        const container = attach(
+            '<button type="button" class="ful-button">go</button><ful-accordion-group><details><summary>more</summary></details></ful-accordion-group>',
+        );
+        const button = container.querySelector('button');
+        button.focus();
+
+        assert.strictEqual(
+            getComputedStyle(button).outlineStyle,
+            'none',
+            "under the page's own colors the ring is the box-shadow and the outline stays away",
+        );
+
+        document.documentElement.style.setProperty('--ful-focus-outline', 'auto');
+        try {
+            assert.strictEqual(
+                getComputedStyle(button).outlineStyle,
+                'auto',
+                'the theme turns the outline on, which is what forced colors do to keep the ring visible',
+            );
+            assert.strictEqual(
+                getComputedStyle(container.querySelector('summary')).outlineStyle,
+                'none',
+                'and only on what holds the focus: a summary that does not keeps no outline',
+            );
+        } finally {
+            document.documentElement.style.removeProperty('--ful-focus-outline');
+        }
+    });
 });

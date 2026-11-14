@@ -43,7 +43,7 @@
         & > button:focus,
         & > a:focus {
             background-color: var(--ful-selected-bg);
-            outline: 0;
+            outline: var(--ful-focus-outline);
         }
 
         & > button:active,

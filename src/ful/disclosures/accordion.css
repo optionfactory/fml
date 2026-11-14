@@ -33,6 +33,10 @@
                 list-style: none;
                 outline: 0;
 
+                &:focus-visible {
+                    outline: var(--ful-focus-outline);
+                }
+
                 &::-webkit-details-marker {
                     display: none;
                 }

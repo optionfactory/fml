@@ -30,7 +30,7 @@
         }
 
         &:focus-visible {
-            outline: 0;
+            outline: var(--ful-focus-outline);
             box-shadow: var(--ful-focus-box-shadow);
         }
 
@@ -89,7 +89,7 @@
         }
 
         &:focus-visible {
-            outline: 0;
+            outline: var(--ful-focus-outline);
             box-shadow: var(--ful-focus-box-shadow);
         }
     }

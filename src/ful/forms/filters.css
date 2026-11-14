@@ -18,7 +18,7 @@
 
         & > button[data-ref="operator"]:focus,
         & > button[data-ref="sensitivity"]:focus {
-            outline: 0;
+            outline: var(--ful-focus-outline);
         }
 
         & > button[data-ref="operator"]:focus-visible,
@@ -71,7 +71,7 @@
     }
 
     ful-control-group > button[data-ref="value"]:focus {
-        outline: 0;
+        outline: var(--ful-focus-outline);
     }
 
     ful-control-group > button[data-ref="value"]:disabled {
@@ -114,7 +114,7 @@
 
         & > li > a:focus-visible {
             background-color: var(--ful-selected-bg);
-            outline: 0;
+            outline: var(--ful-focus-outline);
         }
 
         & > li > a:active {
