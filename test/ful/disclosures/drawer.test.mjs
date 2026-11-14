@@ -290,14 +290,15 @@ describe('Drawer', () => {
         drawer.open();
         await settle();
         const saved = new Promise((r) => drawer.addEventListener('close', r, { once: true }));
+        const started = [];
+        dialog.addEventListener('animationstart', (e) => started.push(e.animationName));
         form.querySelector('button[type=submit]').click();
-        await new Promise((r) => setTimeout(r, 0));
-        assert.strictEqual(
-            getComputedStyle(dialog).animationName,
+        const { detail } = await saved;
+        assert.include(
+            started,
             'ful-drawer-slide-out',
             'a successful submit under close-on-submit slides the drawer out rather than closing at once',
         );
-        const { detail } = await saved;
         assert.deepStrictEqual(
             detail,
             { dismissed: false, result: null, response: { id: 7 } },

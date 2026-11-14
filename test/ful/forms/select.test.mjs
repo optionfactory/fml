@@ -170,7 +170,7 @@ describe('Select and dropdown load failure handling', () => {
         registry.defineComponent('loaders:select', {
             create: () => ({
                 load: async () => {
-                    throw new Error('boom');
+                    throw new Error('load down');
                 },
                 exact: async (...keys) => keys.map((k) => ({ key: k, label: String(k) })),
             }),
@@ -181,7 +181,6 @@ describe('Select and dropdown load failure handling', () => {
         await Rendering.waitFor(selectEl);
         await tick();
 
-        const rejectionsBefore = rejections.length;
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
         await opened();
 
@@ -192,14 +191,11 @@ describe('Select and dropdown load failure handling', () => {
             'false',
             'a failed open leaves the combobox collapsed',
         );
+        // the list also takes the rejections other tests of the file report late, so count only this one
         assert.strictEqual(
-            rejections.length,
-            rejectionsBefore + 1,
-            'the failed load surfaces as one unhandled rejection',
-        );
-        assert.isTrue(
-            rejections.some((r) => String(r?.message ?? r).includes('boom')),
-            'the rejection carries the error the loader threw',
+            rejections.filter((r) => String(r?.message ?? r).includes('load down')).length,
+            1,
+            'the failed load surfaces as one unhandled rejection, carrying the error the loader threw',
         );
     });
 
@@ -208,7 +204,7 @@ describe('Select and dropdown load failure handling', () => {
             create: () => ({
                 load: async () => [],
                 exact: async () => {
-                    throw new Error('boom');
+                    throw new Error('lookup down');
                 },
             }),
         });
@@ -216,12 +212,11 @@ describe('Select and dropdown load failure handling', () => {
 
         const selectEl = container.querySelector('ful-select');
         await Rendering.waitFor(selectEl);
-        const rejectionsBefore = rejections.length;
         await settle(3, 10);
 
         assert.strictEqual(
-            rejections.length,
-            rejectionsBefore + 1,
+            rejections.filter((r) => String(r?.message ?? r).includes('lookup down')).length,
+            1,
             'a failed lookup surfaces as one unhandled rejection',
         );
         assert.strictEqual(selectEl.value, 'k1', 'the requested key is kept');
@@ -2204,8 +2199,7 @@ describe('Select stale searches', () => {
         pending[1].resolve([{ key: 'k2', label: 'fast' }]);
         await settle();
 
-        const rejectionsBefore = rejections.length;
-        pending[0].reject(new Error('boom'));
+        pending[0].reject(new Error('superseded search down'));
         await settle();
 
         const dropdown = selectEl.querySelector('ful-dropdown');
@@ -2215,7 +2209,11 @@ describe('Select stale searches', () => {
             /fast/,
             'the dropdown keeps the options of the newest open',
         );
-        assert.strictEqual(rejections.length, rejectionsBefore, 'a superseded failure is not reported');
+        // the list also takes the rejections other tests of the file report late, so count only this one
+        assert.isFalse(
+            rejections.some((r) => String(r?.message ?? r).includes('superseded search down')),
+            'a superseded failure is not reported',
+        );
     });
 
     it('keeps a search that lands after a hide from repopulating the hidden dropdown', async () => {

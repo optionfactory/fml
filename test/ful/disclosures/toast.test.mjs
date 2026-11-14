@@ -109,7 +109,8 @@ describe('Toasts', () => {
             assert.isFalse(dismissed.isConnected, 'no animationend will ever come, the dismiss removes it');
 
             const timed = toasts.show('by timer', { timeout: 1 });
-            await settle();
+            // a timer armed after another with the same delay runs after it, however busy the page
+            await new Promise((resolve) => setTimeout(resolve, 1));
             assert.isFalse(timed.isConnected, 'the timer removes it the same way');
         } finally {
         }
