@@ -733,6 +733,36 @@ describe('SelectLoader fetch discipline', () => {
         assert.lengthOf(calls, 2, 'the stored vocabulary answers later questions without another fetch');
     });
 
+    it('stores nothing in local storage from a fetch an invalidation detached', async () => {
+        localStorage.removeItem('POST@/rev-detached');
+        const { calls, pending } = deferredHttp();
+        const loader = remoteLoader({ url: '/rev-detached', prefetch: true, revision: 'r1' });
+
+        const stale = loader.prefetch().then(
+            () => assert.fail('the superseded prefetch rejects'),
+            (e) => String(e),
+        );
+        loader.invalidate();
+        pending[0].resolve([['k1', 'Old']]);
+        await stale;
+        assert.strictEqual(
+            localStorage.getItem('POST@/rev-detached'),
+            null,
+            'a fetch detached by an invalidation caches nothing under the revision',
+        );
+
+        const fresh = loader.load('x');
+        assert.lengthOf(calls, 2, 'the next question starts a new fetch');
+        pending[1].resolve([['k2', 'New']]);
+        await fresh;
+        assert.deepStrictEqual(
+            await loader.load('new'),
+            [{ key: 'k2', label: 'New', metadata: undefined }],
+            'the vocabulary of the fetch that followed the invalidation is served',
+        );
+        localStorage.removeItem('POST@/rev-detached');
+    });
+
     it('rejects a caller whose fetch an invalidation superseded, instead of crashing', async () => {
         const { calls, pending } = deferredHttp();
         const loader = remoteLoader({ url: '/v' });

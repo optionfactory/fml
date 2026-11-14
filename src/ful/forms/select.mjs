@@ -93,7 +93,7 @@ class RemoteLoader {
     }
     async #ensureFetched() {
         const claim = this.#configs.hold();
-        this.#data ??= RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision)
+        this.#data ??= RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision, () => claim.stale)
             .then((raw) => this.#responseMapper(raw))
             .catch((e) => {
                 if (!claim.stale) {
@@ -107,7 +107,7 @@ class RemoteLoader {
         }
         return data;
     }
-    static async #revisionedData(http, method, url, revision) {
+    static async #revisionedData(http, method, url, revision, detached) {
         const storageKey = `${method}@${url}`;
         if (revision !== null) {
             const data = VersionedLocalStorage.load(storageKey, revision);
@@ -116,7 +116,7 @@ class RemoteLoader {
             }
         }
         const data = await http.request(method, url).fetchJson();
-        if (revision !== null) {
+        if (revision !== null && !detached()) {
             try {
                 VersionedLocalStorage.save(storageKey, revision, data);
             } catch (/** @type any */ e) {
