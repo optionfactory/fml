@@ -380,6 +380,19 @@ describe('httpc client', () => {
             expect(reqHeaders.get('X-Instance'), 'headers() accepts a Headers instance').to.equal('b');
         });
 
+        it('writes an array value of a params record as repeated entries, as param does', async () => {
+            await client
+                .get('/test')
+                .params({ tags: ['a', 'b'], page: '1' })
+                .fetch();
+
+            expect(fetchArgs.url.searchParams.getAll('tags'), 'an array value is sent once per item').to.deep.equal([
+                'a',
+                'b',
+            ]);
+            expect(fetchArgs.url.searchParams.get('page'), 'a plain value is sent once').to.equal('1');
+        });
+
         it('serializes JSON bodies automatically', async () => {
             await client.post('/test').json({ a: 1 }).fetch();
 

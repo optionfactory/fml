@@ -514,14 +514,17 @@ class HttpRequestBuilder {
         return this;
     }
     /**
-     * Sets each query parameter in place, replacing a parameter of the same name; a null or undefined value removes it.
-     * @param {URLSearchParams|Record<string,string|null|undefined>|string[][]|string} ps
+     * Sets each query parameter in place, replacing a parameter of the same name; a null or undefined value removes it,
+     * and an array value becomes repeated entries, as `param` writes them.
+     * @param {URLSearchParams|Record<string,string|string[]|null|undefined>|string[][]|string} ps
      * @returns {HttpRequestBuilder} this builder
      */
     params(ps) {
         for (const [k, v] of rawEntries(ps)) {
             if (v == null) {
                 this.#params.delete(k);
+            } else if (Array.isArray(v)) {
+                this.param(k, ...v);
             } else {
                 this.#params.set(k, v);
             }
