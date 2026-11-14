@@ -84,6 +84,47 @@ describe('Drawer', () => {
         }
     });
 
+    it('an opening before the previous close event arrives answers with that close, not a dismissal', async () => {
+        const [drawer] = await mount('<ful-drawer header="t">body</ful-drawer>');
+        const dialog = drawer.querySelector('dialog');
+        const real = window.matchMedia;
+        /** @type any */ (window).matchMedia = (q) =>
+            String(q).includes('prefers-reduced-motion') ? { matches: true } : real.call(window, q);
+        const closes = [];
+        drawer.addEventListener('close', (/** @type any */ e) => closes.push(e.detail));
+        try {
+            const first = drawer.open();
+            drawer.close('done');
+            const second = drawer.open(); // the platform's close event for the first opening has not arrived yet
+
+            assert.isTrue(dialog.open, 'the second opening shows the drawer again');
+            assert.deepStrictEqual(
+                await first,
+                { dismissed: false, result: 'done', response: null },
+                'the first opening answers with its own close, whose platform event the second opening superseded',
+            );
+            await settle();
+            assert.isTrue(dialog.open, 'the late platform event of the first opening closes nothing');
+
+            drawer.close('again');
+            assert.deepStrictEqual(
+                await second,
+                { dismissed: false, result: 'again', response: null },
+                'the second opening answers with its own close',
+            );
+            assert.deepStrictEqual(
+                closes,
+                [
+                    { dismissed: false, result: 'done', response: null },
+                    { dismissed: false, result: 'again', response: null },
+                ],
+                'each opening dispatches exactly its own close',
+            );
+        } finally {
+            window.matchMedia = real;
+        }
+    });
+
     it('closes without an out animation to wait for', async () => {
         const [drawer, container] = await mount('<ful-drawer header="t">body</ful-drawer>');
         const style = document.createElement('style');

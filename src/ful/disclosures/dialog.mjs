@@ -83,6 +83,10 @@ class Dialog extends ParsedElement {
     #dialog;
     #sections;
     #resolvers = [];
+    /** whether this opening was closed and the platform has not delivered its native `close` yet */
+    #nativeClose = false;
+    /** how many native `close` events still to come belong to openings a later opening already answered */
+    #lateCloses = 0;
     /** @type {DialogOutcome|null} */
     #answer = null;
     /**
@@ -102,6 +106,12 @@ class Dialog extends ParsedElement {
             this.#dialog.setAttribute('aria-labelledby', heading.id);
         }
         this.#dialog.addEventListener('close', () => {
+            if (this.#lateCloses > 0) {
+                //the close of an opening that a later one already answered: it owns nothing
+                this.#lateCloses--;
+                return;
+            }
+            this.#nativeClose = false;
             const outcome = this.#outcome();
             this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
             this.#settle(outcome);
@@ -109,7 +119,7 @@ class Dialog extends ParsedElement {
         this.#dialog.addEventListener('click', (/** @type any */ e) => {
             const button = e.target.closest('button[data-result]');
             if (button && button.closest('dialog') === this.#dialog) {
-                this.#dialog.close(button.dataset.result);
+                this.close(button.dataset.result);
             }
         });
         if (!requiresAnswer) {
@@ -118,8 +128,11 @@ class Dialog extends ParsedElement {
         fragment.querySelector('[data-ref=close]')?.addEventListener('click', () => this.dismiss('button'));
         if (closeOnSubmit) {
             this.#sections.onSubmitted((response) => {
+                if (!this.#dialog.open) {
+                    return;
+                }
                 this.#answer = { dismissed: false, result: null, response };
-                this.#dialog.close('submitted');
+                this.close('submitted');
             });
         }
         this.#dialog.addEventListener('cancel', (/** @type any */ e) => {
@@ -248,7 +261,7 @@ class Dialog extends ParsedElement {
     #dismiss(reason, cancelable) {
         return this.#sections.dismiss(
             new CustomEvent('dialog:dismiss', { cancelable, detail: { reason } }),
-            () => this.#dialog.close(''),
+            () => this.close(),
             this.declared('guard-dismiss') ? discardEdits : null,
         );
     }
@@ -259,6 +272,10 @@ class Dialog extends ParsedElement {
      * @param {string} [result]
      */
     close(result) {
+        if (!this.#dialog.open) {
+            return;
+        }
+        this.#nativeClose = true;
         this.#dialog.close(result ?? '');
     }
     /** @returns {boolean} whether this call is the one that opened the modal */
@@ -269,6 +286,15 @@ class Dialog extends ParsedElement {
         }
         if (this.#dialog.open) {
             return false;
+        }
+        if (this.#nativeClose) {
+            //the previous opening's close is still queued: its outcome is settled here, with its own state,
+            //and its native event, when it comes, owns nothing
+            this.#nativeClose = false;
+            this.#lateCloses++;
+            const outcome = this.#outcome();
+            this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
+            this.#settle(outcome);
         }
         this.#dialog.returnValue = '';
         this.#answer = null;

@@ -105,6 +105,69 @@ describe('Dialog', () => {
         );
     });
 
+    it('an opening before the previous close event arrives answers with that close, not a dismissal', async () => {
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
+        const native = dialog.querySelector('dialog');
+        const closes = [];
+        dialog.addEventListener('close', (/** @type any */ e) => closes.push(e.detail));
+
+        const first = dialog.ask();
+        dialog.close('done');
+        const second = dialog.ask(); // the platform's close event for the first opening has not arrived yet
+
+        assert.isTrue(native.open, 'the second opening shows the dialog again');
+        assert.deepStrictEqual(
+            await first,
+            { dismissed: false, result: 'done', response: null },
+            'the first opening answers with its own close, whose platform event the second opening superseded',
+        );
+        await settle();
+        assert.isTrue(native.open, 'the late platform event of the first opening closes nothing');
+
+        dialog.close('again');
+        assert.deepStrictEqual(
+            await second,
+            { dismissed: false, result: 'again', response: null },
+            'the second opening answers with its own close',
+        );
+        assert.deepStrictEqual(
+            closes,
+            [
+                { dismissed: false, result: 'done', response: null },
+                { dismissed: false, result: 'again', response: null },
+            ],
+            'each opening dispatches exactly its own close',
+        );
+    });
+
+    it('two openings closed before either close event arrives each dispatch their own close, once', async () => {
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
+        const closes = [];
+        dialog.addEventListener('close', (/** @type any */ e) => closes.push(e.detail.result));
+
+        dialog.ask();
+        dialog.close('first');
+        const second = dialog.ask();
+        dialog.close('second');
+        await second; // the platform's close events arrive in order, so the first opening's has come by now
+
+        assert.deepStrictEqual(closes, ['first', 'second'], 'the late event of the first opening dispatches nothing');
+    });
+
+    it('a close() on a closed dialog queues no close for the next opening to answer', async () => {
+        const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
+        const closes = [];
+        dialog.addEventListener('close', (/** @type any */ e) => closes.push(e.detail));
+
+        dialog.close('stray');
+        dialog.ask();
+        await settle();
+
+        assert.deepStrictEqual(closes, [], 'the opening dispatches no close until it is closed itself');
+        dialog.close();
+        await settle();
+    });
+
     it('an Escape after an earlier answer is a dismissal, not the earlier answer', async () => {
         const [dialog] = await mount('<ful-dialog>body</ful-dialog>');
         const first = dialog.ask();

@@ -64,6 +64,10 @@ class Drawer extends ParsedElement {
     /** @type {{ dismissed: boolean, result: string|null, response: any }|null} */
     #answer = null;
     #resolvers = [];
+    /** whether this opening was closed and the platform has not delivered its native `close` yet */
+    #nativeClose = false;
+    /** how many native `close` events still to come belong to openings a later opening already answered */
+    #lateCloses = 0;
     #closing = false;
     #slides = new Claims();
     /**
@@ -102,6 +106,12 @@ class Drawer extends ParsedElement {
             }
         });
         this.#dialog.addEventListener('close', () => {
+            if (this.#lateCloses > 0) {
+                //the close of an opening that a later one already answered: it owns nothing
+                this.#lateCloses--;
+                return;
+            }
+            this.#nativeClose = false;
             const outcome = this.#outcome();
             this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
             this.#settle(outcome);
@@ -260,6 +270,7 @@ class Drawer extends ParsedElement {
             this.#answer = { dismissed: false, result, response: null };
         }
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this.#nativeClose = true;
             this.#dialog.close();
             return;
         }
@@ -279,6 +290,7 @@ class Drawer extends ParsedElement {
     }
     #closeNow() {
         this.#stopSlidingOut();
+        this.#nativeClose = true;
         this.#dialog.close();
     }
     #stopSlidingOut() {
@@ -298,6 +310,15 @@ class Drawer extends ParsedElement {
         }
         if (this.#dialog.open) {
             return false;
+        }
+        if (this.#nativeClose) {
+            //the previous opening's close is still queued: its outcome is settled here, with its own state,
+            //and its native event, when it comes, owns nothing
+            this.#nativeClose = false;
+            this.#lateCloses++;
+            const outcome = this.#outcome();
+            this.dispatchEvent(new CustomEvent('close', { detail: outcome }));
+            this.#settle(outcome);
         }
         this.#answer = null;
         this.#dialog.showModal();
