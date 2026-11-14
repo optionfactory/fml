@@ -1041,7 +1041,6 @@ class Select extends Field {
                 return;
             }
             if (this.#ddmenu.shown) {
-                this.#abortdload();
                 this.#close();
                 return;
             }
@@ -1103,7 +1102,6 @@ class Select extends Field {
             if (e.relatedTarget && this.contains(e.relatedTarget)) {
                 return;
             }
-            this.#abortdload();
             this.#close(true);
         });
         this.#input.addEventListener('keydown', (e) => {
@@ -1278,7 +1276,6 @@ class Select extends Field {
         ) {
             return false;
         }
-        this.#abortdload();
         this.#close();
         this.#buildLoader();
         return true;
@@ -1366,7 +1363,6 @@ class Select extends Field {
                 break;
             }
             case 'Escape': {
-                this.#abortdload();
                 this.#close();
                 break;
             }
@@ -1389,7 +1385,6 @@ class Select extends Field {
                 break;
             }
             case 'Tab': {
-                this.#abortdload();
                 this.#close(true);
                 break;
             }
@@ -1401,7 +1396,6 @@ class Select extends Field {
             if (forward && !this.#ddmenu.shown) {
                 this.#open();
             } else if (!forward && this.#ddmenu.shown) {
-                this.#abortdload();
                 this.#close();
             }
             return;
@@ -1413,6 +1407,7 @@ class Select extends Field {
      * only a blur or a Tab is: an emptied single select is then cleared
      */
     #close(commit = false) {
+        this.#abortdload();
         this.#ddmenu.hide();
         const cleared =
             commit && this.#editing && !this.#multiple && this.#input.value === '' && this.#values.size !== 0;
@@ -1598,7 +1593,6 @@ class Select extends Field {
     set disabled(v) {
         super.disabled = v;
         if (v && this.#ddmenu?.shown) {
-            this.#abortdload();
             this.#close();
         }
     }
@@ -1613,7 +1607,6 @@ class Select extends Field {
     set readonly(v) {
         super.readonly = v;
         if (v && this.#ddmenu?.shown) {
-            this.#abortdload();
             this.#close();
         }
     }
