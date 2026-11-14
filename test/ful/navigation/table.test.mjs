@@ -2251,11 +2251,18 @@ describe('Table virtual paging', function () {
         await rested();
         return tableEl;
     };
+    /** until neither the page nor the requests change for longer than the 150ms the table waits before a far jump */
     const rested = async () => {
-        for (let i = 0; i < 3; ++i) {
-            await new Promise((r) => setTimeout(r, 200));
+        let seen = '';
+        let since = performance.now();
+        while (performance.now() - since < 200) {
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
             await settle();
+            const now = `${requests.length} ${document.body.innerHTML}`;
+            if (now !== seen) {
+                seen = now;
+                since = performance.now();
+            }
         }
     };
     const body = (tableEl) => tableEl.querySelector('tbody:not([data-ref])');
@@ -2557,11 +2564,18 @@ describe('Table loads superseded while their rows render', function () {
         }
     }
     registry.defineElement('x-gated-row', GatedRow);
+    /** until the page does not change for longer than the 150ms the table waits before a far jump */
     const rested = async () => {
-        for (let i = 0; i < 3; ++i) {
-            await new Promise((r) => setTimeout(r, 200));
+        let seen = '';
+        let since = performance.now();
+        while (performance.now() - since < 200) {
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
             await settle();
+            const now = document.body.innerHTML;
+            if (now !== seen) {
+                seen = now;
+                since = performance.now();
+            }
         }
     };
     const mount = async (paging) => {
