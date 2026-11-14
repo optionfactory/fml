@@ -255,7 +255,9 @@ class HttpClientBuilder {
 
 /**
  * The last interceptor in every chain, performing the request with fetch. A
- * fetch rejection becomes an HttpClientError with a CONNECTION_PROBLEM.
+ * fetch rejection becomes an HttpClientError: a REQUEST_ABORTED when the
+ * request's own signal aborted it, a timeout included, and a
+ * CONNECTION_PROBLEM otherwise.
  * @implements {HttpInterceptor}
  */
 class HttpCall {
@@ -263,7 +265,7 @@ class HttpCall {
         try {
             return await fetch(url, request);
         } catch (ex) {
-            throw HttpClientError.of('CONNECTION_PROBLEM', ex);
+            throw HttpClientError.of(request.signal?.aborted ? 'REQUEST_ABORTED' : 'CONNECTION_PROBLEM', ex);
         }
     }
 }
@@ -324,8 +326,9 @@ class HttpClient {
      * @param {RequestInit|undefined} options fetch options
      * @param {HttpInterceptor[]|undefined} interceptors run for this exchange only
      * @returns {Promise<Response>} the response, whatever its status; rejecting
-     * with an HttpClientError CONNECTION_PROBLEM when the transport fails, or
-     * with what an interceptor throws
+     * with an HttpClientError CONNECTION_PROBLEM when the transport fails,
+     * REQUEST_ABORTED when the signal in the options aborted it, or with what
+     * an interceptor throws
      */
     async exchange(uri, options, interceptors) {
         const is = [...this.#interceptors, ...(interceptors || []), new HttpCall()];
@@ -641,7 +644,8 @@ class HttpRequestBuilder {
     /**
      * Sends the request and answers the Response when its status is 200-299.
      * Always rejects with an HttpClientError: `HttpClientError.fromResponse`
-     * for an error status, CONNECTION_PROBLEM for a transport failure, and
+     * for an error status, CONNECTION_PROBLEM for a transport failure,
+     * REQUEST_ABORTED for a request its signal aborted, and
      * UNEXPECTED_PROBLEM, carrying the error as its cause, for anything an
      * interceptor throws that is not already a Failure.
      * @returns {Promise<Response>}

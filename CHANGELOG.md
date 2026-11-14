@@ -76,7 +76,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 **httpc**
 
 - an error response whose body does not decode, violates the `failures+json`/`problem+json` contract or cannot be read is a `GENERIC_PROBLEM` carrying the served status, where it could surface as a `CONNECTION_PROBLEM` with status 0
-- `CONNECTION_PROBLEM` means the transport failed. A throw from the chain's own code (an interceptor bug, most often) reaches a request builder's caller as `UNEXPECTED_PROBLEM` carrying the original as its `cause`, and `exchange()` rejects a transport failure with an `HttpClientError` instead of the platform's `TypeError`
+- `CONNECTION_PROBLEM` means the transport failed, and a request aborted by its own signal, a timeout included, is a `REQUEST_ABORTED`. A throw from the chain's own code (an interceptor bug, most often) reaches a request builder's caller as `UNEXPECTED_PROBLEM` carrying the original as its `cause`, and `exchange()` rejects a transport failure with an `HttpClientError` instead of the platform's `TypeError`
 - the request url is built rather than concatenated: a second `?` no longer truncates the query, a `#` no longer swallows the parameters, and a fragment is kept after the parameters a call adds
 - `Base64.decode` and `Hex.decode` reject invalid input instead of returning garbage
 - the csrf interceptor sends the token to the page origin only, and reads the meta pair at request time

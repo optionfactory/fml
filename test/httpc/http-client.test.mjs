@@ -492,6 +492,22 @@ describe('httpc client', () => {
             }
         });
 
+        it('labels a request its own signal aborted as aborted, not as a connection problem', async () => {
+            globalThis.fetch = async (url, request) => {
+                throw request.signal.reason;
+            };
+            const aborted = AbortSignal.abort();
+            try {
+                await client.get('/test').options({ signal: aborted }).fetch();
+                expect.fail('the aborted request must reject');
+            } catch (err) {
+                expect(err.problems[0].type, 'an abort is told apart from the transport failing').to.equal(
+                    'REQUEST_ABORTED',
+                );
+                expect(err.cause.name, 'the cause is what the signal aborted with').to.equal('AbortError');
+            }
+        });
+
         it('labels the connection failing the same way through exchange', async () => {
             globalThis.fetch = async () => {
                 throw new TypeError('Failed to fetch');

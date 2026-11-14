@@ -13,7 +13,8 @@ and its defaults are wrong for same-origin apps (credentials, error bodies).
 `params`/`headers`/encodings) and normalizes both failure kinds into one
 `Failure` value carrying typed `problems` (field-routed contexts included):
 an error status becomes an `HttpClientError` (a `Failure`) with the served
-status, a transport failure a `CONNECTION_PROBLEM`, and a throw from the
+status, a transport failure a `CONNECTION_PROBLEM`, a request its own signal
+aborted a `REQUEST_ABORTED`, and a throw from the
 chain's own code an `UNEXPECTED_PROBLEM` carrying the original as its cause.
 Turning a failure into text is localization's job, not the client's:
 `Localization.failure` (0012) reads the reasons, and a problem with no reason
