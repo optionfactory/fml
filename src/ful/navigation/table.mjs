@@ -508,7 +508,9 @@ class TableLoader {
  * `page:requested` loads that page with the current size,
  * sort and filters; a `sort:requested` loads the current page with the new
  * sort (none for a `null` order) and, once that load is the one showing, sets
- * the order of the sorter that asked and clears the others; a `submit:success`
+ * the order of the sorter that asked and clears the others, while one from a
+ * column declaring `order` without `sorter` names nothing to sort by and
+ * loads nothing; a `submit:success`
  * of the filter form loads the first page with the submitted request as the
  * filters. The first load goes through the filter form too: `reload`, and so
  * `autoload`, submits it (see `reload`), so a `submit` listener rewriting
@@ -897,6 +899,9 @@ class Table extends ParsedElement {
         });
         this.addEventListener('sort:requested', async (/** @type any */ e) => {
             if (e.composedPath().find((n) => n instanceof Table) !== this) {
+                return;
+            }
+            if (e.detail.value.sorter == null) {
                 return;
             }
             const sortRequest = e.detail.value.order ? e.detail.value : null;

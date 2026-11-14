@@ -912,6 +912,21 @@ describe('Table sort and pagination edges', () => {
 
         assert.isNull(requests[0].sortRequest, 'no null property reaches the loader');
     });
+
+    it('loads nothing when the sorter of a column declaring only an order is activated', async () => {
+        const [tableEl] = await mountDeferred(
+            '<column title="A" sorter="a" order="desc">{{ a }}</column><column title="C" order="asc">{{ c }}</column>',
+        );
+        pending[0].resolve({ data: [{ a: 'x' }], size: 1 });
+        await settle();
+        const [sorted, arrowOnly] = tableEl.querySelectorAll('ful-sorter');
+
+        arrowOnly.click();
+        await settle();
+
+        assert.lengthOf(requests, 1, 'a sorter naming no property asks the loader for nothing');
+        assert.strictEqual(sorted.order, 'desc', 'and the column the rows are sorted by keeps its arrow');
+    });
 });
 
 describe('Pagination links', () => {
