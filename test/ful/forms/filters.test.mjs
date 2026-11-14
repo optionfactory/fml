@@ -1357,6 +1357,29 @@ describe('Filter change notifications', () => {
         );
     });
 
+    it('reports no change when a focused date operand is left after a tuple was assigned', async () => {
+        for (const [tag, tuple] of [
+            ['ful-filter-local-date', ['EQ', '2024-03-01']],
+            ['ful-filter-instant', ['GTE', '2024-03-01T10:00:00.000Z']],
+        ]) {
+            const [el] = await mount(`<${tag}>d</${tag}>`);
+            const seen = [];
+            el.addEventListener('change', (evt) => seen.push(evt.detail));
+            const first = el.querySelector('[data-ref=value1]');
+
+            first.focus();
+            el.value = tuple;
+            first.blur();
+
+            assert.deepEqual(
+                seen,
+                [],
+                `${tag}: an assigned tuple is not an edit, so leaving the operand announces nothing`,
+            );
+            assert.deepEqual(el.value, tuple, `${tag}: and the filter answers the tuple assigned`);
+        }
+    });
+
     it('announces that a half filled range no longer filters anything', async () => {
         const [el] = await mount(`<ful-filter-local-date value='["EQ","2024-01-01"]'>d</ful-filter-local-date>`);
         const seen = [];

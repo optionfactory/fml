@@ -277,15 +277,17 @@ class CompareFilter extends Input {
         return values.some((v) => v === '') ? null : [operator, ...values.map((v) => this._serialize(v))];
     }
     _applyTuple(v) {
+        //the first operand is written last and through the input's own setter, which takes the tuple
+        //shown from then on as assigned rather than edited: leaving a focused operand reports no change for it
         if (v == null) {
-            this._value1.value = '';
             this._value2.value = '';
+            super.value = '';
             return;
         }
         const [declared, ...values] = v;
         this._showOperator(this._operator.preferring(declared));
-        this._value1.value = values[0] ? this._deserialize(values[0]) : (values[0] ?? '');
         this._value2.value = values[1] ? this._deserialize(values[1]) : (values[1] ?? '');
+        super.value = values[0] ? this._deserialize(values[0]) : (values[0] ?? '');
     }
     _showOperator(operator) {
         this._operator.value = operator;
