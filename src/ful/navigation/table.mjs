@@ -829,7 +829,10 @@ class Table extends ParsedElement {
                 this.#reconcile(true);
             });
         }
+        const thead = /** @type HTMLTableSectionElement */ (this.querySelector('thead'));
+        schema.headersTemplate.renderTo(thead);
         if (this.#virtual) {
+            thead.rows[0]?.setAttribute('aria-rowindex', '1');
             this.#spacers = {
                 before: /** @type HTMLElement */ (table.querySelector(':scope > tbody[data-ref=before] td')),
                 after: /** @type HTMLElement */ (table.querySelector(':scope > tbody[data-ref=after] td')),
@@ -862,8 +865,6 @@ class Table extends ParsedElement {
                 }
             });
         }
-        const thead = /** @type HTMLTableSectionElement */ (this.querySelector('thead'));
-        schema.headersTemplate.renderTo(thead);
         // the stylesheet starts the scrollbar of a filling table under its header, which it can
         // only do knowing how tall the header is: a title wrapping onto a second line changes it
         new ResizeObserver(() => {
@@ -1243,7 +1244,6 @@ class Table extends ParsedElement {
     #settleWindow() {
         const table = /** @type HTMLTableElement */ (this.#body.parentElement);
         table.setAttribute('aria-rowcount', String(this.#total + 1));
-        table.tHead?.rows[0]?.setAttribute('aria-rowindex', '1');
         const status = /** @type TableStatus */ (this.#status);
         const window = this.#window;
         if (!window) {
@@ -1469,23 +1469,17 @@ class Table extends ParsedElement {
                     }
                 }
             }
+            const added = answers.map(({ pageRequest, response }) =>
+                this.#pageRows(pageRequest, filterRequest, response),
+            );
             /** @type {Map<number, Element[]>} */
-            const pages = new Map();
-            for (const page of wanted) {
-                const answer = answers.find((a) => a.pageRequest.page === page);
-                pages.set(
-                    page,
-                    window.pages.get(page) ??
-                        (answer ? this.#pageRows(answer.pageRequest, filterRequest, answer.response) : []),
-                );
-            }
+            const pages = new Map(wanted.map((page) => [page, window.pages.get(page) ?? added[missing.indexOf(page)]]));
             if (kept.length === 0) {
-                this.#body.replaceChildren(...[...pages.values()].flat());
+                this.#body.replaceChildren(...added.flat());
             } else {
-                this.#body.prepend(...wanted.filter((page) => page < kept[0]).flatMap((page) => pages.get(page) ?? []));
-                this.#body.append(
-                    ...wanted.filter((page) => page > /** @type number */ (kept.at(-1))).flatMap((page) => pages.get(page) ?? []),
-                );
+                const above = added.filter((_, i) => missing[i] < kept[0]);
+                this.#body.prepend(...above.flat());
+                this.#body.append(...added.slice(above.length).flat());
             }
             this.#window = { first, last, pages };
             this.#total = answers.at(-1)?.response.size ?? this.#total;
@@ -1598,10 +1592,6 @@ class Table extends ParsedElement {
     }
     #update(pageRequest, sortRequest, filterRequest, pageResponse) {
         this.#loading.setAttribute('hidden', '');
-        if (this.#virtual) {
-            this.#rowHeight = 0;
-            this.#unlockColumns();
-        }
         const rows = this.#pageRows(pageRequest, filterRequest, pageResponse);
         this.#body.replaceChildren(...rows);
         this.#empty.toggleAttribute('hidden', pageResponse.data.length !== 0);
@@ -1622,6 +1612,8 @@ class Table extends ParsedElement {
         this.#wrapper.scrollTop = 0;
         this.#total = pageResponse.size;
         if (this.#virtual) {
+            this.#rowHeight = 0;
+            this.#unlockColumns();
             this.#window =
                 rows.length > 0 ? { first: pageRequest.page, last: pageRequest.page, pages: new Map([[pageRequest.page, rows]]) } : null;
             return;
