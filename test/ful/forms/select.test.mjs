@@ -322,6 +322,12 @@ describe('Select and dropdown keyboard interaction', () => {
         assert.isFalse(empty.hidden, 'the message replaces the empty list');
         assert.strictEqual(empty.innerText, 'No results', 'the empty state reads the localized no results message');
         assert.isTrue(selectEl.querySelector('menu').hidden, 'no empty listbox is exposed');
+
+        const dropdown = selectEl.querySelector('ful-dropdown');
+        dropdown.show(() => new Promise(() => {}));
+
+        assert.isTrue(empty.hidden, 'while the next search loads the message is hidden, only the spinner showing');
+        dropdown.hide();
     });
 
     it('keeps the message hidden while there are options', async () => {

@@ -743,6 +743,7 @@ class Dropdown extends ParsedElement {
             this.showPopover();
         }
         this.#menu.setAttribute('hidden', '');
+        this.#empty.setAttribute('hidden', '');
         this.#more.setAttribute('hidden', '');
         this.#spinner.removeAttribute('hidden');
         try {
