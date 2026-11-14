@@ -8,11 +8,11 @@ import { SectionRequests } from '../events/sections.mjs';
  * is what `move()` and `refresh()` answer to. The steps become the items of an
  * `ol` inside `ful-steps`, labelled by the localized `wizard.progress`.
  *
- * The current step is the `aria-current="step"` claim, carried by the step and
- * its section together, and the stylesheet hides every `section` child that
- * does not carry it. A section that carries the claim in the markup when the
- * wizard renders stays current; otherwise the first section is. Every paired
- * section gets `tabindex="-1"`, so a move can focus it.
+ * The current step is marked by the `aria-current="step"` attribute, carried by
+ * the step and its section together, and the stylesheet hides every `section`
+ * child that does not carry it. A section that carries that attribute in the
+ * markup when the wizard renders stays current; otherwise the first section
+ * is. Every paired section gets `tabindex="-1"`, so a move can focus it.
  *
  * Entering a section, the first one at the render included, fires
  * `section:requested`, `section:requested:#<index>` and, when the section has a

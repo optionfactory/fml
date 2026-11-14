@@ -129,7 +129,7 @@ describe('Checkbox states', () => {
         const input = el.querySelector('input');
 
         assert.isFalse(box.inert, 'inert would take the whole choice out of the accessibility tree');
-        assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the claim is announced instead');
+        assert.strictEqual(input.getAttribute('aria-readonly'), 'true', 'the readonly state is announced instead');
         assert.isTrue(el.readonly, 'the readonly attribute is read into the readonly property');
         assert.isFalse(input.hasAttribute('disabled'), 'a disabled input would drop the value on submit');
 
@@ -140,10 +140,10 @@ describe('Checkbox states', () => {
         assert.isFalse(el.readonly, 'removing the readonly attribute lifts the readonly property');
         assert.isNull(
             input.getAttribute('aria-readonly'),
-            'aria-readonly is removed from the input once the claim is lifted',
+            'aria-readonly is removed from the input once the attribute is removed',
         );
         input.click();
-        assert.isFalse(el.value, 'and it toggles again once the claim is lifted');
+        assert.isFalse(el.value, 'and it toggles again once the attribute is removed');
     });
 
     it('reflects readonly and required set as properties back onto the host attributes', async () => {

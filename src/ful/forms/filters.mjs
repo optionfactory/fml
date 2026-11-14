@@ -83,7 +83,7 @@ const asCriterion = (label, operator, operands) => {
  * Declaring both warns and the singular wins; a fixed name outside the
  * vocabulary warns and fixes the default operator.
  *
- * Both operands mirror the disabled and readonly claims, and readonly also
+ * Both operands mirror the disabled and readonly states, and readonly also
  * refuses the clicks that would open the operator menu. The change event fires
  * when either operand changes or a different operator is picked.
  */
@@ -315,9 +315,9 @@ class CompareFilter extends Input {
         return this._operator.value === 'BETWEEN' ? [this._value1.value, this._value2.value] : [this._value1.value];
     }
     /**
-     * The field's own disabled claim. Setting it disables both operands and
-     * every menu button the filter composes; a button pinned to one choice
-     * stays disabled when the claim is lifted.
+     * The field's own `disabled` attribute. Setting it disables both operands
+     * and every menu button the filter composes; a button pinned to one choice
+     * stays disabled when the attribute is removed.
      * @returns {boolean}
      */
     get disabled() {
@@ -331,7 +331,7 @@ class CompareFilter extends Input {
         }
     }
     /**
-     * The menu buttons the filter composes, which the disabled claim reaches. A
+     * The menu buttons the filter composes, which the disabled state reaches. A
      * subclass adding a menu appends its own to the base's.
      * @returns {ChoiceButton[]}
      */
@@ -535,9 +535,9 @@ const BOOLEAN_VALUE_GLYPHS = { true: '✓', false: '✗' };
  *
  * The value is `[operator, 'true']` or `[operator, 'false']`, null while the
  * value menu is on any. The `operators` attribute whitelists the operator menu
- * as on the compare filters. The disabled claim reaches the value button and
+ * as on the compare filters. The disabled state reaches the value button and
  * both menus, and readonly refuses the clicks that would open them. The
- * required and readonly claims reflect on the host only: no `aria-required` or
+ * required and readonly attributes reflect on the host only: no `aria-required` or
  * `aria-readonly` is written, since the value button's role accepts neither.
  */
 class BooleanFilter extends Field {
@@ -691,9 +691,9 @@ class BooleanFilter extends Field {
         return asCriterion(labelTextOf(this), this._operator.value, [token === '' ? '' : booleanValueLabel(token)]);
     }
     /**
-     * The field's own disabled claim. Setting it disables the value button and
-     * both menu buttons; an operator button pinned to one choice stays disabled
-     * when the claim is lifted.
+     * The field's own `disabled` attribute. Setting it disables the value button
+     * and both menu buttons; an operator button pinned to one choice stays
+     * disabled when the attribute is removed.
      * @returns {boolean}
      */
     get disabled() {

@@ -14,7 +14,7 @@
 
 <body>
     <h1>ful navigation</h1>
-    <p>Tabs, accordion and wizard. The accordion is native <code>details</code>/<code>summary</code>, the tabs follow the tab pattern with the arrow keys, the wizard's steps claim <code>aria-current</code>, the chrome follows the claim.</p>
+    <p>Tabs, accordion and wizard. The accordion is native <code>details</code>/<code>summary</code>, the tabs follow the tab pattern with the arrow keys, the wizard's current step carries <code>aria-current</code>, the chrome follows that attribute.</p>
 
     <h2>tabs</h2>
     <p>One tablist, three panels: clicks, the arrow keys (wrapping) and <code>Home</code>/<code>End</code> move the active panel, every move answering with a <code>tabs:change</code> event.</p>
@@ -205,7 +205,7 @@
     </fieldset>
 
     <h2>wizard, minimal progress</h2>
-    <p>The progress chrome shows the current step alone by default: the counter, the separator and any other dressing are the page's own. The <code>progress</code> attribute picks another shape over the same claims: <code>timeline</code> (the full timeline), <code>dots</code>, <code>none</code>. <code>move()</code>, the focus and the <code>change</code> events are the same in every shape.</p>
+    <p>The progress chrome shows the current step alone by default: the counter, the separator and any other dressing are the page's own. The <code>progress</code> attribute picks another shape over the same <code>aria-current</code> attributes: <code>timeline</code> (the full timeline), <code>dots</code>, <code>none</code>. <code>move()</code>, the focus and the <code>change</code> events are the same in every shape.</p>
     <fieldset>
         <legend>the default shape: the current step alone</legend>
         <ful-wizard id="counter-wizard">

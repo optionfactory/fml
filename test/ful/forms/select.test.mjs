@@ -1245,7 +1245,7 @@ describe('Select selection removal', () => {
         assert.deepStrictEqual(changes, [], 'a readonly select dispatches no change');
     });
 
-    it('keeps the selection when a claim lands while the dropdown is open on a pick', async () => {
+    it('keeps the selection when readonly is set while the dropdown is open on a pick', async () => {
         const [selectEl] = await mount(`<ful-select multiple value="k1"></ful-select>`);
         const changes = [];
         selectEl.addEventListener('change', (e) => changes.push(e.detail.entry));
@@ -1260,7 +1260,7 @@ describe('Select selection removal', () => {
         );
 
         assert.deepStrictEqual(selectEl.value, ['k1'], 'the pick is not applied');
-        assert.deepStrictEqual(changes, [], 'a pick refused by a claim dispatches no change');
+        assert.deepStrictEqual(changes, [], 'a pick refused while readonly dispatches no change');
         assert.isFalse(dropdown.shown, 'the leftover dropdown is closed');
     });
 
@@ -1842,7 +1842,7 @@ describe('Select dropdown opening', () => {
         assert.isFalse(selectEl.querySelector('ful-dropdown').shown, 'a readonly select does not open on click');
     });
 
-    it('closes the open dropdown when a claim lands', async () => {
+    it('closes the open dropdown when the field becomes readonly or disabled', async () => {
         const [selectEl] = await mount(`<ful-select value="k1">pick</ful-select>`);
         const dropdown = selectEl.querySelector('ful-dropdown');
         selectEl.dispatchEvent(new Event('click', { bubbles: true }));
@@ -2291,9 +2291,9 @@ describe('Select attributes during the async render window', () => {
         assert.strictEqual(selectEl.value, 'k1', 'the value is applied');
         assert.strictEqual(input.value, 'Label k1', 'the label is resolved');
         assert.isTrue(selectEl.itemList, 'the item list is on');
-        assert.isTrue(input.readOnly, 'the readonly claim reaches the control');
-        assert.strictEqual(input.getAttribute('aria-required'), 'true', 'the required claim reaches the control');
-        assert.isTrue(selectEl.hasAttribute('readonly'), 'the claim is not un-claimed by the stale snapshot');
+        assert.isTrue(input.readOnly, 'the readonly attribute reaches the control');
+        assert.strictEqual(input.getAttribute('aria-required'), 'true', 'the required attribute reaches the control');
+        assert.isTrue(selectEl.hasAttribute('readonly'), 'the attribute is not removed by the stale snapshot');
     });
 
     it('keeps a value that changed mid-flight over the markup one', async () => {

@@ -38,14 +38,14 @@ describe('InputFile', () => {
         assert.strictEqual(
             input.getAttribute('aria-required'),
             'true',
-            'the required claim is announced on the native input',
+            'the required state is announced on the native input',
         );
         assert.isTrue(el.readonly, 'the readonly attribute is applied at render');
         assert.isFalse(el.querySelector('ful-control-group').inert, 'inert would hide the list from a reader');
         assert.strictEqual(
             input.getAttribute('aria-readonly'),
             'true',
-            'the readonly claim is announced on the native input instead',
+            'the readonly state is announced on the native input instead',
         );
     });
 
@@ -682,7 +682,7 @@ describe('InputFile stray clicks', () => {
     });
 });
 
-describe('InputFile disabled and readonly claims', () => {
+describe('InputFile disabled and readonly states', () => {
     const interactions = {
         'a drop replaces nothing': (el) => drop(el, file('z.txt')),
         'a removal click dismisses nothing': (el) =>
@@ -711,7 +711,7 @@ describe('InputFile disabled and readonly claims', () => {
 
                 act(el);
 
-                assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], `the selection is frozen by the ${claim}`);
+                assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], `the selection is frozen while ${claim}`);
             });
         }
         it(`shows no dropzone while ${claim}, the chosen files staying in the item list`, async () => {
@@ -721,7 +721,7 @@ describe('InputFile disabled and readonly claims', () => {
             assert.notStrictEqual(
                 getComputedStyle(dropzone).display,
                 'none',
-                'the dropzone is shown before the claim is set',
+                'the dropzone is shown before the attribute is set',
             );
 
             el.setAttribute(attribute, '');
@@ -742,7 +742,7 @@ describe('InputFile disabled and readonly claims', () => {
             assert.notStrictEqual(
                 getComputedStyle(dropzone).display,
                 'none',
-                'the dropzone is shown again once the claim is removed',
+                'the dropzone is shown again once the attribute is removed',
             );
         });
 
@@ -766,7 +766,7 @@ describe('InputFile disabled and readonly claims', () => {
             assert.notStrictEqual(
                 getComputedStyle(remove).display,
                 'none',
-                'the remove button is shown before the claim is set',
+                'the remove button is shown before the attribute is set',
             );
 
             el.setAttribute(attribute, '');

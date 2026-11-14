@@ -1,4 +1,4 @@
-# 0021. Superseded work is dropped through claims
+# 0021. Superseded work is dropped as stale
 
 Status: accepted
 
@@ -15,13 +15,13 @@ either, because a fetch already in flight still resolves.
 
 Every contended resource holds a `Claims` (`src/ful/claims.mjs`, exported as
 `ful.Claims` for components built outside the library). Starting a
-piece of work takes a claim, which starts a new generation and supersedes
-every claim before it. When the work finishes, its holder asks the claim
-whether it is `stale` before painting chrome, storing state, dispatching an
-event or throwing towards a caller: a superseded outcome owns nothing. `hold()`
-joins the current generation without superseding it (a shared fetch that a
-later reconfiguration must detach), and `invalidate()` supersedes without
-claiming (a hide ending every pending show).
+piece of work starts a new generation, making every earlier one stale. When
+the work finishes, it checks `stale` before painting chrome, storing state,
+dispatching an event or throwing towards a caller: a stale result is dropped.
+`hold()` joins the current generation without superseding it (a shared fetch
+that a later reconfiguration must detach), and `invalidate()` makes every
+generation stale without starting one that is held (a hide ending every
+pending show).
 
 One `Claims` per resource, not per component: `ful-select` holds one for its
 dropdown's shows, one for its value lookups and its remote loader one for its
@@ -37,8 +37,9 @@ sections one for their updates; the async sections one per section.
   rejects it as superseded) instead of receiving an answer for a state it no
   longer is in.
 - Concurrency is reasoned about per resource. Two resources that contend
-  separately hold separate claims, so a new value lookup never cancels an
+  separately hold separate `Claims`, so a new value lookup never cancels an
   open dropdown's search.
-- New asynchronous work in a component takes a claim on the resource it
-  contends for; checking `stale` before every effect is the part that is
-  easy to forget and that the tests for stale loads exist to catch.
+- New asynchronous work in a component starts a generation on the `Claims` of
+  the resource it contends for; checking `stale` before every effect is the
+  part that is easy to forget and that the tests for stale loads exist to
+  catch.

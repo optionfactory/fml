@@ -27,10 +27,10 @@ describe('Accordion', () => {
 
         assert.lengthOf(details, 3, 'every details written as a child is rendered inside the group, none dropped');
         assert.isNull(details[0].getAttribute('name'), 'a free accordion assigns no name');
-        assert.isTrue(details[1].open, 'the author-claimed open panel stays open');
+        assert.isTrue(details[1].open, 'the panel the author marked open stays open');
     });
 
-    it('the exclusive claim names the group: opening one closes the others', async () => {
+    it('the exclusive attribute names the group: opening one closes the others', async () => {
         const [accordion] = await mount(markup.replace('<ful-accordion>', '<ful-accordion exclusive>'));
         const details = [...accordion.querySelectorAll('ful-accordion-group > details')];
 
@@ -39,14 +39,14 @@ describe('Accordion', () => {
             details[2].getAttribute('name'),
             'one shared name for the whole group',
         );
-        assert.isTrue(details[1].open, 'naming the group for exclusivity leaves the author-claimed open panel open');
+        assert.isTrue(details[1].open, 'naming the group for exclusivity leaves open the panel the author marked open');
 
         details[0].open = true;
         await settle();
         assert.isFalse(details[1].open, 'the platform closed the other named panel');
     });
 
-    it('the exclusive claim stays live', async () => {
+    it('exclusive stays live', async () => {
         const [accordion] = await mount(markup);
         const details = [...accordion.querySelectorAll('details')];
 

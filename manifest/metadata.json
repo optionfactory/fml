@@ -3,7 +3,7 @@
     "inherited": {
         "attributes": {
             "autocomplete": "The autofill token the browser classifies the control by, one of the names the html autocomplete grammar defines (name, given-name, street-address, postal-code, one-time-code, off, ...). It is set on the control itself because the control carries form=\"\", which leaves it without a form owner to inherit a form-wide setting from. Read once at the upgrade. A value outside the grammar reads as on, so an identifier of your own does not switch autofill off.",
-            "disabled": "The field's own disabled claim: the control is disabled and the field is left out of the submitted values, composed with a disabled fieldset ancestry. The property reflects the claim only, matches(':disabled') tells the effective state.",
+            "disabled": "The field's own disabled attribute: the control is disabled and the field is left out of the submitted values, composed with a disabled fieldset ancestry. The property reflects the attribute only, matches(':disabled') tells the effective state.",
             "keep": "A regular expression naming what survives: on every input event the whole value is filtered to its matches, concatenated, so keep=\"[0-9]\" is digits only. It matches rather than negating, so it takes a pattern and not only a character class, and the pattern must match each partial value typed on the way to a complete one.",
             "placeholder": "Placeholder shown while the field is empty.",
             "readonly": "Renders the control but does not let it be edited. A readonly field still contributes its value to the form.",
@@ -25,7 +25,7 @@
     },
     "elements": {
         "ful-accordion": {
-            "description": "An accordion over native details/summary disclosures: the platform carries the semantics, the keyboard and the toggling, the chrome paints the group (anchored on the ful-accordion-group style-only tag). With the exclusive claim the render assigns one shared name to every panel, which is the platform's own exclusive grouping: opening one closes the others.",
+            "description": "An accordion over native details/summary disclosures: the platform carries the semantics, the keyboard and the toggling, the chrome paints the group (anchored on the ful-accordion-group style-only tag). With the exclusive attribute the render assigns one shared name to every panel, which is the platform's own exclusive grouping: opening one closes the others.",
             "attributes": {
                 "exclusive": "When present, opening a panel closes the others: the native details name grouping, assigned (and assignable again) by the render."
             },
@@ -35,7 +35,7 @@
             "events": {}
         },
         "ful-checkbox": {
-            "description": "A checkbox, or a switch with type=\"switch\". Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A checkbox, or a switch with type=\"switch\". Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "type": "switch renders the control as a switch rather than a checkbox. The value and the semantics are unchanged.",
                 "value": "Checked when the attribute is the string true."
@@ -102,7 +102,7 @@
             }
         },
         "ful-filter-boolean": {
-            "description": "A ful-table filter over booleans, with the EQ or NEQ operator and a yes/no menu carrying the true and false tokens, plus an any entry that contributes nothing. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A ful-table filter over booleans, with the EQ or NEQ operator and a yes/no menu carrying the true and false tokens, plus an any entry that contributes nothing. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "value": "JSON tuple of the operator and the token.",
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ. Defaults to both."
@@ -143,7 +143,7 @@
             }
         },
         "ful-filter-instant": {
-            "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A ful-table filter over an instant, with an operator and one or two bounds. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them.",
@@ -155,7 +155,7 @@
             }
         },
         "ful-filter-local-date": {
-            "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A ful-table filter over a date, with an operator and one or two bounds. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "value": "JSON tuple of the operator and its bounds, for example [\"BETWEEN\", from, to].",
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them.",
@@ -167,7 +167,7 @@
             }
         },
         "ful-filter-number": {
-            "description": "A ful-table filter over numbers, with an operator such as GTE or BETWEEN. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A ful-table filter over numbers, with an operator such as GTE or BETWEEN. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "value": "JSON tuple of the operator and its bound(s).",
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN. Defaults to all of them.",
@@ -179,7 +179,7 @@
             }
         },
         "ful-filter-text": {
-            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH and a case sensitivity. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A ful-table filter over text, with an operator such as CONTAINS or STARTS_WITH and a case sensitivity. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "value": "JSON tuple of the operator, the sensitivity and the text.",
                 "operators": "Comma separated list of the operators the menu offers, out of EQ, NEQ, LT, GT, LTE, GTE, BETWEEN, CONTAINS, STARTS_WITH, ENDS_WITH. Defaults to all of them.",
@@ -216,7 +216,7 @@
             }
         },
         "ful-input": {
-            "description": "A labelled text input. Use type to pick any native input type, the keypad types numeric and decimal, or textarea; keep names the characters that survive a keystroke and reject the ones that do not, the caret staying among the survivors, and the uppercase and trim claims shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A labelled text input. Use type to pick any native input type, the keypad types numeric and decimal, or textarea; keep names the characters that survive a keystroke and reject the ones that do not, the caret staying among the survivors, and the uppercase and trim attributes shape the value before it is read; v-type=number decodes the value to a number, blank staying null and a value that does not decode kept as it is, an undeclared type defaulting to number. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {},
             "slots": {},
             "events": {
@@ -224,7 +224,7 @@
             }
         },
         "ful-input-file": {
-            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares; the no-input claim takes the picker control out of sight, the dropzone and the item list carrying the field alone. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A file input with an optional dropzone and a list of the selected files, enforcing the size and count limits it declares; the no-input attribute takes the picker control out of sight, the dropzone and the item list carrying the field alone. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "value": "Only an empty value is honoured, to clear the selection: file inputs cannot be filled programmatically.",
                 "accept": "Comma separated list of accepted tokens: an extension (.pdf), a mime type (application/pdf) or a wildcard (image/*). Files that do not match are dropped with a warning.",
@@ -244,7 +244,7 @@
             }
         },
         "ful-input-instant": {
-            "description": "A datetime input whose value is read and written as an ISO instant. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A datetime input whose value is read and written as an ISO instant. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "min": "Earliest selectable instant, as an ISO instant.",
                 "max": "Latest selectable instant, as an ISO instant.",
@@ -256,7 +256,7 @@
             }
         },
         "ful-input-local-date": {
-            "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A date input. Its bounds accept a date, now, or an offset such as +1d, -2m or +3y. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "min": "Earliest selectable date. Accepts a date, now, or a day, month or year offset.",
                 "max": "Latest selectable date. Accepts a date, now, or a day, month or year offset.",
@@ -268,7 +268,7 @@
             }
         },
         "ful-input-local-time": {
-            "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A time input. Its bounds accept a time, now, or an hour or minute offset, snapped to the step grid. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "min": "Earliest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
                 "max": "Latest selectable time. Accepts a time, now, or an offset such as +2h or -30m.",
@@ -310,7 +310,7 @@
             }
         },
         "ful-radio-group": {
-            "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A group of radios, declared as ful-radio children. With type=\"boolean\" the value is a real boolean. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "name": "The name the radio inputs share, which is what makes them one group. Generated when absent, so a group only needs it to be addressed from outside.",
                 "type": "boolean maps the two declared radios onto true and false rather than onto their own values.",
@@ -326,7 +326,7 @@
             }
         },
         "ful-select": {
-            "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is the field's own claim, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the claim only.",
+            "description": "A combobox backed by a loader that acts like a select: the field mirrors the label of a single selection, clicking anywhere on it toggles the dropdown, which opens highlighting the current selection, and Home, End, PageUp, PageDown and Alt+arrows navigate it. A multiple selection renders as ful-badge chips. Without src the slotted options are the vocabulary; with src the options are fetched once (method, POST by default, preload fetching them while upgrading, revision caching them in local storage) or asked per query under mode=chunked, the response shaped through the k-expr/l-expr/d-expr/m-expr expressions or a response-mapper component, and every key coerced as k-type declares. Disabled follows native semantics: the attribute is what the author declared, honored together with a disabled fieldset ancestry through :disabled, while the property reflects the attribute only.",
             "attributes": {
                 "d-expr": "The expression yielding the rows from the response body; when absent, data under mode=paged and the body itself otherwise.",
                 "item-list": "Shows the selection as a ful-item-list under the control. For a multiple select the list replaces the ful-badge chips, which it hides; a single select keeps its label in the field as well.",
@@ -366,7 +366,7 @@
             }
         },
         "ful-table": {
-            "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot; the rows come from src (method, GET by default) through the loader named by loader (loaders:table by default), page-size rows a page (10 by default), the first one loading on upgrade under the autoload claim.",
+            "description": "A table that loads its rows from a loader, with sorting, pagination and an optional filter form. Its columns are declared in a schema slot; the rows come from src (method, GET by default) through the loader named by loader (loaders:table by default), page-size rows a page (10 by default), the first one loading on upgrade under the autoload attribute.",
             "attributes": {
                 "autoload": "Loads the first page while upgrading, instead of waiting for a reload(). With a filters slot the load goes through the filter form's submit, so its submit listeners shape it as they shape the later loads. The load is not awaited, so a slow or failing loader cannot hold up the page.",
                 "loader": "The registered component name the table loads its rows through; loaders:table when absent.",
@@ -421,9 +421,9 @@
             "events": {}
         },
         "ful-wizard": {
-            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step claim carried in lockstep by the step and its section, so the chrome, including which section is shown, follows the claim alone. Each move answers with a wizard:change event.",
+            "description": "A wizard: a progress of steps over one-of-N sections. The steps are declared as step elements in the steps slot, the sections as the slotless children, paired in order; each section may carry a data-step name, which is what move() answers to, next() and prev() walk the neighbors, and the current step is the aria-current=step attribute carried in lockstep by the step and its section, so the chrome, including which section is shown, follows that attribute alone. Each move answers with a wizard:change event.",
             "attributes": {
-                "progress": "picks the progress chrome's shape over the same claims: the default shows the current step alone (any counter or dressing is the page's own), timeline the full timeline, dots a done/current/future strip, none leaves the chrome to the page."
+                "progress": "picks the progress chrome's shape over the same aria-current attributes: the default shows the current step alone (any counter or dressing is the page's own), timeline the full timeline, dots a done/current/future strip, none leaves the chrome to the page."
             },
             "slots": {
                 "steps": "The step declarations, one step element per section, carrying the step's label.",

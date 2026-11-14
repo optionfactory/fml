@@ -7,7 +7,7 @@ import { Field } from './field.mjs';
  * click on it toggles the value. Every `input-*` attribute is forwarded onto
  * the input. The input's native `change` is stopped and republished as the
  * field's own. Readonly freezes the whole choice, label included: no click
- * inside it toggles the value while the claim holds.
+ * inside it toggles the value while the field is readonly.
  */
 class Checkbox extends Field {
     /** @type {string[]} */

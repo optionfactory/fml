@@ -40,12 +40,12 @@ describe('Wizard', () => {
         assert.strictEqual(
             steps[0].getAttribute('aria-current'),
             'step',
-            'the first step is current when no section claims the current step in the markup',
+            'the first step is current when no section carries aria-current=step in the markup',
         );
         assert.strictEqual(
             wizard.querySelectorAll('section[aria-current=step]').length,
             1,
-            'exactly one section carries the current step claim',
+            'exactly one section carries aria-current=step',
         );
         assert.strictEqual(
             wizard.querySelector('section[aria-current=step]').getAttribute('data-step'),
@@ -118,7 +118,7 @@ describe('Wizard', () => {
         );
     });
 
-    it('a section already carrying the claim keeps it', async () => {
+    it('a section already carrying aria-current=step keeps it', async () => {
         const [wizard] = await mount(
             markup.replace('<section data-step="modifica">', '<section data-step="modifica" aria-current="step">'),
         );
@@ -131,7 +131,7 @@ describe('Wizard', () => {
         assert.strictEqual(
             wizard.querySelector('ol').children[1].getAttribute('aria-current'),
             'step',
-            'the step paired with the claimed section carries the current step claim too',
+            'the step paired with that section carries aria-current=step too',
         );
     });
 });

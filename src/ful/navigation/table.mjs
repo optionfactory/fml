@@ -633,7 +633,7 @@ class Table extends ParsedElement {
     #total = 0;
     /** the height of a row the spacers are sized on, measured on the first rows a load shows; 0 until measured */
     #rowHeight = 0;
-    /** @type {{ readonly stale: boolean } | null} the claim of the window shift in flight */
+    /** @type {{ readonly stale: boolean } | null} the generation of the window shift in flight */
     #shifting = null;
     /** @type {ReturnType<typeof setTimeout>|undefined} */
     #jump = undefined;
@@ -1083,7 +1083,7 @@ class Table extends ParsedElement {
      * showing only when there are none, and the table is busy.
      * @param {Record<string, any>} filterRequest the filters a page, a sort
      * or a size change carries from now on
-     * @returns {{ readonly stale: boolean }} the claim of the load
+     * @returns {{ readonly stale: boolean }} the generation of the load
      */
     #startLoad(filterRequest) {
         this.#loadRequested = true;
@@ -1507,7 +1507,7 @@ class Table extends ParsedElement {
             this.#countInView();
             for (const { pageRequest, response } of answers) {
                 if (claim.stale) {
-                    //a listener that started a load of its own superseded this shift: its pages own nothing from here on
+                    //a listener that started a load of its own superseded this shift: its remaining pages dispatch nothing
                     return;
                 }
                 this.dispatchEvent(
@@ -1581,7 +1581,7 @@ class Table extends ParsedElement {
                 this.#countInView();
                 for (const { pageRequest, response } of shown) {
                     if (claim.stale) {
-                        //a listener that started a load of its own superseded this reload: its pages own nothing from here on
+                        //a listener that started a load of its own superseded this reload: its remaining pages dispatch nothing
                         return;
                     }
                     this.dispatchEvent(
@@ -1603,7 +1603,7 @@ class Table extends ParsedElement {
             throw error;
         }
         //the window start fell past the last page: the reload restarts as a first page, as any load does,
-        //and outside the catch above, so its failure rejects this reload rather than a superseded claim
+        //and outside the catch above, so its failure rejects this reload rather than being dropped as stale
         return await this.load({ page: 0, size }, sortRequest, filterRequest);
     }
     #update(pageRequest, sortRequest, filterRequest, pageResponse) {

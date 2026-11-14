@@ -47,8 +47,9 @@ The consequences are embraced, not apologized for:
 - User state is preserved by construction, since the dom is never rebuilt
   under the user, which is what lets a combobox keep its caret mid-edit.
 - The cost sits on the element author: a setter must know how to drive every
-  piece it owns, which is the problem the claims protocol (0011) shares, and
-  a failed render is unrecoverable for that instance rather than retried.
+  piece it owns, which is the problem the field pieces protocol (0011)
+  shares, and a failed render is unrecoverable for that instance rather than
+  retried.
 - Slot and attribute configuration is read once, at the render, which is why
   the two attribute tiers (0008) split into live state and frozen
   configuration. An attribute that has to change afterwards (a table's `src`)

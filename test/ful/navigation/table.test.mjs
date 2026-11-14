@@ -948,7 +948,7 @@ describe('Pagination links', () => {
         );
     });
 
-    it('tells the current page from the others by more than its aria-current claim', async () => {
+    it('tells the current page from the others by more than its aria-current attribute', async () => {
         const [el] = await mountPagination(`current="1" total="3"`);
 
         const [other, current] = [...el.querySelectorAll('li[data-ref=page] button')];

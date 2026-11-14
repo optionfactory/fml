@@ -14,7 +14,7 @@ const mount = async (html) => {
 };
 
 describe('Field', () => {
-    it('tolerates a claim arriving while an async render is still in flight', async () => {
+    it('tolerates a disabled attribute arriving while an async render is still in flight', async () => {
         const uncaught = [];
         const onError = (e) => {
             uncaught.push(e.error?.message ?? e.message);
@@ -42,8 +42,8 @@ describe('Field', () => {
         await Rendering.waitFor(selectEl);
         await settle();
 
-        assert.deepStrictEqual(uncaught, [], 'the claim does not crash the unrendered field');
-        assert.isTrue(selectEl.matches(':disabled'), 'the claim is live');
+        assert.deepStrictEqual(uncaught, [], 'the attribute does not crash the unrendered field');
+        assert.isTrue(selectEl.matches(':disabled'), 'the attribute is live');
         assert.isTrue(selectEl.querySelector('input').matches(':disabled'), 'the render applied it to the control');
         window.removeEventListener('error', onError);
     });
@@ -231,25 +231,28 @@ describe('Field', () => {
 
         field.setAttribute('disabled', '');
 
-        assert.isTrue(field.disabled, 'the base-observed claim reaches the subclass');
+        assert.isTrue(field.disabled, 'the base-observed attribute reaches the subclass');
         assert.isTrue(input.matches(':disabled'), 'the subclass mirror ran');
         field.removeAttribute('disabled');
-        assert.isFalse(input.matches(':disabled'), 'lifting the disabled claim reaches the subclass control as well');
+        assert.isFalse(
+            input.matches(':disabled'),
+            'removing the disabled attribute reaches the subclass control as well',
+        );
 
         field.setAttribute('readonly', '');
-        assert.isTrue(input.readOnly, 'the readonly claim reaches the subclass mirror');
+        assert.isTrue(input.readOnly, 'the readonly attribute reaches the subclass mirror');
         field.setAttribute('required', '');
         assert.strictEqual(
             input.getAttribute('aria-required'),
             'true',
-            'the required claim reaches the subclass mirror',
+            'the required attribute reaches the subclass mirror',
         );
         field.removeAttribute('readonly');
         field.removeAttribute('required');
-        assert.isFalse(input.readOnly, 'lifting the readonly claim reaches the subclass control as well');
+        assert.isFalse(input.readOnly, 'removing the readonly attribute reaches the subclass control as well');
         assert.isNull(
             input.getAttribute('aria-required'),
-            'lifting the required claim removes aria-required from the subclass control',
+            'removing the required attribute removes aria-required from the subclass control',
         );
         assert.strictEqual(field.value, 'x', 'the base-delivered value mapper feeds the subclass');
     });

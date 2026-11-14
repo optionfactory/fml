@@ -12,7 +12,7 @@ import { Field } from './field.mjs';
  * native `change` is stopped and republished as the group's own.
  *
  * The host carries the `radiogroup` role, `aria-readonly`, `aria-required`,
- * `aria-invalid` and the description. The disabled and readonly claims act on
+ * `aria-invalid` and the description. The disabled and readonly states act on
  * the group's `<fieldset>`, and readonly refuses every click inside it.
  * `focus()` lands on the first radio.
  */

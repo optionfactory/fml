@@ -107,7 +107,7 @@ class Dialog extends ParsedElement {
         }
         this.#dialog.addEventListener('close', () => {
             if (this.#lateCloses > 0) {
-                //the close of an opening that a later one already answered: it owns nothing
+                //the close of an opening that a later one already answered: it is ignored
                 this.#lateCloses--;
                 return;
             }
@@ -289,7 +289,7 @@ class Dialog extends ParsedElement {
         }
         if (this.#nativeClose) {
             //the previous opening's close is still queued: its outcome is settled here, with its own state,
-            //and its native event, when it comes, owns nothing
+            //and its native event, when it comes, is ignored
             this.#nativeClose = false;
             this.#lateCloses++;
             const outcome = this.#outcome();

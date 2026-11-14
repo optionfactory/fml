@@ -127,7 +127,7 @@ describe('dom.mjs', () => {
             );
             expect(
                 slots.header.querySelector('div').textContent,
-                'a named slot holds the child that claimed it',
+                'a named slot holds the child that names it',
             ).to.equal('Header');
 
             expect(slots.footer, 'every slot name found among the children gets its own fragment').to.be.instanceOf(
@@ -135,7 +135,7 @@ describe('dom.mjs', () => {
             );
             expect(
                 slots.footer.querySelector('span').textContent,
-                'the footer slot holds the child that claimed footer',
+                'the footer slot holds the child that names footer',
             ).to.equal('Footer');
 
             expect(slots.default, 'the default slot is always present as a DocumentFragment').to.be.instanceOf(
@@ -143,7 +143,7 @@ describe('dom.mjs', () => {
             );
             expect(
                 slots.default.querySelectorAll('p').length,
-                'the children that claim no slot all go to the default slot',
+                'the children that name no slot all go to the default slot',
             ).to.equal(2);
 
             expect(el.childNodes.length, 'the children are moved into the slots, leaving the element empty').to.equal(
@@ -155,27 +155,30 @@ describe('dom.mjs', () => {
             const el = document.createElement('div');
             el.innerHTML = `
                 <p>first</p>
-                <div slot="">an empty claim</div>
+                <div slot="">an empty slot name</div>
                 <span slot="named">named</span>
             `;
 
             const slots = LightSlots.from(el);
 
-            expect(slots.unnamed, 'no phantom slot is born from the empty claim').to.be.undefined;
-            expect(slots.named, 'a named slot next to an empty claim is still collected').to.be.instanceOf(
+            expect(slots.unnamed, 'no phantom slot is born from the empty slot attribute').to.be.undefined;
+            expect(slots.named, 'a named slot next to an empty slot attribute is still collected').to.be.instanceOf(
                 DocumentFragment,
             );
             const children = Array.from(slots.default.childNodes).filter((n) => n.nodeType === n.ELEMENT_NODE);
-            expect(children.length, 'the empty claim joins the unslotted child in the default slot').to.equal(2);
+            expect(
+                children.length,
+                'the child with an empty slot attribute joins the unslotted child in the default slot',
+            ).to.equal(2);
             expect(
                 children[0].textContent,
                 'the default slot keeps the document order, the unslotted child first',
             ).to.equal('first');
             expect(
                 children[1].textContent,
-                'the empty claim stays at its document position after the child before it',
-            ).to.equal('an empty claim');
-            expect(children[1].hasAttribute('slot'), 'the empty claim is stripped like any named one').to.be.false;
+                'the child with an empty slot attribute stays at its document position after the child before it',
+            ).to.equal('an empty slot name');
+            expect(children[1].hasAttribute('slot'), 'slot="" is stripped like any named one').to.be.false;
         });
 
         it('collects a slot named like an Object.prototype member', () => {

@@ -257,7 +257,7 @@ describe('RadioGroup state', () => {
             'aria-readonly is removed from the host once the group is no longer readonly',
         );
         first.click();
-        assert.isTrue(first.checked, 'and it picks again once the claim is lifted');
+        assert.isTrue(first.checked, 'and it picks again once the attribute is removed');
 
         group.readonly = true;
         assert.isTrue(group.hasAttribute('readonly'), 'the property reflects back onto the attribute');
@@ -275,7 +275,7 @@ describe('RadioGroup state', () => {
         assert.strictEqual(group.getAttribute('aria-required'), 'true', 'the host announces the group as required');
 
         group.required = false;
-        assert.isFalse(group.required, 'writing false to required turns the claim off');
+        assert.isFalse(group.required, 'writing false to required turns the property off');
         assert.isFalse(group.hasAttribute('aria-required'), 'aria-required is removed, not set to false');
         assert.isFalse(group.hasAttribute('required'), 'writing false to required removes the required attribute');
     });

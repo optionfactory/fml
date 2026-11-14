@@ -145,7 +145,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 #### ful: forms and fields
 
-- [NEW] `Field` is exported: the base of every form-associated field, carrying validity, focus delegation, labelling, Enter submission, the `disabled`/`readonly`/`required` claims and reset. A custom field implements `_build(conf)` and returns its pieces (`fragment`, `control`, `error`, `label`, `described`, `announces`, `claims`, `freeze`, `also`); the wiki's extending-fields page describes them
+- [NEW] `Field` is exported: the base of every form-associated field, carrying validity, focus delegation, labelling, Enter submission, the `disabled`/`readonly`/`required` states and reset. A custom field implements `_build(conf)` and returns its pieces (`fragment`, `control`, `error`, `label`, `described`, `announces`, `claims`, `freeze`, `also`); the wiki's extending-fields page describes them
 - [NEW] `Field.describedBy(el)` adds an element to the accessible description of the field's control; `describable(el)` answers the nearest ancestor that accepts one
 - [NEW] `new ful.Plugin({ httpClient })` takes the client every ful component fetches through; the default still sends the csrf token and redirects to `/` on a 401
 - [NEW] `ful-input` and `ful-form` take `autocomplete`, each field inheriting the form's token unless it names its own; `input-autocomplete` still has the last word
@@ -154,7 +154,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] `ful-form` takes `track-changes`: `dirty` answers whether a field the user edited since the last commit holds another value, the host matches `:state(dirty)`, its submit buttons carry `data-ful-dirty` (painted as a dot in their corner) and `dirty:change` reports each flip. A successful submit commits what it sent, the form commits once its fields have rendered, `commit()` is for a save of the page's own and `edited(...els)` for values the page writes on the user's behalf (see decision 0022)
 - [NEW] `ful-form.submit()` resolves `true` after `submit:success` and `false` when the submit failed, was cancelled or was dropped for one in flight; `save()` submits only while the form is dirty (always without `track-changes`) and resolves whether no unsaved edit is left, for a page action that would lose them
 - [NEW] `ful-form` takes `guard-leave`, which implies `track-changes` and asks before the page is left while the form is dirty; `PageLeave.guard(isDirty, signal)` does the same for any other condition
-- [ENH] `disabled` is live on every field like `readonly`, `required` and `value`, and a claim written between upgrade and render is applied by the render
+- [ENH] `disabled` is live on every field like `readonly`, `required` and `value`, and a state written between upgrade and render is applied by the render
 - [ENH] a field's change detail always carries its own `value`
 - [ENH] a field's `focus()` called before the render is applied once the control exists
 - [ENH] while a `ful-form` submits it carries `aria-busy`, and each revealed `ful-spinner` gets `role="status"` and a localized label unless the author wrote one
@@ -168,7 +168,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `form.reset()` restores every field through its own value semantics, not only `ful-input`; a filter also restores its operator and sensitivity
 - [BUG] only the button that submitted the form contributes its `name`/`value`
 - [BUG] readonly keeps a field in the accessibility tree: fields without a native `readOnly` refuse the gestures instead of becoming `inert`
-- [BUG] the claims are announced on the element whose role accepts them (`ful-radio-group` announces on its `radiogroup` host), and an invalid control carries `aria-invalid`
+- [BUG] the readonly and required states are announced on the element whose role accepts them (`ful-radio-group` announces on its `radiogroup` host), and an invalid control carries `aria-invalid`
 - [BUG] `Bindings.providePath` refuses `__proto__`, `prototype` and `constructor` segments
 - [BUG] a problem without `context` shows in the `ful-errors` banner instead of making `submit()` reject; overlapping names (`a` beside `a.b`) no longer abort the extraction
 - [BUG] a submit button added during a submit keeps its own state when the form releases the buttons
@@ -231,7 +231,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] `mode="paged"` asks the endpoint per query a page at a time, as a `ful-table` does: the search sends `s`, `page` and `size` (`page-size`, 25 by default), the dropdown appends the next page as its rows are scrolled to the end, up to 200 rows, and expects `{ data, size }`, so `d-expr` defaults to `data` and `t-expr` to `size`. `t-expr` reads how many rows match, under `mode="chunked"` too, and the dropdown tells how many it shows of how many and to type to narrow down. `mode="chunked"` sends no page, as before
 - [NEW] `select.reconfigure({ src, method }, { notify })` writes both at once, reloads once and answers a promise settling with the reload; `notify` fires `change` when the reload dropped a selected key
 - [ENH] a key containing a comma assigned through the property warns once per element
-- [ENH] a claim landing while the dropdown is open closes it
+- [ENH] turning `disabled` or `readonly` on while the dropdown is open closes it
 - [BUG] a click on another control inside a `ful-select` (a tooltip, an affix button) no longer opens the dropdown
 - [BUG] a readonly or disabled select gives back the room held for its chevron
 - [BUG] a dropdown with no room below opens just above the control instead of at the top of the viewport
@@ -356,7 +356,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 ### version 8.0.3
 
-- [REF] the disabled protocol of `ful-input`, `ful-checkbox`, `ful-select`, `ful-radio-group` and `ful-filter-*` now follows native semantics: the attribute is the field's own claim and nothing but its author ever writes it, a disabled `<fieldset>` ancestry is honored through `:disabled` and the browser's own disabling of the inner controls, and the `disabled` property reflects the claim only, like a native input's. This replaces the `formDisabledCallback` and unclaiming machinery, which kept regressing: a re-enabled fieldset used to leave fields disabled for good, and a field declared disabled in markup inside a disabled fieldset used to lose its claim when the fieldset came back. Behavior change: a field disabled only by its ancestry now reads `.disabled === false`, ask `matches(':disabled')` for the effective state, as with a native input
+- [REF] the disabled protocol of `ful-input`, `ful-checkbox`, `ful-select`, `ful-radio-group` and `ful-filter-*` now follows native semantics: the attribute is what the author declared and nothing but its author ever writes it, a disabled `<fieldset>` ancestry is honored through `:disabled` and the browser's own disabling of the inner controls, and the `disabled` property reflects the attribute only, like a native input's. This replaces the `formDisabledCallback` machinery and its removal of the attribute, which kept regressing: a re-enabled fieldset used to leave fields disabled for good, and a field declared disabled in markup inside a disabled fieldset used to lose its `disabled` attribute when the fieldset came back. Behavior change: a field disabled only by its ancestry now reads `.disabled === false`, ask `matches(':disabled')` for the effective state, as with a native input
 - [ENH] `ful-select` declares the type of its keys with `k-type`: `string` (the default, like every other control), `number` or `boolean`. A key that does not decode is kept as it is. Unlike 8.0.0, which leaked whatever the endpoint carried into `value`, `change` and the submitted payload, typed keys are now an explicit opt in
 - [BUG] `ful-select` keeps its selection when the endpoint carries typed keys: a `value="16"` assignment used to be dropped as soon as the loader answered with the numeric `16`, the internal lookup comparing strictly what the loaders match loosely. Keys are coerced to one canonical type at every entry point, an option picked from the dropdown included
 

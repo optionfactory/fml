@@ -3,7 +3,7 @@ import { Attributes, Fragments, ParsedElement } from '../../ftl/index.mjs';
 /**
  * The base of every form-associated ful field: a form-associated custom element
  * carrying the validity protocol, the field error live region, focus
- * delegation, the label chrome and the disabled, readonly and required claims.
+ * delegation, the label chrome and the disabled, readonly and required states.
  *
  * A subclass owns its template, its value semantics and its change events. It
  * implements `_build(conf)`, which builds its dom and returns the pieces the
@@ -11,15 +11,15 @@ import { Attributes, Fragments, ParsedElement } from '../../ftl/index.mjs';
  * mounts the fragment and applies the declared state. Nothing in the base is
  * there to be called from a subclass's build.
  *
- * The claim setters, the validity protocol and the aria wiring all act on the
- * pieces, so a field with no native control returns a focusable piece of its
- * own chrome as the control. The claims, `value`, `focus()` and
- * `setCustomValidity` are the members that tolerate a not yet rendered
- * element: before the render the `value` getter answers what the rendered
- * field would answer from its current declared state, a value written then is
- * held and applied by the render (see `_holdValue`), and a problem reported
- * then is shown by it. The other members need the pieces and so work only
- * after the render.
+ * The `disabled`, `readonly` and `required` setters, the validity protocol and
+ * the aria wiring all act on the pieces, so a field with no native control
+ * returns a focusable piece of its own chrome as the control. `disabled`,
+ * `readonly`, `required`, `value`, `focus()` and `setCustomValidity` are the
+ * members that tolerate a not yet rendered element: before the render the
+ * `value` getter answers what the rendered field would answer from its current
+ * declared state, a value written then is held and applied by the render (see
+ * `_holdValue`), and a problem reported then is shown by it. The other members
+ * need the pieces and so work only after the render.
  *
  * The inner controls carry `form=""`, so the host is the only element the form
  * sees. Enter pressed in an inner `<input>` of any type but `file`, `button`,
@@ -32,11 +32,12 @@ import { Attributes, Fragments, ParsedElement } from '../../ftl/index.mjs';
 class Field extends ParsedElement {
     static formAssociated = true;
     /**
-     * The claim attributes and the value, observed so that every field,
-     * including a custom one that never lists them, keeps them live after the
-     * upgrade. A subclass's own `static observed` adds to this list. The value
-     * is read with the string mapper; a field with another vocabulary redeclares
-     * it with its own (`value:bool`, `value:csv`, `value:json`).
+     * The disabled, readonly and required attributes and the value, observed so
+     * that every field, including a custom one that never lists them, keeps them
+     * live after the upgrade. A subclass's own `static observed` adds to this
+     * list. The value is read with the string mapper; a field with another
+     * vocabulary redeclares it with its own (`value:bool`, `value:csv`,
+     * `value:json`).
      * @type {string[]}
      */
     static observed = ['disabled:presence', 'readonly:presence', 'required:presence', 'value'];
@@ -309,7 +310,7 @@ class Field extends ParsedElement {
      * menus and labels are not form controls, so the platform does not disable
      * them: every handler on them asks this first. False while the host matches
      * `:disabled`, which covers a disabled `<fieldset>` ancestry as well as the
-     * claim, or while the readonly claim holds.
+     * `disabled` attribute, or while the field is readonly.
      * @returns {boolean}
      */
     _interactive() {
@@ -372,18 +373,19 @@ class Field extends ParsedElement {
         this.value = this.unmarshal('value', this.getAttribute('value'));
     }
     /**
-     * The field's own disabled claim, which follows a native form control:
+     * The field's own `disabled` attribute, which follows a native form control:
      *
-     * - the `disabled` attribute on the host is the claim. Only the author writes
-     *   or removes it, in markup or through this property; the library never
-     *   claims on a form's or fieldset's behalf. A field declared disabled inside
-     *   a disabled `<fieldset>` stays disabled when the fieldset is re-enabled.
-     * - the effective state is the claim or a disabled `<fieldset>` ancestry:
+     * - the `disabled` attribute on the host is what the author declared. Only
+     *   the author writes or removes it, in markup or through this property; the
+     *   library never writes it on a form's or fieldset's behalf. A field declared
+     *   disabled inside a disabled `<fieldset>` stays disabled when the fieldset
+     *   is re-enabled.
+     * - the effective state is the attribute or a disabled `<fieldset>` ancestry:
      *   `:disabled` matches both, and a disabled field is left out of the
      *   submitted values.
-     * - the property reads the claim only: a field disabled by its ancestry reads
-     *   `false` while `matches(':disabled')` is true. Removing the claim inside a
-     *   disabled fieldset does not enable the field.
+     * - the property reads the attribute only: a field disabled by its ancestry
+     *   reads `false` while `matches(':disabled')` is true. Removing the
+     *   attribute inside a disabled fieldset does not enable the field.
      * - writing it sets or removes the `disabled` attribute on the `claims`
      *   piece (the control by default) and on every `also` control. The
      *   ancestry is never written anywhere: the browser disables those controls
@@ -401,13 +403,13 @@ class Field extends ParsedElement {
         }
     }
     /**
-     * The readonly claim, read from the host attribute. Writing it sets
+     * The readonly state, read from the host attribute. Writing it sets
      * `readOnly` on the `claims` piece (the control by default) and on every
      * `also` control, sets `aria-readonly` on the `announces` piece, and
      * reflects the attribute. A text control stays focusable and selectable
      * with only editing off. A field whose control has no usable native
      * `readOnly` names a `freeze` piece, whose clicks are cancelled while the
-     * claim holds.
+     * field is readonly.
      * @type {boolean}
      */
     get readonly() {
@@ -423,7 +425,7 @@ class Field extends ParsedElement {
         this.reflectTo('readonly', v);
     }
     /**
-     * The required claim, read from the host attribute. Writing it sets
+     * The required state, read from the host attribute. Writing it sets
      * `aria-required` on the `announces` piece and reflects the attribute; no
      * native `required` is set, since validation is the server's.
      * @type {boolean}
@@ -489,18 +491,18 @@ class Field extends ParsedElement {
      *   control.
      * - `freeze` is for a field with no usable native `readOnly`: a capturing
      *   click listener on it cancels the default action of every click inside
-     *   it while the readonly claim holds. It stays focusable and in the
+     *   it while the field is readonly. It stays focusable and in the
      *   accessibility tree.
      * - `also` are further controls that mirror `disabled` and `readOnly`
-     *   beside the claim target.
+     *   beside the element the states are written on.
      *
      * The pieces are elements the field rendered itself, native controls or
      * wrappers of its own. A ful field is not one: it has no `readOnly`, its
      * host's role takes no aria, and a label's `for` names its host rather than
      * its control. A composite built from ful fields answers the inner field as
      * `control`, which forwards `focus()`, lets it render its own label with
-     * `label` and `announces` null, and forwards the claims in its setters,
-     * calling super first.
+     * `label` and `announces` null, and forwards `disabled`, `readonly` and
+     * `required` in its setters, calling super first.
      * @param {{ slots: Record<string, DocumentFragment> | undefined }} conf
      * @returns {any} the pieces, or a promise of them
      * @throws {Error} when the subclass does not implement it

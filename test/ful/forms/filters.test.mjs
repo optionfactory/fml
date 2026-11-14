@@ -1141,7 +1141,7 @@ describe('Filter readonly and disabled', () => {
 
         el.removeAttribute('readonly');
         operator.click();
-        assert.isTrue(menu.matches(':popover-open'), 'and it opens again once the claim is lifted');
+        assert.isTrue(menu.matches(':popover-open'), 'and it opens again once the attribute is removed');
     });
 
     it('a readonly filter freezes the sensitivity menu too', async () => {
@@ -1531,7 +1531,7 @@ describe('BooleanFilter interactions', () => {
         const seen = [];
         el.addEventListener('change', (e) => seen.push(e.detail));
         el.disabled = true;
-        assert.isTrue(el.disabled, 'the claim reads back');
+        assert.isTrue(el.disabled, 'the property reads back');
 
         el.querySelector('a[value=NEQ]').click();
         el.querySelector('[data-ref=value]').nextElementSibling.querySelector('a[value=false]').click();
@@ -1561,7 +1561,7 @@ describe('BooleanFilter interactions', () => {
         const [el] = await mount('readonly required');
         const button = el.querySelector('[data-ref=value]');
 
-        assert.isTrue(el.readonly && el.required, 'the claims reflect on the host');
+        assert.isTrue(el.readonly && el.required, 'the readonly and required attributes reflect on the host');
         assert.isFalse(button.hasAttribute('aria-readonly'), 'the value button role does not accept aria-readonly');
         assert.isFalse(button.hasAttribute('aria-required'), 'the value button role does not accept aria-required');
     });

@@ -16,7 +16,7 @@ rationale about one piece of code belongs in a comment beside it.
 | 0008 | [Two tiers of attributes: observed and configuration](0008-attribute-tiers.md) |
 | 0009 | [Declarations compose base-first, re-declaration moves to the subclass](0009-declaration-composition.md) |
 | 0010 | [One registry seam for elements, components and loaders](0010-registry.md) |
-| 0011 | [Fields are claims over pieces, not widget contracts](0011-field-claims.md) |
+| 0011 | [The base field drives declared state across pieces, not widget contracts](0011-field-pieces.md) |
 | 0012 | [Localization is a flat overlay, fixed per page](0012-localization.md) |
 | 0013 | [httpc answers failures, not exceptions of last resort](0013-httpc-failure-model.md) |
 | 0014 | [Revision-guarded local storage, denial is a miss](0014-storage.md) |
@@ -26,7 +26,7 @@ rationale about one piece of code belongs in a comment beside it.
 | 0018 | [Docs and manifests are generated, or they do not ship](0018-generated-artifacts.md) |
 | 0019 | [Events: platform names for platform meanings, namespaced requests and outcomes](0019-event-vocabulary.md) |
 | 0020 | [Floating ui lives in the top layer](0020-top-layer.md) |
-| 0021 | [Superseded work is dropped through claims](0021-claims.md) |
+| 0021 | [Superseded work is dropped as stale](0021-stale-work.md) |
 | 0022 | [Unsaved edits are the user's edits, not a difference from a snapshot](0022-unsaved-edits.md) |
 
 Status of all: accepted. Dates are enactment-agnostic; most decisions predate

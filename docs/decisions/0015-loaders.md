@@ -27,7 +27,7 @@ follows the change without implementing anything.
 
 A load is never awaited into the element's render (the autoload discipline:
 a slow or failing loader cannot hold up the page), and superseded loads are
-dropped through claims (0021), never rendered.
+dropped as stale (0021), never rendered.
 
 ## Consequences
 

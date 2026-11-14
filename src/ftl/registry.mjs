@@ -184,7 +184,7 @@ class Registry {
      * `propertyOf` names, `attributes` are the configuration read once at it and
      * drive no property at all. A subclass's entry for a name overrides its
      * ancestors', so a base class declares what every subclass keeps observing
-     * (a protocol attribute such as Field's disabled claim) and a leaf refines a
+     * (a protocol attribute such as Field's `disabled`) and a leaf refines a
      * mapping, or moves a name's position, without repeating the whole list.
      * The observed attributes are applied in the composed order, a re-declared
      * name taking the position of its last declaration.

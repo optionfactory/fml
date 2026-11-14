@@ -887,9 +887,9 @@ class Select extends Field {
         't-expr',
     ];
     /**
-     * Beside the field's claims: `multiple`, `item-list`, `value` as a comma
-     * separated list of keys, trimmed, whether or not the select is multiple,
-     * and `src` and `method`.
+     * Beside the field's disabled, readonly and required attributes:
+     * `multiple`, `item-list`, `value` as a comma separated list of keys,
+     * trimmed, whether or not the select is multiple, and `src` and `method`.
      */
     static observed = ['multiple:presence', 'item-list:presence', 'value:csv', 'src', 'method'];
     /**
@@ -1547,7 +1547,7 @@ class Select extends Field {
         return selection[0] ?? null;
     }
     /**
-     * The field's disabled claim; turning it on while the dropdown is open
+     * The field's `disabled` attribute; turning it on while the dropdown is open
      * closes it and drops a pending search.
      * @type {boolean}
      */
@@ -1561,7 +1561,7 @@ class Select extends Field {
         }
     }
     /**
-     * The field's readonly claim; turning it on while the dropdown is open
+     * The field's `readonly` attribute; turning it on while the dropdown is open
      * closes it and drops a pending search.
      * @type {boolean}
      */

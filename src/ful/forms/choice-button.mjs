@@ -123,7 +123,7 @@ class ChoiceButton {
         return this.#allowed.length < 2;
     }
     /**
-     * The host's fixed claim: hides the button with the `hidden` attribute
+     * The host's `fixed` attribute: hides the button with the `hidden` attribute
      * while `value` keeps answering.
      * @param {boolean} fixed
      */
@@ -153,8 +153,8 @@ class ChoiceButton {
         }
     }
     /**
-     * The host's disabled claim. The button is disabled while either the claim
-     * or the pin holds, so lifting one does not enable it while the other holds.
+     * The host's `disabled` attribute. The button is disabled while either the
+     * attribute is set or the pin holds, so lifting one does not enable it while the other holds.
      * @param {boolean} claimed
      */
     set claimed(claimed) {
