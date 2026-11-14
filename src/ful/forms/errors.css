@@ -46,6 +46,14 @@
         animation-composition: initial;
     }
 
+    /* the timeout in the field's javascript removes the warning either way, so the
+       animation can simply not run where motion is not wanted */
+    @media (prefers-reduced-motion: reduce) {
+        ful-field-warning {
+            animation: none;
+        }
+    }
+
     @keyframes ful-field-warning {
         0% {
             opacity: 0;
