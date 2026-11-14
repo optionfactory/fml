@@ -2337,6 +2337,21 @@ describe('Table virtual paging', function () {
         assert.isAbove(firstIndex(tableEl), 500, 'the retry shows the pages in view');
     });
 
+    it('hides the failure on a retry when the rows in view need no page', async () => {
+        const tableEl = await mount();
+        failNext = true;
+        await scrolledTo(tableEl, 30);
+        await scrolledTo(tableEl, 0);
+        const failure = tableEl.querySelector('ful-table-status [role=alert]');
+        const asked = requests.length;
+
+        failure.querySelector('[data-ref=retry]').click();
+        await rested();
+
+        assert.isTrue(failure.hidden, 'the failure is gone');
+        assert.strictEqual(requests.length, asked, 'nothing is asked for');
+    });
+
     for (const failing of [false, true]) {
         it(`drops a page or a reload that a sort supersedes, ${failing ? 'failed' : 'answered'}`, async () => {
             const tableEl = await mount();

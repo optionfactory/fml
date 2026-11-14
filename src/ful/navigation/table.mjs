@@ -630,8 +630,6 @@ class Table extends ParsedElement {
     #rowHeight = 0;
     /** @type {{ readonly stale: boolean } | null} the claim of the window shift in flight */
     #shifting = null;
-    /** whether the last window shift failed: scrolling asks for nothing more until a retry or a load */
-    #windowFailed = false;
     /** @type {ReturnType<typeof setTimeout>|undefined} */
     #jump = undefined;
     /** @type {{ pageRequest: { page: number, size: number }, sortRequest: any, filterRequest: any }} */
@@ -811,19 +809,20 @@ class Table extends ParsedElement {
         if (status) {
             const piece = (/** @type string */ ref) =>
                 /** @type Element */ (status.querySelector(`[data-ref=${ref}]`));
+            const failure = piece('append-failure');
             this.#status = {
                 count: piece('count'),
                 appending: piece('appending'),
-                failure: piece('append-failure'),
+                failure,
                 error: piece('append-error'),
             };
             piece('reload').addEventListener('click', () => this.reload());
             piece('retry').addEventListener('click', () => {
+                failure.setAttribute('hidden', '');
                 if (!this.#virtual) {
                     this.#appendNext();
                     return;
                 }
-                this.#windowFailed = false;
                 this.#reconcile(true);
             });
         }
@@ -1027,7 +1026,6 @@ class Table extends ParsedElement {
         this.#endWatch?.disconnect();
         clearTimeout(this.#jump);
         this.#shifting = null;
-        this.#windowFailed = false;
         this.#status?.appending.setAttribute('hidden', '');
         this.#status?.failure.setAttribute('hidden', '');
         this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
@@ -1380,7 +1378,8 @@ class Table extends ParsedElement {
         if (
             !window ||
             this.#shifting ||
-            this.#windowFailed ||
+            // a failed shift waits for a retry or a load: scrolling asks for nothing more
+            !this.#status?.failure.hasAttribute('hidden') ||
             this.hasAttribute('aria-busy') ||
             !this.#wrapper.isConnected ||
             !(pageCount > 0) ||
@@ -1500,7 +1499,6 @@ class Table extends ParsedElement {
             if (claim.stale) {
                 return;
             }
-            this.#windowFailed = true;
             status.appending.setAttribute('hidden', '');
             status.error.textContent = Localization.of().failure(error);
             status.failure.removeAttribute('hidden');
@@ -1532,7 +1530,6 @@ class Table extends ParsedElement {
         const claim = this.#loads.take();
         clearTimeout(this.#jump);
         this.#shifting = null;
-        this.#windowFailed = false;
         status.appending.setAttribute('hidden', '');
         status.failure.setAttribute('hidden', '');
         this.setAttribute('aria-busy', 'true');
