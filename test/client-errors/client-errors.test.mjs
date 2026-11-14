@@ -167,6 +167,7 @@ describe('Client errors reporting shapes', () => {
     let calls;
     let rejections;
     let scriptEl;
+    const realFetch = window.fetch;
     const onRejection = (e) => {
         rejections.push(e.reason);
         e.preventDefault();
@@ -194,6 +195,7 @@ describe('Client errors reporting shapes', () => {
         window.addEventListener('unhandledrejection', onRejection);
     });
     afterEach(() => {
+        window.fetch = realFetch;
         scriptEl.remove();
         window.removeEventListener('unhandledrejection', onRejection);
     });
