@@ -616,15 +616,18 @@ class Table extends ParsedElement {
     #endWatch = null;
     /** @type {Element[]} the rows whose coming into view appends the next page, none while no append is awaited */
     #watched = [];
-    /** the page the next append asks for, the rows shown, the total the last answer reported and the rows it carried */
-    #appended = { next: 1, shown: 0, total: 0, last: 0 };
+    /**
+     * the page the next append asks for, the rows the answers carried so far and the rows the last one carried;
+     * a `data-tpl-when` on the `<schema>` can render fewer
+     */
+    #appended = { next: 1, loaded: 0, last: 0 };
     /** whether the table keeps a window of pages, `paging="virtual"` over rows that scroll inside it */
     #virtual = false;
     /** @type {{ before: HTMLElement, after: HTMLElement } | null} the cells standing in for the rows above and below the window */
     #spacers = null;
     /** @type {{ first: number, last: number, pages: Map<number, Element[]> } | null} the pages in the page, in order, null while no rows show */
     #window = null;
-    /** the total number of rows the last answer reported */
+    /** the total number of rows the last answer reported, under the status bar */
     #total = 0;
     /** the height of a row the spacers are sized on, measured on the first rows a load shows; 0 until measured */
     #rowHeight = 0;
@@ -1109,14 +1112,14 @@ class Table extends ParsedElement {
     }
     /**
      * Watches the last half page of rows, so that any of them coming into
-     * view appends the next page, unless the rows shown already reach the
+     * view appends the next page, unless the rows loaded already reach the
      * total or the last answer carried none. A single row would be missed by
      * a scroll jumping past it, to the end for instance.
      * @param {number} size the rows a page asks for
      */
     #watchEnd(size) {
-        const { shown, total, last } = this.#appended;
-        if (!this.#endWatch || !(shown < total) || last === 0) {
+        const { loaded, last } = this.#appended;
+        if (!this.#endWatch || !(loaded < this.#total) || last === 0) {
             return;
         }
         const rows = [...this.#body.children];
@@ -1146,14 +1149,11 @@ class Table extends ParsedElement {
             );
             this.#appended = {
                 next: pageRequest.page + 1,
-                shown: this.#appended.shown + pageResponse.data.length,
-                total: pageResponse.size,
+                loaded: this.#appended.loaded + pageResponse.data.length,
                 last: pageResponse.data.length,
             };
-            status.count.textContent = Localization.of().t('table.loaded', {
-                loaded: this.#appended.shown,
-                total: this.#appended.total,
-            });
+            this.#total = pageResponse.size;
+            this.#countLoaded(this.#appended.loaded);
             await Rendering.waitForChildren(this.#body).catch(() => undefined);
             if (claim.stale) {
                 return;
@@ -1236,7 +1236,7 @@ class Table extends ParsedElement {
         const window = this.#window;
         if (!window) {
             this.#fitSpacers();
-            status.count.textContent = Localization.of().t('table.loaded', { loaded: 0, total: this.#total });
+            this.#countLoaded(0);
             return;
         }
         const size = this.#latestRequest.pageRequest.size;
@@ -1315,6 +1315,14 @@ class Table extends ParsedElement {
         const below = window ? Math.max(0, this.#total - (window.last + 1) * size) : 0;
         this.#spacers.before.style.height = `${above * this.#rowHeight}px`;
         this.#spacers.after.style.height = `${below * this.#rowHeight}px`;
+    }
+    /**
+     * Says in the status bar how many rows have loaded, of the total.
+     * @param {number} loaded
+     */
+    #countLoaded(loaded) {
+        const status = /** @type TableStatus */ (this.#status);
+        status.count.textContent = Localization.of().t('table.loaded', { loaded, total: this.#total });
     }
     /** Says in the status bar which rows are in view; nothing changes while none is. */
     #countInView() {
@@ -1599,28 +1607,26 @@ class Table extends ParsedElement {
                     .render(),
             );
         }
+        if (!this.#status) {
+            this.#paginator.update({
+                current: pageRequest.page,
+                total: Math.ceil(pageResponse.size / pageRequest.size),
+            });
+            return;
+        }
+        this.#wrapper.scrollTop = 0;
+        this.#total = pageResponse.size;
         if (this.#virtual) {
-            this.#wrapper.scrollTop = 0;
-            this.#total = pageResponse.size;
             this.#window =
                 rows.length > 0 ? { first: pageRequest.page, last: pageRequest.page, pages: new Map([[pageRequest.page, rows]]) } : null;
             return;
         }
-        if (this.#status) {
-            this.#wrapper.scrollTop = 0;
-            this.#appended = {
-                next: pageRequest.page + 1,
-                shown: pageResponse.data.length,
-                total: pageResponse.size,
-                last: pageResponse.data.length,
-            };
-            this.#status.count.textContent = Localization.of().t('table.loaded', {
-                loaded: this.#appended.shown,
-                total: this.#appended.total,
-            });
-            return;
-        }
-        this.#paginator.update({ current: pageRequest.page, total: Math.ceil(pageResponse.size / pageRequest.size) });
+        this.#appended = {
+            next: pageRequest.page + 1,
+            loaded: pageResponse.data.length,
+            last: pageResponse.data.length,
+        };
+        this.#countLoaded(this.#appended.loaded);
     }
 }
 
