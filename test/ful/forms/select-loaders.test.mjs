@@ -1108,6 +1108,19 @@ describe('Select reload, for a vocabulary that depends on another control', () =
         assert.strictEqual(calls.length, before, 'writing the same url does not rebuild the loader or reload');
     });
 
+    it('asks the src written before it renders', async () => {
+        const calls = stub({ '/early': [['k1', 'One']] });
+        const selectEl = document.createElement('ful-select');
+        selectEl.src = '/early';
+        selectEl.value = 'k1';
+        attached(selectEl);
+        await Rendering.waitFor(selectEl);
+        await settle();
+
+        assert.deepStrictEqual(calls, ['/early'], 'the select renders with the loader for the src written before');
+        assert.strictEqual(selectEl.entry.label, 'One', 'the selection is labelled from that vocabulary');
+    });
+
     it('builds the loader once and asks once when reconfigure changes src and method together', async () => {
         const requests = [];
         registry.defineComponent('http-client', {

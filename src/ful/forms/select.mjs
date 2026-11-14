@@ -1164,11 +1164,17 @@ class Select extends Field {
      *
      * Where the vocabulary lives at a different address, write `src` or call
      * `reconfigure`, which build the loader for the new url and reload.
+     *
+     * Before the render it does nothing: the render builds the loader and asks
+     * it about the selection then.
      * @returns {Promise<void>}
      * @throws what the loader's invalidate, prefetch, key lookup or search
      * throws
      */
     async reload() {
+        if (!this.#control) {
+            return;
+        }
         await this.#loader.invalidate?.();
         await this.#loader.prefetch?.();
         const keys = [...this.#values.keys()];
@@ -1193,7 +1199,8 @@ class Select extends Field {
      * the select reloads as `reload()` does, so a selected key the new
      * vocabulary does not know is dropped and one it knows is labelled again,
      * with no `change` dispatched. A write that does not change the url does
-     * nothing.
+     * nothing, and a write before the render only sets the attribute, which
+     * the render builds the loader from.
      *
      * The reload is not awaited: a failed fetch or lookup surfaces as an
      * unhandled rejection.
@@ -1229,7 +1236,8 @@ class Select extends Field {
      * Writes `src` and `method` together and reloads once: the loader is built
      * again for the pair when either changed, as a single write of either does,
      * and the select then reloads as `reload()` does, whether or not they
-     * changed.
+     * changed. Before the render it only sets the attributes, as a write of
+     * either does.
      *
      *     citta.addEventListener('change', () => {
      *         cap.reconfigure({ src: `/api/cap?citta=${citta.value}` }, { notify: true });
@@ -1265,8 +1273,8 @@ class Select extends Field {
     /** @returns {boolean} whether the loader was built again */
     #followAttributes() {
         if (
-            this.getAttribute('src') === this.#builtFrom.src &&
-            this.getAttribute('method') === this.#builtFrom.method
+            !this.#control ||
+            (this.getAttribute('src') === this.#builtFrom.src && this.getAttribute('method') === this.#builtFrom.method)
         ) {
             return false;
         }
