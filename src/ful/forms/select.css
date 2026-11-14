@@ -136,6 +136,8 @@
             height: auto;
             max-height: 200px;
             overflow-y: auto;
+            /* a wheel reaching the end of the rows stays here rather than scrolling the page under the dropdown */
+            overscroll-behavior: contain;
             padding: 0;
             margin: 0;
 

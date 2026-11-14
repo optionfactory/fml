@@ -658,7 +658,8 @@ class Dropdown extends ParsedElement {
                     this.#loadNext();
                 }
             },
-            { root: this.#menu },
+            // a list height ahead of the end, so the next page is usually listed before the user gets there
+            { root: this.#menu, rootMargin: '0px 0px 100% 0px' },
         );
         this.#endWatch.observe(last);
     }

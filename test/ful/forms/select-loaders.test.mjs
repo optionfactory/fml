@@ -431,6 +431,23 @@ describe('SelectLoader', () => {
         assert.lengthOf(calls.filter((c) => 's' in c), 3, 'no page is asked past the total');
     });
 
+    it('asks for the next page before the last row comes into view', async () => {
+        const calls = pagedHttp(60);
+        const [selectEl] = await mount(`${PAGED}`);
+        const dropdown = await open(selectEl);
+        const menu = dropdown.querySelector('menu');
+
+        menu.scrollTop = menu.scrollHeight - menu.clientHeight * 1.5;
+        await settled();
+
+        assert.isAbove(
+            menu.lastElementChild.getBoundingClientRect().top,
+            menu.getBoundingClientRect().bottom,
+            'the last row of the first page is still out of view',
+        );
+        assert.deepInclude(calls, { s: '', page: 1, size: 25 }, 'the next page is already asked for');
+    });
+
     it('lists only the first page of a new search, even after the rows were scrolled far down', async () => {
         const calls = pagedHttp(1000);
         const [selectEl] = await mount(`${PAGED}`);
