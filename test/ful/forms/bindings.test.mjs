@@ -455,6 +455,27 @@ describe('Bindings', () => {
             expect(fulErrors.hasAttribute('hidden'), 'a caught error stays off the banner').to.be.true;
         });
 
+        it('joins the problems of every inner path on a control that cannot take one', () => {
+            const owner = document.createElement('input');
+            owner.name = 'owner';
+            form.append(owner);
+
+            Bindings.errors(
+                form,
+                [
+                    { type: 'FIELD_ERROR', context: 'owner.firstName', reason: 'Required' },
+                    { type: 'FIELD_ERROR', context: 'owner.lastName', reason: 'Too short' },
+                ],
+                false,
+            );
+
+            expect(
+                owner.validationMessage,
+                'a control that cannot route a path gets every problem of its subtree, one per line',
+            ).to.equal('Required\nToo short');
+            expect(fulErrors.hasAttribute('hidden'), 'a caught error stays off the banner').to.be.true;
+        });
+
         it('hands the composite the inner path, and the exact match an empty one', () => {
             const calls = [];
             const composite = document.createElement('input');

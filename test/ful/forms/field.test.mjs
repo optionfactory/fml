@@ -165,6 +165,24 @@ describe('Field', () => {
         assert.isFalse(cleared.matches(':invalid'), 'a problem cleared before the render is not shown');
     });
 
+    it('joins problems routed by path below the name until a plain call replaces them', async () => {
+        const field = document.createElement('ful-input');
+        const container = appended('');
+        container.append(field);
+        await Rendering.waitFor(container);
+
+        field.setCustomValidity('Required', 'firstName');
+        field.setCustomValidity('Too short', 'lastName');
+        assert.strictEqual(
+            field.querySelector('ful-field-error').innerText,
+            'Required\nToo short',
+            'a field that is no composite answers every problem of its subtree, one per line',
+        );
+
+        field.setCustomValidity('Replaced');
+        assert.strictEqual(field.querySelector('ful-field-error').innerText, 'Replaced', 'a plain call replaces the lot');
+    });
+
     it('a field that never implements _build says so by name', async () => {
         class NoBuildField extends Field {}
         registry.defineElement('x-no-build-field', NoBuildField);

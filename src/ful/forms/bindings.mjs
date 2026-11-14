@@ -240,7 +240,9 @@ class Bindings {
      * `rest` being the remainder of the path (`''` on an exact match) that a
      * composite can use to route the problem to an inner control. Several
      * problems reaching one control with the same `rest` are joined one per
-     * line into a single call.
+     * line into a single call, and a control that cannot take a path, a
+     * native input for one, gets every problem of its subtree joined into
+     * one call.
      *
      * A control counts only when it can show a problem, through a
      * `setCustomValidity` of its own: a form-associated element that has none is
@@ -303,6 +305,10 @@ class Bindings {
             unmatched.push(e);
         });
         for (const [input, contexts] of pins) {
+            if (input.setCustomValidity.length < 2) {
+                input.setCustomValidity([...contexts.values()].flat().join('\n'));
+                continue;
+            }
             for (const [context, reasons] of contexts) {
                 input.setCustomValidity(reasons.join('\n'), context);
             }

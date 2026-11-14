@@ -59,6 +59,8 @@ class Field extends ParsedElement {
     #held = null;
     /** @type {{ error: string, context?: string } | null} the problem reported before the render, which the render shows */
     #reported = null;
+    /** @type {Map<string, string> | null} the problems routed by path below the name, one per path, until a plain call replaces them */
+    #pinned = null;
     /** Sets the internals' role from the subclass's `static ROLE`. */
     constructor() {
         super();
@@ -203,13 +205,17 @@ class Field extends ParsedElement {
      * Validation is the server's: the submit is sent regardless, and the form's
      * error mapping calls this with the problems that come back. It calls the
      * field with the most specific name a problem's context reaches and passes
-     * the rest of the path as `context`. The base ignores `context`; a composite
-     * field owning a whole subtree overrides this to route the message to the
-     * inner control the path names.
+     * the rest of the path as `context`. The base shows the message whatever the
+     * `context`; a composite field owning a whole subtree overrides this to
+     * route the message to the inner control the path names.
      *
      * Before the render there is no error region to write to: a message is
      * kept (the last one wins) and shown once the field has rendered, and a
      * clear drops the one kept. A field whose render failed shows nothing.
+     * A call carrying a context keeps its message beside the ones the other
+     * paths below this name pinned, joining one per line: a field that is no
+     * composite answers every problem of its subtree. A call without a
+     * context replaces the lot.
      * @param {string} [error] the message, empty or missing to clear
      * @param {string} [context] the path below this field's name, '' on an exact match
      */
@@ -217,6 +223,12 @@ class Field extends ParsedElement {
         if (!this.#fieldError) {
             this.#reported = error ? { error, context } : null;
             return;
+        }
+        if (error && context !== undefined) {
+            (this.#pinned ??= new Map()).set(context, error);
+            error = [...this.#pinned.values()].join('\n');
+        } else {
+            this.#pinned = null;
         }
         Attributes.set(this.#announces ?? this.#control, 'aria-invalid', error ? 'true' : null);
         if (!error) {
