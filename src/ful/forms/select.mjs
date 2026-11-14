@@ -33,9 +33,8 @@ class RemoteLoader {
     #responseMapper;
     #prefetch;
     #revision;
+    /** @type {Promise<SelectEntry[]>|null} */
     #data = null;
-    /** @type {Promise<void>|null} */
-    #inFlight = null;
     #configs = new Claims();
     /**
      * @param {{ http: SelectHttpClient, url: string, method: string, responseMapper: (response: any) => SelectEntry[], prefetch: boolean, revision: string|null }} conf
@@ -91,30 +90,22 @@ class RemoteLoader {
     async invalidate() {
         this.#configs.invalidate();
         this.#data = null;
-        this.#inFlight = null;
     }
     async #ensureFetched() {
-        if (this.#data === null) {
-            if (this.#inFlight === null) {
-                const claim = this.#configs.hold();
-                this.#inFlight = RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision)
-                    .then((raw) => {
-                        if (!claim.stale) {
-                            this.#data = this.#responseMapper(raw);
-                        }
-                    })
-                    .finally(() => {
-                        if (!claim.stale) {
-                            this.#inFlight = null;
-                        }
-                    });
-            }
-            await this.#inFlight;
-        }
-        if (this.#data === null) {
+        const claim = this.#configs.hold();
+        this.#data ??= RemoteLoader.#revisionedData(this.#http, this.#method, this.#url, this.#revision)
+            .then((raw) => this.#responseMapper(raw))
+            .catch((e) => {
+                if (!claim.stale) {
+                    this.#data = null;
+                }
+                throw e;
+            });
+        const data = await this.#data;
+        if (claim.stale) {
             throw new Error('superseded by an invalidation');
         }
-        return this.#data;
+        return data;
     }
     static async #revisionedData(http, method, url, revision) {
         const storageKey = `${method}@${url}`;
