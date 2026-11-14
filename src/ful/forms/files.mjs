@@ -85,7 +85,7 @@ class InputFile extends Input {
     static templates = {
         items: `
             <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
-                <div><span>{{ file.name }}</span><span>{{ #l10n:bytes(file.size) }}</span><button type="button" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
+                <div><span>{{ file.name }}</span><span>{{ #l10n:bytes(file.size) }}</span><button type="button" data-ref="remove" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button></div>
             </ful-item>
         `,
         warning: `<ful-field-warning>{{ #l10n:t(key, args) }}</ful-field-warning>`,
@@ -104,7 +104,9 @@ class InputFile extends Input {
             e.target.remove();
         });
         this.#items.addEventListener('click', (e) => {
-            if (!e.target.closest('button')) {
+            //the remove gesture is the item's button carrying data-ref=remove, in the stock template
+            //and in an authored one alike, so another button in an authored item acts for itself
+            if (!e.target.closest('button[data-ref=remove]')) {
                 return;
             }
             if (!this._interactive()) {

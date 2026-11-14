@@ -500,18 +500,23 @@ describe('InputFile items template', () => {
         );
     });
 
-    it('keeps the remove button wired inside an authored item', async () => {
+    it('keeps the remove button wired inside an authored item, and leaves another button alone', async () => {
         const [el] = await mount(`
             <ful-input-file multiple>files
                 <template slot="items">
                     <ful-item data-tpl-each="files" data-tpl-var="file" data-tpl-data-name="file.name">
-                        <button type="button">drop</button>
+                        <span>{{ file.name }}</span>
+                        <button type="button" class="preview">open</button>
+                        <button type="button" data-ref="remove">drop</button>
                     </ful-item>
                 </template>
             </ful-input-file>`);
         el.files = transfer(file('a.txt'), file('b.txt')).files;
 
-        el.querySelector('ful-item button').click();
+        el.querySelector('ful-item button.preview').click();
+        assert.deepStrictEqual(selected(el), ['a.txt', 'b.txt'], 'a button that is not the remove marker removes nothing');
+
+        el.querySelector('ful-item button[data-ref=remove]').click();
 
         assert.deepStrictEqual(selected(el), ['b.txt'], 'the click removed the first file');
         assert.deepStrictEqual(listed(el), ['b.txt'], "the removed file's authored item leaves the list");

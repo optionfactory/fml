@@ -72,7 +72,7 @@
           <img data-tpl-if="file.type.startsWith('image/')" data-tpl-src="#blob:url(file)" alt="">
           <ful-icon data-tpl-if="!file.type.startsWith('image/')" name="inbox"></ful-icon>
           <span class="filemeta"><span>{{ file.name }}</span><small>{{ #l10n:bytes(file.size) }}</small></span>
-          <button type="button" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
+          <button type="button" data-ref="remove" data-tpl-aria-label="#l10n:t('files.remove')"><ful-icon name="x-lg" aria-hidden="true"></ful-icon></button>
         </div>
       </ful-item>
     </template>

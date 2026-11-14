@@ -202,7 +202,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 
 #### ful-input-file
 
-- [NEW] a `<template slot="items">` replaces the stock row of the item list, over the same `files` overlay
+- [NEW] a `<template slot="items">` replaces the stock row of the item list, over the same `files` overlay; the row's `<button data-ref="remove">` removes its file
 - [ENH] chosen files are removable chips showing their size; the default dropzone is themed, and a custom dropzone gets a `dragover` attribute on the host while a drag is over it
 - [ENH] `accept` honours mime types with parameters and `image/*` families; a multi-file drop on a single-file field is rejected, and a dropped directory is ignored
 - [ENH] drops and removals fire `change`; programmatic assignments and reset stay silent
