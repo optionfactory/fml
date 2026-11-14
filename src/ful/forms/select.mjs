@@ -137,12 +137,12 @@ class PartialRemoteLoader {
     #totalMapper;
     /**
      * @param {{ http: SelectHttpClient, url: string, method: string, responseMapper: (response: any) => SelectEntry[],
-     *     pageSize?: number|null, totalMapper?: ((response: any) => number|null)|null }} conf
+     *     pageSize: number|null, totalMapper: ((response: any) => number|null)|null }} conf
      * `pageSize` asks for pages of that many entries, sent as `page` and `size` beside `s`; without it every
      * search is one request answered whole, as by an endpoint that knows no pages. `totalMapper` reads, from
      * a response, how many entries match in all; an answer that is not a number counts as unknown.
      */
-    constructor({ http, url, method, responseMapper, pageSize = null, totalMapper = null }) {
+    constructor({ http, url, method, responseMapper, pageSize, totalMapper }) {
         this.#http = http;
         this.#url = url;
         this.#method = method;
@@ -303,16 +303,13 @@ class SelectLoader {
         if (!url) {
             return new InMemoryLoader(data ?? []);
         }
-        if ('chunked' === mode) {
-            return new PartialRemoteLoader({ http, url, method, responseMapper, totalMapper });
-        }
-        if ('paged' === mode) {
+        if ('chunked' === mode || 'paged' === mode) {
             return new PartialRemoteLoader({
                 http,
                 url,
                 method,
                 responseMapper,
-                pageSize: pageSize ?? SelectLoader.PAGE_SIZE,
+                pageSize: mode === 'paged' ? (pageSize ?? SelectLoader.PAGE_SIZE) : null,
                 totalMapper,
             });
         }
