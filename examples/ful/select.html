@@ -116,7 +116,7 @@
     </fieldset>
 
     <h2>loader-fed</h2>
-    <p>The remote shape without the network: a mock loader answers after a delay, so opening shows the spinner the real endpoint would. The vocabulary is the one the applications run: <code>src</code>, <code>method</code>, <code>revision</code> for the cached whole-set fetch, <code>mode="chunked"</code> for the searched one, <code>k-expr</code>/<code>l-expr</code> to map the payload.</p>
+    <p>The remote shape without the network: a mock loader answers after a delay, so opening shows the spinner the real endpoint would. The vocabulary is the one the applications run: <code>src</code>, <code>method</code>, <code>revision</code> for the cached whole-set fetch, <code>mode="chunked"</code> for the searched one, <code>mode="paged"</code> for the searched one a page at a time, <code>k-expr</code>/<code>l-expr</code> to map the payload.</p>
     <fieldset>
         <legend>single and multiple, answered by a mock loader</legend>
         <ful-select loader="loaders:demo-options">
@@ -124,6 +124,15 @@
         </ful-select>
         <ful-select multiple item-list loader="loaders:demo-options">
             Multiple, loader-fed
+        </ful-select>
+    </fieldset>
+
+    <h2>a paged search</h2>
+    <p><code>mode="paged"</code> asks the endpoint for one page of the matches at a time, sending <code>s</code>, <code>page</code> and <code>size</code>, and reads a ful-table page back: the rows under <code>data</code>, how many match under <code>size</code>. Scrolling the rows to the end asks for the next page. At 200 rows it stops and says, under the rows, how many it shows of how many match and to type to narrow them down. Typing starts again from the first page.</p>
+    <fieldset>
+        <legend>a thousand customers, 25 per page</legend>
+        <ful-select name="customer" src="/api/customers" method="GET" mode="paged" k-expr="id" l-expr="name">
+            Customer
         </ful-select>
     </fieldset>
 
@@ -206,7 +215,7 @@
             }
         }
 
-        /** A mock of the endpoints behind src, answering the positional rows the default response mapper reads. */
+        /** A mock of the endpoints behind src: the whole-set ones answer the positional rows the default response mapper reads. */
         class DemoHttpClient {
             static #bodies = {
                 '/api/statuses': [
@@ -221,13 +230,36 @@
                 '/api/cities?region=centre': [['roma', 'Roma'], ['firenze', 'Firenze']],
                 '/api/cities?region=south': [['napoli', 'Napoli'], ['bari', 'Bari'], ['palermo', 'Palermo']],
             };
+            static #customers = Array.from({ length: 1000 }, (_, i) => ({
+                id: i + 1,
+                name: `Customer ${String(i + 1).padStart(4, '0')}`,
+            }));
+            /** A paged endpoint answers a ful-table page: one page of the matches under data, how many match under size. */
+            static #customersPage(params) {
+                const needle = (params.get('s') ?? '').toLowerCase();
+                const page = Number(params.get('page') ?? 0);
+                const size = Number(params.get('size') ?? 25);
+                const matching = DemoHttpClient.#customers.filter(({ name }) => name.toLowerCase().includes(needle));
+                return { data: matching.slice(page * size, (page + 1) * size), size: matching.length };
+            }
             request(method, url) {
-                return {
+                const params = new URLSearchParams();
+                const request = {
+                    param: (name, value) => {
+                        if (value !== null && value !== undefined) {
+                            params.append(name, value);
+                        }
+                        return request;
+                    },
                     fetchJson: async () => {
                         await new Promise((resolve) => setTimeout(resolve, 500));
+                        if (url === '/api/customers') {
+                            return DemoHttpClient.#customersPage(params);
+                        }
                         return DemoHttpClient.#bodies[url] ?? [];
                     },
                 };
+                return request;
             }
         }
 
