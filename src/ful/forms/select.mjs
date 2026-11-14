@@ -778,10 +778,8 @@ class Dropdown extends ParsedElement {
      */
     async moveOrShow(forward, loader, keys = []) {
         if (this.shown) {
-            const selected = this.#selected();
-            const candidate = selected?.[`${forward ? 'next' : 'previous'}ElementSibling`];
-            const target = candidate ? this.#walk(candidate, forward) : null;
-            if (selected && target) {
+            const target = this.#walk(this.#selected()?.[`${forward ? 'next' : 'previous'}ElementSibling`], forward);
+            if (target) {
                 this.#highlight(target);
             }
             return;
@@ -1107,7 +1105,6 @@ class Select extends Field {
             this.#values.set(this.#coerceKey(e.detail.entry.key), e.detail.entry);
             this.#changed();
             this.#input.focus();
-            this.#ddmenu.hide();
             if (!this.multiple) {
                 this.#input.select();
             }
@@ -1400,12 +1397,9 @@ class Select extends Field {
      * @returns {(page: number) => SelectEntry[]|SelectPage|Promise<SelectEntry[]|SelectPage>}
      */
     #search() {
-        const query = this.#query();
+        const query = this.query;
         const loader = this.#loader;
         return typeof loader.page === 'function' ? (page) => loader.page(query, page) : () => loader.load(query);
-    }
-    #query() {
-        return this.#editing ? this.#input.value : '';
     }
     /**
      * The text typed to search the vocabulary: what the dropdown was last
@@ -1414,7 +1408,7 @@ class Select extends Field {
      * @returns {string}
      */
     get query() {
-        return this.#query();
+        return this.#editing ? this.#input.value : '';
     }
     #display() {
         const entry = this.#values.values().next().value;
@@ -1438,7 +1432,7 @@ class Select extends Field {
                   return b;
               })
             : [];
-        for (const b of this.#control.querySelectorAll(':scope > ful-badge')) {
+        for (const b of this.#badges()) {
             b.remove();
         }
         this.#input.before(...badges);
