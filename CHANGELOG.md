@@ -112,6 +112,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [NEW] the receiver of a module function answers `this[Expressions.BOUND](name)`, a lookup against the bound data alone, for a module that reads what the page configured and must not take it from the rendered data
 - [BUG] `ftl:ready` and `registry.ready()` wait for the first `configure()`: a page that configures late, awaiting its translations first, used to be reported ready at DOMContentLoaded with nothing defined, and never again once its elements had upgraded
 - [DOC] `ftl.BoundedCache` and `ful.Claims` are documented: the bounded cache behind the parsed expressions, and the generations a component drops superseded async work through
+- [BUG] a `data-tpl-var` or a `data-tpl-stat` on an element with no `data-tpl-each` to take it (or, for `data-tpl-var`, no `data-tpl-with`) throws a `RenderError`, where it wrote an attribute named `var` or `stat`
 
 #### httpc, client-errors and storage
 
@@ -129,6 +130,9 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `Hex.encode` writes the bytes of an `ArrayBuffer` or any typed array, a signed one included, as two digits per byte
 - [BUG] client-errors treats an empty `data-report-client-errors-uri` like a missing one, saying so once in the console
 - [BUG] client-errors sends a report whose body is over the 64KiB keepalive quota without `keepalive`, instead of having fetch refuse it
+- [ENH] `params` writes an array value as repeated entries, as `param` does, where it sent the values joined by commas
+- [BUG] client-errors reports a rejection reason that carries no message, a rejected string or number, as the message, where the report held only the page
+- [BUG] storage: `save` throws on a value json cannot encode (`undefined`, a function), where it stored the text `undefined`
 
 #### Localization
 
@@ -192,6 +196,8 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a field problem no longer moves the other fields of its form: the error region is shown when it holds a message, where every `ful-field-error` inside an invalid form or fieldset took a 4px margin
 - [BUG] a field written over several lines with no label text takes no row for its label: a default slot holding whitespace alone renders an empty `<label>`, and a `ful-radio-group` with no legend text hides its `<legend>`
 - [BUG] `setCustomValidity` on a field that has not rendered keeps the message for the render to show, where it threw: a form holding a field still rendering, or one whose render failed, no longer fails every submit with a `TypeError`
+- [BUG] several problems whose context falls below the name of one field are all shown on it, one per line, where only the last one was
+- [BUG] `ful-radio-group` focuses its first enabled radio, where a disabled first radio took no focus
 
 #### ful-input
 
@@ -243,6 +249,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a single select keeps only the first key of a comma separated `value`, and turning `multiple` off keeps only the first selected key; toggling `multiple` redraws the badges, the items and the field at once
 - [BUG] `select.reload()` runs the search of an open dropdown again, which kept listing the rows of the previous vocabulary
 - [BUG] the chips of a `multiple` select without `item-list` wrap onto more lines, growing the control, where the ones that did not fit were cut off
+- [BUG] the dropdown hides its no results message while the next search loads
 
 #### ful-filter-*
 
@@ -255,6 +262,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a `ful-filter-boolean` reset restores its default operator
 - [BUG] a filter shows only operators its `operators` whitelist allows: narrowing the list replaces an operator it drops with the first listed one, and an assigned tuple naming an operator outside it, or none, shows the first allowed one
 - [BUG] a filter's `criterion` answers `null` before the filter has rendered, where the compare and boolean filters threw
+- [BUG] a tuple assigned to a date or instant filter while one of its operands has the focus is not an edit: leaving the operand reports no `change`
 
 #### ful-table and pagination
 
@@ -286,6 +294,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] `load:success` fires once the elements in the new rows (and in the empty panel) have rendered, so a listener reads a row's `ful-checkbox` instead of finding it not rendered yet
 - [ENH] the sorter draws ascending as an up arrow and descending as a down arrow, where they were the other way round; an unsorted column shows the up arrow dimmed, ascending being what its first click asks for
 - [BUG] a loader answer without a numeric `size`, such as a response of another shape read without a `response-mapper`, is a failed load saying what the table needs, where it asked the loader again without end; a `page-size` or `pageSize` that is not above zero is ignored
+- [BUG] activating the sorter of a column declaring `order` without `sorter` loads nothing, where it asked the loader to sort by `null`
 
 #### ful: disclosures (tooltip, dialog, drawer, menu, toasts)
 
@@ -317,6 +326,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a `ful-dialog` or `ful-drawer` the page moved while open opens as a modal again on the next `ask()`, `open()` or `update()`, instead of leaving the call waiting
 - [BUG] a `ful-drawer` the page hides while it slides out, itself or an ancestor, closes and answers its `ask()` instead of staying open as an unseen modal that leaves the page inert
 - [BUG] a click on a part of a `ful-dialog` or `ful-drawer` panel that no child covers, such as the room under the error of a failed `update()`, no longer dismisses it: the backdrop is where the pointer is outside the panel's rectangle
+- [BUG] a dialog or drawer opened again before the `close` event of its previous opening arrives answers that opening with its own outcome and dispatches one `close` per opening, where both openings were reported dismissed; `close()` on a closed dialog does nothing
 
 #### ful: navigation (tabs, accordion, wizard) and async sections
 
@@ -346,6 +356,7 @@ The breaking changes against 8.0.3, grouped by what a page has to touch. The are
 - [BUG] a live region is revealed before it is filled, so `ful-errors` and error sections are announced reliably
 - [BUG] `ful-spinner.backdrop` holds its text in its white card, under the glyph, instead of outside it
 - [ENH] `[hidden]` hides through `ful-hidden`, a top-level cascade layer a page can order after its own layers, where a layer nested in `ful` would lose to every page layer
+- [ENH] under `forced-colors: active` the element holding the focus shows the platform's outline, through `--ful-focus-outline`: forced colors drop the focus ring's shadow, and nothing stood in for it
 
 #### Packaging
 
