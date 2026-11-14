@@ -53,7 +53,12 @@ const storage = (backing) => {
         }
     };
     const save = (k, v) => {
-        backing().setItem(k, JSON.stringify(v));
+        const encoded = JSON.stringify(v);
+        if (encoded === undefined) {
+            //a value json cannot encode would otherwise sit in the storage as the text "undefined"
+            throw new TypeError('a value json cannot encode');
+        }
+        backing().setItem(k, encoded);
     };
     const pop = (k) => {
         const decoded = load(k);

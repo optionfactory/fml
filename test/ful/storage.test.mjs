@@ -141,3 +141,19 @@ describe('Unreachable storage', () => {
         ).to.throw();
     });
 });
+
+describe('Storage of values json cannot encode', () => {
+    it('save throws rather than storing the text "undefined"', () => {
+        LocalStorage.remove('k');
+        expect(
+            () => LocalStorage.save('k', undefined),
+            'a value json cannot encode throws, as the doc promises, instead of writing the text "undefined"',
+        ).to.throw(TypeError);
+        expect(LocalStorage.load('k'), 'nothing was stored under the key').to.be.undefined;
+
+        expect(
+            () => LocalStorage.save('k', () => 1),
+            'a function, which json cannot encode either, throws the same way',
+        ).to.throw(TypeError);
+    });
+});
