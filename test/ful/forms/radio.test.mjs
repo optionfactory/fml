@@ -293,6 +293,21 @@ describe('RadioGroup state', () => {
         );
     });
 
+    it('focuses the first enabled radio, a disabled one taking no focus', async () => {
+        const container = await mount(GROUP.replace('<ful-radio value="k1">', '<ful-radio value="k1" disabled>'), {
+            children: true,
+        });
+        const group = container.querySelector('ful-radio-group');
+
+        group.focus();
+
+        assert.strictEqual(
+            document.activeElement,
+            group.querySelector('input[type=radio]:not(:disabled)'),
+            'focus() on the group lands on its first enabled radio, a disabled first one taking no focus',
+        );
+    });
+
     it('shows a custom validity in ful-field-error and clears both when it is reset', async () => {
         const container = await mount(GROUP, { children: true });
         const group = container.querySelector('ful-radio-group');

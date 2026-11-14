@@ -47,9 +47,9 @@ class RadioGroup extends Field {
     #booleanType;
     /**
      * @param {{slots: any}} conf
-     * @returns {any} the pieces: the first radio as the control, the fieldset
-     * as the `claims` and `freeze` pieces, and the host as the `described` and
-     * `announces` pieces
+     * @returns {any} the pieces: the first enabled radio as the control, the
+     * fieldset as the `claims` and `freeze` pieces, and the host as the
+     * `described` and `announces` pieces
      */
     _build({ slots }) {
         const name = Attributes.uid(this.declared('name') ?? 'ful-radiogroup');
@@ -77,7 +77,8 @@ class RadioGroup extends Field {
         }
         const fragment = this.template().withOverlay({ name, slots, inputsAndLabels }).render();
         this.#fieldset = /** @type HTMLElement */ (fragment.firstElementChild);
-        this.#firstRadio = fragment.querySelector('input[type=radio]');
+        this.#firstRadio =
+            fragment.querySelector('input[type=radio]:not(:disabled)') ?? fragment.querySelector('input[type=radio]');
         this.#booleanType = this.declared('type') === 'boolean';
         return {
             fragment,
