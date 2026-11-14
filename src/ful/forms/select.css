@@ -108,11 +108,28 @@
             text-align: start;
         }
 
-        /* under the rows: more entries match than the list shows */
+        /* under the rows, a band down to the edge of the dropdown: more entries match than the list shows */
         ful-empty[data-ref='more'] {
-            border-block-start: var(--ful-border-width, 1px) solid var(--ful-border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-block: 0.5rem -0.5rem;
+            padding: 0.5rem 0.75rem;
             font-size: 0.875em;
-            opacity: 0.75;
+            color: var(--ful-muted-color);
+            background-color: var(--ful-selected-bg);
+            border-block-start: var(--ful-dropdown-border-width) solid var(--ful-dropdown-border-color);
+            border-end-start-radius: inherit;
+            border-end-end-radius: inherit;
+            opacity: 1;
+
+            & > ful-icon {
+                flex: none;
+                width: 1em;
+                height: 1em;
+                margin: 0;
+                color: var(--ful-accent-ink);
+            }
         }
 
         menu {

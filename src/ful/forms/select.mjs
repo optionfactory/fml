@@ -453,7 +453,7 @@ class Dropdown extends ParsedElement {
         <ful-spinner class="centered" role="status" hidden><span class="ful-sr-only">{{ #l10n:t('spinner.loading') }}</span></ful-spinner>
         <ful-empty data-ref="empty" aria-live="polite" hidden>{{ #l10n:t('dropdown.empty') }}</ful-empty>
         <menu tabindex="-1" role="listbox" hidden></menu>
-        <ful-empty data-ref="more" aria-live="polite" hidden></ful-empty>
+        <ful-empty data-ref="more" aria-live="polite" hidden><ful-icon name="search" aria-hidden="true"></ful-icon><span></span></ful-empty>
     `;
     /**
      * `options` renders one row per entry, each entry carrying its `index`
@@ -638,10 +638,11 @@ class Dropdown extends ParsedElement {
             this.#more.setAttribute('hidden', '');
             return;
         }
-        this.#more.textContent =
+        const l10n = Localization.of();
+        /** @type HTMLElement */ (this.#more.querySelector('span')).textContent =
             total !== null
-                ? Localization.of().t('dropdown.more', { loaded: shown, total })
-                : Localization.of().t('dropdown.more-unknown');
+                ? l10n.t('dropdown.more', { loaded: l10n.number(shown), total: l10n.number(total) })
+                : l10n.t('dropdown.more-unknown');
         this.#more.removeAttribute('hidden');
     }
     /** Watches the last row while another page follows and the list has room for it. */

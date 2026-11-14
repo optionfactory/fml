@@ -473,7 +473,11 @@ describe('SelectLoader', () => {
 
         assert.lengthOf(options(dropdown), 200, 'a list holds at most 200 rows');
         assert.isFalse(moreHint(dropdown).hidden, 'past them the user is told');
-        assert.include(moreHint(dropdown).textContent, '200 of 1000');
+        assert.include(
+            moreHint(dropdown).textContent,
+            `200 of ${new Intl.NumberFormat().format(1000)}`,
+            'the counts are formatted for the locale',
+        );
     });
 
     it('tells how many match when a chunked endpoint answers fewer, even without pages', async () => {
@@ -495,7 +499,11 @@ describe('SelectLoader', () => {
 
         const dropdown = await open(selectEl);
 
-        assert.include(moreHint(dropdown).textContent, '1 of 48256', 'the total read through t-expr is told');
+        assert.include(
+            moreHint(dropdown).textContent,
+            `1 of ${new Intl.NumberFormat().format(48256)}`,
+            'the total read through t-expr is told',
+        );
     });
 
     it('reads the rows and the total where a paged endpoint answers in another shape', async () => {
