@@ -198,14 +198,14 @@ describe('Client errors reporting shapes', () => {
         window.removeEventListener('unhandledrejection', onRejection);
     });
 
-    it('reports a plain string rejection, without a message or a stack', async () => {
+    it('reports a plain string rejection, its reason as the message, without a stack', async () => {
         reject('a plain failure');
         await settle();
 
         expect(calls.length, 'the report is still posted').to.equal(1);
         const body = JSON.parse(calls[0].init.body);
         expect(body, 'a string reason has no stack to split').to.not.have.property('stack');
-        expect(body, 'a string reason has no message to extract').to.not.have.property('message');
+        expect(body.message, 'a string reason is itself the message').to.equal('a plain failure');
     });
 
     it('sends the csrf header when the metas are present', async () => {

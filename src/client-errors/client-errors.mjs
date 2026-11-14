@@ -49,12 +49,13 @@ function ful_report_error(evt) {
 
     /**
      * The message followed by up to five `Caused by:` lines, stopping at a cause
-     * with no message or one already seen.
+     * with no message or one already seen. A rejection reason that carries no
+     * message of its own, a thrown string for one, is the message.
      * @returns {string|undefined}
      */
     function message() {
         const thrown = evt.reason ?? evt.error;
-        const head = evt.message ?? thrown?.message;
+        const head = evt.message ?? thrown?.message ?? (thrown != null && typeof thrown !== 'object' ? String(thrown) : undefined);
         if (!head) {
             return undefined;
         }
