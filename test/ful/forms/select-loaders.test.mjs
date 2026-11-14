@@ -481,14 +481,14 @@ describe('SelectLoader', () => {
 
     it('stops loading pages at the most rows a list shows, and tells to type', async () => {
         pagedHttp(1000);
-        const [selectEl] = await mount(`${PAGED} page-size="50"`);
+        const [selectEl] = await mount(`${PAGED} page-size="75"`);
         const dropdown = await open(selectEl);
 
         for (let i = 0; i !== 4; ++i) {
             await scrolledToEnd(dropdown);
         }
 
-        assert.lengthOf(options(dropdown), 200, 'a list holds at most 200 rows');
+        assert.lengthOf(options(dropdown), 200, 'a list holds at most 200 rows, the page that crosses them cut short');
         assert.isFalse(moreHint(dropdown).hidden, 'past them the user is told');
         assert.include(
             moreHint(dropdown).textContent,

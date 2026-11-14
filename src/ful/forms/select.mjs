@@ -654,10 +654,11 @@ class Dropdown extends ParsedElement {
             if (claim.stale) {
                 return;
             }
+            const room = Dropdown.MAX_ROWS - this.#options.size;
             paging.page += 1;
-            paging.more = answer.more;
+            paging.more = answer.more || answer.entries.length > room;
             paging.total = answer.total;
-            this.#menu.append(this.#rows(answer.entries, paging.keys));
+            this.#menu.append(this.#rows(answer.entries.slice(0, room), paging.keys));
         } catch (e) {
             if (claim.stale) {
                 return;
