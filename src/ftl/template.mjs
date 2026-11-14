@@ -396,6 +396,13 @@ class Template {
                     if (!dataSetKey.startsWith('tpl')) {
                         continue;
                     }
+                    if (dataSetKey === 'tplVar' || dataSetKey === 'tplStat') {
+                        throw new RenderError(
+                            `data-tpl-${toAttr(dataSetKey)} names what a data-tpl-each on the same element binds, data-tpl-var a data-tpl-with too, and none is there to take it`,
+                            el,
+                            undefined,
+                        );
+                    }
                     const attributeName = toAttr(dataSetKey);
                     const expression = ops.popData(el, dataSetKey);
                     try {

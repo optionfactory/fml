@@ -46,6 +46,17 @@ describe('Template', () => {
         );
     });
 
+    it('rejects a tpl-var or a tpl-stat left without its command, loudly', () => {
+        const template = Template.fromHtml('<div data-tpl-var="user">text</div>', modules, { user: { a: 1 } });
+        const e = assert.throws(
+            () => template.render(),
+            RenderError,
+            'data-tpl-var names what',
+            'a data-tpl-var without a data-tpl-with or a data-tpl-each throws instead of binding a literal attribute',
+        );
+        assert.match(e.message, /data-tpl-var/, 'the error names the attribute that has no command to answer');
+    });
+
     it('still rejects a non-plain non-iterable, loudly', () => {
         const data = { d: new Date() };
         const template = Template.fromHtml('<div data-tpl-each="d">{{key}}</div>', modules, data);
