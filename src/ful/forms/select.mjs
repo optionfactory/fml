@@ -956,7 +956,6 @@ class Select extends Field {
     #label;
     #items;
     #itemstemplate;
-    #multiple;
     #warnedComma = false;
     #values = new Map();
     #assignments = new Claims();
@@ -971,8 +970,6 @@ class Select extends Field {
         const name = this.declared('name');
         this.#options = slots.options;
         this.#buildLoader();
-
-        this.#multiple = this.declared('multiple');
         this.#loader.prefetch?.()?.catch((/** @type any */ e) => {
             console.warn('failed to prefetch select options', this, 'reason:', e);
         });
@@ -1115,7 +1112,7 @@ class Select extends Field {
                 this.#close();
                 return;
             }
-            if (!this.#multiple) {
+            if (!this.multiple) {
                 this.#values.clear();
             }
             this.#editing = false;
@@ -1123,7 +1120,7 @@ class Select extends Field {
             this.#changed();
             this.#input.focus();
             this.#ddmenu.hide();
-            if (!this.#multiple) {
+            if (!this.multiple) {
                 this.#input.select();
             }
         });
@@ -1398,7 +1395,7 @@ class Select extends Field {
         this.#abortdload();
         this.#ddmenu.hide();
         const cleared =
-            commit && this.#editing && !this.#multiple && this.#input.value === '' && this.#values.size !== 0;
+            commit && this.#editing && !this.multiple && this.#input.value === '' && this.#values.size !== 0;
         this.#editing = false;
         if (cleared) {
             this.#values.clear();
@@ -1433,7 +1430,7 @@ class Select extends Field {
     }
     #display() {
         const entry = this.#values.values().next().value;
-        this.#input.value = this.#multiple ? '' : (entry?.label ?? '');
+        this.#input.value = this.multiple ? '' : (entry?.label ?? '');
     }
     #selection() {
         return [...this.#values.values()];
@@ -1443,7 +1440,7 @@ class Select extends Field {
         this._notifyChange({ entry: this.entry });
     }
     #syncBadges() {
-        const badges = this.#multiple
+        const badges = this.multiple
             ? Array.from(this.#values.entries()).map(([k, entry], index) => {
                   const b = document.createElement('ful-badge');
                   b.setAttribute('role', 'button');
@@ -1508,7 +1505,7 @@ class Select extends Field {
             return;
         }
         const given = (vs == null ? [] : Array.isArray(vs) ? vs : [vs]).map((k) => this.#coerceKey(k));
-        const keys = this.#multiple ? given : given.slice(0, 1);
+        const keys = this.multiple ? given : given.slice(0, 1);
         if (!this.#warnedComma && keys.some((k) => typeof k === 'string' && k.includes(','))) {
             this.#warnedComma = true;
             console.warn('a ful-select key cannot contain a comma: it is unexpressible in the value attribute', this);
@@ -1547,15 +1544,10 @@ class Select extends Field {
      * @returns {any}
      */
     get value() {
-        if (!this.#control) {
-            const held = this._heldValue();
-            const keys = [held ?? []].flat().map((k) => this.#coerceKey(k));
-            return this.multiple ? keys : (keys[0] ?? null);
-        }
-        if (this.#multiple) {
-            return [...this.#values.keys()];
-        }
-        return [...this.#values.keys()][0] ?? null;
+        const keys = this.#control
+            ? [...this.#values.keys()]
+            : [this._heldValue() ?? []].flat().map((k) => this.#coerceKey(k));
+        return this.multiple ? keys : (keys[0] ?? null);
     }
     /**
      * The selection as entries, the ones in the `change` detail: an array for
@@ -1565,7 +1557,7 @@ class Select extends Field {
      */
     get entry() {
         const selection = this.#selection();
-        if (this.#multiple) {
+        if (this.multiple) {
             return selection;
         }
         return selection[0] ?? null;
@@ -1598,15 +1590,14 @@ class Select extends Field {
             this.#close();
         }
     }
-    #useItemList;
     /**
      * Whether the select holds several keys: `value` and `entry` answer arrays,
      * the input stays empty and the selection shows as removable badges in the
-     * control. Before the render it answers the `multiple` attribute.
+     * control. It reads the `multiple` attribute, before the render too.
      * @returns {boolean}
      */
     get multiple() {
-        return this.#multiple ?? this.declared('multiple');
+        return this.hasAttribute('multiple');
     }
     /**
      * Turning it off keeps only the first selected key; either way the badges,
@@ -1614,7 +1605,6 @@ class Select extends Field {
      * @param {boolean} v
      */
     set multiple(v) {
-        this.#multiple = v;
         this.reflectTo('multiple', v);
         if (!v) {
             this.#values = new Map([...this.#values].slice(0, 1));
@@ -1629,11 +1619,10 @@ class Select extends Field {
      * @returns {boolean}
      */
     get itemList() {
-        return this.#useItemList;
+        return this.hasAttribute('item-list');
     }
     /** @param {boolean} v */
     set itemList(v) {
-        this.#useItemList = v;
         this.reflectTo('item-list', v);
     }
 }
