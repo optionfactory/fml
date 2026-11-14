@@ -2216,6 +2216,7 @@ describe('Table virtual paging', function () {
     let held;
     let total;
     let failNext;
+    let failPage;
     const all = Array.from({ length: 1000 }, (x, i) => ({ a: i, tall: i < 100, wide: i >= 500, unbreakable: i >= 800 }));
     const mount = async ({ fill = true, hidden = false, size = 20 } = {}) => {
         registry.defineComponent('loaders:table', {
@@ -2225,8 +2226,9 @@ describe('Table virtual paging', function () {
                     if (held) {
                         await held;
                     }
-                    if (failNext) {
+                    if (failNext || failPage === pageRequest.page) {
                         failNext = false;
+                        failPage = null;
                         throw new Error('boom');
                     }
                     const sorted = sortRequest?.order === 'desc' ? [...all].reverse() : all;
@@ -2285,6 +2287,7 @@ describe('Table virtual paging', function () {
         held = null;
         total = 1000;
         failNext = false;
+        failPage = null;
     });
 
     it('keeps the page in view and its neighbours, the other rows standing in as space', async () => {
@@ -2546,6 +2549,20 @@ describe('Table virtual paging', function () {
             'Showing 0 of 0',
             'the status bar counts none',
         );
+    });
+
+    it('rejects the reload when the first page it falls back to fails', async () => {
+        const tableEl = await mount();
+        await scrolledTo(tableEl, 30);
+
+        total = 5; // the window start falls past the last page
+        failPage = 0; // the fallback asks for the first page, and only that one fails
+        const failed = await tableEl.reload().then(
+            () => false,
+            () => true,
+        );
+        assert.isTrue(failed, 'the reload rejects with the error of the fallback load of the first page');
+        assert.isFalse(tableEl.querySelector('tbody[data-ref=feedback]').hidden, 'and shows the error panel');
     });
 
     it('appends as paging="infinite" does, and warns, when the page scrolls its rows', async () => {

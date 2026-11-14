@@ -1553,35 +1553,35 @@ class Table extends ParsedElement {
             }
             const total = /** @type {{ response: TablePageResponse }} */ (answers.at(-1)).response.size;
             const pageCount = Math.ceil(total / size);
-            if (!(window.first < pageCount)) {
-                return await this.load({ page: 0, size }, sortRequest, filterRequest);
-            }
-            const shown = answers.filter((a) => a.pageRequest.page < pageCount);
-            const pages = new Map(
-                shown.map((a) => [a.pageRequest.page, this.#pageRows(a.pageRequest, filterRequest, a.response)]),
-            );
-            this.#body.replaceChildren(...[...pages.values()].flat());
-            this.#window = { first: window.first, last: Math.min(window.last, pageCount - 1), pages };
-            this.#total = total;
-            this.#body.parentElement?.setAttribute('aria-rowcount', String(total + 1));
-            this.#fitSpacers();
-            await Rendering.waitForChildren(this.#body).catch(() => undefined);
-            if (claim.stale) {
+            if (window.first < pageCount) {
+                const shown = answers.filter((a) => a.pageRequest.page < pageCount);
+                const pages = new Map(
+                    shown.map((a) => [a.pageRequest.page, this.#pageRows(a.pageRequest, filterRequest, a.response)]),
+                );
+                this.#body.replaceChildren(...[...pages.values()].flat());
+                this.#window = { first: window.first, last: Math.min(window.last, pageCount - 1), pages };
+                this.#total = total;
+                this.#body.parentElement?.setAttribute('aria-rowcount', String(total + 1));
+                this.#fitSpacers();
+                await Rendering.waitForChildren(this.#body).catch(() => undefined);
+                if (claim.stale) {
+                    return;
+                }
+                this.#widenColumns();
+                this.removeAttribute('aria-busy');
+                this.#countInView();
+                for (const { pageRequest, response } of shown) {
+                    this.dispatchEvent(
+                        new CustomEvent('load:success', {
+                            bubbles: true,
+                            cancelable: false,
+                            detail: { pageRequest, sortRequest, filterRequest, response },
+                        }),
+                    );
+                }
+                this.#reconcile(false);
                 return;
             }
-            this.#widenColumns();
-            this.removeAttribute('aria-busy');
-            this.#countInView();
-            for (const { pageRequest, response } of shown) {
-                this.dispatchEvent(
-                    new CustomEvent('load:success', {
-                        bubbles: true,
-                        cancelable: false,
-                        detail: { pageRequest, sortRequest, filterRequest, response },
-                    }),
-                );
-            }
-            this.#reconcile(false);
         } catch (/** @type any */ error) {
             if (claim.stale) {
                 return;
@@ -1589,6 +1589,9 @@ class Table extends ParsedElement {
             this.#fail(error, { pageRequest: { page: window.first, size }, sortRequest, filterRequest });
             throw error;
         }
+        //the window start fell past the last page: the reload restarts as a first page, as any load does,
+        //and outside the catch above, so its failure rejects this reload rather than a superseded claim
+        return await this.load({ page: 0, size }, sortRequest, filterRequest);
     }
     #update(pageRequest, sortRequest, filterRequest, pageResponse) {
         this.#loading.setAttribute('hidden', '');
