@@ -1705,6 +1705,16 @@ describe('Table filling its container', () => {
         return [container.firstElementChild, tableEl];
     };
 
+    it('shows another page from its first row, wherever the rows of the previous one were scrolled', async () => {
+        const [, tableEl] = await mount('ful-fill');
+        const wrapper = tableEl.querySelector('ful-table-wrapper');
+        wrapper.scrollTop = 400;
+
+        await tableEl.load({ page: 1, size: 40 }, null, {});
+
+        assert.strictEqual(wrapper.scrollTop, 0, 'the rows of the page just loaded start at the top');
+    });
+
     it('scrolls its rows inside the height it is given, the header and the pagination staying in view', async () => {
         const [box, tableEl] = await mount('ful-fill');
         const wrapper = tableEl.querySelector('ful-table-wrapper');

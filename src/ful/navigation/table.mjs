@@ -1618,6 +1618,7 @@ class Table extends ParsedElement {
                     .render(),
             );
         }
+        this.#wrapper.scrollTop = 0;
         if (!this.#status) {
             this.#paginator.update({
                 current: pageRequest.page,
@@ -1625,7 +1626,6 @@ class Table extends ParsedElement {
             });
             return;
         }
-        this.#wrapper.scrollTop = 0;
         this.#total = pageResponse.size;
         if (this.#virtual) {
             this.#rowHeight = 0;
