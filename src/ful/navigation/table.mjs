@@ -1022,20 +1022,7 @@ class Table extends ParsedElement {
      * @throws what the loader rejects with, unless a newer load superseded this one
      */
     async load(pageRequest, sortRequest, filterRequest) {
-        this.#loadRequested = true;
-        this.#requestedFilters = filterRequest;
-        const claim = this.#loads.take();
-        this.#watched = [];
-        this.#endWatch?.disconnect();
-        clearTimeout(this.#jump);
-        this.#shifting = null;
-        this.#status?.appending.setAttribute('hidden', '');
-        this.#status?.failure.setAttribute('hidden', '');
-        this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
-        this.#feedback.setAttribute('hidden', '');
-        this.#noAutoload.setAttribute('hidden', '');
-        this.#empty.setAttribute('hidden', '');
-        this.setAttribute('aria-busy', 'true');
+        const claim = this.#startLoad(filterRequest);
         let lastPage;
         try {
             const pageResponse = await this.#loader.load(pageRequest, sortRequest, filterRequest);
@@ -1083,6 +1070,31 @@ class Table extends ParsedElement {
             throw error;
         }
         return await this.load({ page: lastPage, size: pageRequest.size }, sortRequest, filterRequest);
+    }
+    /**
+     * Starts a load: whatever is in flight or awaited is superseded, the
+     * panels and the status bar go back to the rows, the spinner panel
+     * showing only when there are none, and the table is busy.
+     * @param {Record<string, any>} filterRequest the filters a page, a sort
+     * or a size change carries from now on
+     * @returns {{ readonly stale: boolean }} the claim of the load
+     */
+    #startLoad(filterRequest) {
+        this.#loadRequested = true;
+        this.#requestedFilters = filterRequest;
+        const claim = this.#loads.take();
+        this.#watched = [];
+        this.#endWatch?.disconnect();
+        clearTimeout(this.#jump);
+        this.#shifting = null;
+        this.#status?.appending.setAttribute('hidden', '');
+        this.#status?.failure.setAttribute('hidden', '');
+        this.#loading.toggleAttribute('hidden', this.#body.childElementCount > 0);
+        this.#feedback.setAttribute('hidden', '');
+        this.#noAutoload.setAttribute('hidden', '');
+        this.#empty.setAttribute('hidden', '');
+        this.setAttribute('aria-busy', 'true');
+        return claim;
     }
     /**
      * Hands the loader to the callback, for runtime reconfigurations, such as
@@ -1531,16 +1543,9 @@ class Table extends ParsedElement {
      */
     async #reloadWindow() {
         const window = /** @type {{ first: number, last: number, pages: Map<number, Element[]> }} */ (this.#window);
-        const status = /** @type TableStatus */ (this.#status);
         const { sortRequest, filterRequest } = this.#latestRequest;
         const size = this.#latestRequest.pageRequest.size;
-        this.#requestedFilters = filterRequest;
-        const claim = this.#loads.take();
-        clearTimeout(this.#jump);
-        this.#shifting = null;
-        status.appending.setAttribute('hidden', '');
-        status.failure.setAttribute('hidden', '');
-        this.setAttribute('aria-busy', 'true');
+        const claim = this.#startLoad(filterRequest);
         const wanted = Array.from({ length: window.last - window.first + 1 }, (_, i) => window.first + i);
         try {
             const answers = await Promise.all(
