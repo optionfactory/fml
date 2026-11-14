@@ -1501,6 +1501,10 @@ class Table extends ParsedElement {
             status.appending.setAttribute('hidden', '');
             this.#countInView();
             for (const { pageRequest, response } of answers) {
+                if (claim.stale) {
+                    //a listener that started a load of its own superseded this shift: its pages own nothing from here on
+                    return;
+                }
                 this.dispatchEvent(
                     new CustomEvent('load:success', {
                         bubbles: true,
@@ -1571,6 +1575,10 @@ class Table extends ParsedElement {
                 this.removeAttribute('aria-busy');
                 this.#countInView();
                 for (const { pageRequest, response } of shown) {
+                    if (claim.stale) {
+                        //a listener that started a load of its own superseded this reload: its pages own nothing from here on
+                        return;
+                    }
                     this.dispatchEvent(
                         new CustomEvent('load:success', {
                             bubbles: true,
