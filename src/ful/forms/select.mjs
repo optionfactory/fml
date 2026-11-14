@@ -468,14 +468,13 @@ class Dropdown extends ParsedElement {
     #options = new Map();
     #shows = new Claims();
     /**
-     * the pages of the current show: how to ask for the next, the last asked for, and what the last answered
-     * @type {{ next: ((page: number) => any)|null, page: number, more: boolean, total: number|null, loading: boolean }}
+     * the pages of the current show: how to ask for the next, the keys selected when it was shown (which the
+     * rows of a later page are marked against), the last page asked for, and what the last answered
+     * @type {{ next: ((page: number) => any)|null, keys: any[], page: number, more: boolean, total: number|null, loading: boolean }}
      */
-    #paging = { next: null, page: 0, more: false, total: null, loading: false };
+    #paging = { next: null, keys: [], page: 0, more: false, total: null, loading: false };
     /** @type {IntersectionObserver|null} watches the last row while another page follows */
     #endWatch = null;
-    /** the keys selected when the dropdown was shown, which the rows of a later page are marked against */
-    #keys = [];
     /**
      * @param {{ slots: Record<string, DocumentFragment> }} conf
      */
@@ -569,12 +568,10 @@ class Dropdown extends ParsedElement {
         // a fresh list starts at its top at once: gliding there from where the previous list was scrolled
         // would show its last row on the way and have the next page asked
         this.#menu.scrollTop = 0;
-        const current = values.findIndex(({ key }) => keys.some((r) => String(r) === String(key)));
         this.#highlight(
-            current >= 0
-                ? this.#menu.children[current]
-                : (this.#menu.querySelector('li[selected]:not([aria-disabled="true"])') ??
-                      this.#menu.querySelector('li:not([aria-disabled="true"])')),
+            this.#menu.querySelector('li[picked]') ??
+                this.#menu.querySelector('li[selected]:not([aria-disabled="true"])') ??
+                this.#menu.querySelector('li:not([aria-disabled="true"])'),
         );
     }
     /**
@@ -600,16 +597,8 @@ class Dropdown extends ParsedElement {
                 li.removeAttribute('selected');
             }
             const disabled = !!entry?.metadata?.disabled;
-            if (disabled) {
-                li.setAttribute('aria-disabled', 'true');
-            } else {
-                li.removeAttribute('aria-disabled');
-            }
-            if (disabled && entry.metadata.reason) {
-                li.setAttribute('title', String(entry.metadata.reason));
-            } else {
-                li.removeAttribute('title');
-            }
+            Attributes.set(li, 'aria-disabled', disabled ? 'true' : null);
+            Attributes.set(li, 'title', disabled && entry.metadata.reason ? String(entry.metadata.reason) : null);
         }
         return fragment;
     }
@@ -668,7 +657,7 @@ class Dropdown extends ParsedElement {
             paging.page += 1;
             paging.more = answer.more;
             paging.total = answer.total;
-            this.#menu.append(this.#rows(answer.entries, this.#keys));
+            this.#menu.append(this.#rows(answer.entries, paging.keys));
         } catch (e) {
             if (claim.stale) {
                 return;
@@ -711,8 +700,8 @@ class Dropdown extends ParsedElement {
     hide() {
         this.#shows.invalidate();
         this.#endWatch?.disconnect();
-        this.#paging = { next: null, page: 0, more: false, total: null, loading: false };
-        if (this.matches(':popover-open')) {
+        this.#paging = { next: null, keys: [], page: 0, more: false, total: null, loading: false };
+        if (this.shown) {
             this.hidePopover();
         }
         this.#activated(null);
@@ -748,9 +737,8 @@ class Dropdown extends ParsedElement {
     async show(loader, keys = []) {
         const claim = this.#shows.take();
         this.#endWatch?.disconnect();
-        this.#paging = { next: loader, page: 0, more: false, total: null, loading: false };
-        this.#keys = keys;
-        if (!this.matches(':popover-open')) {
+        this.#paging = { next: loader, keys, page: 0, more: false, total: null, loading: false };
+        if (!this.shown) {
             this.showPopover();
         }
         this.#menu.setAttribute('hidden', '');
