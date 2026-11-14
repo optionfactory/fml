@@ -74,6 +74,7 @@
         "chai": "^6.2.2",
         "cssnano": "^9.0.1",
         "peggy": "^5.1.0",
+        "playwright": "^1.65.0",
         "postcss": "^8.5.26",
         "rollup": "^4.18.0",
         "terser": "^5.49.0",
